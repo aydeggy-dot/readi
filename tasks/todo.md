@@ -19,9 +19,22 @@
 - [x] S3 service worker active in `next dev` → disabled in development
 - [x] S4 API startup failure was an unhandled rejection → logged, reported, exit 1
 - [x] N1 worker docs served in production → disabled
-- [ ] S5 (M1, needs auth) default-deny global guard; mark `/health` explicitly public; decide with the owner
-      whether `/status` stays public in production or shows only an overall status
+- [x] S5a (M1 phase 1) default-deny global guard; `/health` explicitly `@Public()`
+- [ ] S5b (M1 phase 2) `/status` admin-only in production, public in development (owner decision 5)
 - [ ] N4 (M10) remove the landing-page link to `/status` before launch
+
+## M1 — auth, profile, consent, onboarding (branch `feat/m1-auth-onboarding`)
+
+Decisions (owner, 2026-09-19): defaults for 2–5 and 8; CV-parse model `claude-sonnet-5` plus a
+side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); stop after each phase.
+
+- [x] Phase 1 — API foundation: Better Auth in Nest (ADR-0009), default-deny guard + RBAC, email/SMS
+      providers + dev mailbox (not registered in production), `.invalid` refusal, rate limits + OTP caps,
+      trusted client IP via web proxy secret, PII log scrubbing (Nest + Python), audit log, `admin:grant`
+- [ ] Phase 2 — web auth + onboarding UI (api-client generation, pages, proxy.ts redirects, /status admin-only in prod)
+- [ ] Phase 3 — CV pipeline (bucket CORS, presign/confirm, BullMQ, worker /cv/parse, ai_call_log, compare script)
+- [ ] Phase 4 — export + deletion (ADR-0011 tombstones)
+- [ ] Phase 5 — Playwright e2e + CI job, ADR-0010/0011, subprocessors, docs, review
 
 ## Carried forward
 

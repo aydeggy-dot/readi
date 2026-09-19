@@ -92,6 +92,8 @@ pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker fo
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003); commit the generated files
 pnpm check:contracts         # regenerate and fail on drift (as CI does)
 pnpm db:seed                 # load /content/seed (stub until M2)
+pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
+curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite (from M4)
 ```
@@ -179,6 +181,9 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   lazy-load optional SDKs (ADR-0001).
 - Turborepo runs tasks in strict env mode: every env var a task reads must be declared in `turbo.json`
   (`env` for build/test so caches key on it, `passThroughEnv` for dev), or it is silently dropped.
+- API routes are default-deny: every controller route needs a session unless marked `@Public()`, and
+  `@Roles()` restricts by role. Depend on `AuthService`, never on Better Auth types (ADR-0005/0009).
+- Every email goes through `EmailSender`, which refuses `.invalid` placeholder addresses (ADR-0009).
 - Error reporting never carries candidate data: Sentry is configured without request bodies or stack-frame
   locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.

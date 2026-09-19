@@ -21,3 +21,9 @@
   (`include_local_variables=True`) regardless of `send_default_pii`. The Node SDK (10.x) gates bodies on
   `sendDefaultPii`; check each SDK's defaults rather than assuming.
 - Status/health UIs render error codes from the API: map them through i18n, never display them raw.
+- The Nest SWC build does not copy JSON files into dist/: tests passed while the built API crashed.
+  Keep runtime data in .ts modules, and smoke-test the built app (`scripts/smoke-api.sh`, in CI).
+- `next start` forwards the client's X-Forwarded-For verbatim through rewrites and adds nothing; never
+  trust it for rate limiting. Headers set in proxy.ts do reach rewrite destinations (ADR-0009).
+- Next.js rewrite destinations are resolved at build time (API_INTERNAL_URL must be set for `next build`).
+- Better Auth `input: false` fields: ones with a default are silently ignored, others rejected (400).

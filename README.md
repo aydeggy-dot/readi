@@ -22,7 +22,9 @@ docker compose -f infra/docker-compose.yml up -d
 # 2. Configuration (defaults point at the compose services)
 cp apps/api/.env.example apps/api/.env
 cp apps/ai-worker/.env.example apps/ai-worker/.env
-cp apps/web/.env.example apps/web/.env.local       # optional: defaults work without it
+cp apps/web/.env.example apps/web/.env.local
+# In apps/api/.env set BETTER_AUTH_SECRET, and set the same WEB_PROXY_SECRET in both apps:
+openssl rand -base64 48
 
 # 3. Dependencies and database
 pnpm install
@@ -35,6 +37,9 @@ pnpm dev:worker         # AI worker on http://localhost:8000 (separate terminal)
 ```
 
 Open http://localhost:3002/status to see API, database, and Redis health.
+Emails and SMS are not sent locally: read them (verification links, OTP codes) from the dev mailbox,
+`http://localhost:4000/api/dev/mailbox?to=<email or +234…>`. To make yourself an admin after signing
+up: `pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin`.
 API docs (development only): http://localhost:4000/docs.
 
 ## Checks

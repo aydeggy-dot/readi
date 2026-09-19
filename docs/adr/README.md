@@ -15,3 +15,4 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0006](0006-embeddings-voyage.md) | Voyage AI for embeddings | Accepted |
 | [0007](0007-ai-cost-micro-usd.md) | AI cost in integer micro-USD, in a separate `ai_call_log` | Accepted |
 | [0008](0008-langfuse-personal-data-store.md) | Langfuse is treated as a personal-data store | Accepted |
+| [0009](0009-auth-integration.md) | Auth integration: Better Auth in NestJS, same-origin cookies, trusted client IP | Accepted |
