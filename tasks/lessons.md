@@ -59,3 +59,15 @@
   installed here. A project-local entry with `--browser chromium --executable-path` pointing at the
   Playwright Chromium in `~/.cache/ms-playwright` works; skills and MCP servers added mid-session only
   load after a restart (`claude --continue`) or `/mcp` reconnect.
+- pnpm 12 forwards the `--` separator to the script, so `pnpm … admin:grant -- --email x` reaches Node as
+  `-- --email x` and `parseArgs` treats everything after it as positional (ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL).
+  CLIs strip a leading `--` (`cliArgs()`); documented invocations are only as good as their last run.
+- `nest build` honours `deleteOutDir`, so a CLI script that builds before running (`admin:grant`,
+  `storage:setup`) wipes `apps/api/dist` under the owner's `nest start --watch`. Build CLIs into their own
+  outDir (`nest build -p tsconfig.cli.json` → `dist-cli/`).
+- Adding API code that imports a NEW shared-types contract restarts the owner's dev API before
+  `packages/shared-types/dist` has it, and the app dies at startup (`createZodDto(undefined)`). Build
+  shared-types first, then write the API code.
+- Better Auth: a `databaseHooks.session.create.before` hook that throws `APIError.from(...)` with a `code`
+  blocks every sign-in method at one point; the OAuth callback turns that code into `?error=<CODE>` on the
+  error URL (appended, so the login page may see several `error` values).

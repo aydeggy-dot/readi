@@ -94,6 +94,7 @@ pnpm check:contracts         # regenerate both and fail on drift (as CI does)
 pnpm db:seed                 # load /content/seed (stub until M2)
 pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
+pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -150,9 +151,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Never log transcripts, CVs, emails, or phone numbers to application logs or Sentry. Use ids.
 - Langfuse traces contain personal data: opaque ids only, CV contact details masked, same retention as
   recordings, deleted on account deletion (ADR-0008).
-- Support data export and account deletion endpoints from day one. Deletion removes personal data; rows that must
-  be kept (payments, subscriptions, webhook events, audit logs) are retained with personal data stripped and the
-  user reference replaced by a tombstone id.
+- Support data export and account deletion endpoints from day one (ADR-0011). Deletion is a request with a typed
+  confirmation and a recent sign-in, then a soft delete that blocks every sign-in method, then erasure by an hourly
+  sweep after a 7-day grace period; cancelling in between is an audited admin action. Rows that must be kept
+  (payments, subscriptions, webhook events, audit logs) reference the user by plain uuid with no foreign key and are
+  retained with that id replaced by a tombstone id; list any new such column in `TOMBSTONED_COLUMNS` (a schema test
+  fails otherwise). Exports never contain password hashes or tokens and identify staff only as "admin".
 
 ### Performance & low bandwidth
 - Mobile-first responsive layouts; test at 360px width.

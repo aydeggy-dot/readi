@@ -45,6 +45,9 @@ http://localhost:3002/status shows API, database, and Redis health (admins only 
 Emails and SMS are not sent locally: read them (verification links, OTP codes) from the dev mailbox,
 `http://localhost:4000/api/dev/mailbox?to=<email or +234…>`. To make yourself an admin after signing
 up: `pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin`.
+Profile → **Your data and account** downloads everything we hold about you, or deletes the account
+(7-day grace period, ADR-0011); support cancels a deletion with
+`pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com`.
 API docs (development only): http://localhost:4000/docs.
 
 ## Checks

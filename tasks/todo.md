@@ -59,7 +59,17 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
     and DOCX, ignore an injected instruction, output no contact details. Sonnet 5 ≈ $0.006/CV, Haiku
     4.5 ≈ $0.002/CV; Sonnet's gaps were more relevant (Haiku flagged "no version control" with Git listed).
   - Pending owner: run `compare_cv_parse` on real CVs and decide the default model (sonnet-5 for now).
-- [ ] Phase 4 — export + deletion (ADR-0011 tombstones)
+- [x] Phase 4 — export + deletion (ADR-0011): JSON export with a 15-minute CV link; deletion with a typed
+      confirmation and a sign-in in the last 15 minutes; soft delete → 7-day grace (every sign-in method
+      blocked with `ACCOUNT_DELETION_PENDING`) → hourly erasure sweep with tombstoned `audit_logs` /
+      `ai_call_log` rows; `admin:cancel-deletion` CLI; `/profile/account` and `/account-deleted` pages
+  - Owner action: set `SUPPORT_EMAIL` (apps/api/.env) and `NEXT_PUBLIC_SUPPORT_EMAIL` (apps/web/.env.local)
+    to the real support address before production; both refuse `.invalid` there.
+  - Fixed on the way: `pnpm … -- --flag` reached the CLIs with a literal `--` (so `admin:grant` never
+    parsed its flags), and the CLI scripts' `nest build` wiped `apps/api/dist` under a running dev server;
+    CLIs now build to `dist-cli` and strip the separator.
+  - Dev data: `phase4-check@example.com` (password `correct horse battery staple`) is left in the dev
+    database from the walkthrough; delete it whenever you like.
 - [ ] Phase 5 — Playwright e2e + CI job, subprocessors, docs, review (ADR-0010 and ADR-0012 already written; ADR-0011 in phase 4)
 
 ## D1 — design system (after M1 merges; own branch from `main`)
