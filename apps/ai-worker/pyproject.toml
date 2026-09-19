@@ -1,0 +1,55 @@
+[project]
+name = "readi-worker"
+version = "0.0.0"
+description = "Readi AI worker: live interviewer agent, evaluator, delivery metrics"
+requires-python = ">=3.12,<3.13"
+# Direct dependencies are pinned exactly (policy: ADR-0001); uv.lock pins the rest.
+dependencies = [
+    "fastapi==0.141.1",          # HTTP API framework (stack decision, CLAUDE.md §2)
+    "uvicorn[standard]==0.52.4", # ASGI server; [standard] adds uvloop/httptools and watchfiles for --reload
+    "pydantic==2.13.5",          # boundary models (stack decision)
+    "pydantic-settings==2.15.0", # env validation at startup
+    "redis==8.1.0",              # ephemeral engine state + health check (ADR-0004)
+    "sentry-sdk[fastapi]==2.68.1", # error reporting; disabled without SENTRY_DSN
+]
+
+[dependency-groups]
+dev = [
+    "datamodel-code-generator==0.76.2", # JSON Schema -> Pydantic contract codegen (ADR-0003)
+    "httpx2==2.12.0",                   # HTTP client for FastAPI's TestClient (Starlette deprecates httpx)
+    "mypy==2.3.1",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.16.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["readi_worker/contracts/generated"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "ASYNC", "S", "PT", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["readi_worker", "tests"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

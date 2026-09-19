@@ -1,0 +1,6 @@
+{
+  "name": "@readi/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed API client generated from the API's OpenAPI document (placeholder until M1)."
+}

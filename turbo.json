@@ -1,0 +1,44 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalPassThroughEnv": ["CI"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NODE_ENV", "API_INTERNAL_URL", "SENTRY_DSN", "NEXT_PUBLIC_*"]
+    },
+    "gen:contracts": {
+      "dependsOn": ["^gen:contracts", "build"],
+      "outputs": ["generated/**", "readi_worker/contracts/generated/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "gen:contracts"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL", "REDIS_URL"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "ENVIRONMENT",
+        "HOST",
+        "PORT",
+        "LOG_LEVEL",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "HEALTH_CHECK_TIMEOUT_MS",
+        "SENTRY_DSN",
+        "API_INTERNAL_URL",
+        "NEXT_PUBLIC_*"
+      ]
+    }
+  }
+}
