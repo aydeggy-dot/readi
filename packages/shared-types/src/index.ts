@@ -5,3 +5,4 @@ export * from "./contracts/consents.js";
 export * from "./contracts/cv.js";
 export * from "./constants.js";
 export { contractRegistry } from "./contracts/registry.js";
+export * from "./contracts/account.js";

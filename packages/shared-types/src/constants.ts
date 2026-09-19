@@ -73,3 +73,16 @@ export const PARSED_CV_LIMITS = {
   gapLength: 300,
   technologies: 15,
 } as const;
+
+/**
+ * Account deletion (ADR-0011): the word typed to confirm, the grace period before personal data is
+ * erased, and how recently the user must have signed in to ask for it.
+ */
+export const ACCOUNT_DELETION = {
+  confirmation: "DELETE",
+  graceDays: 7,
+  recentSignInMinutes: 15,
+} as const;
+
+/** Data export (ADR-0011): how long the CV download link in an export stays valid. */
+export const DATA_EXPORT_CV_LINK_MINUTES = 15;
