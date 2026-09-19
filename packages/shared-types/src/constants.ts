@@ -51,3 +51,25 @@ export const CONSENT_VERSIONS = {
   camera_coaching: 1,
   marketing: 1,
 } as const satisfies Record<(typeof CONSENT_TYPES)[number], number>;
+
+/** CV uploads (spec §4.1): PDF or DOCX, at most 5 MB. */
+export const CV_CONTENT_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+] as const;
+export const CV_MAX_BYTES = 5 * 1024 * 1024;
+
+export const CV_STATUSES = ["none", "processing", "parsed", "unreadable", "failed"] as const;
+
+/** Limits on parsed CV content (applied to LLM output and to candidate edits alike). */
+export const PARSED_CV_LIMITS = {
+  skills: 60,
+  skillLength: 60,
+  projects: 15,
+  experience: 20,
+  gaps: 10,
+  titleLength: 120,
+  textLength: 600,
+  gapLength: 300,
+  technologies: 15,
+} as const;

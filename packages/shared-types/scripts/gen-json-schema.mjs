@@ -9,6 +9,18 @@ import { contractRegistry } from "../dist/index.js";
 
 const outFile = join(import.meta.dirname, "..", "generated", "json-schema", "contracts.json");
 
+// Formats datamodel-codegen maps to typed Python values (UUID, datetime, date). Zod also emits a
+// `pattern` for them, which Pydantic cannot apply to a non-string type; the format already says it.
+const TYPED_FORMATS = new Set(["uuid", "date-time", "date", "time", "email"]);
+
+/** Removes `pattern` wherever a typed `format` makes it redundant (mutates `node`). */
+const dropRedundantPatterns = (node) => {
+  if (Array.isArray(node)) return node.forEach(dropRedundantPatterns);
+  if (typeof node !== "object" || node === null) return;
+  if (TYPED_FORMATS.has(node.format)) delete node.pattern;
+  Object.values(node).forEach(dropRedundantPatterns);
+};
+
 /** @type {Record<string, unknown>} */
 const defs = {};
 const addDef = (name, schema) => {
@@ -38,6 +50,8 @@ for (const [name, schema] of Object.entries(contractRegistry).sort(([a], [b]) =>
       `Contract "${name}" must not declare a root .meta({ id }); it is named by its registry key.`,
     );
   }
+  dropRedundantPatterns($defs);
+  dropRedundantPatterns(root);
   for (const [defName, def] of Object.entries($defs)) addDef(defName, def);
   addDef(name, root);
 }
