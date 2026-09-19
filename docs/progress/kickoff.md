@@ -95,12 +95,17 @@ Notes:
   reminder timing and SMS (#10, #12).
 - **M9** — `ai_call_log` retention / rollup policy (ADR-0007).
 
-## 6. Known stale text in `docs/PROMPTS.md`
+## 6. `docs/PROMPTS.md` alignment
 
-PROMPTS.md was not edited. Where it conflicts with the above, CLAUDE.md, the spec, and the ADRs win:
+The milestone prompts were patched after kickoff to match these decisions, so each milestone prompt now
+carries its own deferred items:
 
-- **M0:** "GET /health on api and ai-worker (checks DB/Redis)" → the worker checks Redis only (ADR-0004).
-- **M2:** "apps/admin, or /admin routes in web" → `/admin` routes in web.
-- **M4:** "Cost + latency logging … to Langfuse and UsageLedger" → Langfuse and `ai_call_log` (ADR-0007).
-- **M8:** "Renewal reminder email 3 days before renewal" → 1 day (weekly) / 3 days (monthly/annual), plus SMS for
-  phone sign-ups.
+- **M0:** worker `/health` checks Redis only; Vitest for Nest; Python turbo wrapper; contract codegen + drift
+  check; Serwist check; `.gitattributes`; `pnpm doctor`.
+- **M1:** deletion keeps required rows with personal data stripped; `User.signup_method`.
+- **M2:** `/admin` in web; `Topic`/`TrackTopic`; `vector(1024)` + `embedding_model`; embeddings via the worker.
+- **M3:** no worker DB access, session bundle + events, transport ADR; least-recently-seen fallback; Langfuse rules.
+- **M4:** generated Pydantic validation; eval CI manual-dispatch; cost to `ai_call_log`.
+- **M6:** propose readiness constants and stop for sign-off first.
+- **M8:** USD only on Stripe; email at checkout; 1-day / 3-day reminders plus SMS.
+- **M9:** cost from `ai_call_log` and its retention policy; Langfuse trace retention job.

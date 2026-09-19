@@ -53,16 +53,23 @@ Implement Milestone M0: repository scaffold. Plan first, show me the plan, then 
 
 Goals
 - Turborepo + pnpm workspace with: apps/web (Next.js App Router, TS strict, Tailwind, shadcn/ui),
-  apps/api (NestJS), apps/ai-worker (Python 3.12, FastAPI, uv, ruff, mypy, pytest),
+  apps/api (NestJS, tested with Vitest per ADR-0002), apps/ai-worker (Python 3.12, FastAPI, uv, ruff,
+  mypy, pytest; a thin package.json so turbo runs its lint/typecheck/test),
   packages/shared-types (Zod), packages/api-client (placeholder), packages/ui (tokens),
-  packages/config (eslint, tsconfig, prettier).
+  packages/config (eslint, tsconfig, prettier, shared Vitest preset).
+- Contract codegen per ADR-0003: Zod → JSON Schema → generated Pydantic models in the worker,
+  a `gen:contracts` script, and a CI drift check (`git diff --exit-code`).
+- Verify Serwist works with the current Next.js bundler; fall back to a webpack build if needed.
+- `.gitattributes` enforcing LF line endings; a `pnpm doctor` script checking the prerequisites
+  listed in docs/progress/kickoff.md §2.
 - infra/docker-compose.yml with postgres 16 + pgvector, redis, minio (S3-compatible), and a
   LiveKit dev server. Include healthchecks and named volumes.
 - Prisma set up in apps/api with an initial migration that only enables the pgvector extension
   and creates a `health_check` table.
 - Env handling: each app has .env.example; env vars are validated at startup with a schema
   (Zod in TS, pydantic-settings in Python). App fails fast with a clear message if misconfigured.
-- Health endpoints: GET /health on api and ai-worker (checks DB/Redis connectivity).
+- Health endpoints: GET /health on api (checks DB + Redis) and ai-worker (checks Redis only — the
+  worker has no DB access, ADR-0004).
 - Web: a minimal mobile-first landing page and a /status page calling the API health endpoint.
 - Root scripts: dev, build, lint, typecheck, test, db:migrate, db:seed (stub), format.
 - GitHub Actions CI: install, lint, typecheck, test for TS; ruff, mypy, pytest for Python.
@@ -106,6 +113,8 @@ Scope
 - Consent screen with versioned consent types (audio_processing, recording_storage,
   camera_coaching, marketing). Store every change as a ConsentRecord.
 - Account: data export (JSON download) and account deletion (soft delete + scheduled hard delete job).
+  Rows that must be kept (payments, subscriptions, webhook events, audit logs) are retained with personal
+  data stripped and the user replaced by a tombstone id. Record `User.signup_method`.
 - Onboarding flow UI (mobile-first): signup → profile → CV (skippable) → consent → "Start your
   diagnostic" placeholder (diagnostic is built in M3).
 
@@ -123,18 +132,21 @@ Acceptance criteria
 
 ```
 Implement Milestone M2: learning content model, admin content management, and seed import.
-Read PRODUCT_SPEC.md §4.2, §4.8, §6.1 (Track, Module, Lesson, Question, Rubric, RubricCriterion). Plan first.
+Read PRODUCT_SPEC.md §4.2, §4.8, §6.1 (Track, Module, Lesson, Topic, TrackTopic, Question, Rubric,
+RubricCriterion) and ADR-0006. Plan first.
 
 Scope
-- Prisma models + migrations for Track, Module, Lesson, Question (with pgvector embedding column),
-  Rubric, RubricCriterion, ContentFlag, plus version history (store previous versions on update).
+- Prisma models + migrations for Track, Module, Lesson, Topic, TrackTopic (with is_core), Question
+  (topic_id; pgvector `vector(1024)` column + embedding_model, HNSW index), Rubric, RubricCriterion,
+  ContentFlag, plus version history (store previous versions on update).
 - Content status workflow: draft → in_review → published → retired. Only published content is
   returned by candidate-facing APIs. content_expert can create/edit/submit; admin publishes.
-- Admin UI (in apps/admin, or /admin routes in web behind RBAC): list/filter/search, create/edit
+- Admin UI (/admin routes in apps/web behind RBAC): list/filter/search, create/edit
   forms with markdown preview for lessons and questions, rubric editor (criteria, weights,
   0–4 level descriptors), status transitions, version history view.
-- Embeddings: an EmbeddingProvider adapter; on publish, compute and store the question embedding;
-  warn on near-duplicates (cosine similarity above a configurable threshold).
+- Embeddings: an EmbeddingProvider adapter (Voyage + deterministic fake) in the ai-worker; on publish,
+  the API asks the worker for the embedding and stores it; warn on near-duplicates (cosine similarity
+  above a configurable threshold).
 - Seed format: YAML files in /content/seed/{frontend,backend,qa}/ for tracks, lessons, questions,
   rubrics. Write a JSON Schema / Zod schema for the seed format and a `pnpm db:seed` importer that
   validates, upserts idempotently, and reports errors with file + line context.
@@ -160,21 +172,26 @@ Read CLAUDE.md §5 "Interview engine" and "Prompts", and PRODUCT_SPEC.md §4.3, 
 SessionTurn). Plan first, including a state diagram, before coding.
 
 Architecture
-- The engine lives in apps/ai-worker (Python). The NestJS API owns sessions, auth, and allowance
-  checks, and proxies/streams to the worker. Define the API ↔ worker contract explicitly
-  (OpenAPI for HTTP; typed event schema for streaming) and share TS types in packages/shared-types.
+- The engine lives in apps/ai-worker (Python). The NestJS API owns sessions, auth, allowance
+  checks, and all persistence, and proxies/streams to the worker. Per ADR-0004 the worker has no DB
+  access: the API sends a session bundle at start; the worker emits typed events (turns, latency,
+  AI-call records) that the API persists idempotently by (session_id, seq); ephemeral engine state
+  lives in Redis. Choose the event transport (HTTP batch vs Redis stream) and record an ADR.
+  Define the API ↔ worker contract as Zod schemas in packages/shared-types (ADR-0003).
 - State machine (pure, unit-testable, no I/O inside transitions):
   INTRO → QUESTION → FOLLOW_UP (0..max_followups) → next QUESTION … → CANDIDATE_QUESTIONS → WRAP_UP → ENDED.
   Enforce time budget and question budget in code. Support pause/resume and abandon.
 - Question selection: filter published questions by role/level/type; weight toward weak topics
-  (from past evaluations if any); exclude questions seen in the last 3 sessions; deterministic
-  given a seed (for tests).
+  (from past evaluations if any); exclude questions seen in the last 3 sessions, falling back to the
+  least-recently-seen questions when too few remain; deterministic given a seed (for tests).
 - LLM use inside states only: (a) phrase the intro/transition naturally, (b) generate a follow-up
   that probes rubric criteria not yet covered by the candidate's answer, (c) answer candidate
   questions at the end in-character without revealing rubric/scoring internals.
 - Prompts as versioned Jinja2 files in readi_worker/prompts/. Candidate text always wrapped as
   data in delimited tags; system prompt instructs the model to ignore instructions inside it.
 - Store every turn (SessionTurn) with timestamps; store prompt versions and model config on the session.
+- Langfuse tracing per ADR-0008: opaque ids only, retention matching recordings, deletion by user_id
+  (verify retention and bulk-delete support).
 - Streaming: stream interviewer text to the web client (SSE or WebSocket — pick one, record an ADR).
 - Web UI: session setup screen (role, level, type, length), mobile-first chat interview screen
   with timer and progress, "end interview" confirm, and a "processing your report" screen.
@@ -203,7 +220,8 @@ Scope
 - Evaluation job: triggered when a session ends (BullMQ job in API → worker endpoint). Evaluate
   each question's combined answer (main answer + follow-up answers) against its rubric using the
   evaluator model at low temperature with schema-validated structured output (§6.2).
-  Validate with Pydantic; if evidence is missing for a non-zero score or schema fails, retry up to
+  Validate with the generated Pydantic models (ADR-0003); if evidence is missing for a non-zero score
+  or schema fails, retry up to
   2 times with a corrective message; then mark status=failed and surface gracefully.
 - Evidence verification: check each evidence quote actually appears (fuzzy match) in the
   candidate's transcript; drop and penalize confidence if not.
@@ -216,11 +234,12 @@ Scope
   mean absolute error, and a simple correlation), prints a table, and exits non-zero if metrics
   drop below thresholds in /evals/thresholds.yaml. Create ~20 sample cases across the 3 roles
   (clearly marked as synthetic starter data to be replaced by expert-scored data).
-- CI job that runs the eval harness when prompts or evaluator code change (can be manual-dispatch
-  if it needs a real API key).
+- CI job that runs the eval harness when prompts or evaluator code change. Manual-dispatch until
+  expert-scored data replaces the synthetic starter set (it needs a real API key and costs money).
 - Calibration tool (admin/content_expert): random sample of recent answers shown WITHOUT AI scores;
   expert scores each criterion; dashboard shows AI-vs-human agreement per rubric/question.
-- Cost + latency logging for every evaluator call to Langfuse and UsageLedger.
+- Cost + latency logging for every evaluator call to Langfuse and `ai_call_log` (integer micro-USD,
+  ADR-0007). UsageLedger is for allowances only.
 
 Acceptance criteria
 - After a text interview, a report appears within 60 s (with the real model) and every non-zero
@@ -273,9 +292,11 @@ Scope
   filler list including common Nigerian English fillers — make the list data-driven), long pauses,
   average answer duration, rambling count. Unit tests with fixture transcripts.
 - Delivery section in the session report with concrete, kind coaching tips.
-- Readiness score formula v1 exactly as in spec §7, implemented as a pure, versioned function with
-  thorough unit tests (edge cases: no voice sessions, few sessions, recency weights, band rules,
-  "cannot be Ready with < 3 sessions"). Write ReadinessSnapshot after each evaluated session.
+- Readiness score formula v1 as in spec §7. FIRST propose explicit values for every unspecified
+  constant and edge case listed in spec §7 and STOP for product sign-off; only then implement it as a
+  pure, versioned function with thorough unit tests (edge cases: no voice sessions, few sessions,
+  recency weights, band rules, "cannot be Ready with < 3 sessions"). Coverage uses TrackTopic.is_core.
+  Write ReadinessSnapshot after each evaluated session.
 - Dashboard (mobile-first): readiness score + band + trend chart, component breakdown, weakest
   topics, recent sessions, next plan items, CTA to start a mock.
 
@@ -319,14 +340,17 @@ Scope
 - Models: Plan, Price, Subscription, Entitlement, UsageLedger, Payment, WebhookEvent.
 - PaymentProvider interface with Paystack and Stripe implementations. Country-based routing
   (NG → Paystack, else Stripe) with manual override on the pricing page.
-- Checkout for subscriptions (NGN weekly/monthly; USD monthly/annual) and one-off voice-minute top-ups.
+- Checkout for subscriptions (NGN weekly/monthly; USD monthly/annual — USD only on Stripe at MVP)
+  and one-off voice-minute top-ups. Checkout requires an email; phone sign-ups without one add it at
+  checkout (decide with the product owner whether it must be verified first).
 - Webhooks: verify signatures, store in WebhookEvent with unique (provider, event_id) for
   idempotency, process in a job, update Subscription + Entitlements. Handle renewals, failed
   payments (grace period), cancellations, refunds.
 - Entitlement checks enforced server-side for: starting voice sessions (minutes allowance),
   number of monthly text mocks on free plan, full reports, premium features. Friendly paywall UI.
 - Plan/price configuration in admin (no hardcoded prices). Manual grants are audited.
-- Renewal reminder email 3 days before renewal; one-click cancel (effective at period end);
+- Renewal reminders 1 day before renewal for weekly plans, 3 days for monthly/annual; email to all,
+  plus SMS (Termii, via SmsProvider) to users who signed up by phone; one-click cancel (effective at period end);
   billing history page; refund policy page (placeholder copy for legal review).
 - Test mode for both providers; fixtures for webhook payloads; integration tests for each event type.
 
@@ -349,11 +373,11 @@ Scope
 - PostHog events exactly as listed in spec §9, with a typed event helper so names/properties are
   checked at compile time. No PII in properties (add a test).
 - Sentry across web, api, worker with release tagging and PII scrubbing.
-- Admin ops: user search, view subscriptions/usage, session list with latency and cost per session,
-  cost dashboard (avg cost per voice session, alert threshold from config), score distribution by
-  role/question to spot anomalies.
-- Scheduled jobs: recording retention cleanup, account hard-delete, weekly plan regeneration,
-  outcome survey scheduling (P2 stub).
+- Admin ops: user search, view subscriptions/usage, session list with latency and cost per session
+  (from ai_call_log), cost dashboard (avg cost per voice session, alert threshold from config), score
+  distribution by role/question to spot anomalies. Decide the ai_call_log retention/rollup policy.
+- Scheduled jobs: recording and Langfuse trace retention cleanup, account hard-delete, weekly plan
+  regeneration, outcome survey scheduling (P2 stub).
 
 Acceptance criteria
 - Every listed analytics event fires in the right place (verified by tests or a debug view).

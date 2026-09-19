@@ -14,8 +14,8 @@ coaching (pace, filler words, and later opt-in camera coaching), and an updated 
 The full product specification lives in `docs/PRODUCT_SPEC.md`. The build plan and milestone prompts live
 in `docs/PROMPTS.md`. **Read `docs/PRODUCT_SPEC.md` before starting any feature work.**
 Architecture decisions are recorded in `docs/adr/`; kickoff decisions and deferred items are in
-`docs/progress/kickoff.md`. `docs/PROMPTS.md` predates those decisions: where a milestone prompt conflicts
-with this file, the spec, or an ADR, **this file, the spec, and the ADRs win**.
+`docs/progress/kickoff.md`. If a milestone prompt in `docs/PROMPTS.md` ever conflicts with this file, the
+spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the prompt in the same change.
 
 ### Product principles (these override convenience)
 1. **Quality of feedback beats flashy features.** Feedback must be specific, cite what the candidate said, and be fair.
