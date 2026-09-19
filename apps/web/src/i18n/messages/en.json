@@ -101,7 +101,8 @@
       "otpExpired": "That code has expired. Request a new one.",
       "tooManyAttempts": "Too many wrong codes. Request a new one.",
       "google": "Google sign-in didn't complete. Please try again.",
-      "invalidToken": "This link has expired or has already been used."
+      "invalidToken": "This link has expired or has already been used.",
+      "deletionPending": "This account is scheduled for deletion, so you can't sign in. To keep it, email {email}."
     }
   },
   "verifyEmail": {
@@ -236,7 +237,8 @@
       "targetDate": "Interview date"
     },
     "cv": "CV",
-    "manage": "Manage"
+    "manage": "Manage",
+    "dataAndAccount": "Your data and account"
   },
   "admin": {
     "title": "Admin",
@@ -334,5 +336,38 @@
       "monthFormat": "Use the format YYYY-MM, for example 2024-03."
     },
     "continue": "Continue"
+  },
+  "account": {
+    "title": "Your data and account",
+    "subtitle": "Download a copy of your data, or delete your account.",
+    "export": {
+      "title": "Download your data",
+      "body": "A file with everything Readi holds about you: your account, profile, CV and what we read from it, privacy choices, sign-ins, and a record of changes to your account.",
+      "cvLink": "If you've uploaded a CV, the file includes a link to download it. The link works for {minutes} minutes.",
+      "button": "Download my data",
+      "preparing": "Preparing your file…",
+      "done": "Your download has started. Keep the file somewhere safe: it contains personal details."
+    },
+    "delete": {
+      "title": "Delete your account",
+      "body": "We'll sign you out on every device straight away. After {days} days we permanently delete your profile, CV, privacy choices and sign-in details.",
+      "kept": "Records we must keep, such as payments, are kept without your name or contact details.",
+      "cancel": "Changed your mind? Email {email} within {days} days and we'll restore your account.",
+      "exportFirst": "You may want to download your data first.",
+      "confirmLabel": "Type {word} to confirm",
+      "confirmHint": "For your security, you need to have signed in within the last {minutes} minutes.",
+      "confirmMismatch": "Type {word} in capital letters.",
+      "button": "Delete my account",
+      "deleting": "Deleting…",
+      "recentSignIn": "You signed in more than {minutes} minutes ago. Sign in again, then come back here to delete your account.",
+      "signInAgain": "Sign in again"
+    },
+    "deleted": {
+      "title": "Your account will be deleted",
+      "body": "We've signed you out on every device. On {date} we'll permanently delete your data.",
+      "bodyNoDate": "We've signed you out on every device. In {days} days we'll permanently delete your data.",
+      "cancel": "Changed your mind? Email {email} before then and we'll restore your account.",
+      "home": "Go to the home page"
+    }
   }
 }

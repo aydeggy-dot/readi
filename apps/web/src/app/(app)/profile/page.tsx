@@ -81,7 +81,14 @@ export default async function ProfilePage() {
         ))}
       </Section>
 
-      <Section title={t("profile.account")}>
+      <Section
+        title={t("profile.account")}
+        action={
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/profile/account">{t("profile.manage")}</Link>
+          </Button>
+        }
+      >
         <Row
           label={t("auth.email")}
           value={
@@ -94,6 +101,14 @@ export default async function ProfilePage() {
         <Row
           label={t("profile.signupMethod")}
           value={t(`profile.signupMethods.${me.signup_method}`)}
+        />
+        <Row
+          label={t("profile.dataAndAccount")}
+          value={
+            <Link href="/profile/account" className="underline underline-offset-4">
+              {t("account.subtitle")}
+            </Link>
+          }
         />
       </Section>
     </>

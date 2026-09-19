@@ -1,5 +1,9 @@
 import { PASSWORD_LIMITS } from "@readi/shared-types/constants";
+import { clientEnv } from "@/env/client";
 import { t } from "@/i18n";
+
+/** Sign-in to an account scheduled for deletion (ADR-0011); also Google's `?error=` value. */
+export const DELETION_PENDING = "ACCOUNT_DELETION_PENDING";
 
 /** The parts of a Better Auth client error we rely on. */
 export interface AuthErrorLike {
@@ -43,6 +47,8 @@ export function describeAuthError(error: AuthErrorLike | null | undefined): {
       return { message: t("auth.errors.otpExpired"), field: "code" };
     case "TOO_MANY_ATTEMPTS":
       return { message: t("auth.errors.tooManyAttempts"), field: "code" };
+    case DELETION_PENDING:
+      return { message: t("auth.errors.deletionPending", { email: clientEnv.supportEmail }) };
     case "INVALID_TOKEN":
     case "TOKEN_EXPIRED":
       return { message: t("auth.errors.invalidToken") };

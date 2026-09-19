@@ -39,4 +39,11 @@ describe("describeAuthError", () => {
       describeAuthError({ status: 401, code: "INVALID_EMAIL_OR_PASSWORD" }).field,
     ).toBeUndefined();
   });
+
+  it("explains a sign-in to an account awaiting deletion, with the support address", () => {
+    const { message, field } = describeAuthError({ status: 403, code: "ACCOUNT_DELETION_PENDING" });
+    expect(message).toMatch(/scheduled for deletion/);
+    expect(message).toContain("@");
+    expect(field).toBeUndefined();
+  });
 });

@@ -10,13 +10,12 @@ import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { describeAuthError, runAuth } from "@/lib/auth-errors";
-import { HOME_PATH } from "@/lib/navigation";
 import { toNigerianE164 } from "@/lib/phone";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 /** Phone sign-in: one form for new and returning users (the API creates the account on first verify). */
-export function PhoneForm() {
+export function PhoneForm({ next }: { next: string }) {
   const [phone, setPhone] = useState<string>();
   const [cooldown, setCooldown] = useState(0);
 
@@ -38,6 +37,7 @@ export function PhoneForm() {
   return phone ? (
     <CodeStep
       phone={phone}
+      next={next}
       cooldown={cooldown}
       onResend={() => sendCode(phone)}
       onChangeNumber={() => setPhone(undefined)}
@@ -107,6 +107,7 @@ function NumberStep({
 
 function CodeStep({
   phone,
+  next,
   cooldown,
   onResend,
   onChangeNumber,
@@ -115,6 +116,7 @@ function CodeStep({
   cooldown: number;
   onResend: () => Promise<ReturnType<typeof describeAuthError> | undefined>;
   onChangeNumber: () => void;
+  next: string;
 }) {
   const router = useRouter();
   const [formError, setFormError] = useState<string>();
@@ -137,8 +139,8 @@ function CodeStep({
       else setFormError(message);
       return;
     }
-    // New users are sent on to onboarding by the home page.
-    router.replace(HOME_PATH);
+    // New users are sent on to onboarding by the home page (the default `next`).
+    router.replace(next);
     router.refresh();
   });
 

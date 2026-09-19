@@ -21,3 +21,10 @@ export function nextOnboardingPath(state: OnboardingState): string | null {
   if (!state.completed_at) return "/onboarding/consent";
   return null;
 }
+
+/** A YYYY-MM-DD from a query parameter, or null if it is anything else. */
+export function isoDateParam(value: string | string[] | undefined): string | null {
+  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value)
+    ? value
+    : null;
+}

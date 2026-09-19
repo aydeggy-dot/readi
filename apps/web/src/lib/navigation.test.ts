@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextOnboardingPath, safeNextPath } from "./navigation";
+import { nextOnboardingPath, safeNextPath, isoDateParam } from "./navigation";
 
 describe("safeNextPath", () => {
   it.each(["/home", "/profile/edit?x=1", "/onboarding/consent"])("keeps %s", (path) => {
@@ -32,5 +32,21 @@ describe("nextOnboardingPath", () => {
 
   it("is done once completed", () => {
     expect(nextOnboardingPath({ ...state, completed_at: "2026-09-19T12:00:00.000Z" })).toBeNull();
+  });
+});
+
+describe("isoDateParam", () => {
+  it("accepts a calendar date only", () => {
+    expect(isoDateParam("2026-09-26")).toBe("2026-09-26");
+    for (const value of [
+      undefined,
+      "",
+      "2026-13-01",
+      "26/09/2026",
+      "2026-09-26T00:00",
+      ["2026-09-26"],
+    ]) {
+      expect(isoDateParam(value)).toBeNull();
+    }
   });
 });
