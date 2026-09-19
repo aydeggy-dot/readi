@@ -197,6 +197,148 @@
         "tags": ["consents"]
       }
     },
+    "/api/me/cv": {
+      "get": {
+        "operationId": "CvController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CvResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["cv"]
+      },
+      "post": {
+        "operationId": "CvController_confirm",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCvUploadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CvResponseDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or expired upload (`upload_not_found`)"
+          },
+          "409": {
+            "description": "`upload_incomplete`, `profile_required` or `cv_changed`"
+          },
+          "422": {
+            "description": "Not a PDF/DOCX of the declared size (`invalid_file`)"
+          },
+          "429": {
+            "description": "Too many CVs parsed recently (`rate_limited`)"
+          }
+        },
+        "tags": ["cv"]
+      },
+      "delete": {
+        "operationId": "CvController_remove",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CvResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["cv"]
+      }
+    },
+    "/api/me/cv/uploads": {
+      "post": {
+        "operationId": "CvController_createUpload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCvUploadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CvUploadResponseDto_Output"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No profile yet (`profile_required`)"
+          },
+          "429": {
+            "description": "Too many uploads (`rate_limited`)"
+          }
+        },
+        "tags": ["cv"]
+      }
+    },
+    "/api/me/cv/parsed": {
+      "put": {
+        "operationId": "CvController_updateParsed",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParsedCvDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CvResponseDto_Output"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No CV, or still processing (`cv_not_editable`)"
+          }
+        },
+        "tags": ["cv"]
+      }
+    },
     "/api/admin/stats": {
       "get": {
         "operationId": "AdminController_stats",
@@ -587,6 +729,359 @@
           }
         },
         "required": ["decisions"]
+      },
+      "CvStatus_Output": {
+        "type": "string",
+        "enum": ["none", "processing", "parsed", "unreadable", "failed"]
+      },
+      "CvContentType_Output": {
+        "type": "string",
+        "enum": [
+          "application/pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ]
+      },
+      "CvParseError_Output": {
+        "type": "string",
+        "enum": [
+          "no_text",
+          "encrypted",
+          "invalid_file",
+          "too_large",
+          "llm_error",
+          "invalid_output",
+          "worker_unavailable"
+        ]
+      },
+      "ParsedCv_Output": {
+        "type": "object",
+        "properties": {
+          "skills": {
+            "maxItems": 60,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "projects": {
+            "maxItems": 15,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CvProject_Output"
+            }
+          },
+          "experience": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CvExperience_Output"
+            }
+          },
+          "gaps": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          }
+        },
+        "required": ["skills", "projects", "experience", "gaps"],
+        "additionalProperties": false
+      },
+      "CvProject_Output": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "technologies": {
+            "maxItems": 15,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          }
+        },
+        "required": ["name", "description", "technologies"],
+        "additionalProperties": false
+      },
+      "CvExperience_Output": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "organisation": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "start": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/YearMonth_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "end": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/YearMonth_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 600
+          }
+        },
+        "required": ["title", "organisation", "start", "end", "current", "summary"],
+        "additionalProperties": false
+      },
+      "YearMonth_Output": {
+        "type": "string",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+      },
+      "CvResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/CvStatus_Output"
+          },
+          "content_type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CvContentType_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "parsed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "edited_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CvParseError_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "parsed": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ParsedCv_Output"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "status",
+          "content_type",
+          "uploaded_at",
+          "parsed_at",
+          "edited_at",
+          "error",
+          "parsed"
+        ],
+        "additionalProperties": false
+      },
+      "CvContentType": {
+        "type": "string",
+        "enum": [
+          "application/pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ]
+      },
+      "CreateCvUploadRequestDto": {
+        "type": "object",
+        "properties": {
+          "content_type": {
+            "$ref": "#/components/schemas/CvContentType"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5242880
+          }
+        },
+        "required": ["content_type", "size_bytes"]
+      },
+      "CvUploadResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["upload_id", "url", "headers", "expires_at"],
+        "additionalProperties": false
+      },
+      "ConfirmCvUploadRequestDto": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": ["upload_id"]
+      },
+      "CvProject": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "technologies": {
+            "maxItems": 15,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          }
+        },
+        "required": ["name", "description", "technologies"]
+      },
+      "CvExperience": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "organisation": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "start": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/YearMonth"
+              }
+            ],
+            "nullable": true
+          },
+          "end": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/YearMonth"
+              }
+            ],
+            "nullable": true
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 600
+          }
+        },
+        "required": ["title", "organisation", "start", "end", "current", "summary"]
+      },
+      "YearMonth": {
+        "type": "string",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+      },
+      "ParsedCvDto": {
+        "type": "object",
+        "properties": {
+          "skills": {
+            "maxItems": 60,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "projects": {
+            "maxItems": 15,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CvProject"
+            }
+          },
+          "experience": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CvExperience"
+            }
+          },
+          "gaps": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          }
+        },
+        "required": ["skills", "projects", "experience", "gaps"]
       },
       "AdminStatsDto_Output": {
         "type": "object",

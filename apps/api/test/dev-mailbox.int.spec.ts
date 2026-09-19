@@ -17,6 +17,9 @@ const production = {
   TERMII_API_KEY: "termii_test_not_real",
   TERMII_SENDER_ID: "Readi",
   TERMII_BASE_URL: "https://termii.example",
+  S3_ENDPOINT: "https://s3.readi.example",
+  S3_ACCESS_KEY_ID: "s3_test_not_real",
+  S3_SECRET_ACCESS_KEY: "s3_secret_test_not_real",
 };
 
 describe("dev mailbox", () => {

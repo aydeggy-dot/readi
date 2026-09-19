@@ -64,12 +64,21 @@ jobs:
         run: pnpm turbo run lint typecheck --filter='!@readi/ai-worker'
       - name: Apply database migrations
         run: pnpm --filter @readi/api db:deploy
+      # Service containers cannot take a command, so SeaweedFS (local S3, ADR-0001) runs as a step.
+      - name: Start S3 (SeaweedFS) for storage and CV tests
+        run: |
+          docker run -d --name s3 -p 19000:8333 \
+            -e AWS_ACCESS_KEY_ID=readi-dev -e AWS_SECRET_ACCESS_KEY=readi-dev-secret \
+            chrislusf/seaweedfs:4.44 server -dir=/data -s3 -s3.port=8333
+          for _ in $(seq 1 60); do curl -sf http://127.0.0.1:19000/healthz >/dev/null && exit 0; sleep 1; done
+          docker logs s3; exit 1
       - name: Test and build
         run: pnpm turbo run test build --filter='!@readi/ai-worker'
       - name: Smoke-test the built API
         run: bash scripts/smoke-api.sh
         env:
           BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+          AI_WORKER_TOKEN: ci-only-worker-token-not-used-anywhere-else-0123
 
   python:
     name: Python (ruff, mypy, pytest)

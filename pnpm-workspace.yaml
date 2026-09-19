@@ -21,6 +21,9 @@ allowBuilds:
   "@sentry/cli": false
   # postinstall only prints a funding message
   core-js: false
+  # optional native msgpack speed-up for BullMQ; prebuilt binaries are optional packages and
+  # msgpackr falls back to pure JS, so no install-time build is needed
+  msgpackr-extract: false
 
 peerDependencyRules:
   allowedVersions:

@@ -3,9 +3,12 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
 import { AdminModule } from "./admin/admin.module";
+import { AiCallsModule } from "./ai-calls/ai-calls.module";
+import { AiWorkerModule } from "./ai-worker/ai-worker.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { ConsentsModule } from "./consents/consents.module";
+import { CvModule } from "./cv/cv.module";
 import type { Env } from "./config/env";
 import { EnvModule } from "./config/env.module";
 import { HealthModule } from "./health/health.module";
@@ -13,6 +16,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { RedisModule } from "./redis/redis.module";
+import { StorageModule } from "./storage/storage.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({})
@@ -26,6 +30,9 @@ export class AppModule {
         EnvModule.forRoot(env),
         PrismaModule,
         RedisModule,
+        StorageModule,
+        AiWorkerModule,
+        AiCallsModule,
         AuditModule,
         // Imports the dev mailbox only outside production (see usesDevMailbox).
         NotificationsModule.forRoot(env),
@@ -34,6 +41,7 @@ export class AppModule {
         UsersModule,
         ProfilesModule,
         ConsentsModule,
+        CvModule,
         AdminModule,
       ],
       providers: [

@@ -154,10 +154,30 @@ model Profile {
   /// A calendar date, not a timestamp.
   targetDate            DateTime?         @map("target_date") @db.Date
   onboardingCompletedAt DateTime?         @map("onboarding_completed_at") @db.Timestamptz(6)
+  /// CV (spec §4.1): the accepted file in object storage and its parsed, candidate-editable content.
+  cvStatus              CvStatus          @default(none) @map("cv_status")
+  cvFileKey             String?           @map("cv_file_key")
+  cvContentType         String?           @map("cv_content_type")
+  cvUploadedAt          DateTime?         @map("cv_uploaded_at") @db.Timestamptz(6)
+  cvParsed              Json?             @map("cv_parsed")
+  cvParsedAt            DateTime?         @map("cv_parsed_at") @db.Timestamptz(6)
+  cvEditedAt            DateTime?         @map("cv_edited_at") @db.Timestamptz(6)
+  /// Why parsing did not succeed (CvParseError in @readi/shared-types); never CV content.
+  cvError               String?           @map("cv_error")
   createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("profiles")
+}
+
+enum CvStatus {
+  none
+  processing
+  parsed
+  unreadable
+  failed
+
+  @@map("cv_status")
 }
 
 enum ConsentType {
@@ -221,4 +241,62 @@ model UserTombstone {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("user_tombstones")
+}
+
+// ---------------------------------------------------------------------------------------------
+// AI cost accounting (ADR-0007). One row per external AI call, reported by the worker. No content
+// and no personal data: user and session are plain uuids (no foreign key), replaced by a tombstone
+// id on account deletion (ADR-0011).
+
+enum AiCallPurpose {
+  interviewer
+  follow_up
+  evaluator
+  cv_parse
+  plan_summary
+  embedding
+  stt
+  tts
+  avatar
+
+  @@map("ai_call_purpose")
+}
+
+enum AiUnitKind {
+  tokens
+  characters
+  seconds
+
+  @@map("ai_unit_kind")
+}
+
+enum AiCallStatus {
+  ok
+  error
+
+  @@map("ai_call_status")
+}
+
+model AiCallLog {
+  id              String        @id @default(uuid()) @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  sessionId       String?       @map("session_id") @db.Uuid
+  userId          String?       @map("user_id") @db.Uuid
+  purpose         AiCallPurpose
+  provider        String
+  model           String
+  status          AiCallStatus
+  errorCode       String?       @map("error_code")
+  latencyMs       Int           @map("latency_ms")
+  inputUnits      Int           @map("input_units")
+  outputUnits     Int           @map("output_units")
+  unitKind        AiUnitKind    @map("unit_kind")
+  /// Integer micro-USD (1 USD = 1,000,000).
+  costMicroUsd    BigInt        @map("cost_micro_usd")
+  langfuseTraceId String?       @map("langfuse_trace_id")
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("ai_call_log")
 }

@@ -5,6 +5,10 @@ import { z } from "zod";
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
 
+// Credentials of the local SeaweedFS in infra/docker-compose.yml; refused in production.
+const DEV_S3_ACCESS_KEY = "readi-dev";
+const DEV_S3_SECRET_KEY = "readi-dev-secret";
+
 const booleanFlag = z
   .enum(["true", "false"])
   .default("true")
@@ -39,6 +43,27 @@ export const EnvSchema = z
     TERMII_API_KEY: optional(z.string().min(1)),
     TERMII_SENDER_ID: optional(z.string().min(1)),
     TERMII_BASE_URL: optional(z.url({ protocol: /^https$/ })),
+
+    // Object storage (S3 API): SeaweedFS locally (infra/docker-compose.yml), Cloudflare R2 in
+    // production (ADR-0001). The browser uploads CVs straight to S3_ENDPOINT with presigned URLs.
+    S3_ENDPOINT: z.url({ protocol: /^https?$/ }).default("http://127.0.0.1:19000"),
+    S3_REGION: z.string().min(1).default("us-east-1"),
+    S3_BUCKET: z.string().min(3).default("readi-dev"),
+    S3_ACCESS_KEY_ID: z.string().min(1).default(DEV_S3_ACCESS_KEY),
+    S3_SECRET_ACCESS_KEY: z.string().min(1).default(DEV_S3_SECRET_KEY),
+    S3_FORCE_PATH_STYLE: booleanFlag,
+
+    // AI worker (ADR-0004): internal URL and the shared service token (worker SERVICE_TOKEN).
+    AI_WORKER_URL: z.url({ protocol: /^https?$/ }).default("http://127.0.0.1:8000"),
+    AI_WORKER_TOKEN: z.string().min(32, "must be at least 32 characters"),
+    AI_WORKER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(150_000),
+
+    // Background jobs (BullMQ on REDIS_URL). QUEUE_PREFIX namespaces the Redis keys.
+    JOBS_ENABLED: booleanFlag,
+    QUEUE_PREFIX: z
+      .string()
+      .regex(/^[a-z0-9:_-]+$/i)
+      .default("readi"),
   })
   .superRefine((env, ctx) => {
     const issue = (path: string, message: string) =>
@@ -65,6 +90,14 @@ export const EnvSchema = z
       if (!env.WEB_PROXY_SECRET) issue("WEB_PROXY_SECRET", "required in production");
       if (!env.PUBLIC_WEB_URL.startsWith("https://")) {
         issue("PUBLIC_WEB_URL", "must use https in production");
+      }
+      if (!env.S3_ENDPOINT.startsWith("https://"))
+        issue("S3_ENDPOINT", "must use https in production");
+      if (
+        env.S3_ACCESS_KEY_ID === DEV_S3_ACCESS_KEY ||
+        env.S3_SECRET_ACCESS_KEY === DEV_S3_SECRET_KEY
+      ) {
+        issue("S3_SECRET_ACCESS_KEY", "development credentials are not allowed in production");
       }
     }
   });

@@ -19,7 +19,8 @@
     "check:contracts": "bash scripts/check-contracts.sh",
     "db:migrate": "pnpm --filter @readi/api db:migrate",
     "db:seed": "pnpm --filter @readi/api db:seed",
-    "prereqs": "bash scripts/prereqs.sh"
+    "prereqs": "bash scripts/prereqs.sh",
+    "storage:setup": "pnpm --filter @readi/api storage:setup"
   },
   "devDependencies": {
     "@readi/config": "workspace:*",

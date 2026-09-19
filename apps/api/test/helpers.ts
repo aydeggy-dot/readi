@@ -15,7 +15,8 @@ export interface TestAppOptions {
 
 /** Builds the app exactly as main.ts does (no body parser, then configureApp), against test services. */
 export async function createTestApp(options: TestAppOptions = {}): Promise<NestExpressApplication> {
-  const env = parseEnv({ ...process.env, ...options.env });
+  // A queue namespace per app, so test files running in parallel never take each other's jobs.
+  const env = parseEnv({ ...process.env, QUEUE_PREFIX: `test-${randomUUID()}`, ...options.env });
   let builder = Test.createTestingModule({ imports: [AppModule.register(env)] });
   for (const [token, value] of options.overrides ?? []) {
     builder = builder.overrideProvider(token).useValue(value);

@@ -20,6 +20,8 @@ async function main(): Promise<void> {
     DATABASE_URL: "postgresql://openapi@127.0.0.1:9/openapi",
     REDIS_URL: "redis://127.0.0.1:9",
     BETTER_AUTH_SECRET: "openapi-export-only-not-a-real-secret-000",
+    AI_WORKER_TOKEN: "openapi-export-only-not-a-real-token-0000",
+    JOBS_ENABLED: "false",
   });
   const app = await NestFactory.create<NestExpressApplication>(AppModule.register(env), {
     preview: true,

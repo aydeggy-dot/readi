@@ -100,6 +100,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/cv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CvController_get"];
+        put?: never;
+        post: operations["CvController_confirm"];
+        delete: operations["CvController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/cv/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CvController_createUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/cv/parsed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["CvController_updateParsed"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/stats": {
         parameters: {
             query?: never;
@@ -223,6 +271,85 @@ export interface components {
         ConsentType: "audio_processing" | "recording_storage" | "camera_coaching" | "marketing";
         UpdateConsentsRequestDto: {
             decisions: components["schemas"]["ConsentDecision"][];
+        };
+        /** @enum {string} */
+        CvStatus_Output: "none" | "processing" | "parsed" | "unreadable" | "failed";
+        /** @enum {string} */
+        CvContentType_Output: "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        /** @enum {string} */
+        CvParseError_Output: "no_text" | "encrypted" | "invalid_file" | "too_large" | "llm_error" | "invalid_output" | "worker_unavailable";
+        ParsedCv_Output: {
+            skills: string[];
+            projects: components["schemas"]["CvProject_Output"][];
+            experience: components["schemas"]["CvExperience_Output"][];
+            gaps: string[];
+        };
+        CvProject_Output: {
+            name: string;
+            description: string;
+            technologies: string[];
+        };
+        CvExperience_Output: {
+            title: string;
+            organisation: string;
+            start: components["schemas"]["YearMonth_Output"] | null;
+            end: components["schemas"]["YearMonth_Output"] | null;
+            current: boolean;
+            summary: string;
+        };
+        YearMonth_Output: string;
+        CvResponseDto_Output: {
+            status: components["schemas"]["CvStatus_Output"];
+            content_type: components["schemas"]["CvContentType_Output"] | null;
+            /** Format: date-time */
+            uploaded_at: string | null;
+            /** Format: date-time */
+            parsed_at: string | null;
+            /** Format: date-time */
+            edited_at: string | null;
+            error: components["schemas"]["CvParseError_Output"] | null;
+            parsed: components["schemas"]["ParsedCv_Output"] | null;
+        };
+        /** @enum {string} */
+        CvContentType: "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        CreateCvUploadRequestDto: {
+            content_type: components["schemas"]["CvContentType"];
+            size_bytes: number;
+        };
+        CvUploadResponseDto_Output: {
+            /** Format: uuid */
+            upload_id: string;
+            /** Format: uri */
+            url: string;
+            headers: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            expires_at: string;
+        };
+        ConfirmCvUploadRequestDto: {
+            /** Format: uuid */
+            upload_id: string;
+        };
+        CvProject: {
+            name: string;
+            description: string;
+            technologies: string[];
+        };
+        CvExperience: {
+            title: string;
+            organisation: string;
+            start: components["schemas"]["YearMonth"] | null;
+            end: components["schemas"]["YearMonth"] | null;
+            current: boolean;
+            summary: string;
+        };
+        YearMonth: string;
+        ParsedCvDto: {
+            skills: string[];
+            projects: components["schemas"]["CvProject"][];
+            experience: components["schemas"]["CvExperience"][];
+            gaps: string[];
         };
         AdminStatsDto_Output: {
             users_total: number;
@@ -443,6 +570,162 @@ export interface operations {
                 content?: never;
             };
             /** @description A decision was made against an outdated consent text (`consent_version_outdated`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CvController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CvResponseDto_Output"];
+                };
+            };
+        };
+    };
+    CvController_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCvUploadRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CvResponseDto_Output"];
+                };
+            };
+            /** @description Unknown or expired upload (`upload_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description `upload_incomplete`, `profile_required` or `cv_changed` */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a PDF/DOCX of the declared size (`invalid_file`) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many CVs parsed recently (`rate_limited`) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CvController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CvResponseDto_Output"];
+                };
+            };
+        };
+    };
+    CvController_createUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCvUploadRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CvUploadResponseDto_Output"];
+                };
+            };
+            /** @description No profile yet (`profile_required`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many uploads (`rate_limited`) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CvController_updateParsed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParsedCvDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CvResponseDto_Output"];
+                };
+            };
+            /** @description No CV, or still processing (`cv_not_editable`) */
             409: {
                 headers: {
                     [name: string]: unknown;

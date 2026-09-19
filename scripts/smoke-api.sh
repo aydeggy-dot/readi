@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Boots the *built* API (apps/api/dist) and checks GET /health. Catches build-only failures that
 # unit/integration tests miss because Vitest compiles sources itself (e.g. files the SWC build
-# does not copy). Needs DATABASE_URL, REDIS_URL and BETTER_AUTH_SECRET in the environment.
+# does not copy). Needs DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET and AI_WORKER_TOKEN in the
+# environment (or apps/api/.env).
 set -euo pipefail
 cd "$(dirname "$0")/../apps/api"
 

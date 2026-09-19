@@ -5,6 +5,7 @@ const valid = {
   DATABASE_URL: "postgresql://readi:readi@localhost:15432/readi",
   REDIS_URL: "redis://localhost:16379/0",
   BETTER_AUTH_SECRET: "x".repeat(32),
+  AI_WORKER_TOKEN: "w".repeat(32),
 };
 
 const production = {
@@ -18,6 +19,9 @@ const production = {
   TERMII_SENDER_ID: "Readi",
   TERMII_BASE_URL: "https://termii.example",
   WEB_PROXY_SECRET: "p".repeat(32),
+  S3_ENDPOINT: "https://account.r2.cloudflarestorage.com",
+  S3_ACCESS_KEY_ID: "r2_key",
+  S3_SECRET_ACCESS_KEY: "r2_secret",
 };
 
 describe("parseEnv", () => {
@@ -85,5 +89,24 @@ describe("parseEnv", () => {
     ["no proxy secret", { WEB_PROXY_SECRET: "" }, /WEB_PROXY_SECRET/],
   ])("rejects %s in production", (_label, change, message) => {
     expect(() => parseEnv({ ...production, ...change })).toThrow(message);
+  });
+
+  it("requires the AI worker token", () => {
+    const { AI_WORKER_TOKEN: _omit, ...withoutToken } = valid;
+    expect(() => parseEnv(withoutToken)).toThrow(/AI_WORKER_TOKEN/);
+    expect(() => parseEnv({ ...valid, AI_WORKER_TOKEN: "short" })).toThrow(/AI_WORKER_TOKEN/);
+  });
+
+  it("defaults storage to the local SeaweedFS but refuses its credentials in production", () => {
+    expect(parseEnv(valid)).toMatchObject({
+      S3_ENDPOINT: "http://127.0.0.1:19000",
+      S3_BUCKET: "readi-dev",
+    });
+    expect(() =>
+      parseEnv({ ...production, S3_ACCESS_KEY_ID: undefined, S3_SECRET_ACCESS_KEY: undefined }),
+    ).toThrow(/S3_SECRET_ACCESS_KEY/);
+    expect(() => parseEnv({ ...production, S3_ENDPOINT: "http://s3.example" })).toThrow(
+      /S3_ENDPOINT/,
+    );
   });
 });
