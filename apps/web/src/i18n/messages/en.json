@@ -1,0 +1,33 @@
+{
+  "app": {
+    "name": "Readi",
+    "tagline": "Practise tech interviews with an AI interviewer and get honest, specific feedback."
+  },
+  "landing": {
+    "heading": "Walk into your next tech interview ready.",
+    "features": {
+      "interviewer": "Realistic mock interviews that ask follow-up questions.",
+      "feedback": "Rubric-based feedback that quotes what you actually said.",
+      "local": "Built for Nigerian conditions: mobile-first, light on data, priced in Naira."
+    },
+    "comingSoon": "Launching soon",
+    "statusLink": "System status"
+  },
+  "status": {
+    "title": "System status",
+    "description": "Live health of the Readi services.",
+    "api": "API",
+    "database": "Database",
+    "redis": "Redis",
+    "ok": "Healthy",
+    "error": "Unhealthy",
+    "unreachable": "Unreachable",
+    "checkedIn": "{ms} ms",
+    "refresh": "Refresh",
+    "back": "Back to home"
+  },
+  "offline": {
+    "title": "You are offline",
+    "body": "Check your connection and try again. Pages you have opened before may still work."
+  }
+}

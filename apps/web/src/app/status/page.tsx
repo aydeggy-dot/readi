@@ -1,0 +1,85 @@
+import type { HealthCheckResult } from "@readi/shared-types";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { serverEnv } from "@/env/server";
+import { t } from "@/i18n";
+import { fetchApiHealth } from "@/lib/api-health";
+import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = { title: t("status.title") };
+
+// Always render on request: this page reports live health.
+export const dynamic = "force-dynamic";
+
+type Row = { label: string; ok: boolean; detail: string };
+
+function checkRow(label: string, check: HealthCheckResult | undefined): Row {
+  if (!check) return { label, ok: false, detail: t("status.unreachable") };
+  const detail =
+    check.status === "ok"
+      ? t("status.checkedIn", { ms: check.latency_ms })
+      : (check.error ?? t("status.error"));
+  return { label, ok: check.status === "ok", detail };
+}
+
+export default async function StatusPage() {
+  const result = await fetchApiHealth(serverEnv.API_INTERNAL_URL);
+
+  const rows: Row[] = result.reachable
+    ? [
+        { label: t("status.api"), ok: true, detail: t("status.ok") },
+        checkRow(t("status.database"), result.health.checks.database),
+        checkRow(t("status.redis"), result.health.checks.redis),
+      ]
+    : [
+        { label: t("status.api"), ok: false, detail: t("status.unreachable") },
+        { label: t("status.database"), ok: false, detail: t("status.unreachable") },
+        { label: t("status.redis"), ok: false, detail: t("status.unreachable") },
+      ];
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 px-5 py-8 sm:px-8 sm:py-16">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">{t("status.title")}</h1>
+        <p className="text-muted-foreground">{t("status.description")}</p>
+      </div>
+
+      <ul className="divide-y divide-border rounded-lg border">
+        {rows.map((row) => (
+          <li
+            key={row.label}
+            className="flex items-center justify-between gap-4 px-4 py-3"
+            data-testid={`status-${row.label}`}
+          >
+            <span className="font-medium">{row.label}</span>
+            <span
+              className={cn(
+                "flex items-center gap-2 text-sm",
+                row.ok ? "text-success" : "text-destructive",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn("size-2.5 rounded-full", row.ok ? "bg-success" : "bg-destructive")}
+              />
+              <span>{row.ok ? t("status.ok") : t("status.error")}</span>
+              <span className="text-muted-foreground">· {row.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex flex-wrap gap-3">
+        <Button asChild variant="outline">
+          <Link href="/status" prefetch={false}>
+            {t("status.refresh")}
+          </Link>
+        </Button>
+        <Button asChild variant="ghost">
+          <Link href="/">{t("status.back")}</Link>
+        </Button>
+      </div>
+    </main>
+  );
+}
