@@ -2,9 +2,11 @@ import {
   CopyObjectCommand,
   CreateBucketCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   NotFound,
   PutBucketCorsCommand,
   PutBucketLifecycleConfigurationCommand,
@@ -82,6 +84,16 @@ export class StorageService implements OnModuleDestroy {
     };
   }
 
+  /** A presigned GET that downloads the object as an attachment under `filename`. */
+  async presignGet(key: string, filename: string, expiresInSeconds: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${filename.replace(/[^\w.-]/g, "_")}"`,
+    });
+    return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
+  }
+
   /** Size of an object, or null if it does not exist. */
   async size(key: string): Promise<number | null> {
     try {
@@ -121,6 +133,29 @@ export class StorageService implements OnModuleDestroy {
   /** Deletes an object; deleting a missing object is not an error. */
   async delete(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  /** Deletes every object whose key starts with `prefix`; returns how many were deleted. */
+  async deletePrefix(prefix: string): Promise<number> {
+    if (!prefix.endsWith("/")) throw new Error("deletePrefix needs a folder prefix ending in /");
+    let deleted = 0;
+    for (;;) {
+      const page = await this.client.send(
+        new ListObjectsV2Command({ Bucket: this.bucket, Prefix: prefix, MaxKeys: 1000 }),
+      );
+      const keys = (page.Contents ?? []).flatMap((object) => (object.Key ? [object.Key] : []));
+      if (keys.length === 0) return deleted;
+      const result = await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+        }),
+      );
+      if (result.Errors && result.Errors.length > 0) {
+        throw new Error(`could not delete ${result.Errors.length} object(s) under a user prefix`);
+      }
+      deleted += keys.length;
+    }
   }
 }
 

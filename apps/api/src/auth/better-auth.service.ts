@@ -21,6 +21,8 @@ export class BetterAuthService extends AuthService {
     const result = await this.auth.api.getSession({ headers: fromNodeHeaders(headers) });
     if (!result) return null;
     const { user, session } = result;
+    // Sessions are revoked when deletion is requested; this also covers one created in a race.
+    if (user.deletedAt) return null;
     return {
       sessionId: session.id,
       createdAt: new Date(session.createdAt),

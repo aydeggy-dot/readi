@@ -34,6 +34,8 @@ export const EnvSchema = z
     WEB_PROXY_SECRET: optional(z.string().min(32, "must be at least 32 characters")),
     OTP_MAX_PER_NUMBER_PER_HOUR: z.coerce.number().int().min(1).default(5),
     OTP_MAX_PER_NUMBER_PER_DAY: z.coerce.number().int().min(1).default(10),
+    /** Where users write to keep an account scheduled for deletion (ADR-0011); shown in messages. */
+    SUPPORT_EMAIL: z.email().default("support@readi.invalid"),
 
     // Email (Resend) and SMS (Termii); `console` providers write to the dev mailbox instead.
     EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
@@ -88,6 +90,9 @@ export const EnvSchema = z
       if (env.EMAIL_PROVIDER !== "resend") issue("EMAIL_PROVIDER", "must be resend in production");
       if (env.SMS_PROVIDER !== "termii") issue("SMS_PROVIDER", "must be termii in production");
       if (!env.WEB_PROXY_SECRET) issue("WEB_PROXY_SECRET", "required in production");
+      if (env.SUPPORT_EMAIL.endsWith(".invalid")) {
+        issue("SUPPORT_EMAIL", "set a real support address in production");
+      }
       if (!env.PUBLIC_WEB_URL.startsWith("https://")) {
         issue("PUBLIC_WEB_URL", "must use https in production");
       }

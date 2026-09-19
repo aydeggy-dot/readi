@@ -15,6 +15,9 @@ import { isAllowedPhoneNumber, placeholderEmail } from "./phone";
 
 export const BETTER_AUTH = Symbol("BETTER_AUTH");
 
+/** Error code for a sign-in to an account awaiting deletion (ADR-0011); the web app explains it. */
+export const DELETION_PENDING_CODE = "ACCOUNT_DELETION_PENDING";
+
 const OTP_TTL_SECONDS = 300;
 
 export interface BetterAuthDeps {
@@ -107,6 +110,8 @@ export function createBetterAuth({ env, prisma, email, sms, limiter }: BetterAut
       requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
+        // An account awaiting deletion cannot sign in, so a reset link would only confuse.
+        if (await isDeletionPending(prisma, user.id)) return;
         await email.send({
           to: user.email,
           subject: t("email.resetPassword.subject"),
@@ -118,6 +123,7 @@ export function createBetterAuth({ env, prisma, email, sms, limiter }: BetterAut
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url }) => {
+        if (await isDeletionPending(prisma, user.id)) return;
         await email.send({
           to: user.email,
           subject: t("email.verify.subject"),
@@ -150,6 +156,20 @@ export function createBetterAuth({ env, prisma, email, sms, limiter }: BetterAut
             Promise.resolve({ data: { ...user, signupMethod: signupMethodFor(context) } }),
         },
       },
+      session: {
+        create: {
+          // Every sign-in method creates a session here: an account awaiting deletion gets none
+          // (ADR-0011). Credentials are checked first, so this reveals nothing to a stranger.
+          before: async (session) => {
+            if (await isDeletionPending(prisma, session.userId)) {
+              throw APIError.from("FORBIDDEN", {
+                code: DELETION_PENDING_CODE,
+                message: "This account is scheduled for deletion.",
+              });
+            }
+          },
+        },
+      },
     },
     plugins: [
       phoneNumber({
@@ -180,6 +200,11 @@ export function createBetterAuth({ env, prisma, email, sms, limiter }: BetterAut
       }),
     ],
   });
+}
+
+async function isDeletionPending(prisma: PrismaClient, userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { deletedAt: true } });
+  return user?.deletedAt != null;
 }
 
 export type BetterAuthInstance = ReturnType<typeof createBetterAuth>;

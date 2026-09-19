@@ -22,6 +22,7 @@ const production = {
   S3_ENDPOINT: "https://account.r2.cloudflarestorage.com",
   S3_ACCESS_KEY_ID: "r2_key",
   S3_SECRET_ACCESS_KEY: "r2_secret",
+  SUPPORT_EMAIL: "support@readi.example",
 };
 
 describe("parseEnv", () => {
@@ -29,6 +30,11 @@ describe("parseEnv", () => {
     const env = parseEnv(valid);
     expect(env).toMatchObject({ NODE_ENV: "development", HOST: "127.0.0.1", PORT: 4000 });
     expect(env.SENTRY_DSN).toBeUndefined();
+  });
+
+  it("requires a real support address in production", () => {
+    expect(() => parseEnv({ ...production, SUPPORT_EMAIL: "" })).toThrow(/SUPPORT_EMAIL/);
+    expect(parseEnv(production).SUPPORT_EMAIL).toBe("support@readi.example");
   });
 
   it("coerces numeric variables", () => {

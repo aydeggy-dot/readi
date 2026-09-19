@@ -75,6 +75,7 @@
         "SENTRY_DSN",
         "SERVICE_TOKEN",
         "SMS_PROVIDER",
+        "SUPPORT_EMAIL",
         "TERMII_API_KEY",
         "TERMII_BASE_URL",
         "TERMII_SENDER_ID",

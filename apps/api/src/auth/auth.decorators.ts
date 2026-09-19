@@ -1,6 +1,6 @@
 import { createParamDecorator, type ExecutionContext, SetMetadata } from "@nestjs/common";
 import type { Role } from "@readi/shared-types";
-import type { AuthenticatedUser } from "./auth.service";
+import type { AuthenticatedUser, AuthSession } from "./auth.service";
 
 export const IS_PUBLIC = "readi:isPublic";
 export const ROLES = "readi:roles";
@@ -17,5 +17,16 @@ export const CurrentUser = createParamDecorator(
     const request = context.switchToHttp().getRequest<{ user?: AuthenticatedUser }>();
     if (!request.user) throw new Error("CurrentUser used on a route without an authenticated user");
     return request.user;
+  },
+);
+
+/** The current session (user, id and when it was created), attached by AuthGuard. */
+export const CurrentSession = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): AuthSession => {
+    const request = context.switchToHttp().getRequest<{ authSession?: AuthSession }>();
+    if (!request.authSession) {
+      throw new Error("CurrentSession used on a route without an authenticated user");
+    }
+    return request.authSession;
   },
 );

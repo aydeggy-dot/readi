@@ -2,6 +2,7 @@ import { type DynamicModule, Module } from "@nestjs/common";
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
+import { AccountModule } from "./account/account.module";
 import { AdminModule } from "./admin/admin.module";
 import { AiCallsModule } from "./ai-calls/ai-calls.module";
 import { AiWorkerModule } from "./ai-worker/ai-worker.module";
@@ -42,6 +43,7 @@ export class AppModule {
         ProfilesModule,
         ConsentsModule,
         CvModule,
+        AccountModule,
         AdminModule,
       ],
       providers: [

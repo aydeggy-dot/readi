@@ -21,3 +21,8 @@ export function t(key: MessageKey, vars: Record<string, string | number> = {}): 
     name in vars ? String(vars[name]) : match,
   );
 }
+
+/** Formats a moment as a calendar date for messages, e.g. "26 September 2026" (UTC). */
+export function formatMessageDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-NG", { dateStyle: "long", timeZone: "UTC" }).format(date);
+}

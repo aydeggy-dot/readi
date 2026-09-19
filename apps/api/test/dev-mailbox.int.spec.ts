@@ -20,6 +20,7 @@ const production = {
   S3_ENDPOINT: "https://s3.readi.example",
   S3_ACCESS_KEY_ID: "s3_test_not_real",
   S3_SECRET_ACCESS_KEY: "s3_secret_test_not_real",
+  SUPPORT_EMAIL: "help@readi.example",
 };
 
 describe("dev mailbox", () => {
