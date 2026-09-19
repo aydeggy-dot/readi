@@ -9,6 +9,8 @@ const me = {
   phone_number: "+2348031234567",
   phone_number_verified: true,
   signup_method: "phone",
+  name: "",
+  onboarding: { profile_completed: false, consents_completed: false, completed_at: null },
 };
 
 describe("users contracts", () => {
