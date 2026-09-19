@@ -15,6 +15,23 @@ describe("parseServerEnv", () => {
   });
 });
 
+describe("parseServerEnv in production", () => {
+  it("requires the proxy secret and client IP header", () => {
+    expect(() => parseServerEnv({ APP_ENV: "production" })).toThrow(
+      /WEB_PROXY_SECRET[\s\S]*CLIENT_IP_HEADER/,
+    );
+  });
+
+  it("accepts a complete production configuration", () => {
+    const env = parseServerEnv({
+      APP_ENV: "production",
+      WEB_PROXY_SECRET: "s".repeat(32),
+      CLIENT_IP_HEADER: "CF-Connecting-IP",
+    });
+    expect(env.CLIENT_IP_HEADER).toBe("cf-connecting-ip");
+  });
+});
+
 describe("parseClientEnv", () => {
   it("accepts an empty configuration (analytics and error reporting disabled)", () => {
     expect(parseClientEnv({ NEXT_PUBLIC_POSTHOG_KEY: "", NEXT_PUBLIC_SENTRY_DSN: "" })).toEqual({});

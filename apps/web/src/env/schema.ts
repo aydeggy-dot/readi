@@ -5,10 +5,32 @@ import { z } from "zod";
 
 const emptyAsUnset = (v: unknown) => (v === "" ? undefined : v);
 
-const ServerEnvSchema = z.object({
-  API_INTERNAL_URL: z.url().default("http://127.0.0.1:4000"),
-  SENTRY_DSN: z.preprocess(emptyAsUnset, z.url().optional()),
-});
+const ServerEnvSchema = z
+  .object({
+    /** Deployment environment. Not NODE_ENV: `next build` always sets that to "production". */
+    APP_ENV: z.enum(["development", "test", "production"]).default("development"),
+    API_INTERNAL_URL: z.url().default("http://127.0.0.1:4000"),
+    SENTRY_DSN: z.preprocess(emptyAsUnset, z.url().optional()),
+    /** Shared with the API: proves a forwarded client IP came from this proxy (ADR-0009). */
+    WEB_PROXY_SECRET: z.preprocess(emptyAsUnset, z.string().min(32).optional()),
+    /** Header set by the hosting edge that holds exactly the client IP, e.g. cf-connecting-ip. */
+    CLIENT_IP_HEADER: z.preprocess(
+      emptyAsUnset,
+      z
+        .string()
+        .regex(/^[a-z0-9-]+$/i)
+        .transform((v) => v.toLowerCase())
+        .optional(),
+    ),
+  })
+  .superRefine((env, ctx) => {
+    if (env.APP_ENV !== "production") return;
+    // Without these, per-IP auth rate limits collapse into one shared bucket per route.
+    for (const key of ["WEB_PROXY_SECRET", "CLIENT_IP_HEADER"] as const) {
+      if (!env[key])
+        ctx.addIssue({ code: "custom", path: [key], message: "required in production" });
+    }
+  });
 
 /** `NEXT_PUBLIC_*` values are inlined at build time, so they are validated at build time (next.config.ts). */
 const ClientEnvSchema = z.object({

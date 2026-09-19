@@ -9,10 +9,11 @@ parseClientEnv(process.env);
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // The browser talks to the API same-origin through /api/* so auth cookies stay first-party (ADR-0005).
+  // The browser talks to the API same-origin through /api/* so auth cookies stay first-party
+  // (ADR-0005, ADR-0009). The API serves everything under /api too, so the path is kept as-is.
   rewrites() {
     return Promise.resolve([
-      { source: "/api/:path*", destination: `${serverEnv.API_INTERNAL_URL}/:path*` },
+      { source: "/api/:path*", destination: `${serverEnv.API_INTERNAL_URL}/api/:path*` },
     ]);
   },
 };
