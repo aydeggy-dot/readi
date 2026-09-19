@@ -89,8 +89,8 @@ pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
-pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003); commit the generated files
-pnpm check:contracts         # regenerate and fail on drift (as CI does)
+pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
+pnpm check:contracts         # regenerate both and fail on drift (as CI does)
 pnpm db:seed                 # load /content/seed (stub until M2)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
@@ -184,6 +184,16 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - API routes are default-deny: every controller route needs a session unless marked `@Public()`, and
   `@Roles()` restricts by role. Depend on `AuthService`, never on Better Auth types (ADR-0005/0009).
 - Every email goes through `EmailSender`, which refuses `.invalid` placeholder addresses (ADR-0009).
+- API errors that the UI must explain carry a stable `code` (`ApiError`); validation 400s list field paths.
+  The web app maps both to i18n copy and never shows the server's English message (ADR-0012).
+- A nullable string in a contract needs a constraint (format, pattern, length): a bare
+  `z.string().nullable()` becomes an array in the OpenAPI document. A shared-types test enforces this.
+- Web: pages resolve the user on the server with `requireUser()` / `requireOnboarded()` / `requireAdmin()`
+  (`apps/web/src/lib/session.ts`); `proxy.ts` only redirects cookie-less visitors. Browser code calls the
+  API through `@readi/api-client` and imports only types or `@readi/shared-types/constants` from
+  shared-types (lint-enforced). Forms use react-hook-form rules, not Zod (ADR-0012).
+- Consent texts are versioned (`CONSENT_VERSIONS`): changing the wording means bumping the version and
+  adding `consent.types.<type>.v<N>` copy; decisions on an old version no longer count as granted.
 - Error reporting never carries candidate data: Sentry is configured without request bodies or stack-frame
   locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.

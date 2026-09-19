@@ -36,7 +36,9 @@ pnpm dev                # web on http://localhost:3002, API on http://localhost:
 pnpm dev:worker         # AI worker on http://localhost:8000 (separate terminal)
 ```
 
-Open http://localhost:3002/status to see API, database, and Redis health.
+Open http://localhost:3002 and choose **Get started** to sign up (email, phone or, once
+`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set, Google), then complete onboarding.
+http://localhost:3002/status shows API, database, and Redis health (admins only when `APP_ENV=production`).
 Emails and SMS are not sent locally: read them (verification links, OTP codes) from the dev mailbox,
 `http://localhost:4000/api/dev/mailbox?to=<email or +234…>`. To make yourself an admin after signing
 up: `pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin`.
@@ -47,18 +49,18 @@ API docs (development only): http://localhost:4000/docs.
 ```bash
 pnpm lint && pnpm typecheck && pnpm test   # TS + Python (ruff, mypy, pytest); tests need the compose services
 pnpm build
-pnpm check:contracts                       # Zod → JSON Schema → Pydantic drift check
+pnpm check:contracts                       # drift check: Zod → Pydantic, and OpenAPI → packages/api-client
 ```
 
 ## Layout
 
 | Path                    | What                                                                  |
 | ----------------------- | --------------------------------------------------------------------- |
-| `apps/web`              | Next.js candidate app (+ `/admin` later), PWA via Serwist             |
+| `apps/web`              | Next.js candidate app and `/admin`, PWA via Serwist                   |
 | `apps/api`              | NestJS API; the only service with database access (Prisma)            |
 | `apps/ai-worker`        | Python/FastAPI AI worker (interviewer, evaluator); no database access |
 | `packages/shared-types` | Zod contracts — the source of truth for cross-language types          |
-| `packages/api-client`   | Generated API client (from M1)                                        |
+| `packages/api-client`   | API client generated from the API's OpenAPI document (ADR-0012)       |
 | `packages/ui`           | Design tokens                                                         |
 | `packages/config`       | Shared tsconfig, ESLint, Prettier, Vitest preset                      |
 | `infra/`                | Docker Compose for local development                                  |

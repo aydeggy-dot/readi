@@ -13,8 +13,9 @@
   every page. Validate `NEXT_PUBLIC_*` at build time instead.
 - Serwist precaches every static chunk by default (1.8 MB here, incl. lazily loaded SDKs); `globPatterns: []`
   keeps only the offline page and leaves the rest to runtime caching.
-- When killing background dev servers, find them by listening port (`ss -ltnp`), not `pgrep -f`, which can
-  match the shell running the command.
+- When killing background dev servers, find them by listening port (`ss -ltnp`), not `pgrep -f`/`pkill -f`,
+  which can match (and kill) the shell running the command. Repeated in M1 phase 2 with `pkill -f`: never
+  use `-f` pattern kills here, even for "obviously unique" command lines.
 - Turborepo 2 strict env mode silently drops undeclared env vars (NEXT_PUBLIC_* is inferred for Next.js,
   others are not). Prove config reaches a task by passing an invalid value and expecting a failure.
 - sentry-sdk (Python) sends request bodies (`max_request_body_size="medium"`) and frame locals
@@ -27,3 +28,9 @@
   trust it for rate limiting. Headers set in proxy.ts do reach rewrite destinations (ADR-0009).
 - Next.js rewrite destinations are resolved at build time (API_INTERNAL_URL must be set for `next build`).
 - Better Auth `input: false` fields: ones with a default are silently ignored, others rejected (400).
+- Zod 4 writes a bare `z.string().nullable()` as `type: ["string","null"]`; @nestjs/swagger turns that into
+  an array of strings in the OpenAPI document. Found when the generated api-client failed type-checking;
+  constrained fields (format/pattern) emit `anyOf` and are fine. Guarded by a shared-types test.
+- A second web instance for manual testing needs `API_INTERNAL_URL` at BOTH build (rewrite) and runtime
+  (server components), and must not inherit the API's env (`env -i`), or it silently talks to another API.
+- Next's route announcer repeats the page's h1 text: locate headings by role in browser checks.
