@@ -21,11 +21,16 @@ export PUBLIC_WEB_URL="http://127.0.0.1:${E2E_WEB_PORT}"
 export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-e2e-only-secret-not-used-anywhere-else-0123456789}"
 export AI_WORKER_TOKEN="${AI_WORKER_TOKEN:-e2e-only-worker-token-not-used-anywhere-else-01234}"
 
-echo "==> Preparing the e2e database and bucket"
-pnpm --filter @readi/api e2e:prepare
+# Through turbo, so a fresh checkout (CI) also gets the workspace packages the apps import and the
+# generated Prisma client.
+echo "==> Building the API into apps/api/dist-cli"
+pnpm turbo run build:standalone --filter=@readi/api --output-logs=errors-only
 
-echo "==> Building the API (apps/api/dist-cli) and the web app (apps/web/.next-e2e)"
-pnpm --filter @readi/api build:standalone
+echo "==> Preparing the e2e database and bucket"
+pnpm turbo run e2e:prepare --filter=@readi/api --output-logs=new-only
+
+echo "==> Building the web app into apps/web/.next-e2e"
+pnpm turbo run build --filter='@readi/web^...' --output-logs=errors-only
 NEXT_DIST_DIR=.next-e2e API_INTERNAL_URL="http://127.0.0.1:${E2E_API_PORT}" APP_ENV=development \
   pnpm --filter @readi/web exec next build
 
