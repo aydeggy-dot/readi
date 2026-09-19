@@ -1,0 +1,32 @@
+{
+  "name": "@readi/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./prettier": "./prettier.js",
+    "./eslint": {
+      "types": "./eslint/base.d.ts",
+      "default": "./eslint/base.js"
+    },
+    "./vitest": {
+      "types": "./vitest/preset.d.ts",
+      "default": "./vitest/preset.js"
+    },
+    "./tsconfig/*.json": "./tsconfig/*.json"
+  },
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "globals": "17.11.0",
+    "typescript-eslint": "8.68.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.39.0",
+    "vitest": "^4.1.0"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,15 @@
+# Normalise all text files to LF in the repo and the working tree (WSL/Linux dev; Windows editors must respect this).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.wav binary
+*.mp3 binary
+*.opus binary

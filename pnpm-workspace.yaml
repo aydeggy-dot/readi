@@ -1,0 +1,23 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 12 fails the install when a dependency's build script has not been approved.
+# Each entry here is a deliberate decision; justify additions in the commit message.
+allowBuilds:
+  # downloads the Prisma schema engine used by `prisma migrate`
+  "@prisma/engines": true
+  # Prisma CLI install-time check
+  prisma: true
+  # installs/verifies the native SWC binding (Nest builder, Vitest decorator transform)
+  "@swc/core": true
+  # native esbuild binary; Serwist compiles the service worker with it
+  esbuild: true
+  # native resolver used by eslint-config-next's import rules
+  unrs-resolver: true
+  # install-time telemetry pulled in by swagger-ui-dist; not needed
+  "@scarf/scarf": false
+  # downloads sentry-cli for source-map uploads; not used until deployment (M10)
+  "@sentry/cli": false
+  # postinstall only prints a funding message
+  core-js: false

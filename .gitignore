@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+.turbo/
+
+# generated at build time (committed generated contracts live elsewhere)
+apps/api/src/generated/
+apps/web/public/sw.js*
+apps/web/public/swe-worker*
+
+# env files — only .env.example is committed
+.env
+.env.*
+!.env.example
+!.env.test
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log

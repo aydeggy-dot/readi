@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+**/generated/**
+**/dist/**
+**/.next/**
+apps/ai-worker/
+docs/
+CLAUDE.md
+apps/api/prisma/migrations/
+.turbo/
