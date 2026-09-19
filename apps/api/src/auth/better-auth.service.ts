@@ -26,6 +26,7 @@ export class BetterAuthService extends AuthService {
       createdAt: new Date(session.createdAt),
       user: {
         id: user.id,
+        name: user.name,
         // Stored values are validated rather than trusted: an unknown role is treated as no access.
         role: Role.parse(user.role),
         email: isPlaceholderEmail(user.email) ? null : user.email,

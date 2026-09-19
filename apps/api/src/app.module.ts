@@ -5,11 +5,13 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
 import { AdminModule } from "./admin/admin.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
+import { ConsentsModule } from "./consents/consents.module";
 import type { Env } from "./config/env";
 import { EnvModule } from "./config/env.module";
 import { HealthModule } from "./health/health.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { ProfilesModule } from "./profiles/profiles.module";
 import { RedisModule } from "./redis/redis.module";
 import { UsersModule } from "./users/users.module";
 
@@ -30,6 +32,8 @@ export class AppModule {
         AuthModule,
         HealthModule,
         UsersModule,
+        ProfilesModule,
+        ConsentsModule,
         AdminModule,
       ],
       providers: [

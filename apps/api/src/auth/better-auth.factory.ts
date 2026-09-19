@@ -1,5 +1,5 @@
 import { Logger } from "@nestjs/common";
-import type { SignupMethod } from "@readi/shared-types";
+import { PASSWORD_LIMITS, type SignupMethod } from "@readi/shared-types";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
@@ -101,8 +101,8 @@ export function createBetterAuth({ env, prisma, email, sms, limiter }: BetterAut
     },
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 10,
-      maxPasswordLength: 128,
+      minPasswordLength: PASSWORD_LIMITS.minLength,
+      maxPasswordLength: PASSWORD_LIMITS.maxLength,
       // Verification does not block onboarding; it is required before checkout (M8).
       requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,

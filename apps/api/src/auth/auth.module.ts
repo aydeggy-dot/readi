@@ -9,12 +9,14 @@ import type { SmsProvider } from "../notifications/sms";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisRateLimiter } from "../rate-limit/redis-rate-limiter";
 import { REDIS } from "../redis/redis.module";
+import { AuthMethodsController } from "./auth-methods.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { BETTER_AUTH, createBetterAuth } from "./better-auth.factory";
 import { BetterAuthService } from "./better-auth.service";
 
 @Module({
+  controllers: [AuthMethodsController],
   providers: [
     {
       provide: BETTER_AUTH,

@@ -4,6 +4,8 @@ import type { Role, SignupMethod } from "@readi/shared-types";
 /** The signed-in user as the rest of the API sees it. Never exposes Better Auth types (ADR-0005). */
 export interface AuthenticatedUser {
   id: string;
+  /** Display name; empty until set in onboarding (phone sign-ups start without one). */
+  name: string;
   role: Role;
   /** Null when the account only has a placeholder email (phone sign-up). */
   email: string | null;

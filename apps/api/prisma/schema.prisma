@@ -61,6 +61,8 @@ model User {
 
   sessions Session[]
   accounts Account[]
+  profile  Profile?
+  consents ConsentRecord[]
 
   @@map("users")
 }
@@ -112,6 +114,75 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Profile and consent (spec §4.1, §6.1). Personal data: deleted with the user (cascade).
+
+enum TargetRole {
+  frontend
+  backend
+  qa
+
+  @@map("target_role")
+}
+
+enum ExperienceLevel {
+  intern_junior
+  mid
+
+  @@map("experience_level")
+}
+
+enum TargetCompanyType {
+  local_startup
+  enterprise_bank_telco
+  remote_foreign
+  big_tech
+
+  @@map("target_company_type")
+}
+
+model Profile {
+  userId                String            @id @map("user_id") @db.Uuid
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole            TargetRole        @map("target_role")
+  level                 ExperienceLevel
+  yearsExperience       Int               @map("years_experience")
+  stack                 String[]
+  targetCompanyType     TargetCompanyType @map("target_company_type")
+  /// A calendar date, not a timestamp.
+  targetDate            DateTime?         @map("target_date") @db.Date
+  onboardingCompletedAt DateTime?         @map("onboarding_completed_at") @db.Timestamptz(6)
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("profiles")
+}
+
+enum ConsentType {
+  audio_processing
+  recording_storage
+  camera_coaching
+  marketing
+
+  @@map("consent_type")
+}
+
+/// Append-only: one row per change of a consent decision. The latest row per (user, type) is the
+/// current state; spec §6.1 `granted_at`/`revoked_at` are the `created_at` of granting/revoking rows.
+model ConsentRecord {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ConsentType
+  granted   Boolean
+  /// Version of the consent text the user was shown (CONSENT_VERSIONS in @readi/shared-types).
+  version   Int
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, type, createdAt])
+  @@map("consent_records")
 }
 
 // ---------------------------------------------------------------------------------------------
