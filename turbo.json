@@ -5,7 +5,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NODE_ENV", "API_INTERNAL_URL", "SENTRY_DSN", "NEXT_PUBLIC_*"]
     },
     "gen:contracts": {
       "dependsOn": ["^gen:contracts", "build"],
@@ -24,7 +25,20 @@
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "ENVIRONMENT",
+        "HOST",
+        "PORT",
+        "LOG_LEVEL",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "HEALTH_CHECK_TIMEOUT_MS",
+        "SENTRY_DSN",
+        "API_INTERNAL_URL",
+        "NEXT_PUBLIC_*"
+      ]
     }
   }
 }
