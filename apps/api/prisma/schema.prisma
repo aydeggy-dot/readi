@@ -1,0 +1,20 @@
+// Prisma owns the database schema and all migrations; only apps/api connects to Postgres (ADR-0004).
+// The pgvector extension is enabled by the initial migration (raw SQL); vector columns arrive in M2.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Proves that migrations have run; read by GET /health.
+model HealthCheck {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("health_check")
+}
