@@ -13,6 +13,9 @@ coaching (pace, filler words, and later opt-in camera coaching), and an updated 
 
 The full product specification lives in `docs/PRODUCT_SPEC.md`. The build plan and milestone prompts live
 in `docs/PROMPTS.md`. **Read `docs/PRODUCT_SPEC.md` before starting any feature work.**
+Architecture decisions are recorded in `docs/adr/`; kickoff decisions and deferred items are in
+`docs/progress/kickoff.md`. `docs/PROMPTS.md` predates those decisions: where a milestone prompt conflicts
+with this file, the spec, or an ADR, **this file, the spec, and the ADRs win**.
 
 ### Product principles (these override convenience)
 1. **Quality of feedback beats flashy features.** Feedback must be specific, cite what the candidate said, and be fair.
@@ -28,29 +31,30 @@ in `docs/PROMPTS.md`. **Read `docs/PRODUCT_SPEC.md` before starting any feature 
 | Monorepo | Turborepo + pnpm workspaces |
 | Web | Next.js (App Router) + TypeScript (strict), Tailwind CSS, shadcn/ui, TanStack Query, Zustand, Serwist (PWA) |
 | Mobile (phase 2) | React Native + Expo (EAS) |
-| Main API | NestJS (TypeScript), REST + OpenAPI, Zod or class-validator at boundaries |
+| Main API | NestJS (TypeScript), REST + OpenAPI, Zod at boundaries via `nestjs-zod` (ADR-0003) |
 | AI / voice worker | Python 3.12, FastAPI, LiveKit Agents, Pydantic v2 |
-| Database | PostgreSQL 16 + pgvector, accessed via Prisma from the API |
+| Database | PostgreSQL 16 + pgvector, accessed via Prisma **from the API only**; the AI worker has no DB access (ADR-0004) |
 | Cache / queues | Redis + BullMQ (API side); the AI worker consumes jobs via HTTP or Redis |
 | Object storage | S3-compatible (Cloudflare R2 in production, MinIO locally) |
-| Auth | Pluggable provider (default: Better Auth or Clerk); email, Google, phone OTP (Termii) |
-| Payments | Paystack (NGN) + Stripe (USD/GBP/EUR), webhook-driven entitlements |
+| Auth | Better Auth hosted in the API, behind our `AuthService` interface (ADR-0005); email, Google, phone OTP (Termii) |
+| Payments | Paystack (NGN) + Stripe (USD only at MVP; GBP/EUR later), webhook-driven entitlements |
 | Real-time media | LiveKit (LiveKit Cloud in prod, `livekit-server --dev` locally) |
 | Speech-to-text | Provider adapter; default Deepgram, alternatives AssemblyAI / Whisper |
 | LLM | Provider adapter; default Anthropic Claude (fast model for live conversation, stronger model for evaluation) |
 | Text-to-speech | Provider adapter; default ElevenLabs or Cartesia |
-| LLM tracing / evals | Langfuse |
+| Embeddings | Provider adapter; default Voyage AI, 1024-dim vectors (ADR-0006) |
+| LLM tracing / evals | Langfuse (Cloud, EU region) — treated as a personal-data store (ADR-0008) |
 | Errors / analytics | Sentry, PostHog |
-| Email / WhatsApp | Resend; Meta WhatsApp Cloud API (phase 2) |
-| Tests | Vitest (TS), Jest (NestJS default ok), Playwright (e2e), pytest (Python) |
+| Email / SMS / WhatsApp | Resend (email); Termii (SMS: OTP + renewal reminders); Meta WhatsApp Cloud API (phase 2) |
+| Tests | Vitest for all TS incl. NestJS (ADR-0002), Playwright (e2e), pytest (Python) |
 | CI | GitHub Actions |
 
 ## 3. Repository layout
 
 ```
 /apps
-  /web            Next.js candidate app (+ marketing pages)
-  /admin          Next.js internal admin/content panel (can start as routes inside /web behind RBAC)
+  /web            Next.js candidate app (+ marketing pages); admin/content panel lives under /admin
+                  routes here, behind RBAC — no separate apps/admin at MVP
   /api            NestJS main API
   /ai-worker      Python: live interviewer agent, evaluator, delivery metrics
   /mobile         Expo app (phase 2 — do not create until milestone P2-1)
@@ -62,7 +66,7 @@ in `docs/PROMPTS.md`. **Read `docs/PRODUCT_SPEC.md` before starting any feature 
 /infra
   docker-compose.yml   postgres, redis, minio, livekit (dev)
 /docs
-  PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), runbooks/
+  PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), progress/ (handovers), runbooks/
 /content
   seed/           Seed question banks, rubrics, lessons (YAML/JSON), reviewed by humans
 /evals
@@ -96,13 +100,21 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Text mode and voice mode share the **same engine**; voice is just a different transport.
 
 ### AI provider adapters
-- All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `AvatarProvider`.
+- All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `EmbeddingProvider`, `AvatarProvider`.
+- All external AI calls are made from the AI worker (ADR-0004); the API asks the worker, never a provider directly.
 - Provider choice and model names come from config/env (e.g. `LLM_MODEL_INTERVIEWER`, `LLM_MODEL_EVALUATOR`), never hardcoded in business logic.
-- Every AI call records: provider, model, latency, token/character/minute usage, estimated cost, session id → Langfuse + `usage_ledger`.
+- Every AI call records: provider, model, purpose, latency, token/character/second usage, estimated cost, session id → Langfuse + `ai_call_log` (ADR-0007).
+  Cost is integer **micro-USD**. `usage_ledger` is for customer allowance metering only (voice/avatar minutes), not cost.
+
+### Data access
+- Only the API connects to Postgres; Prisma owns the schema and migrations (ADR-0004).
+- The worker receives what it needs in requests (e.g. a session bundle at session start) and emits typed events
+  (turns, latency samples, AI-call records) that the API persists idempotently. Ephemeral engine state lives in Redis.
 
 ### Evaluation
 - Evaluation runs **per answer**, against that question's rubric, with low temperature and **schema-validated structured output** (Pydantic model ↔ Zod schema in `shared-types`).
-- Every criterion score must include `evidence` quoted from the transcript. Reject and retry outputs without evidence.
+- Every **non-zero** criterion score must include `evidence` quoted from the transcript; reject and retry outputs
+  that violate this. A score of 0 may have empty evidence only when the criterion was not addressed at all (spec §6.2).
 - The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call.
 - The readiness score formula lives in code (see spec §7), is versioned, and is unit-tested.
 - Any change to evaluator prompts or models must pass `/evals` regression (agreement with human scores must not drop).
@@ -114,14 +126,22 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 ### Payments & entitlements
 - Access is controlled **only** by the `entitlements` table, updated **only** by verified payment webhooks (signature checked, idempotent via `webhook_events` table) or admin actions (audited).
 - Money is stored as integers in minor units (`amount_minor`, `currency`) — kobo for NGN, cents for USD.
+  Exception: internal AI provider cost is integer micro-USD in `ai_call_log` (ADR-0007).
 - Voice/avatar minutes are metered in `usage_ledger`; check allowance before starting a session and settle after.
+- Checkout requires an email address (Paystack needs one); users without one are asked to add it at checkout.
+- Renewal reminders: **1 day** before renewal for weekly plans, **3 days** for monthly/annual. Sent by email to
+  everyone, and additionally by SMS (Termii) to users who signed up by phone.
 
 ### Data & privacy (Nigeria Data Protection Act 2023, GDPR-ready)
 - Store explicit `consent_records` for: recording audio, camera coaching, storing recordings, marketing.
 - Camera analysis (MediaPipe) runs on the client; only numeric metrics are sent to the server.
 - Recordings (if consented) auto-expire after a configurable retention period (default 30 days).
 - Never log transcripts, CVs, emails, or phone numbers to application logs or Sentry. Use ids.
-- Support data export and account deletion endpoints from day one.
+- Langfuse traces contain personal data: opaque ids only, CV contact details masked, same retention as
+  recordings, deleted on account deletion (ADR-0008).
+- Support data export and account deletion endpoints from day one. Deletion removes personal data; rows that must
+  be kept (payments, subscriptions, webhook events, audit logs) are retained with personal data stripped and the
+  user reference replaced by a tombstone id.
 
 ### Performance & low bandwidth
 - Mobile-first responsive layouts; test at 360px width.
@@ -138,7 +158,8 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 
 - TypeScript `strict: true`. No `any` (use `unknown` + narrowing). No non-null assertions without a comment.
 - Validate all external input (HTTP bodies, webhooks, LLM output, env vars) with schemas.
-- Shared contracts go in `packages/shared-types`; don't duplicate types across apps.
+- Shared contracts go in `packages/shared-types` as **Zod schemas — the single source of truth** (ADR-0003).
+  Pydantic models for shared contracts are generated from them; never hand-edit generated files. CI fails on drift.
 - NestJS: one module per domain (auth, users, profiles, content, sessions, evaluations, readiness, plans, billing, feedback, orgs, admin). Controllers thin, logic in services, DB access via Prisma in repositories/services.
 - Python: `ruff` + `mypy --strict` + Pydantic models for every boundary. Async throughout.
 - Env vars documented in each app's `.env.example`. Never commit secrets. Never print secrets.
@@ -151,6 +172,7 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 2. Work **one milestone at a time** (see `docs/PROMPTS.md`). Do not start the next milestone unprompted.
 3. After implementing: run lint, typecheck, and tests; fix failures before reporting done.
 4. When a decision isn't covered here or in the spec, **ask** rather than guess — or, if minor, choose the simplest option and record it in `docs/adr/`.
+   Never edit an accepted ADR; supersede it with a new one.
 5. Keep this file and the spec current: if you add a command, module, or convention, update the docs in the same change.
 6. Never weaken security, privacy, or billing rules to make a test pass.
 7. Don't generate large volumes of interview content and present it as final — seed content is marked `status: draft` until a human expert reviews it.
