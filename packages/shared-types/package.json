@@ -1,0 +1,33 @@
+{
+  "name": "@readi/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "generated"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "gen:contracts": "node scripts/gen-json-schema.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@readi/config": "workspace:*",
+    "@types/node": "24.13.5",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}
