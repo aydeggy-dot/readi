@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createOpenApiDocument } from "../src/openapi";
 import { createTestApp } from "./helpers";
@@ -33,7 +34,7 @@ describe("OpenAPI document", () => {
     // The committed file comes from `export-openapi` (no database); this proves it equals what the
     // running app serves. If it fails, run `pnpm gen:contracts` and commit the result.
     const committed: unknown = JSON.parse(
-      readFileSync(new URL("../../../packages/api-client/openapi.json", import.meta.url), "utf8"),
+      readFileSync(join(__dirname, "../../../packages/api-client/openapi.json"), "utf8"),
     );
     const app = await createTestApp();
     try {

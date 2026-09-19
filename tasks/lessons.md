@@ -34,3 +34,6 @@
 - A second web instance for manual testing needs `API_INTERNAL_URL` at BOTH build (rewrite) and runtime
   (server components), and must not inherit the API's env (`env -i`), or it silently talks to another API.
 - Next's route announcer repeats the page's h1 text: locate headings by role in browser checks.
+- apps/api compiles tests as CommonJS: `import.meta` fails `tsc` even though Vitest runs it. After the
+  LAST edit of a phase, re-run the full lint + typecheck, not just the test that changed (a clean-clone
+  rehearsal caught this one).
