@@ -7,7 +7,7 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 
 | # | Title | Status |
 |---|---|---|
-| 0001 | Monorepo and stack | Reserved — written in Milestone M0 |
+| [0001](0001-monorepo-and-stack.md) | Monorepo layout, stack versions, and local infrastructure | Accepted |
 | [0002](0002-vitest-everywhere.md) | Vitest as the single TypeScript test runner | Accepted |
 | [0003](0003-zod-source-of-truth.md) | Zod is the source of truth for shared contracts; Pydantic models are generated | Accepted |
 | [0004](0004-worker-has-no-db-access.md) | The AI worker has no direct database access | Accepted |

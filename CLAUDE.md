@@ -35,10 +35,10 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
 | AI / voice worker | Python 3.12, FastAPI, LiveKit Agents, Pydantic v2 |
 | Database | PostgreSQL 16 + pgvector, accessed via Prisma **from the API only**; the AI worker has no DB access (ADR-0004) |
 | Cache / queues | Redis + BullMQ (API side); the AI worker consumes jobs via HTTP or Redis |
-| Object storage | S3-compatible (Cloudflare R2 in production, MinIO locally) |
+| Object storage | S3-compatible (Cloudflare R2 in production, SeaweedFS locally — ADR-0001) |
 | Auth | Better Auth hosted in the API, behind our `AuthService` interface (ADR-0005); email, Google, phone OTP (Termii) |
 | Payments | Paystack (NGN) + Stripe (USD only at MVP; GBP/EUR later), webhook-driven entitlements |
-| Real-time media | LiveKit (LiveKit Cloud in prod, `livekit-server --dev` locally) |
+| Real-time media | LiveKit (LiveKit Cloud in prod, `livekit-server --dev` in docker compose locally) |
 | Speech-to-text | Provider adapter; default Deepgram, alternatives AssemblyAI / Whisper |
 | LLM | Provider adapter; default Anthropic Claude (fast model for live conversation, stronger model for evaluation) |
 | Text-to-speech | Provider adapter; default ElevenLabs or Cartesia |
@@ -64,7 +64,7 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
   /ui             Shared design tokens / components
   /config         Shared eslint, tsconfig, prettier configs
 /infra
-  docker-compose.yml   postgres, redis, minio, livekit (dev)
+  docker-compose.yml   postgres (pgvector), redis, s3 (SeaweedFS), livekit (dev); ports in ADR-0001
 /docs
   PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), progress/ (handovers), runbooks/
 /content
@@ -75,18 +75,25 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
 
 ## 4. Common commands
 
-Keep this section updated as scripts are added.
+Keep this section updated as scripts are added. Local ports: web 3002, API 4000, worker 8000,
+Postgres 15432, Redis 16379, S3 19000 (ADR-0001).
 
 ```bash
+pnpm prereqs                 # check local prerequisites (Node 24, pnpm 12, uv, Python 3.12, Docker)
+docker compose -f infra/docker-compose.yml up -d     # postgres, redis, s3, livekit
 pnpm install                 # install all workspaces
+pnpm db:migrate              # prisma migrate dev (apps/api)
 pnpm dev                     # run web + api (turbo)
-pnpm test                    # all TS tests
-pnpm lint && pnpm typecheck
-pnpm db:migrate              # prisma migrate dev
-pnpm db:seed                 # load /content/seed
-docker compose -f infra/docker-compose.yml up -d
-cd apps/ai-worker && uv run pytest      # Python tests (use uv for env management)
-cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite
+pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
+pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
+pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
+pnpm build                   # build all apps
+pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
+pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003); commit the generated files
+pnpm check:contracts         # regenerate and fail on drift (as CI does)
+pnpm db:seed                 # load /content/seed (stub until M2)
+cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite (from M4)
 ```
 
 ## 5. Architecture rules
@@ -164,6 +171,13 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Python: `ruff` + `mypy --strict` + Pydantic models for every boundary. Async throughout.
 - Env vars documented in each app's `.env.example`. Never commit secrets. Never print secrets.
 - Prefer boring, well-maintained libraries. **Justify any new dependency** in the PR/commit message.
+- Pin direct dependencies exactly and prefer releases that have been out a few weeks (ADR-0001 version policy).
+  Dependency build scripts need an explicit, commented `allowBuilds` entry in `pnpm-workspace.yaml`.
+- Cross-language contracts: wire fields are `snake_case`; a registered (top-level) contract has no root
+  `.meta({ id })`, reusable nested schemas do (ADR-0001). Run `pnpm gen:contracts` after changing them.
+- Browser code never imports Zod or other heavy libraries eagerly; validate `NEXT_PUBLIC_*` at build time and
+  lazy-load optional SDKs (ADR-0001).
+- Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.
 - Write small, focused commits with conventional commit messages (`feat:`, `fix:`, `chore:` …).
 
 ## 7. How Claude should work in this repo

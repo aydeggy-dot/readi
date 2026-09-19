@@ -62,7 +62,7 @@ Goals
 - Verify Serwist works with the current Next.js bundler; fall back to a webpack build if needed.
 - `.gitattributes` enforcing LF line endings; a `pnpm prereqs` script checking the prerequisites
   listed in docs/progress/kickoff.md §2.
-- infra/docker-compose.yml with postgres 16 + pgvector, redis, minio (S3-compatible), and a
+- infra/docker-compose.yml with postgres 16 + pgvector, redis, S3-compatible storage (SeaweedFS, ADR-0001), and a
   LiveKit dev server. Include healthchecks and named volumes.
 - Prisma set up in apps/api with an initial migration that only enables the pgvector extension
   and creates a `health_check` table.
@@ -106,7 +106,7 @@ Scope
 - Prisma models + migrations: User, Profile, ConsentRecord, AuditLog.
 - Profile API + UI: target role (frontend|backend|qa), level (intern_junior|mid), years of
   experience, stack tags, target company type, optional target date.
-- CV upload: presigned upload to S3/MinIO (PDF/DOCX ≤ 5 MB, type-checked server-side), then a
+- CV upload: presigned upload to S3 (SeaweedFS locally, ADR-0001) (PDF/DOCX ≤ 5 MB, type-checked server-side), then a
   background job that extracts text and calls the ai-worker `/cv/parse` endpoint. For M1 the
   ai-worker endpoint can use the LLM adapter (create the adapter interface now with an Anthropic
   implementation and a deterministic fake for tests). Candidate can review/edit parsed results.
