@@ -1,13 +1,14 @@
 // Browser-side Sentry and PostHog. Each SDK is fetched only when its key is configured, so neither
 // adds to the initial JS on low-bandwidth connections when disabled.
 import { clientEnv } from "@/env/client";
+import { scrubSentryEvent } from "@/lib/sentry-scrub";
 
 const { sentryDsn, posthogKey, posthogHost } = clientEnv;
 
 if (sentryDsn) {
   const dsn = sentryDsn;
   void import("@sentry/nextjs").then((Sentry) =>
-    Sentry.init({ dsn, sendDefaultPii: false, tracesSampleRate: 0 }),
+    Sentry.init({ dsn, sendDefaultPii: false, tracesSampleRate: 0, beforeSend: scrubSentryEvent }),
   );
 }
 

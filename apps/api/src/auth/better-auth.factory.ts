@@ -20,6 +20,21 @@ export const DELETION_PENDING_CODE = "ACCOUNT_DELETION_PENDING";
 
 const OTP_TTL_SECONDS = 300;
 
+/**
+ * Better Auth routes we do not offer, answered with 404 (its router checks this before anything
+ * else). The phone-number plugin registers six endpoints; Readi uses only `send-otp` and `verify`.
+ * The other three are a genuine hazard: `/phone-number/request-password-reset` stores a fresh OTP
+ * for any number without sending it anywhere (we never configure `sendPasswordResetOTP`), and
+ * `/phone-number/reset-password` will then set a password — creating a credential account for a
+ * phone-only user — so guessing a code takes over the account. `/sign-in/phone-number` is a
+ * password sign-in we do not offer, and it would sit outside our per-route rate limits.
+ */
+export const DISABLED_AUTH_PATHS = [
+  "/phone-number/request-password-reset",
+  "/phone-number/reset-password",
+  "/sign-in/phone-number",
+];
+
 export interface BetterAuthDeps {
   env: Env;
   prisma: PrismaClient;
@@ -62,6 +77,7 @@ export function createBetterAuth({ env, prisma, email, sms, limiter }: BetterAut
     basePath: "/api/auth",
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: [env.PUBLIC_WEB_URL],
+    disabledPaths: DISABLED_AUTH_PATHS,
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     telemetry: { enabled: false },
     logger: {

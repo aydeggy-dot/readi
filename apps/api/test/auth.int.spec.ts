@@ -2,6 +2,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { MeResponse } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DISABLED_AUTH_PATHS } from "../src/auth/better-auth.factory";
 import { isPlaceholderEmail } from "../src/auth/phone";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
@@ -232,6 +233,31 @@ describe("authentication (Better Auth mounted in Nest)", () => {
         .send({ phoneNumber });
 
       expect(response.status).toBe(400);
+    });
+
+    it("does not expose the password-reset or password sign-in routes", async () => {
+      const phone = uniqueNigerianMobile();
+      // These exist in the plugin but are not part of Readi's flows: reachable, they let anyone
+      // mint reset codes for a number and set a password on the account (see DISABLED_AUTH_PATHS).
+      for (const path of DISABLED_AUTH_PATHS) {
+        const response = await http()
+          .post(`/api/auth${path}`)
+          .set(viaProxy())
+          .send({ phoneNumber: phone, otp: "000000", newPassword: PASSWORD, password: PASSWORD });
+        expect(response.status, `POST /api/auth${path}`).toBe(404);
+      }
+      // Nothing was stored for that number, and the routes we do offer still work.
+      expect(await prisma.verification.count({ where: { identifier: { contains: phone } } })).toBe(
+        0,
+      );
+      expect(
+        (
+          await http()
+            .post("/api/auth/phone-number/send-otp")
+            .set(viaProxy())
+            .send({ phoneNumber: phone })
+        ).status,
+      ).toBe(200);
     });
   });
 
