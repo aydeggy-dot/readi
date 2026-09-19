@@ -47,3 +47,6 @@
   AWS SDK v3 default checksums must be off (`WHEN_REQUIRED`) for presigned browser uploads.
 - Nest: a queue that needs a service which needs the queue is a DI cycle; split the job processor out.
 - Walkthroughs catch UX dead ends unit tests miss (manual CV entry had no way to upload another file).
+- Don't give the owner third-party console steps (menus, buttons) from memory: check the provider's
+  current docs first and link the exact page. (Anthropic Console: I sent them to a Workspaces page
+  they couldn't find; the real fix was on the API keys page.)

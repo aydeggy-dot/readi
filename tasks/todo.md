@@ -54,9 +54,11 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
   - [x] CI: SeaweedFS for API tests
   - [x] Web: CV onboarding step (skippable, upload progress, parse polling via TanStack Query), review/edit
   - [x] Docs: ADR-0010, env examples, CLAUDE.md, README; 360px + Slow 4G check
-  - Pending owner: ANTHROPIC_API_KEY in apps/ai-worker/.env + LLM_PROVIDER=anthropic, then run
-    `compare_cv_parse` on real CVs (sonnet-5 vs haiku-4-5) and decide the default model.
-  - Not yet exercised against the real Anthropic API (no key); covered by a mocked-transport test.
+  - Owner key in apps/ai-worker/.env (2026-09-19; the key must be scoped to one workspace, or requests
+    400 asking for `anthropic-workspace-id`). Real API checked on synthetic CVs: both models parse PDF
+    and DOCX, ignore an injected instruction, output no contact details. Sonnet 5 ≈ $0.006/CV, Haiku
+    4.5 ≈ $0.002/CV; Sonnet's gaps were more relevant (Haiku flagged "no version control" with Git listed).
+  - Pending owner: run `compare_cv_parse` on real CVs and decide the default model (sonnet-5 for now).
 - [ ] Phase 4 — export + deletion (ADR-0011 tombstones)
 - [ ] Phase 5 — Playwright e2e + CI job, subprocessors, docs, review (ADR-0010 and ADR-0012 already written; ADR-0011 in phase 4)
 
