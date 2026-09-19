@@ -50,3 +50,8 @@
 - Don't give the owner third-party console steps (menus, buttons) from memory: check the provider's
   current docs first and link the exact page. (Anthropic Console: I sent them to a Workspaces page
   they couldn't find; the real fix was on the API keys page.)
+- The owner's `pnpm dev` API can silently stop reloading (Nest watcher alive, app never restarted; 18:01
+  to 21:20 on 2026-09-19) while Next keeps hot-reloading, so the web expects fields the old API lacks.
+  Likely cause: my `pnpm build` in the working tree recreated `apps/api/dist` under the watcher
+  (`deleteOutDir`). Run full builds in a separate clone while the owner's dev servers run, and before
+  handing over, compare the port-4000 process start time with the last API change.
