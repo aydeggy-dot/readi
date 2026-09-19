@@ -66,6 +66,10 @@ jobs:
         run: pnpm --filter @readi/api db:deploy
       - name: Test and build
         run: pnpm turbo run test build --filter='!@readi/ai-worker'
+      - name: Smoke-test the built API
+        run: bash scripts/smoke-api.sh
+        env:
+          BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
 
   python:
     name: Python (ruff, mypy, pytest)

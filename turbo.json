@@ -6,7 +6,15 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
-      "env": ["NODE_ENV", "API_INTERNAL_URL", "SENTRY_DSN", "NEXT_PUBLIC_*"]
+      "env": [
+        "NODE_ENV",
+        "APP_ENV",
+        "API_INTERNAL_URL",
+        "SENTRY_DSN",
+        "WEB_PROXY_SECRET",
+        "CLIENT_IP_HEADER",
+        "NEXT_PUBLIC_*"
+      ]
     },
     "gen:contracts": {
       "dependsOn": ["^gen:contracts", "build"],
@@ -27,17 +35,34 @@
       "cache": false,
       "persistent": true,
       "passThroughEnv": [
-        "NODE_ENV",
-        "ENVIRONMENT",
-        "HOST",
-        "PORT",
-        "LOG_LEVEL",
-        "DATABASE_URL",
-        "REDIS_URL",
-        "HEALTH_CHECK_TIMEOUT_MS",
-        "SENTRY_DSN",
         "API_INTERNAL_URL",
-        "NEXT_PUBLIC_*"
+        "APP_ENV",
+        "AUTH_RATE_LIMIT_ENABLED",
+        "BETTER_AUTH_SECRET",
+        "CLIENT_IP_HEADER",
+        "DATABASE_URL",
+        "EMAIL_FROM",
+        "EMAIL_PROVIDER",
+        "ENVIRONMENT",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "HEALTH_CHECK_TIMEOUT_MS",
+        "HOST",
+        "LOG_LEVEL",
+        "NEXT_PUBLIC_*",
+        "NODE_ENV",
+        "OTP_MAX_PER_NUMBER_PER_DAY",
+        "OTP_MAX_PER_NUMBER_PER_HOUR",
+        "PORT",
+        "PUBLIC_WEB_URL",
+        "REDIS_URL",
+        "RESEND_API_KEY",
+        "SENTRY_DSN",
+        "SMS_PROVIDER",
+        "TERMII_API_KEY",
+        "TERMII_BASE_URL",
+        "TERMII_SENDER_ID",
+        "WEB_PROXY_SECRET"
       ]
     }
   }
