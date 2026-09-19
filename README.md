@@ -62,6 +62,8 @@ pnpm test:e2e                              # Playwright: sign-up → onboarding 
 The first end-to-end run needs the browser: `pnpm --filter @readi/web exec playwright install chromium`
 (add `--with-deps` on a fresh Ubuntu to install its system libraries). It uses its own database
 (`readi_e2e`), bucket, ports (3010/4010/8010) and build folders, so it can run while `pnpm dev` is up.
+Page weight on a throttled connection: `E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network` (not in CI —
+timings depend on the machine).
 
 ## Layout
 

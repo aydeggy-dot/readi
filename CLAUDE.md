@@ -212,7 +212,8 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
 - End-to-end tests live in `apps/web/e2e` and run against the built apps on their own ports, database,
   bucket and build folders (`pnpm test:e2e`), with the console email/SMS providers and `LLM_PROVIDER=fake`,
-  so a run costs nothing and never disturbs a running `pnpm dev`. Never run a build that writes
+  so a run costs nothing and never disturbs a running `pnpm dev`. `E2E_SLOW_NETWORK=1 pnpm test:e2e
+  slow-network` reports page weight and load time on Chrome's Slow 4G profile. Never run a build that writes
   `apps/api/dist` or `apps/web/.next` while the owner's dev servers are up.
 - Adding a third party that processes personal data means updating `docs/privacy/subprocessors.md` and
   making sure account erasure reaches it (ADR-0011).
