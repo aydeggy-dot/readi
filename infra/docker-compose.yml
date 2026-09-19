@@ -1,0 +1,88 @@
+# Local development infrastructure for Readi. Usage (from the repo root):
+#   docker compose -f infra/docker-compose.yml up -d
+# Host ports avoid the common defaults (other stacks on this machine use 5432/6379) and are bound to
+# 127.0.0.1 only. Override any of them in infra/.env (see infra/.env.example). Port map: ADR-0001.
+name: readi
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.6-pg16
+    environment:
+      POSTGRES_USER: ${READI_POSTGRES_USER:-readi}
+      POSTGRES_PASSWORD: ${READI_POSTGRES_PASSWORD:-readi}
+      POSTGRES_DB: ${READI_POSTGRES_DB:-readi}
+    ports:
+      - "127.0.0.1:${READI_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.8.2-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${READI_REDIS_PORT:-16379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # S3-compatible object storage (stands in for Cloudflare R2). SeaweedFS replaces MinIO, whose
+  # community edition is no longer maintained or published — see ADR-0001.
+  s3:
+    image: chrislusf/seaweedfs:4.44
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${READI_S3_ACCESS_KEY:-readi-dev}
+      AWS_SECRET_ACCESS_KEY: ${READI_S3_SECRET_KEY:-readi-dev-secret}
+    ports:
+      - "127.0.0.1:${READI_S3_PORT:-19000}:8333"
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # One-off job: creates the development bucket, then exits.
+  s3-init:
+    image: chrislusf/seaweedfs:4.44
+    depends_on:
+      s3:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - echo "s3.bucket.create -name ${READI_S3_BUCKET:-readi-dev}" | weed shell -master=s3:9333
+    restart: "no"
+
+  # LiveKit in dev mode (API key "devkey", secret "secret"). Used from Milestone M5.
+  # --node-ip makes ICE candidates point at localhost so a browser on this machine can connect.
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    command: ["--dev", "--bind", "0.0.0.0", "--node-ip", "127.0.0.1"]
+    ports:
+      - "127.0.0.1:${READI_LIVEKIT_PORT:-7880}:7880"
+      - "127.0.0.1:${READI_LIVEKIT_RTC_TCP_PORT:-7881}:7881"
+      - "127.0.0.1:${READI_LIVEKIT_RTC_UDP_PORT:-7882}:7882/udp"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7880"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  s3-data:
