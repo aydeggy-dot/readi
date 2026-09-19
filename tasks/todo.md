@@ -26,11 +26,18 @@
 ## Carried forward
 
 - M1: set bucket CORS for presigned uploads (`PutBucketCors` works on SeaweedFS and R2).
-- M1: install Playwright with the first e2e test (email signup → onboarding). Local runs need Chromium's
-  system libraries (`sudo pnpm exec playwright install-deps chromium`) or the
-  `mcr.microsoft.com/playwright:v1.62.1-noble` image with `--network host` (used for the M0 360px check).
+- M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is
+  added to the repo, tell the owner to install Chromium's system libraries by running:
+  `sudo env "PATH=$PATH" pnpm exec playwright install-deps chromium`
+  (`sudo` alone cannot see pnpm, which nvm installs under the home folder). Until then, the
+  `mcr.microsoft.com/playwright:v1.62.1-noble` image with `--network host` works (used for the M0 360px check).
 - M1: generate `packages/api-client` from the OpenAPI document once the browser calls the API.
 - M1: authenticate API ↔ worker calls with a service credential (ADR-0004) when the first real call lands.
 - M10: PNG PWA icons (192/512, maskable), Lighthouse pass (landing page ships ~180 KB gzip JS today).
 - M10: Sentry source-map upload (`@sentry/cli` build script is denied until then).
-- Owner: remove the dangling `origin` remote (points at the archived Windows copy) and add the GitHub remote.
+
+## Repository
+
+- Done (owner, 2026-09-19): the old Windows `origin` was removed; `origin` is now the private GitHub repo
+  `git@github.com:aydeggy-dot/readi.git`, with `main` and `feat/m0-scaffold` pushed. No remote action needed.
+- The owner pushes; Claude commits locally and does not push unless asked.
