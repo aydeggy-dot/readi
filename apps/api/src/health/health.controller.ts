@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from "@nestjs/s
 import { HealthResponse } from "@readi/shared-types";
 import type { Response } from "express";
 import { createZodDto, ZodSerializerDto } from "nestjs-zod";
+import { Public } from "../auth/auth.decorators";
 import { HealthService } from "./health.service";
 
 class HealthResponseDto extends createZodDto(HealthResponse) {}
@@ -13,6 +14,7 @@ export class HealthController {
   constructor(private readonly health: HealthService) {}
 
   /** Liveness and dependency status. 200 when every check passes, 503 otherwise. */
+  @Public()
   @Get()
   @ZodSerializerDto(HealthResponseDto)
   // Both responses share one body schema; documenting both via `.Output` keeps a single component.

@@ -7,6 +7,6 @@ export default mergeConfig(
   defineConfig({
     // SWC emits the decorator metadata Nest's dependency injection needs (ADR-0002).
     plugins: [swc.vite({ module: { type: "es6" } })],
-    test: { setupFiles: ["test/setup-env.ts"] },
+    test: { globalSetup: ["test/global-setup.ts"], setupFiles: ["test/setup-env.ts"] },
   }),
 );

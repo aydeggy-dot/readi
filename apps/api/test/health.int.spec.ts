@@ -1,31 +1,22 @@
-import type { INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { HealthResponse } from "@readi/shared-types";
 import request from "supertest";
-import type { App } from "supertest/types";
 import { afterEach, describe, expect, it } from "vitest";
-import { AppModule } from "../src/app.module";
-import { parseEnv } from "../src/config/env";
 import { REDIS } from "../src/redis/redis.module";
+import { createTestApp } from "./helpers";
 
 // Integration: real Nest module graph against the Postgres and Redis from infra/docker-compose.yml
-// (or CI service containers). Requires migrations: `pnpm db:migrate` locally, `db:deploy` in CI.
+// (or CI service containers); the test database is migrated by test/global-setup.ts.
 describe("GET /health", () => {
-  let app: INestApplication<App> | undefined;
+  let app: NestExpressApplication | undefined;
 
   afterEach(async () => {
     await app?.close();
     app = undefined;
   });
 
-  async function start(overrideRedis?: object): Promise<INestApplication<App>> {
-    let builder = Test.createTestingModule({
-      imports: [AppModule.register(parseEnv(process.env))],
-    });
-    if (overrideRedis) builder = builder.overrideProvider(REDIS).useValue(overrideRedis);
-    const moduleRef = await builder.compile();
-    app = moduleRef.createNestApplication<INestApplication<App>>();
-    await app.init();
+  async function start(overrideRedis?: object): Promise<NestExpressApplication> {
+    app = await createTestApp({ overrides: overrideRedis ? [[REDIS, overrideRedis]] : [] });
     return app;
   }
 
