@@ -15,7 +15,9 @@
     "admin:grant": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/grant-role.js",
     "admin:cancel-deletion": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/cancel-deletion.js",
     "db:seed": "node -e \"console.log('db:seed: nothing to seed yet. The seed importer arrives in Milestone M2.')\"",
-    "storage:setup": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/storage-setup.js"
+    "storage:setup": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/storage-setup.js",
+    "build:standalone": "nest build -p tsconfig.cli.json",
+    "e2e:prepare": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/e2e-prepare.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1120.0",

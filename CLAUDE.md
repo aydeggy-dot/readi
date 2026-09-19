@@ -66,7 +66,8 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
 /infra
   docker-compose.yml   postgres (pgvector), redis, s3 (SeaweedFS), livekit (dev); ports in ADR-0001
 /docs
-  PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), progress/ (handovers), runbooks/
+  PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), progress/ (handovers), runbooks/,
+  privacy/subprocessors.md (third parties that process personal data — update it when one is added)
 /content
   seed/           Seed question banks, rubrics, lessons (YAML/JSON), reviewed by humans
 /evals
@@ -87,6 +88,7 @@ pnpm dev                     # run web + api (turbo)
 pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
+pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
@@ -208,6 +210,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   adding `consent.types.<type>.v<N>` copy; decisions on an old version no longer count as granted.
 - Error reporting never carries candidate data: Sentry is configured without request bodies or stack-frame
   locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
+- End-to-end tests live in `apps/web/e2e` and run against the built apps on their own ports, database,
+  bucket and build folders (`pnpm test:e2e`), with the console email/SMS providers and `LLM_PROVIDER=fake`,
+  so a run costs nothing and never disturbs a running `pnpm dev`. Never run a build that writes
+  `apps/api/dist` or `apps/web/.next` while the owner's dev servers are up.
+- Adding a third party that processes personal data means updating `docs/privacy/subprocessors.md` and
+  making sure account erasure reaches it (ADR-0011).
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.
 - Write small, focused commits with conventional commit messages (`feat:`, `fix:`, `chore:` …).
 
@@ -227,7 +235,7 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - [ ] Meets the acceptance criteria in the milestone prompt
 - [ ] Types/schemas shared where relevant; input validated
 - [ ] Unit tests for logic; integration test for each new endpoint; e2e for core user flows
-- [ ] Works at 360px mobile width and on a throttled "Slow 4G" profile
+- [ ] Works at 360px mobile width and on a throttled "Slow 4G" profile (the e2e suite runs at 360px)
 - [ ] No PII in logs; errors reported to Sentry
 - [ ] `.env.example`, README, and this file updated if needed
 - [ ] Lint, typecheck, tests all green

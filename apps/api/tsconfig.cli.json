@@ -1,6 +1,7 @@
-// Build config for the one-off CLIs (admin:grant, admin:cancel-deletion, storage:setup).
-// A separate outDir keeps `nest build` (deleteOutDir: true) from wiping dist/ under a running
-// `nest start --watch`, which silently stops the dev API reloading.
+// Build config for the CLIs (admin:grant, admin:cancel-deletion, storage:setup, e2e:prepare) and
+// for the API the end-to-end run boots. A separate outDir keeps `nest build` (deleteOutDir: true)
+// from wiping dist/ under a running `nest start --watch`, which silently stops the dev API
+// reloading. dist-cli holds the whole compiled app, so dist-cli/src/main.js is a runnable API.
 {
   "extends": "./tsconfig.build.json",
   "compilerOptions": {

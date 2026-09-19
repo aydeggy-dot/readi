@@ -56,7 +56,12 @@ API docs (development only): http://localhost:4000/docs.
 pnpm lint && pnpm typecheck && pnpm test   # TS + Python (ruff, mypy, pytest); tests need the compose services
 pnpm build
 pnpm check:contracts                       # drift check: Zod → Pydantic, and OpenAPI → packages/api-client
+pnpm test:e2e                              # Playwright: sign-up → onboarding in a real browser at 360px
 ```
+
+The first end-to-end run needs the browser: `pnpm --filter @readi/web exec playwright install chromium`
+(add `--with-deps` on a fresh Ubuntu to install its system libraries). It uses its own database
+(`readi_e2e`), bucket, ports (3010/4010/8010) and build folders, so it can run while `pnpm dev` is up.
 
 ## Layout
 
