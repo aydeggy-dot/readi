@@ -2,5 +2,32 @@
   "name": "@readi/api-client",
   "version": "0.0.0",
   "private": true,
-  "description": "Typed API client generated from the API's OpenAPI document (placeholder until M1)."
+  "description": "Typed API client generated from the API's OpenAPI document (ADR-0012).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "gen": "openapi-typescript openapi.json --output src/generated/schema.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "@readi/config": "workspace:*",
+    "eslint": "9.39.5",
+    "openapi-typescript": "7.13.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
 }

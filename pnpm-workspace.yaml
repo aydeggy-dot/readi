@@ -21,3 +21,9 @@ allowBuilds:
   "@sentry/cli": false
   # postinstall only prints a funding message
   core-js: false
+
+peerDependencyRules:
+  allowedVersions:
+    # openapi-typescript 7.13 declares typescript ^5 but only uses the stable printer API; its output
+    # is type-checked by packages/api-client under TypeScript 6 (ADR-0012)
+    openapi-typescript>typescript: "6"

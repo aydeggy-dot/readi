@@ -15,7 +15,7 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "gen:contracts": "turbo run gen:contracts",
+    "gen:contracts": "turbo run gen:contracts && bash scripts/gen-api-client.sh",
     "check:contracts": "bash scripts/check-contracts.sh",
     "db:migrate": "pnpm --filter @readi/api db:migrate",
     "db:seed": "pnpm --filter @readi/api db:seed",

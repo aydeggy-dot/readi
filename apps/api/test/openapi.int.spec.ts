@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createOpenApiDocument } from "../src/openapi";
 import { createTestApp } from "./helpers";
@@ -13,8 +14,30 @@ describe("OpenAPI document", () => {
       );
       expect(document.paths).toHaveProperty(["/api/me"]);
       expect(document.paths).toHaveProperty(["/api/admin/stats"]);
+      for (const path of [
+        "/api/me/profile",
+        "/api/me/consents",
+        "/api/me/onboarding/complete",
+        "/api/auth-methods",
+      ]) {
+        expect(document.paths).toHaveProperty([path]);
+      }
       // Development-only routes stay out of the published contract.
       expect(Object.keys(document.paths).some((p) => p.includes("dev/mailbox"))).toBe(false);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("matches the committed document the API client is generated from (ADR-0012)", async () => {
+    // The committed file comes from `export-openapi` (no database); this proves it equals what the
+    // running app serves. If it fails, run `pnpm gen:contracts` and commit the result.
+    const committed: unknown = JSON.parse(
+      readFileSync(new URL("../../../packages/api-client/openapi.json", import.meta.url), "utf8"),
+    );
+    const app = await createTestApp();
+    try {
+      expect(JSON.parse(JSON.stringify(createOpenApiDocument(app)))).toEqual(committed);
     } finally {
       await app.close();
     }
