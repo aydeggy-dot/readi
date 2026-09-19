@@ -1,0 +1,17 @@
+{
+  "name": "@readi/ai-worker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Thin wrapper so turbo can run the Python worker's tasks (uv, ruff, mypy, pytest).",
+  "scripts": {
+    "dev": "uv run python -m readi_worker",
+    "lint": "uv run ruff check . && uv run ruff format --check .",
+    "format": "uv run ruff check --fix . && uv run ruff format .",
+    "typecheck": "uv run mypy",
+    "test": "uv run pytest",
+    "gen:contracts": "uv run datamodel-codegen --input ../../packages/shared-types/generated/json-schema/contracts.json --input-file-type jsonschema --output readi_worker/contracts/generated/contracts.py --output-model-type pydantic_v2.BaseModel --target-python-version 3.12 --use-standard-collections --use-union-operator --use-double-quotes --field-constraints --enum-field-as-literal all --collapse-root-models --disable-timestamp --formatters ruff-format --custom-file-header '# GENERATED from packages/shared-types (Zod) by `pnpm gen:contracts` (ADR-0003). Do not edit.'"
+  },
+  "devDependencies": {
+    "@readi/shared-types": "workspace:*"
+  }
+}
