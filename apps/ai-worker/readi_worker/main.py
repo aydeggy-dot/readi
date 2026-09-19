@@ -14,10 +14,14 @@ from readi_worker.settings import Settings, load_settings
 def _init_sentry(settings: Settings) -> None:
     if settings.sentry_dsn is None:
         return  # Sentry is disabled when SENTRY_DSN is absent.
+    # CLAUDE.md §5: no transcripts, CVs, emails or phone numbers in Sentry. The Python SDK sends
+    # request bodies and stack-frame locals by default, independently of send_default_pii.
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         environment=settings.environment,
-        send_default_pii=False,  # never send transcripts, emails, phone numbers (CLAUDE.md §5)
+        send_default_pii=False,  # no cookies, auth headers or user IPs
+        max_request_body_size="never",  # bodies carry candidate answers and CV text
+        include_local_variables=False,  # frame locals can hold the same data
         traces_sample_rate=0.0,
     )
 
@@ -41,6 +45,15 @@ def create_app(settings: Settings | None = None, redis: SupportsPing | None = No
         if owned_redis is not None:
             await owned_redis.aclose()
 
-    app = FastAPI(title="Readi AI worker", version="0.0.0", lifespan=lifespan)
+    # Interactive docs are for development; the worker is internal-only (ADR-0004).
+    docs_enabled = settings.environment != "production"
+    app = FastAPI(
+        title="Readi AI worker",
+        version="0.0.0",
+        lifespan=lifespan,
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url=None,
+        openapi_url="/openapi.json" if docs_enabled else None,
+    )
     app.include_router(build_health_router(redis, timeout_s))
     return app
