@@ -55,3 +55,7 @@
   Likely cause: my `pnpm build` in the working tree recreated `apps/api/dist` under the watcher
   (`deleteOutDir`). Run full builds in a separate clone while the owner's dev servers run, and before
   handing over, compare the port-4000 process start time with the last API change.
+- The Playwright MCP server (`@playwright/mcp`) defaults to the Google Chrome channel, which isn't
+  installed here. A project-local entry with `--browser chromium --executable-path` pointing at the
+  Playwright Chromium in `~/.cache/ms-playwright` works; skills and MCP servers added mid-session only
+  load after a restart (`claude --continue`) or `/mcp` reconnect.

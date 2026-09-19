@@ -62,6 +62,23 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
 - [ ] Phase 4 — export + deletion (ADR-0011 tombstones)
 - [ ] Phase 5 — Playwright e2e + CI job, subprocessors, docs, review (ADR-0010 and ADR-0012 already written; ADR-0011 in phase 4)
 
+## D1 — design system (after M1 merges; own branch from `main`)
+
+Decision (owner, 2026-09-19): the **Margin** direction with adjustments, recorded in ADR-0013. Mockups,
+screenshots and scripts are on the reference branch `design/explorations` (commit `0b976e2`), which is
+**not merged** into `main`. Order agreed: finish M1 phases 4–5, merge M1, then start D1.
+
+- [ ] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens (light and dark)
+- [ ] Fonts: trimmed Alegreya 500 + Alegreya Sans 400/700 via next/font/local, naira-only faces with
+      `unicode-range: U+20A6`, build script (port `design/explorations/tools/trim-fonts.sh`), OFL
+      licences, and a check that keeps first-visit fonts ≤ 60 KB
+- [ ] `font-synthesis-weight: none`; serif only for headings and mentor notes
+- [ ] Button `size="lg"` (48 px); `--input` #6B7280 on every form field; 2 px focus ring
+- [ ] Components: navigation bar and phone tab bar (structural grey), Note, Highlight, wordmark
+- [ ] SVG chart pattern (percent geometry, CSS-pixel labels, hover/focus readout, table view); no Recharts
+- [ ] Restyle M1 screens; "Readi by DegRon" in the footer and on legal and billing pages
+- [ ] Verify at 360 px and Slow 4G, light and dark; update CLAUDE.md conventions and the README
+
 ## Carried forward
 
 - M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is

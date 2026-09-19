@@ -18,3 +18,4 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0009](0009-auth-integration.md) | Auth integration: Better Auth in NestJS, same-origin cookies, trusted client IP | Accepted |
 | [0010](0010-llm-adapter-and-cv-parsing.md) | LLM adapter and CV parsing: browser upload to storage, extraction in the worker | Accepted |
 | [0012](0012-web-client-and-session.md) | Web client: generated API client, server-resolved sessions, forms without Zod | Accepted |
+| [0013](0013-visual-identity.md) | Visual identity: the Margin direction, its tokens, fonts and chart rules | Accepted |
