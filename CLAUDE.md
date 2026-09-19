@@ -92,9 +92,11 @@ pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker fo
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
 pnpm check:contracts         # regenerate both and fail on drift (as CI does)
 pnpm db:seed                 # load /content/seed (stub until M2)
+pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
+cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite (from M4)
 ```
 
@@ -192,6 +194,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   (`apps/web/src/lib/session.ts`); `proxy.ts` only redirects cookie-less visitors. Browser code calls the
   API through `@readi/api-client` and imports only types or `@readi/shared-types/constants` from
   shared-types (lint-enforced). Forms use react-hook-form rules, not Zod (ADR-0012).
+- API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
+  `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
+- User files are uploaded by the browser to object storage with presigned URLs (type and length
+  signed), land in `cv-uploads/` (quarantine, auto-expiring) and are checked on confirm (ADR-0010).
+- LLM output goes through `LLMClient`, is schema-validated, retried at most twice on invalid output
+  (never on refusal), normalised in code, and reported as `AiCallRecord`s for `ai_call_log`.
 - Consent texts are versioned (`CONSENT_VERSIONS`): changing the wording means bumping the version and
   adding `consent.types.<type>.v<N>` copy; decisions on an old version no longer count as granted.
 - Error reporting never carries candidate data: Sentry is configured without request bodies or stack-frame

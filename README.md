@@ -23,13 +23,16 @@ docker compose -f infra/docker-compose.yml up -d
 cp apps/api/.env.example apps/api/.env
 cp apps/ai-worker/.env.example apps/ai-worker/.env
 cp apps/web/.env.example apps/web/.env.local
-# In apps/api/.env set BETTER_AUTH_SECRET, and set the same WEB_PROXY_SECRET in both apps:
+# In apps/api/.env set BETTER_AUTH_SECRET, the same WEB_PROXY_SECRET in api and web, and the same
+# value as AI_WORKER_TOKEN (api) and SERVICE_TOKEN (ai-worker). Generate each with:
 openssl rand -base64 48
+# CV parsing: ANTHROPIC_API_KEY in apps/ai-worker/.env, or LLM_PROVIDER=fake to work without one.
 
-# 3. Dependencies and database
+# 3. Dependencies, database and storage
 pnpm install
 (cd apps/ai-worker && uv sync)
 pnpm db:migrate
+pnpm storage:setup      # CORS for browser uploads, expiry of unconfirmed uploads
 
 # 4. Run
 pnpm dev                # web on http://localhost:3002, API on http://localhost:4000

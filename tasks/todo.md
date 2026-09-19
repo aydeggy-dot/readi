@@ -44,19 +44,29 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
     (`signup_completed`, `profile_completed`, `consent_updated`) to M9 with the typed event helper; the CV
     step joins onboarding in phase 3 (`OnboardingSteps`).
   - Known: refreshed session expiry does not reach the browser cookie (expires 30 days after sign-in).
-- [ ] Phase 3 — CV pipeline (bucket CORS, presign/confirm, BullMQ, worker /cv/parse, ai_call_log, compare script)
+- [x] Phase 3 — CV pipeline (bucket CORS, presign/confirm, BullMQ, worker /cv/parse, ai_call_log, compare script)
+  - [x] Contracts: ParsedCv, CV status/upload API, cross-language CvParseRequest/Response + AiCallRecord
+  - [x] Worker: service-token auth, text extraction (limits; scanned → unreadable), LLMClient (Anthropic +
+        fake), versioned prompt with CV text as data, pricing config, /cv/parse, injection tests
+  - [x] Worker: `compare_cv_parse` script (models side by side on a local folder; output gitignored)
+  - [x] API: S3 storage (presigned PUT with signed type+length, quarantine prefix, sniff on confirm),
+        `storage:setup` (bucket, CORS, lifecycle), BullMQ job → worker, ai_call_log, CV endpoints, tests
+  - [x] CI: SeaweedFS for API tests
+  - [x] Web: CV onboarding step (skippable, upload progress, parse polling via TanStack Query), review/edit
+  - [x] Docs: ADR-0010, env examples, CLAUDE.md, README; 360px + Slow 4G check
+  - Pending owner: ANTHROPIC_API_KEY in apps/ai-worker/.env + LLM_PROVIDER=anthropic, then run
+    `compare_cv_parse` on real CVs (sonnet-5 vs haiku-4-5) and decide the default model.
+  - Not yet exercised against the real Anthropic API (no key); covered by a mocked-transport test.
 - [ ] Phase 4 — export + deletion (ADR-0011 tombstones)
-- [ ] Phase 5 — Playwright e2e + CI job, ADR-0010/0011, subprocessors, docs, review (ADR-0012 written in phase 2)
+- [ ] Phase 5 — Playwright e2e + CI job, subprocessors, docs, review (ADR-0010 and ADR-0012 already written; ADR-0011 in phase 4)
 
 ## Carried forward
 
-- M1: set bucket CORS for presigned uploads (`PutBucketCors` works on SeaweedFS and R2).
 - M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is
   added to the repo, tell the owner to install Chromium's system libraries by running:
   `sudo env "PATH=$PATH" pnpm exec playwright install-deps chromium`
   (`sudo` alone cannot see pnpm, which nvm installs under the home folder). Until then, the
   `mcr.microsoft.com/playwright:v1.62.1-noble` image with `--network host` works (used for the M0 360px check).
-- M1: authenticate API ↔ worker calls with a service credential (ADR-0004) when the first real call lands.
 - M10: PNG PWA icons (192/512, maskable), Lighthouse pass (landing page ships ~180 KB gzip JS today).
 - M10: Sentry source-map upload (`@sentry/cli` build script is denied until then).
 

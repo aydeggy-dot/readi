@@ -37,3 +37,13 @@
 - apps/api compiles tests as CommonJS: `import.meta` fails `tsc` even though Vitest runs it. After the
   LAST edit of a phase, re-run the full lint + typecheck, not just the test that changed (a clean-clone
   rehearsal caught this one).
+- Anthropic SDK `messages.parse(output_format=Model)` raises a validation error on truncated or refused
+  output before `stop_reason` is readable; use `messages.create` with `output_config.format` from
+  `anthropic.transform_schema(Model)` and check `stop_reason` first. Found with a mocked httpx2 transport.
+- Zod `z.uuid()` / `z.iso.datetime()` export `format` AND `pattern`; datamodel-codegen maps the format to
+  `UUID`/`datetime`, and Pydantic cannot apply `pattern` to those (TypeError at validation). The JSON
+  Schema export drops patterns that duplicate a typed format.
+- SeaweedFS 4.44 enforces signed `content-length`/`content-type` on presigned PUTs and bucket CORS; the
+  AWS SDK v3 default checksums must be off (`WHEN_REQUIRED`) for presigned browser uploads.
+- Nest: a queue that needs a service which needs the queue is a DI cycle; split the job processor out.
+- Walkthroughs catch UX dead ends unit tests miss (manual CV entry had no way to upload another file).
