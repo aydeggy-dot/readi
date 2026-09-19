@@ -16,6 +16,7 @@ describe("fetchApiHealth", () => {
 
     await expect(fetchApiHealth("http://api", fetchImpl)).resolves.toEqual({
       reachable: true,
+      latency_ms: expect.any(Number) as number,
       health: healthy,
     });
     expect(fetchImpl).toHaveBeenCalledWith(
@@ -36,7 +37,7 @@ describe("fetchApiHealth", () => {
 
     const result = await fetchApiHealth("http://api", respond(degraded, 503));
 
-    expect(result).toEqual({ reachable: true, health: degraded });
+    expect(result).toMatchObject({ reachable: true, health: degraded });
   });
 
   it("treats a network failure as unreachable", async () => {

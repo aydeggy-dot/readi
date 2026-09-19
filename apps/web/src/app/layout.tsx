@@ -26,7 +26,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" dir="ltr">
       {/* System font stack: no web-font download on slow connections. */}
       <body className="min-h-dvh font-sans">
-        <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>
+        {/* No service worker in development: runtime caching would serve stale chunks. */}
+        <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === "development"}>
+          {children}
+        </SerwistProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@ import "./instrument";
 import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule } from "@nestjs/swagger";
+import * as Sentry from "@sentry/nestjs";
 import { AppModule } from "./app.module";
 import { EnvValidationError, parseEnv, type Env } from "./config/env";
 import { createOpenApiDocument } from "./openapi";
@@ -31,4 +32,11 @@ async function bootstrap(): Promise<void> {
   new Logger("Bootstrap").log(`API listening on http://${env.HOST}:${env.PORT}`);
 }
 
-void bootstrap();
+// Startup failures (e.g. port already in use) exit cleanly with a logged error instead of an
+// unhandled rejection, and reach Sentry when it is enabled.
+bootstrap().catch(async (error: unknown) => {
+  new Logger("Bootstrap").error(error instanceof Error ? (error.stack ?? error.message) : error);
+  Sentry.captureException(error);
+  await Sentry.flush(2000);
+  process.exit(1);
+});

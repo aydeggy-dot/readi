@@ -21,10 +21,15 @@
     "redis": "Redis",
     "ok": "Healthy",
     "error": "Unhealthy",
-    "unreachable": "Unreachable",
     "checkedIn": "{ms} ms",
     "refresh": "Refresh",
-    "back": "Back to home"
+    "back": "Back to home",
+    "errors": {
+      "unreachable": "Unreachable",
+      "timeout": "Timed out",
+      "not_migrated": "Migrations pending",
+      "not_reported": "Not reported"
+    }
   },
   "offline": {
     "title": "You are offline",

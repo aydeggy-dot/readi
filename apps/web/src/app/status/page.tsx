@@ -1,10 +1,10 @@
-import type { HealthCheckResult } from "@readi/shared-types";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { serverEnv } from "@/env/server";
 import { t } from "@/i18n";
 import { fetchApiHealth } from "@/lib/api-health";
+import { buildStatusRows } from "@/lib/status-rows";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: t("status.title") };
@@ -12,31 +12,8 @@ export const metadata: Metadata = { title: t("status.title") };
 // Always render on request: this page reports live health.
 export const dynamic = "force-dynamic";
 
-type Row = { label: string; ok: boolean; detail: string };
-
-function checkRow(label: string, check: HealthCheckResult | undefined): Row {
-  if (!check) return { label, ok: false, detail: t("status.unreachable") };
-  const detail =
-    check.status === "ok"
-      ? t("status.checkedIn", { ms: check.latency_ms })
-      : (check.error ?? t("status.error"));
-  return { label, ok: check.status === "ok", detail };
-}
-
 export default async function StatusPage() {
-  const result = await fetchApiHealth(serverEnv.API_INTERNAL_URL);
-
-  const rows: Row[] = result.reachable
-    ? [
-        { label: t("status.api"), ok: true, detail: t("status.ok") },
-        checkRow(t("status.database"), result.health.checks.database),
-        checkRow(t("status.redis"), result.health.checks.redis),
-      ]
-    : [
-        { label: t("status.api"), ok: false, detail: t("status.unreachable") },
-        { label: t("status.database"), ok: false, detail: t("status.unreachable") },
-        { label: t("status.redis"), ok: false, detail: t("status.unreachable") },
-      ];
+  const rows = buildStatusRows(await fetchApiHealth(serverEnv.API_INTERNAL_URL));
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 px-5 py-8 sm:px-8 sm:py-16">
@@ -48,9 +25,9 @@ export default async function StatusPage() {
       <ul className="divide-y divide-border rounded-lg border">
         {rows.map((row) => (
           <li
-            key={row.label}
+            key={row.id}
             className="flex items-center justify-between gap-4 px-4 py-3"
-            data-testid={`status-${row.label}`}
+            data-testid={`status-${row.id}`}
           >
             <span className="font-medium">{row.label}</span>
             <span
