@@ -148,6 +148,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AccountController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AccountController_requestDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/stats": {
         parameters: {
             query?: never;
@@ -350,6 +382,112 @@ export interface components {
             projects: components["schemas"]["CvProject"][];
             experience: components["schemas"]["CvExperience"][];
             gaps: string[];
+        };
+        DataExportDto_Output: {
+            /** @enum {number} */
+            format_version: 1;
+            /** Format: date-time */
+            generated_at: string;
+            user: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                /** Format: email */
+                email: string | null;
+                email_verified: boolean;
+                phone_number: string | null;
+                phone_number_verified: boolean;
+                /** @enum {string} */
+                role: "candidate" | "content_expert" | "admin";
+                /** @enum {string} */
+                signup_method: "email" | "google" | "phone";
+                country: string | null;
+                locale: string | null;
+                /** Format: date-time */
+                created_at: string;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            profile: {
+                target_role: components["schemas"]["TargetRole_Output"];
+                level: components["schemas"]["ExperienceLevel_Output"];
+                years_experience: number;
+                stack: string[];
+                target_company_type: components["schemas"]["TargetCompanyType_Output"];
+                /** Format: date */
+                target_date: string | null;
+                /** Format: date-time */
+                onboarding_completed_at: string | null;
+                /** Format: date-time */
+                created_at: string;
+                /** Format: date-time */
+                updated_at: string;
+            } | null;
+            cv: {
+                status: components["schemas"]["CvStatus_Output"];
+                content_type: components["schemas"]["CvContentType_Output"] | null;
+                /** Format: date-time */
+                uploaded_at: string | null;
+                /** Format: date-time */
+                parsed_at: string | null;
+                /** Format: date-time */
+                edited_at: string | null;
+                error: components["schemas"]["CvParseError_Output"] | null;
+                parsed: components["schemas"]["ParsedCv_Output"] | null;
+                /** Format: uri */
+                download_url: string | null;
+                /** Format: date-time */
+                download_url_expires_at: string | null;
+            };
+            consents: {
+                type: components["schemas"]["ConsentType_Output"];
+                granted: boolean;
+                version: number;
+                /** Format: date-time */
+                decided_at: string;
+            }[];
+            linked_accounts: {
+                provider: string;
+                provider_account_id: string;
+                /** Format: date-time */
+                created_at: string;
+            }[];
+            sessions: {
+                /** Format: date-time */
+                created_at: string;
+                /** Format: date-time */
+                expires_at: string;
+                ip_address: string | null;
+                user_agent: string | null;
+            }[];
+            audit_entries: {
+                action: string;
+                /** @enum {string} */
+                actor: "you" | "admin" | "system";
+                target_type: string;
+                target_is_you: boolean;
+                before: unknown;
+                after: unknown;
+                /** Format: date-time */
+                created_at: string;
+            }[];
+            ai_processing: {
+                purpose: string;
+                provider: string;
+                model: string;
+                /** @enum {string} */
+                status: "ok" | "error";
+                /** Format: date-time */
+                created_at: string;
+            }[];
+        };
+        DeleteAccountRequestDto: {
+            /** @enum {string} */
+            confirmation: "DELETE";
+        };
+        DeleteAccountResponseDto_Output: {
+            /** Format: date-time */
+            deletion_scheduled_for: string;
         };
         AdminStatsDto_Output: {
             users_total: number;
@@ -727,6 +865,69 @@ export interface operations {
             };
             /** @description No CV, or still processing (`cv_not_editable`) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AccountController_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataExportDto_Output"];
+                };
+            };
+            /** @description Too many exports recently (`rate_limited`) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AccountController_requestDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteAccountResponseDto_Output"];
+                };
+            };
+            /** @description The confirmation word is missing or wrong */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Signed in too long ago (`recent_sign_in_required`) */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
