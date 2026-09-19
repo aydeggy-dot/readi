@@ -1,0 +1,9 @@
+// Build config for the one-off CLIs (admin:grant, admin:cancel-deletion, storage:setup).
+// A separate outDir keeps `nest build` (deleteOutDir: true) from wiping dist/ under a running
+// `nest start --watch`, which silently stops the dev API reloading.
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "./dist-cli"
+  }
+}

@@ -5,10 +5,12 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Role } from "@readi/shared-types";
 import { loadEnvFile, parseEnv } from "../config/env";
 import { PrismaClient } from "../generated/prisma/client";
+import { cliArgs } from "./args";
 import { setUserRole, UserNotFoundError } from "../users/roles.service";
 
 async function main(): Promise<number> {
   const { values } = parseArgs({
+    args: cliArgs(),
     options: { email: { type: "string" }, role: { type: "string", default: "admin" } },
   });
   const role = Role.safeParse(values.role);

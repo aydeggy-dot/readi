@@ -12,9 +12,10 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "admin:grant": "nest build && node dist/src/cli/grant-role.js",
+    "admin:grant": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/grant-role.js",
+    "admin:cancel-deletion": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/cancel-deletion.js",
     "db:seed": "node -e \"console.log('db:seed: nothing to seed yet. The seed importer arrives in Milestone M2.')\"",
-    "storage:setup": "nest build && node dist/src/cli/storage-setup.js"
+    "storage:setup": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/storage-setup.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1120.0",
