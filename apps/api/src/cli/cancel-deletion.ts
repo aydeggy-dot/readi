@@ -7,15 +7,18 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { cancelDeletion, DeletionNotCancellableError } from "../account/cancel-deletion";
 import { loadEnvFile, parseEnv } from "../config/env";
 import { PrismaClient } from "../generated/prisma/client";
+import { resolveActor, UnknownActorError } from "./actor";
 import { cliArgs } from "./args";
 
 async function main(): Promise<number> {
   const { values } = parseArgs({
     args: cliArgs(),
-    options: { email: { type: "string" }, phone: { type: "string" } },
+    options: { email: { type: "string" }, phone: { type: "string" }, actor: { type: "string" } },
   });
   if (Boolean(values.email) === Boolean(values.phone)) {
-    console.error("usage: admin:cancel-deletion -- (--email <email> | --phone <+234…>)");
+    console.error(
+      "usage: admin:cancel-deletion -- (--email <email> | --phone <+234…>) [--actor <your admin email>]",
+    );
     return 2;
   }
   loadEnvFile();
@@ -26,11 +29,15 @@ async function main(): Promise<number> {
   try {
     const { userId } = await cancelDeletion(prisma, {
       user: values.email ? { email: values.email } : { phoneNumber: values.phone ?? "" },
-      actor: { type: "system" },
+      actor: await resolveActor(prisma, values.actor),
     });
     console.log(`deletion cancelled (user ${userId}); they can sign in again`);
     return 0;
   } catch (error) {
+    if (error instanceof UnknownActorError) {
+      console.error(`--actor: ${error.message}`);
+      return 2;
+    }
     if (error instanceof DeletionNotCancellableError) {
       console.error(`not cancelled: ${error.message}`);
       return 1;

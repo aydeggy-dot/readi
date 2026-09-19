@@ -1163,6 +1163,11 @@
               "name": {
                 "type": "string"
               },
+              "image": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
               "email": {
                 "type": "string",
                 "format": "email",
@@ -1214,6 +1219,7 @@
             "required": [
               "id",
               "name",
+              "image",
               "email",
               "email_verified",
               "phone_number",

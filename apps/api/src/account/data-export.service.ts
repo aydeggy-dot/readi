@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable, Logger } from "@nestjs/common";
 import {
   ConsentType,
   CvContentType,
@@ -29,6 +29,7 @@ const USER_AGENT_MAX = 512;
 /** Builds the JSON export of everything Readi holds about a user (ADR-0011). */
 @Injectable()
 export class DataExportService {
+  private readonly logger = new Logger(DataExportService.name);
   private readonly limiter: RedisRateLimiter;
 
   constructor(
@@ -86,6 +87,10 @@ export class DataExportService {
           )
         : null;
     const parsed = profile?.cvParsed == null ? null : ParsedCv.safeParse(profile.cvParsed);
+    if (parsed && !parsed.success) {
+      // The user's own CV content is then missing from their export: worth knowing about.
+      this.logger.warn(`stored parsed CV does not match the contract for user ${userId}`);
+    }
     const cvError = CvParseError.safeParse(profile?.cvError);
 
     return {
@@ -94,6 +99,8 @@ export class DataExportService {
       user: {
         id: user.id,
         name: user.name,
+        /** Avatar URL, set by Google sign-in. */
+        image: user.image,
         email: isPlaceholderEmail(user.email) ? null : user.email,
         email_verified: user.emailVerified,
         phone_number: user.phoneNumber,

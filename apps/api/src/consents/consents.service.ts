@@ -20,14 +20,14 @@ export class ConsentsService {
     return CONSENT_TYPES.map((type) => toStatus(type, latest.get(type)));
   }
 
-  /** True once the user has recorded a decision (either way) for every consent type. */
+  /**
+   * True once the user has decided (either way) on the CURRENT text of every consent type. A text
+   * whose version was bumped counts as undecided again, so the app asks once more rather than
+   * treating an old answer as an answer to a question the user never saw.
+   */
   async allDecided(userId: string): Promise<boolean> {
-    const decided = await this.prisma.consentRecord.findMany({
-      where: { userId },
-      distinct: ["type"],
-      select: { type: true },
-    });
-    return decided.length === CONSENT_TYPES.length;
+    const latest = await this.latestByType(this.prisma, userId);
+    return CONSENT_TYPES.every((type) => latest.get(type)?.version === CONSENT_VERSIONS[type]);
   }
 
   /**
@@ -38,7 +38,7 @@ export class ConsentsService {
     const seen = new Set<ConsentType>();
     for (const [index, decision] of decisions.entries()) {
       if (seen.has(decision.type)) {
-        throw fieldError(`decisions.${index}.type`, "each consent type may appear only once");
+        throw fieldError(["decisions", index, "type"], "each consent type may appear only once");
       }
       seen.add(decision.type);
       if (decision.version !== CONSENT_VERSIONS[decision.type]) {

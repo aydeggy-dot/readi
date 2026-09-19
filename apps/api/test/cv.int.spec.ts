@@ -3,7 +3,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { CV_MAX_BYTES, CvResponse, CvUploadResponse } from "@readi/shared-types";
 import type { Redis } from "ioredis";
 import request from "supertest";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
 import { CvParseProcessor } from "../src/cv/cv-parse.processor";
 import { PrismaService } from "../src/prisma/prisma.service";
@@ -131,8 +131,9 @@ describe("CV upload and parsing", () => {
       ["content_type", "file_base64", "level", "request_id", "target_role"].sort(),
     );
 
-    const [call] = await prisma.aiCallLog.findMany({ where: { userId } });
-    expect(call).toMatchObject({
+    const calls = await prisma.aiCallLog.findMany({ where: { userId } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
       purpose: "cv_parse",
       model: "claude-sonnet-5",
       costMicroUsd: 16_000n,
@@ -277,6 +278,74 @@ describe("CV upload and parsing", () => {
       uploaded_at: null,
     });
     expect(await storage.size(key)).toBeNull();
+  });
+
+  it("refuses a confirm whose CV changed underneath it, keeping the CV that won", async () => {
+    const { cookie, userId } = await candidate();
+    const first = await upload(cookie, PDF_BYTES);
+    await http().post("/api/me/cv").set("cookie", cookie).send({ upload_id: first }).expect(200);
+    const settledCv = await settled(cookie);
+    expect(settledCv.status).toBe("parsed");
+    const live = await prisma.profile.findUniqueOrThrow({ where: { userId } });
+
+    // Force the race the check exists for: another upload wins while this confirm is copying.
+    const second = await upload(cookie, PDF_BYTES);
+    const copy = storage.copy.bind(storage);
+    const spy = vi.spyOn(storage, "copy").mockImplementationOnce(async (from, to, contentType) => {
+      await copy(from, to, contentType);
+      await prisma.profile.update({
+        where: { userId },
+        data: { cvFileKey: `${live.cvFileKey ?? ""}-won-the-race` },
+      });
+    });
+    const response = await http()
+      .post("/api/me/cv")
+      .set("cookie", cookie)
+      .send({ upload_id: second });
+    spy.mockRestore();
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({ code: "cv_changed" });
+    // The losing confirm cleaned up only its own file and left the winner's alone.
+    expect(await storage.size(live.cvFileKey ?? "")).not.toBeNull();
+  });
+
+  it("caps how many upload URLs a user can ask for", async () => {
+    const { cookie, userId } = await candidate();
+    await app.get<Redis>(REDIS).set(`ratelimit:cv-upload:${userId}`, "10", "EX", 3600);
+    const response = await http()
+      .post("/api/me/cv/uploads")
+      .set("cookie", cookie)
+      .send({ content_type: PDF, size_bytes: PDF_BYTES.length });
+    expect(response.status).toBe(429);
+    expect(response.body).toMatchObject({ code: "rate_limited" });
+  });
+
+  it("caps how many CVs a user can have parsed per day", async () => {
+    const { cookie, userId } = await candidate();
+    await app.get<Redis>(REDIS).set(`ratelimit:cv-parse-day:${userId}`, "15", "EX", 86_400);
+    const uploadId = await upload(cookie, PDF_BYTES);
+    const response = await http()
+      .post("/api/me/cv")
+      .set("cookie", cookie)
+      .send({ upload_id: uploadId });
+    expect(response.status).toBe(429);
+    expect(response.body).toMatchObject({ code: "rate_limited" });
+  });
+
+  it("does not spend a parse allowance when the file has not arrived", async () => {
+    const { cookie, userId } = await candidate();
+    const created = await http()
+      .post("/api/me/cv/uploads")
+      .set("cookie", cookie)
+      .send({ content_type: PDF, size_bytes: PDF_BYTES.length });
+    const { upload_id } = CvUploadResponse.parse(created.body);
+
+    // Confirmed before the browser finished the PUT: retryable, so it must not cost an allowance.
+    const early = await http().post("/api/me/cv").set("cookie", cookie).send({ upload_id });
+    expect(early.status).toBe(409);
+    expect(early.body).toMatchObject({ code: "upload_incomplete" });
+    expect(await app.get<Redis>(REDIS).get(`ratelimit:cv-parse-hour:${userId}`)).toBeNull();
   });
 
   it("caps how many CVs a user can have parsed per hour", async () => {

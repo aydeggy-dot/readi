@@ -4,18 +4,17 @@
 
 const SECRET_HEADERS = ["cookie", "authorization", "x-readi-proxy-secret", "x-readi-client-ip"];
 
-interface SentryLikeEvent {
+/** The parts of a Sentry event this touches (structurally compatible with the SDK's ErrorEvent). */
+interface ScrubbableEvent {
   request?: {
     data?: unknown;
-    cookies?: unknown;
+    cookies?: Record<string, string>;
     headers?: Record<string, string>;
-    [key: string]: unknown;
   };
-  [key: string]: unknown;
 }
 
 /** Removes request bodies, cookies and secret headers from an event before it is sent. */
-export function scrubSentryEvent<T extends SentryLikeEvent>(event: T): T {
+export function scrubSentryEvent<T extends ScrubbableEvent>(event: T): T {
   const request = event.request;
   if (!request) return event;
   delete request.data;

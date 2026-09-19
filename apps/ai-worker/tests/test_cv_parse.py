@@ -1,11 +1,12 @@
 import base64
+import typing
 import uuid
 
 import pytest
 
 from readi_worker.contracts import CvParseRequest
 from readi_worker.cv.extract import DOCX, PDF
-from readi_worker.cv.parse import CvExtraction, CvParser
+from readi_worker.cv.parse import LEVEL_LABELS, ROLE_LABELS, CvExtraction, CvParser
 from readi_worker.llm.fake import FakeLLMError, ScriptedLLMClient
 from tests.cv_files import CV_LINES, make_docx, make_pdf
 
@@ -54,6 +55,16 @@ GOOD = CvExtraction.model_validate(
         "gaps": ["No automated end-to-end testing shown"],
     }
 )
+
+
+def test_labels_cover_every_enum_value() -> None:
+    """The prompt labels must keep up with the shared enums (ADR-0003 generates the Literals)."""
+    fields = CvParseRequest.model_fields
+    roles = set(typing.get_args(fields["target_role"].annotation))
+    levels = set(typing.get_args(fields["level"].annotation))
+    assert roles and levels, "expected Literal enums from the generated contracts"
+    assert roles <= set(ROLE_LABELS), f"no prompt label for {roles - set(ROLE_LABELS)}"
+    assert levels <= set(LEVEL_LABELS), f"no prompt label for {levels - set(LEVEL_LABELS)}"
 
 
 async def test_parses_and_normalises() -> None:

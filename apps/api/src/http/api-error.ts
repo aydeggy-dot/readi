@@ -11,7 +11,16 @@ export class ApiError extends HttpException {
   }
 }
 
-/** A 400 in the same shape as request-validation failures, for rules checked in services. */
-export function fieldError(field: string, message: string): ZodValidationException {
-  return new ZodValidationException({ issues: [{ code: "custom", path: [field], message }] });
+/**
+ * A 400 in the same shape as request-validation failures, for rules checked in services. The path
+ * is segmented as Zod writes it (["decisions", 0, "type"]), so the web app can match on its first
+ * segment like any other validation error.
+ */
+export function fieldError(
+  path: string | (string | number)[],
+  message: string,
+): ZodValidationException {
+  return new ZodValidationException({
+    issues: [{ code: "custom", path: Array.isArray(path) ? path : [path], message }],
+  });
 }

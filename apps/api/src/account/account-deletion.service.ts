@@ -72,6 +72,19 @@ export class AccountDeletionService {
     return { deletion_scheduled_for: scheduledFor.toISOString() };
   }
 
+  /**
+   * Deletes expired verification rows (phone codes, reset tokens). They are keyed by the bare
+   * phone number or email, so an abandoned code would otherwise keep that number on file for ever,
+   * including for people who never finished signing up and so have no account to erase.
+   */
+  async purgeExpiredVerifications(now = new Date()): Promise<number> {
+    const { count } = await this.prisma.verification.deleteMany({
+      where: { expiresAt: { lt: now } },
+    });
+    if (count > 0) this.logger.log(`purged ${count} expired verification code(s)`);
+    return count;
+  }
+
   /** Erases every account whose grace period is over. One failure does not stop the others. */
   async eraseDue(now = new Date()): Promise<{ erased: number; failed: number }> {
     const due = await this.prisma.user.findMany({

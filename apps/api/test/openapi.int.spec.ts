@@ -19,6 +19,11 @@ describe("OpenAPI document", () => {
         "/api/me/profile",
         "/api/me/consents",
         "/api/me/onboarding/complete",
+        "/api/me/cv",
+        "/api/me/cv/uploads",
+        "/api/me/cv/parsed",
+        "/api/me/export",
+        "/api/me/deletion",
         "/api/auth-methods",
       ]) {
         expect(document.paths).toHaveProperty([path]);

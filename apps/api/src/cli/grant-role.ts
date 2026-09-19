@@ -5,17 +5,24 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Role } from "@readi/shared-types";
 import { loadEnvFile, parseEnv } from "../config/env";
 import { PrismaClient } from "../generated/prisma/client";
+import { resolveActor, UnknownActorError } from "./actor";
 import { cliArgs } from "./args";
 import { setUserRole, UserNotFoundError } from "../users/roles.service";
 
 async function main(): Promise<number> {
   const { values } = parseArgs({
     args: cliArgs(),
-    options: { email: { type: "string" }, role: { type: "string", default: "admin" } },
+    options: {
+      email: { type: "string" },
+      role: { type: "string", default: "admin" },
+      actor: { type: "string" },
+    },
   });
   const role = Role.safeParse(values.role);
   if (!values.email || !role.success) {
-    console.error("usage: admin:grant -- --email <email> [--role candidate|content_expert|admin]");
+    console.error(
+      "usage: admin:grant -- --email <email> [--role candidate|content_expert|admin] [--actor <your admin email>]",
+    );
     return 2;
   }
   loadEnvFile();
@@ -27,11 +34,15 @@ async function main(): Promise<number> {
     const result = await setUserRole(prisma, {
       email: values.email,
       role: role.data,
-      actor: { type: "system" },
+      actor: await resolveActor(prisma, values.actor),
     });
     console.log(`role changed: ${result.previousRole} -> ${role.data} (user ${result.userId})`);
     return 0;
   } catch (error) {
+    if (error instanceof UnknownActorError) {
+      console.error(`--actor: ${error.message}`);
+      return 2;
+    }
     if (error instanceof UserNotFoundError) {
       console.error("no user with that email; sign up first");
       return 1;

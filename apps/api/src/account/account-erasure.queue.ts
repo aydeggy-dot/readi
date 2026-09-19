@@ -14,7 +14,7 @@ export const ACCOUNT_ERASURE_QUEUE = "account-erasure";
 const SWEEP_EVERY_MS = 60 * 60 * 1000;
 
 /**
- * Runs the erasure sweep hourly (ADR-0011). A sweep, rather than one delayed job per user, keeps
+ * Runs the erasure and retention sweep hourly (ADR-0011). A sweep, rather than one delayed job per user, keeps
  * the database the only record of what is due: nothing is lost if Redis is flushed, a sweep that
  * fails is simply retried by the next one, and a cancelled deletion needs no job removed.
  */
@@ -44,7 +44,7 @@ export class AccountErasureQueue implements OnModuleInit, OnModuleDestroy {
       { every: SWEEP_EVERY_MS },
       { name: "sweep" },
     );
-    this.worker = new Worker(ACCOUNT_ERASURE_QUEUE, () => this.deletion.eraseDue(), {
+    this.worker = new Worker(ACCOUNT_ERASURE_QUEUE, () => this.sweep(), {
       connection,
       prefix,
       concurrency: 1,
@@ -52,6 +52,12 @@ export class AccountErasureQueue implements OnModuleInit, OnModuleDestroy {
     this.worker.on("failed", (job, error) => {
       this.logger.error(`account erasure sweep ${job?.id ?? "?"} failed: ${error.name}`);
     });
+  }
+
+  /** One sweep: erase the accounts that are due, then drop expired verification codes. */
+  private async sweep(): Promise<void> {
+    await this.deletion.eraseDue();
+    await this.deletion.purgeExpiredVerifications();
   }
 
   async onModuleDestroy(): Promise<void> {

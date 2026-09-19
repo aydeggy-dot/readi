@@ -26,6 +26,7 @@ describe("scrubSentryEvent", () => {
   });
 
   it("leaves an event without a request alone", () => {
-    expect(scrubSentryEvent({ message: "boom" })).toEqual({ message: "boom" });
+    const event = { request: undefined, level: "error" };
+    expect(scrubSentryEvent(event)).toEqual({ request: undefined, level: "error" });
   });
 });

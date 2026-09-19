@@ -36,6 +36,9 @@ LIMITS = {
     "technologies": 15,
 }
 
+# Readable forms of the shared enums for the prompt. A value added to TARGET_ROLES or
+# EXPERIENCE_LEVELS widens the generated Literal, so `test_labels_cover_every_enum_value` fails
+# here rather than the parse raising KeyError at runtime for every candidate with that role.
 ROLE_LABELS = {"frontend": "frontend engineer", "backend": "backend engineer", "qa": "QA engineer"}
 LEVEL_LABELS = {"intern_junior": "intern or junior", "mid": "mid"}
 
@@ -109,8 +112,8 @@ class CvParser:
         system = render(
             "cv_parse",
             PROMPT_VERSION,
-            target_role_label=ROLE_LABELS[request.target_role],
-            level_label=LEVEL_LABELS[request.level],
+            target_role_label=ROLE_LABELS.get(request.target_role, request.target_role),
+            level_label=LEVEL_LABELS.get(request.level, request.level),
         )
         user = render(
             "cv_parse_input", PROMPT_VERSION, cv_text_block=as_data(extracted.text, "cv_text")

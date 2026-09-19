@@ -21,6 +21,8 @@ export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponse>;
 const ExportUser = z.object({
   id: z.uuid(),
   name: z.string(),
+  /** Avatar URL from Google sign-in; null otherwise. */
+  image: z.url().nullable(),
   /** Null for phone sign-ups (they have no real email address). */
   email: z.email().nullable(),
   email_verified: z.boolean(),

@@ -392,6 +392,8 @@ export interface components {
                 /** Format: uuid */
                 id: string;
                 name: string;
+                /** Format: uri */
+                image: string | null;
                 /** Format: email */
                 email: string | null;
                 email_verified: boolean;

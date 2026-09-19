@@ -149,6 +149,7 @@ describe("data export and account deletion (ADR-0011)", () => {
         signup_method: "email",
         phone_number: null,
       });
+      expect(data.user.image).toBeNull(); // set by Google sign-in; absent for email accounts
       expect(data.profile).toMatchObject({ target_role: "backend", stack: ["Go"] });
       expect(data.cv).toMatchObject({ status: "parsed", content_type: PDF, parsed: PARSED });
       expect(data.consents).toHaveLength(CONSENT_TYPES.length);
@@ -332,8 +333,17 @@ describe("data export and account deletion (ADR-0011)", () => {
         .send({ email, redirectTo: "/reset-password" })
         .expect(200);
       expect(await prisma.verification.count({ where: { value: userId } })).toBeGreaterThan(0);
+      // Better Auth also writes suffixed identifiers (e.g. "<phone>-request-password-reset").
+      await prisma.verification.create({
+        data: {
+          identifier: `${email}-suffixed-by-a-library`,
+          value: "123456:0",
+          expiresAt: new Date(Date.now() + 300_000),
+        },
+      });
       await endGracePeriod(userId);
 
+      const erasedAfter = new Date();
       expect(await eraseUser(prisma, storage, userId)).toBe(true);
 
       expect(await prisma.user.count({ where: { id: userId } })).toBe(0);
@@ -341,6 +351,9 @@ describe("data export and account deletion (ADR-0011)", () => {
       expect(await prisma.consentRecord.count({ where: { userId } })).toBe(0);
       expect(await prisma.account.count({ where: { userId } })).toBe(0);
       expect(await prisma.verification.count({ where: { value: userId } })).toBe(0);
+      expect(
+        await prisma.verification.count({ where: { identifier: { startsWith: email } } }),
+      ).toBe(0);
       expect(await storage.size(cvFileKey ?? "")).toBeNull();
 
       // Kept rows now point at one tombstone that nothing links back to the user.
@@ -348,8 +361,9 @@ describe("data export and account deletion (ADR-0011)", () => {
         await prisma.auditLog.count({ where: { OR: [{ actorId: userId }, { targetId: userId }] } }),
       ).toBe(0);
       expect(await prisma.aiCallLog.count({ where: { userId } })).toBe(0);
+      // Scoped to this erasure: the integration files share one database.
       const erased = await prisma.auditLog.findFirstOrThrow({
-        where: { action: "user.erased", targetId: { not: null } },
+        where: { action: "user.erased", targetId: { not: null }, createdAt: { gte: erasedAfter } },
         orderBy: { createdAt: "desc" },
       });
       const tombstone = erased.targetId ?? "";
@@ -377,6 +391,22 @@ describe("data export and account deletion (ADR-0011)", () => {
       expect(
         await prisma.user.count({ where: { id: { in: [first.userId, second.userId] } } }),
       ).toBe(0);
+    });
+
+    it("purges expired verification codes, which hold phone numbers", async () => {
+      const phone = uniqueNigerianMobile();
+      const fresh = uniqueNigerianMobile();
+      await prisma.verification.create({
+        data: { identifier: phone, value: "123456:0", expiresAt: new Date(Date.now() - 1000) },
+      });
+      await prisma.verification.create({
+        data: { identifier: fresh, value: "123456:0", expiresAt: new Date(Date.now() + 300_000) },
+      });
+
+      await app.get(AccountDeletionService).purgeExpiredVerifications();
+
+      expect(await prisma.verification.count({ where: { identifier: phone } })).toBe(0);
+      expect(await prisma.verification.count({ where: { identifier: fresh } })).toBe(1);
     });
 
     it("an admin can cancel during the grace period, but not after it", async () => {

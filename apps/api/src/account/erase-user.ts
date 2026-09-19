@@ -4,7 +4,9 @@ import type { StorageService } from "../storage/storage.service";
 /**
  * Columns that reference a user WITHOUT a foreign key, in rows kept after the user is erased
  * (ADR-0011). Erasure replaces the user's id in each with the tombstone id. Every other user
- * reference is a foreign key with ON DELETE CASCADE. A test fails if a new unlisted one appears.
+ * reference is a foreign key with ON DELETE CASCADE. A test fails if a new unlisted one appears —
+ * but it only inspects uuid columns, so a kept table that stores an email or phone number as text
+ * needs its own handling here.
  */
 export const TOMBSTONED_COLUMNS = [
   { table: "audit_logs", column: "actor_id" },
@@ -49,12 +51,14 @@ export async function eraseUser(
     await tx.auditLog.updateMany({ where: { actorId: userId }, data: { actorId: tombstone.id } });
     await tx.auditLog.updateMany({ where: { targetId: userId }, data: { targetId: tombstone.id } });
     await tx.aiCallLog.updateMany({ where: { userId }, data: { userId: tombstone.id } });
-    // Codes and reset tokens: keyed by phone number or email, or holding the user id.
+    // Codes and reset tokens. Identifiers are sometimes the bare address or number and sometimes
+    // suffixed (Better Auth writes `<phone>-request-password-reset`), so match by prefix too.
     await tx.verification.deleteMany({
       where: {
         OR: [
           { value: userId },
-          { identifier: { in: [due.email, ...(due.phoneNumber ? [due.phoneNumber] : [])] } },
+          { identifier: { startsWith: due.email } },
+          ...(due.phoneNumber ? [{ identifier: { startsWith: due.phoneNumber } }] : []),
         ],
       },
     });

@@ -276,7 +276,34 @@ describe("authentication (Better Auth mounted in Nest)", () => {
 
       const response = await http().get("/api/admin/stats").set("cookie", cookie);
       expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({ users_total: expect.any(Number) as number });
+      // Other test files add users in parallel, so assert what cannot drift: the shape is
+      // internally consistent, this admin is counted, and a soft-deleted user drops out.
+      const read = async () =>
+        (await http().get("/api/admin/stats").set("cookie", cookie)).body as {
+          users_total: number;
+          users_by_role: Record<string, number>;
+        };
+      const stats = response.body as { users_total: number; users_by_role: Record<string, number> };
+      expect(Object.values(stats.users_by_role).reduce((sum, n) => sum + n, 0)).toBe(
+        stats.users_total,
+      );
+      expect(stats.users_by_role.admin).toBeGreaterThanOrEqual(1);
+
+      const expert = await signUpWithEmail(app);
+      await setUserRole(prisma, {
+        email: expert.email,
+        role: "content_expert",
+        actor: { type: "system" },
+      });
+      const withExpert = await read();
+      await prisma.user.update({
+        where: { email: expert.email },
+        data: { deletedAt: new Date(), deletionScheduledFor: new Date(Date.now() + 86_400_000) },
+      });
+      const afterDeletion = await read();
+      expect((afterDeletion.users_by_role.content_expert ?? 0) + 1).toBe(
+        withExpert.users_by_role.content_expert,
+      );
     });
 
     it("audits role changes", async () => {

@@ -9,6 +9,7 @@ const minimalExport = {
   user: {
     id: "8d3f9c2e-4b1a-4c7e-9f00-1a2b3c4d5e6f",
     name: "",
+    image: null,
     email: null,
     email_verified: false,
     phone_number: "+2348031234567",

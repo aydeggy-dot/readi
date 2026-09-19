@@ -10,6 +10,7 @@ import {
   ParsedCv,
 } from "@readi/shared-types";
 import type { Redis } from "ioredis";
+import { z } from "zod";
 import { Prisma, type Profile } from "../generated/prisma/client";
 import { ApiError } from "../http/api-error";
 import { PrismaService } from "../prisma/prisma.service";
@@ -31,11 +32,13 @@ const LIMITS = {
   parsesPerDay: { window: 86_400, max: 15 },
 };
 
-interface PendingUpload {
-  userId: string;
-  contentType: CvContentType;
-  sizeBytes: number;
-}
+/** What `createUpload` remembers in Redis. Validated on read: it outlives a deploy by 15 minutes. */
+const PendingUpload = z.object({
+  userId: z.uuid(),
+  contentType: CvContentType,
+  sizeBytes: z.int().positive(),
+});
+type PendingUpload = z.infer<typeof PendingUpload>;
 
 export interface CvParseJob {
   userId: string;
@@ -103,17 +106,18 @@ export class CvService {
     if (pending?.userId !== userId) {
       throw new ApiError(HttpStatus.NOT_FOUND, "upload_not_found", "no such upload, or it expired");
     }
-    await this.consume(`cv-parse-hour:${userId}`, LIMITS.parsesPerHour);
-    await this.consume(`cv-parse-day:${userId}`, LIMITS.parsesPerDay);
     const source = quarantineKey(uploadId);
     const size = await this.storage.size(source);
     if (size === null) {
+      // Retryable, so the parse allowance is only spent once the file is really there.
       throw new ApiError(
         HttpStatus.CONFLICT,
         "upload_incomplete",
         "the file has not been uploaded yet",
       );
     }
+    await this.consume(`cv-parse-hour:${userId}`, LIMITS.parsesPerHour);
+    await this.consume(`cv-parse-day:${userId}`, LIMITS.parsesPerDay);
     await this.redis.del(pendingKey(uploadId));
 
     const start = await this.storage.readStart(source, SIGNATURE_BYTES);
@@ -207,7 +211,9 @@ export class CvService {
 
   private async readPending(uploadId: string): Promise<PendingUpload | null> {
     const raw = await this.redis.get(pendingKey(uploadId));
-    return raw ? (JSON.parse(raw) as PendingUpload) : null;
+    if (!raw) return null;
+    const pending = PendingUpload.safeParse(JSON.parse(raw));
+    return pending.success ? pending.data : null;
   }
 
   private async deleteQuietly(key: string): Promise<void> {
