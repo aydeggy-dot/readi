@@ -25,23 +25,23 @@ Prerequisites inside WSL:
 | Tool | Version | Check |
 |---|---|---|
 | Node | 24 LTS (pinned via `.nvmrc` + `engines`) | `node -v` |
-| pnpm | 10.x via corepack (pinned in `packageManager`) | `corepack enable pnpm && pnpm -v` |
+| pnpm | 12.x via corepack (pinned in `packageManager`, see §7) | `corepack enable pnpm && pnpm -v` |
 | uv | latest | `uv --version` |
 | Python | 3.12, installed and pinned by uv | `uv python find 3.12` (or `uv python install 3.12`) |
 | Docker Engine + Compose v2 | current | `docker compose version`, `docker info` (daemon running) |
 | Git | any recent | `git --version` |
 
 Notes:
-- Keep the repo on the Linux filesystem (e.g. `~/code/readi`), not under `/mnt/c` — file watching and pnpm
+- Keep the repo on the Linux filesystem (the working copy is `~/projects/readi`), not under `/mnt/c` — file watching and pnpm
   are far slower across the Windows mount.
-- M0 adds a `pnpm doctor` script that runs the checks above, and a `.gitattributes` enforcing LF line endings.
+- M0 adds a `pnpm prereqs` script that runs the checks above (not `pnpm doctor`, which is a pnpm built-in — §7), and a `.gitattributes` enforcing LF line endings.
 
 ## 3. M0 decisions (defaults accepted)
 
 | # | Topic | Decision |
 |---|---|---|
 | 1 | Node | Node 24 LTS, pinned |
-| 2 | Package manager | pnpm 10 via corepack, pinned in `packageManager` |
+| 2 | Package manager | pnpm 12 via corepack, pinned in `packageManager` (amended from pnpm 10 — §7) |
 | 3 | Test runner | Vitest everywhere incl. NestJS — [ADR-0002](../adr/0002-vitest-everywhere.md) |
 | 4 | API validation | Zod via `nestjs-zod` — [ADR-0003](../adr/0003-zod-source-of-truth.md) |
 | 5 | Admin | `/admin` routes in `apps/web`; no `apps/admin` at MVP |
@@ -81,7 +81,7 @@ Notes:
 
 ## 5. Deferred items (by milestone)
 
-- **M0** — Verify Serwist compatibility (#22); pin codegen tools for ADR-0003; `pnpm doctor`; `.gitattributes`;
+- **M0** — Verify Serwist compatibility (#22); pin codegen tools for ADR-0003; `pnpm prereqs`; `.gitattributes`;
   write ADR-0001 (monorepo and stack).
 - **M1** — Confirm Better Auth mounting in NestJS and same-origin cookie setup (ADR-0005); pseudonymising
   deletion implementation (#19).
@@ -101,7 +101,7 @@ The milestone prompts were patched after kickoff to match these decisions, so ea
 carries its own deferred items:
 
 - **M0:** worker `/health` checks Redis only; Vitest for Nest; Python turbo wrapper; contract codegen + drift
-  check; Serwist check; `.gitattributes`; `pnpm doctor`.
+  check; Serwist check; `.gitattributes`; `pnpm prereqs`.
 - **M1:** deletion keeps required rows with personal data stripped; `User.signup_method`.
 - **M2:** `/admin` in web; `Topic`/`TrackTopic`; `vector(1024)` + `embedding_model`; embeddings via the worker.
 - **M3:** no worker DB access, session bundle + events, transport ADR; least-recently-seen fallback; Langfuse rules.
@@ -109,3 +109,21 @@ carries its own deferred items:
 - **M6:** propose readiness constants and stop for sign-off first.
 - **M8:** USD only on Stripe; email at checkout; 1-day / 3-day reminders plus SMS.
 - **M9:** cost from `ai_call_log` and its retention policy; Langfuse trace retention job.
+
+## 7. Amendment — 2026-09-19 (WSL environment check)
+
+Prerequisites re-checked inside WSL (Ubuntu 24.04, repo at `~/projects/readi` on ext4): Node 24.21.0,
+corepack 0.36.0, pnpm 12.4.2, uv 0.12.17, Python 3.12.3 (found by `uv python find 3.12`), Docker Engine 29.7.2,
+Compose v5.5.0, Git 2.43.0.
+
+- **pnpm 12 replaces pnpm 10** (decision #2). Verified in a scratch workspace: install, `turbo run`, and
+  `turbo prune` work with Turborepo 2.11; the lockfile format is still `lockfileVersion: '9.0'`. No
+  compatibility reason found to stay on 10. pnpm 12 behaviours M0 must account for:
+  - Dependency build scripts that are not approved **fail the install** (`ERR_PNPM_IGNORED_BUILDS`).
+    Approvals live in `allowBuilds` in `pnpm-workspace.yaml`; each approved package is justified in the commit.
+  - A minimum-release-age policy is on by default: pinning a version younger than the window makes pnpm
+    append it to `minimumReleaseAgeExclude`. Prefer versions outside the window; don't accumulate excludes.
+- **`pnpm doctor` is a pnpm built-in** and shadows a script of the same name, so the prerequisite check
+  script is `pnpm prereqs`.
+- Recorded in ADR-0001 (written in M0).
+

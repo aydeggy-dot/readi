@@ -60,7 +60,7 @@ Goals
 - Contract codegen per ADR-0003: Zod → JSON Schema → generated Pydantic models in the worker,
   a `gen:contracts` script, and a CI drift check (`git diff --exit-code`).
 - Verify Serwist works with the current Next.js bundler; fall back to a webpack build if needed.
-- `.gitattributes` enforcing LF line endings; a `pnpm doctor` script checking the prerequisites
+- `.gitattributes` enforcing LF line endings; a `pnpm prereqs` script checking the prerequisites
   listed in docs/progress/kickoff.md §2.
 - infra/docker-compose.yml with postgres 16 + pgvector, redis, minio (S3-compatible), and a
   LiveKit dev server. Include healthchecks and named volumes.
