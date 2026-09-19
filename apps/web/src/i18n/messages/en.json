@@ -10,8 +10,235 @@
       "feedback": "Rubric-based feedback that quotes what you actually said.",
       "local": "Built for Nigerian conditions: mobile-first, light on data, priced in Naira."
     },
-    "comingSoon": "Launching soon",
-    "statusLink": "System status"
+    "statusLink": "System status",
+    "getStarted": "Get started",
+    "logIn": "Log in"
+  },
+  "common": {
+    "or": "or",
+    "back": "Back",
+    "saving": "Saving…",
+    "notSet": "Not set",
+    "edit": "Edit",
+    "logOut": "Log out",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "network": "Couldn't reach Readi. Check your connection and try again.",
+      "rateLimited": "Too many attempts. Wait a minute and try again.",
+      "required": "This field is required.",
+      "invalidField": "Check this field."
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "profile": "Profile",
+    "admin": "Admin",
+    "main": "Main"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least {min} characters.",
+    "google": "Continue with Google",
+    "withPhone": "Continue with phone number",
+    "withEmail": "Continue with email",
+    "login": {
+      "title": "Log in",
+      "subtitle": "Welcome back.",
+      "submit": "Log in",
+      "forgot": "Forgot password?",
+      "noAccount": "New to Readi?",
+      "signupLink": "Create an account"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Start practising for your next interview in minutes.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Log in"
+    },
+    "phone": {
+      "title": "Continue with your phone",
+      "subtitle": "We'll text you a 6-digit code. Nigerian numbers only for now.",
+      "numberLabel": "Phone number",
+      "numberHint": "For example 0803 123 4567",
+      "send": "Send code",
+      "codeTitle": "Enter your code",
+      "codeSent": "We sent a code to {phone}. It expires in 5 minutes.",
+      "codeLabel": "6-digit code",
+      "verify": "Verify and continue",
+      "resend": "Send a new code",
+      "resendIn": "Send a new code in {seconds}s",
+      "changeNumber": "Use a different number"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a link to choose a new password.",
+      "submit": "Send reset link",
+      "sent": "If an account exists for {email}, we've sent a reset link. It expires in 1 hour.",
+      "back": "Back to log in"
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "label": "New password",
+      "submit": "Save password",
+      "done": "Your password has been changed. Log in with your new password.",
+      "invalid": "This link has expired or has already been used.",
+      "requestNew": "Request a new link"
+    },
+    "errors": {
+      "invalidCredentials": "That email and password don't match. Try again or reset your password.",
+      "userExists": "An account with this email already exists. Log in instead.",
+      "passwordTooShort": "Use at least {min} characters.",
+      "passwordTooLong": "Use at most {max} characters.",
+      "invalidEmail": "Enter a valid email address.",
+      "invalidPhone": "Enter a valid Nigerian mobile number.",
+      "invalidOtp": "That code isn't right. Check it and try again.",
+      "otpExpired": "That code has expired. Request a new one.",
+      "tooManyAttempts": "Too many wrong codes. Request a new one.",
+      "google": "Google sign-in didn't complete. Please try again.",
+      "invalidToken": "This link has expired or has already been used."
+    }
+  },
+  "verifyEmail": {
+    "message": "Please verify your email address. We sent a link to {email}.",
+    "resend": "Resend link",
+    "sent": "Link sent. Check your inbox."
+  },
+  "onboarding": {
+    "stepOf": "Step {current} of {total}",
+    "steps": {
+      "profile": "Your goals",
+      "consent": "Privacy choices"
+    },
+    "profile": {
+      "title": "Tell us about your goals",
+      "subtitle": "We use this to tailor your mock interviews and study plan."
+    },
+    "consent": {
+      "title": "Your privacy choices",
+      "subtitle": "Everything here is optional, and you can change it at any time from your profile."
+    },
+    "continue": "Continue"
+  },
+  "profileForm": {
+    "name": "What should we call you?",
+    "targetRole": "Which role are you preparing for?",
+    "level": "Your level",
+    "yearsExperience": "Years of professional experience",
+    "stack": "Your main stack",
+    "stackHint": "The languages, frameworks and tools you use most.",
+    "stackPlaceholder": "For example React",
+    "stackAdd": "Add",
+    "stackRemove": "Remove {item}",
+    "stackSuggestions": "Suggestions",
+    "targetCompanyType": "What kind of company are you aiming for?",
+    "targetDate": "Interview date (optional)",
+    "targetDateHint": "If you already have an interview scheduled.",
+    "save": "Save changes",
+    "errors": {
+      "stackRequired": "Add at least one item.",
+      "stackMax": "You can add up to {max} items.",
+      "yearsRange": "Enter a whole number from 0 to {max}.",
+      "datePast": "Choose today or a later date."
+    }
+  },
+  "targetRoles": {
+    "frontend": "Frontend engineer",
+    "backend": "Backend engineer",
+    "qa": "QA engineer"
+  },
+  "levels": {
+    "intern_junior": "Intern or junior",
+    "mid": "Mid-level"
+  },
+  "companyTypes": {
+    "local_startup": "Nigerian startup",
+    "enterprise_bank_telco": "Bank, telco or large enterprise",
+    "remote_foreign": "Remote role at a foreign company",
+    "big_tech": "Big tech"
+  },
+  "consent": {
+    "save": "Save choices",
+    "saved": "Your choices have been saved.",
+    "audioNote": "Needed for voice interviews. Without it you can still practise in text mode.",
+    "outdated": "These terms were just updated. Please review them and try again.",
+    "types": {
+      "audio_processing": {
+        "v1": {
+          "title": "Process my voice during interviews",
+          "body": "Your speech is converted to text by our speech-recognition provider so the AI interviewer can respond and give feedback."
+        }
+      },
+      "recording_storage": {
+        "v1": {
+          "title": "Keep recordings of my interviews",
+          "body": "Recordings are stored for 30 days so you can listen back, then deleted automatically."
+        }
+      },
+      "camera_coaching": {
+        "v1": {
+          "title": "Camera coaching",
+          "body": "Eye contact and posture are analysed on your device. Video never leaves your device; only numbers are sent."
+        }
+      },
+      "marketing": {
+        "v1": {
+          "title": "Product news and tips",
+          "body": "Occasional emails about new features and interview tips. Unsubscribe at any time."
+        }
+      }
+    }
+  },
+  "home": {
+    "title": "Home",
+    "greeting": "Hi {name}",
+    "greetingNoName": "Welcome",
+    "diagnostic": {
+      "title": "Start with a diagnostic interview",
+      "body": "A 15-minute mixed interview that shows where you are today and builds your first study plan.",
+      "cta": "Available soon",
+      "note": "The diagnostic interview arrives in the next update. Your profile is ready for it."
+    }
+  },
+  "profile": {
+    "title": "Your profile",
+    "goals": "Career goals",
+    "account": "Account",
+    "privacy": "Privacy choices",
+    "editTitle": "Edit your profile",
+    "consentTitle": "Privacy choices",
+    "signupMethod": "Signed up with",
+    "phone": "Phone",
+    "verified": "Verified",
+    "notVerified": "Not verified",
+    "on": "On",
+    "off": "Off",
+    "signupMethods": {
+      "email": "Email and password",
+      "google": "Google",
+      "phone": "Phone number"
+    },
+    "fields": {
+      "name": "Name",
+      "targetRole": "Target role",
+      "level": "Level",
+      "yearsExperience": "Years of experience",
+      "stack": "Main stack",
+      "targetCompanyType": "Target company",
+      "targetDate": "Interview date"
+    }
+  },
+  "admin": {
+    "title": "Admin",
+    "description": "Platform administration. Content management arrives in Milestone M2.",
+    "usersTotal": "Users",
+    "byRole": "Users by role",
+    "roles": {
+      "candidate": "Candidates",
+      "content_expert": "Content experts",
+      "admin": "Admins"
+    }
   },
   "status": {
     "title": "System status",
