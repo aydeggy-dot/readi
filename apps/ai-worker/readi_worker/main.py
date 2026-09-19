@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 
 from readi_worker.health import SupportsPing, build_health_router
+from readi_worker.logging_config import install_pii_filter
 from readi_worker.settings import Settings, load_settings
 
 
@@ -29,6 +30,7 @@ def _init_sentry(settings: Settings) -> None:
 def create_app(settings: Settings | None = None, redis: SupportsPing | None = None) -> FastAPI:
     """Build the app. Tests inject `settings` and a fake `redis`; otherwise both come from env."""
     settings = settings if settings is not None else load_settings()
+    install_pii_filter()
     _init_sentry(settings)
 
     timeout_s = settings.health_check_timeout_ms / 1000
