@@ -15,3 +15,9 @@
   keeps only the offline page and leaves the rest to runtime caching.
 - When killing background dev servers, find them by listening port (`ss -ltnp`), not `pgrep -f`, which can
   match the shell running the command.
+- Turborepo 2 strict env mode silently drops undeclared env vars (NEXT_PUBLIC_* is inferred for Next.js,
+  others are not). Prove config reaches a task by passing an invalid value and expecting a failure.
+- sentry-sdk (Python) sends request bodies (`max_request_body_size="medium"`) and frame locals
+  (`include_local_variables=True`) regardless of `send_default_pii`. The Node SDK (10.x) gates bodies on
+  `sendDefaultPii`; check each SDK's defaults rather than assuming.
+- Status/health UIs render error codes from the API: map them through i18n, never display them raw.

@@ -177,6 +177,10 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   `.meta({ id })`, reusable nested schemas do (ADR-0001). Run `pnpm gen:contracts` after changing them.
 - Browser code never imports Zod or other heavy libraries eagerly; validate `NEXT_PUBLIC_*` at build time and
   lazy-load optional SDKs (ADR-0001).
+- Turborepo runs tasks in strict env mode: every env var a task reads must be declared in `turbo.json`
+  (`env` for build/test so caches key on it, `passThroughEnv` for dev), or it is silently dropped.
+- Error reporting never carries candidate data: Sentry is configured without request bodies or stack-frame
+  locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.
 - Write small, focused commits with conventional commit messages (`feat:`, `fix:`, `chore:` …).
 
