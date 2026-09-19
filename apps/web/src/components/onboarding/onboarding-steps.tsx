@@ -1,8 +1,8 @@
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-// CV upload (optional) joins between these steps in M1 phase 3.
-const STEPS = ["profile", "consent"] as const;
+// The CV step is optional (skippable), but always shown so the order is predictable.
+const STEPS = ["profile", "cv", "consent"] as const;
 
 export function OnboardingSteps({ current }: { current: (typeof STEPS)[number] }) {
   const index = STEPS.indexOf(current);

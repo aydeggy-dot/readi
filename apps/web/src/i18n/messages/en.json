@@ -27,7 +27,11 @@
       "rateLimited": "Too many attempts. Wait a minute and try again.",
       "required": "This field is required.",
       "invalidField": "Check this field."
-    }
+    },
+    "add": "Add",
+    "removeItem": "Remove {item}",
+    "suggestions": "Suggestions",
+    "cancel": "Cancel"
   },
   "nav": {
     "home": "Home",
@@ -109,7 +113,8 @@
     "stepOf": "Step {current} of {total}",
     "steps": {
       "profile": "Your goals",
-      "consent": "Privacy choices"
+      "consent": "Privacy choices",
+      "cv": "Your CV"
     },
     "profile": {
       "title": "Tell us about your goals",
@@ -119,7 +124,12 @@
       "title": "Your privacy choices",
       "subtitle": "Everything here is optional, and you can change it at any time from your profile."
     },
-    "continue": "Continue"
+    "continue": "Continue",
+    "cv": {
+      "title": "Add your CV (optional)",
+      "subtitle": "We read your skills, projects and experience to tailor your practice. You can skip this and add it later from your profile.",
+      "skip": "Skip for now"
+    }
   },
   "profileForm": {
     "name": "What should we call you?",
@@ -129,9 +139,6 @@
     "stack": "Your main stack",
     "stackHint": "The languages, frameworks and tools you use most.",
     "stackPlaceholder": "For example React",
-    "stackAdd": "Add",
-    "stackRemove": "Remove {item}",
-    "stackSuggestions": "Suggestions",
     "targetCompanyType": "What kind of company are you aiming for?",
     "targetDate": "Interview date (optional)",
     "targetDateHint": "If you already have an interview scheduled.",
@@ -227,7 +234,9 @@
       "stack": "Main stack",
       "targetCompanyType": "Target company",
       "targetDate": "Interview date"
-    }
+    },
+    "cv": "CV",
+    "manage": "Manage"
   },
   "admin": {
     "title": "Admin",
@@ -261,5 +270,69 @@
   "offline": {
     "title": "You are offline",
     "body": "Check your connection and try again. Pages you have opened before may still work."
+  },
+  "cv": {
+    "title": "Your CV",
+    "choose": "Choose a PDF or Word file",
+    "hint": "PDF or DOCX, up to {mb} MB.",
+    "uploading": "Uploading… {percent}%",
+    "checking": "Checking your file…",
+    "processing": "Reading your CV. This usually takes under a minute. You can continue while we work.",
+    "replace": "Upload a different CV",
+    "remove": "Remove CV",
+    "removeConfirm": "Remove your CV and everything we read from it?",
+    "removed": "Your CV has been removed.",
+    "uploadedOn": "Uploaded {date}",
+    "reviewTitle": "Check what we found",
+    "reviewHint": "Correct anything we got wrong. This is what your interviews and study plan will use.",
+    "manualTitle": "Add your details yourself",
+    "fillManually": "Fill in the details myself",
+    "status": {
+      "none": "No CV added",
+      "processing": "Reading your CV",
+      "parsed": "Ready",
+      "unreadable": "We couldn't read this file",
+      "failed": "Something went wrong reading your CV"
+    },
+    "errors": {
+      "type": "Choose a PDF or Word (.docx) file.",
+      "tooLarge": "This file is larger than {mb} MB. Try a smaller or compressed version.",
+      "empty": "This file is empty.",
+      "upload": "The upload didn't finish. Check your connection and try again.",
+      "invalidFile": "This file doesn't look like a PDF or Word document. Try exporting it again.",
+      "no_text": "This looks like a scanned document, so there's no text to read. Upload a PDF exported from Word or Google Docs, or fill in your details yourself.",
+      "encrypted": "This PDF is password-protected. Upload a copy without a password.",
+      "invalid_file": "This file seems to be damaged. Try exporting it again.",
+      "too_large": "This CV is too long for us to read. Try a shorter version (up to 20 pages).",
+      "retry": "We couldn't read your CV this time. Try uploading it again in a few minutes."
+    },
+    "fields": {
+      "skills": "Skills",
+      "skillsPlaceholder": "For example SQL",
+      "projects": "Projects",
+      "projectName": "Project name",
+      "projectDescription": "What it does",
+      "technologies": "Technologies",
+      "technologiesPlaceholder": "For example Next.js",
+      "addProject": "Add project",
+      "removeProject": "Remove project",
+      "experience": "Experience",
+      "role": "Role",
+      "organisation": "Organisation",
+      "start": "Start (month)",
+      "end": "End (month)",
+      "current": "I work here now",
+      "summary": "What you did",
+      "addExperience": "Add role",
+      "removeExperience": "Remove role",
+      "gaps": "Areas to strengthen",
+      "gapsHint": "Things often expected for your target role that your CV doesn't show yet. We'll build practice around them.",
+      "addGap": "Add area",
+      "removeGap": "Remove area",
+      "save": "Save CV details",
+      "saved": "Saved.",
+      "monthFormat": "Use the format YYYY-MM, for example 2024-03."
+    },
+    "continue": "Continue"
   }
 }

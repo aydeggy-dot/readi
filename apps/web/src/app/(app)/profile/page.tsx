@@ -5,14 +5,14 @@ import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { Button } from "@/components/ui/button";
 import { formatDate, t } from "@/i18n";
 import { consentCopy } from "@/lib/consent-copy";
-import { getConsents, getProfile } from "@/lib/profile-data";
+import { getConsents, getCv, getProfile } from "@/lib/profile-data";
 import { requireOnboarded } from "@/lib/session";
 
 export const metadata: Metadata = { title: t("profile.title") };
 
 export default async function ProfilePage() {
   const me = await requireOnboarded();
-  const [profile, consents] = await Promise.all([getProfile(), getConsents()]);
+  const [profile, consents, cv] = await Promise.all([getProfile(), getConsents(), getCv()]);
   const notSet = t("common.notSet");
 
   return (
@@ -54,6 +54,20 @@ export default async function ProfilePage() {
               value={profile.target_date ? formatDate(profile.target_date) : notSet}
             />
           </>
+        )}
+      </Section>
+
+      <Section
+        title={t("profile.cv")}
+        action={
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/profile/cv">{t("profile.manage")}</Link>
+          </Button>
+        }
+      >
+        <Row label={t("cv.title")} value={t(`cv.status.${cv.status}`)} />
+        {cv.parsed && cv.parsed.skills.length > 0 && (
+          <Row label={t("cv.fields.skills")} value={cv.parsed.skills.join(", ")} />
         )}
       </Section>
 

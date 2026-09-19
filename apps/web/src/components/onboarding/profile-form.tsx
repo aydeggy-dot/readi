@@ -16,10 +16,10 @@ import { Button } from "@/components/ui/button";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { TagInput } from "@/components/ui/tag-input";
 import { t } from "@/i18n";
 import { browserApi } from "@/lib/browser-api";
 import { STACK_SUGGESTIONS } from "@/lib/stack-suggestions";
-import { StackInput } from "./stack-input";
 
 type Values = Omit<UpdateProfileRequest, "years_experience" | "target_date"> & {
   // Form inputs hold strings; converted on submit.
@@ -95,7 +95,7 @@ export function ProfileForm({
       setFormError(t("common.errors.network"));
       return;
     }
-    router.push(mode === "onboarding" ? "/onboarding/consent" : "/profile");
+    router.push(mode === "onboarding" ? "/onboarding/cv" : "/profile");
     router.refresh();
   });
 
@@ -179,10 +179,13 @@ export function ProfileForm({
                 value.length > 0 ? true : t("profileForm.errors.stackRequired"),
             }}
             render={({ field, fieldState }) => (
-              <StackInput
+              <TagInput
                 id="stack"
                 value={field.value}
                 onChange={field.onChange}
+                placeholder={t("profileForm.stackPlaceholder")}
+                maxItems={PROFILE_LIMITS.stackMaxItems}
+                maxLength={PROFILE_LIMITS.stackItemMaxLength}
                 suggestions={role ? STACK_SUGGESTIONS[role] : []}
                 invalid={fieldState.invalid}
                 describedBy={describedBy}
