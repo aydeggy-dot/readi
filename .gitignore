@@ -43,3 +43,6 @@ Thumbs.db
 # CV comparison reports and sample CVs: personal data, never committed
 apps/ai-worker/.cv-compare/
 sample-cvs/
+
+# Playwright MCP snapshots and draft screenshots
+.playwright-mcp/
