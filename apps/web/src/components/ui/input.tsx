@@ -6,10 +6,11 @@ function Input({ className, ...props }: React.ComponentProps<"input">) {
     <input
       data-slot="input"
       className={cn(
-        // text-base (16px) stops iOS Safari from zooming into focused fields.
-        "h-11 w-full min-w-0 rounded-md border border-input bg-background px-3 text-base outline-none transition-colors",
-        "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring",
-        "disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20",
+        // --input (#6B7280, 4.83:1) not --border: a field's edge carries meaning, so it needs 3:1
+        // (WCAG 2.2 §1.4.11). At or above 16px so iOS Safari does not zoom into a focused field.
+        "h-11 w-full min-w-0 rounded-md border border-input bg-background px-3 text-[1.0625rem] transition-colors",
+        "placeholder:text-muted-foreground",
+        "disabled:opacity-50 aria-invalid:border-destructive",
         className,
       )}
       {...props}

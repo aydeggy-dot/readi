@@ -7,3 +7,6 @@ docs/
 CLAUDE.md
 apps/api/prisma/migrations/
 .turbo/
+
+# Claude Code writes this per-machine and it is ignored by git, so it is not ours to format.
+.claude/settings.local.json

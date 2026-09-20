@@ -23,12 +23,12 @@ export function Field({
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <label htmlFor={id} className="text-sm font-medium">
+      <label htmlFor={id} className="font-bold text-heading">
         {label}
       </label>
       {/* Hint before the control, so it is read (and seen) before typing. */}
       {hint && (
-        <p id={hintId} className="-mt-1 text-sm text-muted-foreground">
+        <p id={hintId} className="-mt-1 text-base text-muted-foreground">
           {hint}
         </p>
       )}
@@ -41,7 +41,7 @@ export function Field({
 export function FieldError({ id, message }: { id?: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="text-sm text-destructive">
+    <p id={id} className="text-base text-destructive">
       {message}
     </p>
   );

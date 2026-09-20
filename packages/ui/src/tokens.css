@@ -1,67 +1,127 @@
 /*
- * Readi design tokens (Tailwind CSS v4 + shadcn/ui variable names).
- * Neutral placeholder palette until brand colours exist (kickoff decision #10).
+ * Readi design tokens: the Margin visual identity (ADR-0013).
+ * Tailwind CSS v4 + shadcn/ui variable names, plus the Readi additions the identity needs.
  * Consumers: `@import "@readi/ui/tokens.css";` after `@import "tailwindcss";`.
+ *
+ * Every value here is checked by tokens.contrast.test.ts: each text pair clears 4.5:1 and each
+ * graphic that carries meaning clears 3:1, in BOTH themes. Change a value and run the test.
+ *
+ * The identity in one line: white or cool-grey paper, DegRon grey #4B5563 for structure
+ * (navigation, frames, the rails beside the mentor's notes), and orange used only as the mentor's
+ * pen — actions, marks and progress, never decoration that carries meaning.
  */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.527 0.154 150.069);
-  --border: oklch(0.922 0 0);
-  /* Field borders and the focus ring carry meaning, so they need 3:1 against the background
-     (WCAG 2.2 §1.4.11). The shadcn defaults are 1.2:1 and 1.5:1; these are 4.8:1 and 5.9:1.
-     ADR-0013 sets the same value for --input in the Margin theme. */
-  --input: oklch(0.551 0.023 264.36);
-  --ring: oklch(0.446 0.026 256.8);
+  /* Paper, barely rounded. */
+  --radius: 0.25rem;
+
+  --background: #ffffff;
+  --foreground: #374151;
+  --heading: #374151;
+  --card: #ffffff;
+  --card-foreground: #374151;
+  --popover: #ffffff;
+  --popover-foreground: #374151;
+
+  /* Buttons are #C2410C with white text, never #F97316: that is 2.8:1 against white, so the
+     button's own shape washes out on a dim phone in sunlight even though the label passes. */
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #9a3412;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #374151;
+  --muted: #f3f4f6;
+  --muted-foreground: #4b5563;
+  --accent: #fff7ed;
+  --accent-foreground: #374151;
+  --destructive: #b91c1c;
+  --success: #15803d;
+
+  /* --border is decorative (dividers) and may be low contrast; --input is a form field's edge and
+     --ring a focus outline, so both carry meaning and must clear 3:1 (WCAG 2.2 §1.4.11). */
+  --border: #e5e7eb;
+  --input: #6b7280;
+  --ring: #c2410c;
+
+  --chart-1: #c2410c;
+  --chart-2: #9ca3af;
+
+  /* Readi additions. */
+  --brand: #f97316; /* DegRon orange: decoration only, never the sole sign of anything */
+  --pen: #ea580c; /* note rules, annotation rings */
+  --highlight: #ffedd5; /* the highlighter behind a quoted phrase */
+  --progress: #ea580c;
+  --progress-surface: #ffffff;
+  --track: #e5e7eb;
+
+  /* DegRon grey carries the structure: frames, section rules, note rails, the navigation bar. */
+  --frame: #4b5563;
+  --nav: #4b5563;
+  --nav-foreground: #ffffff;
+  --nav-muted: #e5e7eb;
+  --nav-accent: #fb923c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --success: oklch(0.723 0.192 149.579);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(0.707 0.022 261.3);
-    --ring: oklch(0.872 0.01 258.3);
+    --background: #111827;
+    --foreground: #e5e7eb;
+    --heading: #f9fafb;
+    --card: #1f2937;
+    --card-foreground: #e5e7eb;
+    --popover: #1f2937;
+    --popover-foreground: #e5e7eb;
+
+    /* Deep orange sinks into a dark page, so the pen flips to #FB923C with a near-black label. */
+    --primary: #fb923c;
+    --primary-foreground: #111827;
+    --primary-hover: #fdba74;
+    --secondary: #1f2937;
+    --secondary-foreground: #e5e7eb;
+    --muted: #1f2937;
+    --muted-foreground: #9ca3af;
+    --accent: #2a1d14;
+    --accent-foreground: #fed7aa;
+    --destructive: #f87171;
+    --success: #4ade80;
+
+    --border: #374151;
+    --input: #6b7280;
+    --ring: #fb923c;
+
+    --chart-1: #fb923c;
+    --chart-2: #6b7280;
+
+    --brand: #f97316;
+    --pen: #fb923c;
+    --highlight: #4a2511;
+    --progress: #fb923c;
+    --progress-surface: #1f2937;
+    --track: #374151;
+
+    --frame: #6b7280;
+    --nav: #1f2937;
+    --nav-foreground: #f9fafb;
+    --nav-muted: #9ca3af;
+    --nav-accent: #fb923c;
   }
 }
 
 @theme inline {
+  /* The app sets --font-readi-* from next/font (apps/web/src/fonts); the fallbacks keep this file
+     usable on its own. Alegreya is for headings and the mentor's notes only. */
+  --font-sans: var(--font-readi-sans, ui-sans-serif, system-ui, sans-serif);
+  --font-serif: var(--font-readi-serif, ui-serif, Georgia, serif);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-heading: var(--heading);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -73,8 +133,21 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-brand: var(--brand);
+  --color-pen: var(--pen);
+  --color-highlight: var(--highlight);
+  --color-progress: var(--progress);
+  --color-progress-surface: var(--progress-surface);
+  --color-track: var(--track);
+  --color-frame: var(--frame);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-accent: var(--nav-accent);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 }
