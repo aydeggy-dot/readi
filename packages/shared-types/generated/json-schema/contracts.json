@@ -281,6 +281,93 @@
       ],
       "additionalProperties": false
     },
+    "EmbedRequest": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "texts": {
+          "minItems": 1,
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        }
+      },
+      "required": [
+        "request_id",
+        "texts"
+      ],
+      "additionalProperties": false
+    },
+    "EmbedResponse": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "failed"
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "dimensions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "embeddings": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "ai_calls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AiCallRecord"
+          }
+        }
+      },
+      "required": [
+        "request_id",
+        "status",
+        "error",
+        "model",
+        "dimensions",
+        "embeddings",
+        "ai_calls"
+      ],
+      "additionalProperties": false
+    },
     "ExperienceLevel": {
       "type": "string",
       "enum": [

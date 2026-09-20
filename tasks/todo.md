@@ -335,9 +335,41 @@ the browser.
   - Retiring a rubric silently hides its published questions from practice. Correct, but the CMS
     should warn: phase 5.
 
-### Phases 3–6
+### Phase 3 — embeddings (done, 2026-09-21)
 
-3. Embeddings (worker adapter + fake, publish-time embed, duplicate warnings, re-embed CLI), 4. seed format + importer + drafted content, 5. admin UI in Margin + e2e, 6. verification,
+- [x] Worker `readi_worker/embeddings/`: `base.py` (Protocol, frozen result, `EmbeddingError` with
+      latency), `fake.py` (hash-seeded unit vector + a scripted provider for error cases),
+      `voyage.py` (REST via httpx2, retries 408/429/5xx, orders vectors by `index`, refuses a
+      vector of the wrong length), `service.py`, `router.py`
+- [x] `POST /embeddings` behind the service token; a provider failure is a 200 with
+      `status: "failed"` so the API still records what the call cost (as `/cv/parse` does)
+- [x] Settings: `EMBEDDING_PROVIDER` (default `fake`), `VOYAGE_API_KEY`, `EMBEDDING_MODEL`,
+      `EMBEDDING_DIMENSIONS`, `EMBEDDING_TIMEOUT_S`; voyage without a key and fake in production
+      both fail at startup. `.env.example` documented
+- [x] Contracts `EmbedRequest` / `EmbedResponse` registered, so the Pydantic models are generated
+- [x] API: `question-embeddings.repository.ts` is the only raw vector SQL (store, clear, cosine
+      search, stale rows); `question-embeddings.service.ts` embeds, records the `ai_call_log` row
+      and never throws; publishing a question returns `duplicates`;
+      `POST /admin/content/questions/duplicate-check` warns while a question is still being typed
+- [x] A published question whose wording changes is re-embedded; a failure clears the vector rather
+      than leave a stale one
+- [x] `pnpm --filter @readi/api content:reembed` (probes the worker for the current model,
+      `--dry-run`, `--limit`, `--model`)
+- [x] Checks: 552 tests (476 TypeScript + 76 Python), lint, typecheck, format, contracts
+- [x] Verified against a real worker over HTTP (fake provider): `/embeddings` returned a 1024-dim
+      vector and a zero-cost `ai_call` record, and `content:reembed` found one stale question,
+      embedded it, and reported `0 to (re-)embed` on the next run
+- **Switchover when the Voyage key arrives: `docs/runbooks/embeddings-switchover.md`** — which env
+  vars to set, how to verify one real call (including that the model name in ADR-0006 still
+  exists), and when to run `content:reembed`. The Voyage price in `pricing.py` is an unverified
+  estimate; step 2 of the runbook says to confirm it.
+- Notes: `httpx2` became a direct worker dependency (it was already present under the Anthropic
+  SDK). The contract generator wraps length-constrained strings in a RootModel, so the worker
+  unwraps `request.texts[i].root` — a comment says what to delete if that ever changes.
+
+### Phases 4–6
+
+4. Seed format + importer + drafted content, 5. admin UI in Margin + e2e, 6. verification,
    ADR-0014, docs and handover.
 
 ## Carried forward

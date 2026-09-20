@@ -16,6 +16,7 @@
     "admin:cancel-deletion": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/cancel-deletion.js",
     "db:seed": "node -e \"console.log('db:seed: nothing to seed yet. The seed importer arrives in Milestone M2.')\"",
     "storage:setup": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/storage-setup.js",
+    "content:reembed": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/content-reembed.js",
     "build:standalone": "nest build -p tsconfig.cli.json",
     "e2e:prepare": "node dist-cli/src/cli/e2e-prepare.js"
   },

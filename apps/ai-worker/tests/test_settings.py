@@ -7,7 +7,13 @@ TOKEN = "t" * 40
 
 @pytest.fixture(autouse=True)
 def _base_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("ANTHROPIC_API_KEY", "LLM_PROVIDER", "ENVIRONMENT"):
+    for name in (
+        "ANTHROPIC_API_KEY",
+        "LLM_PROVIDER",
+        "ENVIRONMENT",
+        "EMBEDDING_PROVIDER",
+        "VOYAGE_API_KEY",
+    ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("SERVICE_TOKEN", TOKEN)
     monkeypatch.setenv("LLM_PROVIDER", "fake")
@@ -69,3 +75,34 @@ def test_service_token_is_required_and_long(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("SERVICE_TOKEN", "short")
     with pytest.raises(SettingsError, match="SERVICE_TOKEN"):
         load_settings(env_file=None)
+
+
+def test_voyage_needs_a_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "voyage")
+    monkeypatch.setenv("VOYAGE_API_KEY", "")
+
+    with pytest.raises(SettingsError, match="VOYAGE_API_KEY"):
+        load_settings(env_file=None)
+
+
+def test_the_fake_embedding_provider_is_refused_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "fake")
+
+    with pytest.raises(SettingsError, match="EMBEDDING_PROVIDER"):
+        load_settings(env_file=None)
+
+
+def test_embeddings_default_to_the_fake_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+
+    settings = load_settings(env_file=None)
+
+    assert settings.embedding_provider == "fake"
+    assert settings.embedding_dimensions == 1024

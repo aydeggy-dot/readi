@@ -10,6 +10,11 @@ from redis.asyncio import Redis
 from readi_worker.auth import require_service_token
 from readi_worker.cv.parse import CvParser, keyword_extraction
 from readi_worker.cv.router import build_cv_router
+from readi_worker.embeddings.base import EmbeddingProvider
+from readi_worker.embeddings.fake import FakeEmbeddingProvider
+from readi_worker.embeddings.router import build_embeddings_router
+from readi_worker.embeddings.service import EmbeddingService
+from readi_worker.embeddings.voyage import VoyageEmbeddingProvider
 from readi_worker.health import SupportsPing, build_health_router
 from readi_worker.http_limits import BodySizeLimit
 from readi_worker.llm.anthropic_client import AnthropicLLMClient
@@ -46,13 +51,29 @@ def _build_llm(settings: Settings) -> tuple[LLMClient, str]:
     return client, settings.llm_model_cv_parse
 
 
+def _build_embeddings(settings: Settings) -> tuple[EmbeddingProvider, str]:
+    """The configured embedding provider and the model to record it under."""
+    if settings.embedding_provider == "fake":
+        # "fake" as the model too, so the cost table matches it and reports zero (ADR-0007).
+        return FakeEmbeddingProvider(settings.embedding_dimensions), "fake"
+    if settings.voyage_api_key is None:  # guaranteed by Settings validation
+        raise RuntimeError("VOYAGE_API_KEY missing")
+    provider = VoyageEmbeddingProvider(
+        settings.voyage_api_key.get_secret_value(),
+        timeout_s=settings.embedding_timeout_s,
+        dimensions=settings.embedding_dimensions,
+    )
+    return provider, settings.embedding_model
+
+
 def create_app(
     settings: Settings | None = None,
     redis: SupportsPing | None = None,
     llm: LLMClient | None = None,
+    embeddings: EmbeddingProvider | None = None,
 ) -> FastAPI:
-    """Build the app. Tests inject `settings`, a fake `redis` and a fake `llm`; otherwise all come
-    from the environment."""
+    """Build the app. Tests inject `settings`, a fake `redis`, `llm` and `embeddings`; otherwise
+    all come from the environment."""
     settings = settings if settings is not None else load_settings()
     install_pii_filter()
     _init_sentry(settings)
@@ -72,6 +93,13 @@ def create_app(
     else:
         cv_model = settings.llm_model_cv_parse
 
+    owned_embeddings: VoyageEmbeddingProvider | None = None
+    if embeddings is None:
+        embeddings, embedding_model = _build_embeddings(settings)
+        owned_embeddings = embeddings if isinstance(embeddings, VoyageEmbeddingProvider) else None
+    else:
+        embedding_model = settings.embedding_model
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
@@ -79,6 +107,8 @@ def create_app(
             await owned_redis.aclose()
         if owned_llm is not None:
             await owned_llm.aclose()
+        if owned_embeddings is not None:
+            await owned_embeddings.aclose()
 
     # Interactive docs are for development; the worker is internal-only (ADR-0004).
     docs_enabled = settings.environment != "production"
@@ -92,7 +122,12 @@ def create_app(
     )
     app.add_middleware(BodySizeLimit)
     app.include_router(build_health_router(redis, timeout_s))
+    service_token = require_service_token(settings.service_token)
+    app.include_router(build_cv_router(CvParser(llm, cv_model), service_token))
     app.include_router(
-        build_cv_router(CvParser(llm, cv_model), require_service_token(settings.service_token))
+        build_embeddings_router(
+            EmbeddingService(embeddings, embedding_model, settings.embedding_dimensions),
+            service_token,
+        )
     )
     return app

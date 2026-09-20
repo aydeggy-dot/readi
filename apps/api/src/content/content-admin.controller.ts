@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+} from "@nestjs/common";
 import {
   ApiConflictResponse,
   ApiForbiddenResponse,
@@ -13,6 +23,8 @@ import {
   ContentTransitionResponse,
   ContentVersionResponse,
   ContentVersionsResponse,
+  DuplicateCheckRequest,
+  DuplicateWarningsResponse,
   Lesson,
   LessonInput,
   LessonListResponse,
@@ -64,6 +76,8 @@ class QuestionListResponseDto extends createZodDto(QuestionListResponse) {}
 class ContentTransitionRequestDto extends createZodDto(ContentTransitionRequest) {}
 class ContentTransitionResponseDto extends createZodDto(ContentTransitionResponse) {}
 class ContentVersionsResponseDto extends createZodDto(ContentVersionsResponse) {}
+class DuplicateCheckRequestDto extends createZodDto(DuplicateCheckRequest) {}
+class DuplicateWarningsResponseDto extends createZodDto(DuplicateWarningsResponse) {}
 class ContentVersionResponseDto extends createZodDto(ContentVersionResponse) {}
 
 /**
@@ -259,6 +273,18 @@ export class ContentAdminController {
   @ApiOkResponse({ type: QuestionListResponseDto.Output })
   listQuestions(@Query() query: ContentListQueryDto): Promise<QuestionListResponse> {
     return this.content.listQuestions(query);
+  }
+
+  /**
+   * Near-duplicates of a question that has not been saved yet, so the form can warn while it is
+   * still being written. Declared before `questions/:id` has any chance to claim the path.
+   */
+  @Post("questions/duplicate-check")
+  @HttpCode(HttpStatus.OK)
+  @ZodSerializerDto(DuplicateWarningsResponseDto)
+  @ApiOkResponse({ type: DuplicateWarningsResponseDto.Output })
+  async duplicateCheck(@Body() body: DuplicateCheckRequestDto): Promise<DuplicateWarningsResponse> {
+    return { matches: await this.content.duplicateCheck(body) };
   }
 
   @Post("questions")

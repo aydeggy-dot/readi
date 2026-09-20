@@ -388,6 +388,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/content/questions/duplicate-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_duplicateCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/content/questions/{id}": {
         parameters: {
             query?: never;
@@ -1000,6 +1016,23 @@ export interface components {
             items: components["schemas"]["QuestionListItem_Output"][];
             next_cursor: string | null;
         };
+        DuplicateCheckRequestDto: {
+            prompt: string;
+            context: string | null;
+            /** Format: uuid */
+            exclude_question_id: string | null;
+        };
+        DuplicateMatch_Output: {
+            /** Format: uuid */
+            question_id: string;
+            slug: string;
+            prompt: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            similarity: number;
+        };
+        DuplicateWarningsResponseDto_Output: {
+            matches: components["schemas"]["DuplicateMatch_Output"][];
+        };
         /** @enum {string} */
         QuestionType: "behavioral" | "technical" | "scenario" | "test_design";
         QuestionInputDto: {
@@ -1073,6 +1106,7 @@ export interface components {
             version: number;
             /** Format: date-time */
             updated_at: string;
+            duplicates: components["schemas"]["DuplicateMatch_Output"][];
         };
         ContentVersionSummary_Output: {
             version: number;
@@ -2184,6 +2218,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_duplicateCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateCheckRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateWarningsResponseDto_Output"];
                 };
             };
         };

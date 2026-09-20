@@ -98,6 +98,7 @@ pnpm db:seed                 # load /content/seed (stub until M2)
 pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
 pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
+pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -147,6 +148,14 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   A snapshot is written only when the content actually changed; the audit entry carries statuses and
   versions, never prose.
 - Admin lists page with a keyset cursor (`cursor` + `limit` in, `next_cursor` out), never an offset.
+- Publishing a question embeds its prompt and context through the worker and stores the vector with
+  the model that made it (ADR-0006). Near-duplicates are a **warning, never a refusal**: an unreachable
+  worker or a vector of the wrong length leaves the question published and its vector *absent* rather
+  than stale, for `content:reembed` to put right. All raw vector SQL lives in
+  `apps/api/src/content/question-embeddings.repository.ts` and nowhere else.
+- `EMBEDDING_PROVIDER=fake` (the default) derives a vector from the text, so only identical questions
+  ever match. Duplicate detection means something only on the real provider —
+  `docs/runbooks/embeddings-switchover.md` is the path from one to the other.
 
 ### Prompts
 - Prompts live in versioned files: `apps/ai-worker/readi_worker/prompts/<name>.v<N>.md` (Jinja2 templates).

@@ -460,6 +460,34 @@ export const ContentTransitionRequest = z.object({
 });
 export type ContentTransitionRequest = z.infer<typeof ContentTransitionRequest>;
 
+/** A near-duplicate found by cosine similarity on question embeddings (ADR-0006). */
+export const DuplicateMatch = z
+  .object({
+    question_id: z.uuid(),
+    slug: slug(),
+    prompt: z.string().min(1).max(CONTENT_LIMITS.questionPromptMaxLength),
+    status: ContentStatus,
+    similarity: z.number().min(0).max(1),
+  })
+  .meta({ id: "DuplicateMatch" });
+export type DuplicateMatch = z.infer<typeof DuplicateMatch>;
+
+/** Warnings, never a block: publishing succeeds and reports what it found. */
+export const DuplicateWarningsResponse = z.object({ matches: z.array(DuplicateMatch) });
+export type DuplicateWarningsResponse = z.infer<typeof DuplicateWarningsResponse>;
+
+/**
+ * Body of `POST /api/admin/content/questions/duplicate-check`: the text a question would carry.
+ * Takes the text rather than an id so the CMS can warn while a new question is still being typed.
+ */
+export const DuplicateCheckRequest = z.object({
+  prompt: z.string().trim().min(1).max(CONTENT_LIMITS.questionPromptMaxLength),
+  context: z.string().trim().min(1).max(CONTENT_LIMITS.questionContextMaxLength).nullable(),
+  /** The question being edited, so that it does not report itself. */
+  exclude_question_id: z.uuid().nullable(),
+});
+export type DuplicateCheckRequest = z.infer<typeof DuplicateCheckRequest>;
+
 /**
  * What a transition returns: the entity's new state, not the entity. The CMS refetches what it is
  * showing, and one small shape serves all four entities.
@@ -470,6 +498,11 @@ export const ContentTransitionResponse = z.object({
   status: ContentStatus,
   version: z.int().min(1),
   updated_at: z.iso.datetime(),
+  /**
+   * Near-duplicates found while publishing a question (ADR-0006). A warning and never a refusal:
+   * the publish already happened. Empty for every other entity, and when the worker was unreachable.
+   */
+  duplicates: z.array(DuplicateMatch),
 });
 export type ContentTransitionResponse = z.infer<typeof ContentTransitionResponse>;
 
@@ -495,22 +528,6 @@ export const ContentVersionResponse = z.object({
   snapshot: z.record(z.string(), z.unknown()),
 });
 export type ContentVersionResponse = z.infer<typeof ContentVersionResponse>;
-
-/** A near-duplicate found by cosine similarity on question embeddings (ADR-0006). */
-export const DuplicateMatch = z
-  .object({
-    question_id: z.uuid(),
-    slug: slug(),
-    prompt: z.string().min(1).max(CONTENT_LIMITS.questionPromptMaxLength),
-    status: ContentStatus,
-    similarity: z.number().min(0).max(1),
-  })
-  .meta({ id: "DuplicateMatch" });
-export type DuplicateMatch = z.infer<typeof DuplicateMatch>;
-
-/** Warnings, never a block: publishing succeeds and reports what it found. */
-export const DuplicateWarningsResponse = z.object({ matches: z.array(DuplicateMatch) });
-export type DuplicateWarningsResponse = z.infer<typeof DuplicateWarningsResponse>;
 
 export const ContentFlagInput = z.object({
   question_id: z.uuid(),

@@ -40,6 +40,7 @@ describe("OpenAPI document", () => {
         "/api/admin/content/rubrics/{id}",
         "/api/admin/content/questions",
         "/api/admin/content/questions/{id}",
+        "/api/admin/content/questions/duplicate-check",
         "/api/admin/content/{entity}/{id}/transition",
         "/api/admin/content/{entity}/{id}/versions",
         "/api/admin/content/{entity}/{id}/versions/{version}",

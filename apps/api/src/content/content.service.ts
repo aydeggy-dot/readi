@@ -13,6 +13,8 @@ import {
   type ContentTransitionResponse,
   type ContentVersionResponse,
   type ContentVersionsResponse,
+  type DuplicateCheckRequest,
+  type DuplicateMatch,
   type ExperienceLevel,
   type Lesson,
   type LessonInput,
@@ -42,6 +44,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { cursorWhere, paginate } from "./content-cursor";
 import { sameContent } from "./content-diff";
 import { checkTransition } from "./content-workflow";
+import { QuestionEmbeddingsService } from "./question-embeddings.service";
 import {
   lessonContent,
   moduleInclude,
@@ -115,6 +118,7 @@ export class ContentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly embeddings: QuestionEmbeddingsService,
   ) {}
 
   // ---------------------------------------------------------------------------------------------
@@ -531,6 +535,13 @@ export class ContentService {
         return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
+
+    // A published question whose wording changed has a stale vector, and a stale vector is worse
+    // than none: it answers duplicate searches with text nobody wrote (ADR-0006).
+    const textChanged =
+      QuestionEmbeddingsService.textFor(current) !== QuestionEmbeddingsService.textFor(updated);
+    if (updated.status === "published" && textChanged) await this.embeddings.sync(updated);
+
     return { entity: toQuestion(updated), changed: true };
   }
 
@@ -606,13 +617,26 @@ export class ContentService {
         }
         throw error;
       });
+    // Publishing a question embeds it and reports near-duplicates. A warning, never a refusal:
+    // the publish has already happened, and a human decides what to do about the resemblance.
+    const duplicates =
+      entity === "questions" && to === "published"
+        ? await this.embeddings.sync(await this.findQuestionOrFail(id))
+        : [];
+
     return {
       entity,
       id: updated.id,
       status: updated.status,
       version: updated.version,
       updated_at: updated.updatedAt.toISOString(),
+      duplicates,
     };
+  }
+
+  /** Near-duplicates of a question that may not exist yet (the CMS's question form). */
+  duplicateCheck(request: DuplicateCheckRequest): Promise<DuplicateMatch[]> {
+    return this.embeddings.check(request);
   }
 
   /** The rules that must hold before content reaches a candidate (ADR-0014 decision 1). */

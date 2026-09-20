@@ -1341,6 +1341,35 @@
         "tags": ["admin-content"]
       }
     },
+    "/api/admin/content/questions/duplicate-check": {
+      "post": {
+        "operationId": "ContentAdminController_duplicateCheck",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateCheckRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateWarningsResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
     "/api/admin/content/questions/{id}": {
       "get": {
         "operationId": "ContentAdminController_getQuestion",
@@ -3704,6 +3733,73 @@
         "required": ["items", "next_cursor"],
         "additionalProperties": false
       },
+      "DuplicateCheckRequestDto": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "nullable": true
+          },
+          "exclude_question_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          }
+        },
+        "required": ["prompt", "context", "exclude_question_id"]
+      },
+      "DuplicateMatch_Output": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "similarity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": ["question_id", "slug", "prompt", "status", "similarity"],
+        "additionalProperties": false
+      },
+      "DuplicateWarningsResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DuplicateMatch_Output"
+            }
+          }
+        },
+        "required": ["matches"],
+        "additionalProperties": false
+      },
       "QuestionType": {
         "type": "string",
         "enum": ["behavioral", "technical", "scenario", "test_design"]
@@ -4027,9 +4123,15 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "duplicates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DuplicateMatch_Output"
+            }
           }
         },
-        "required": ["entity", "id", "status", "version", "updated_at"],
+        "required": ["entity", "id", "status", "version", "updated_at", "duplicates"],
         "additionalProperties": false
       },
       "ContentVersionSummary_Output": {

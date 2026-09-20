@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { CONTENT_DUPLICATE_THRESHOLD } from "@readi/shared-types";
 import { z } from "zod";
 
 /** Treats `VAR=` (empty) as unset, so optional integrations stay disabled. */
@@ -65,6 +66,14 @@ export const EnvSchema = z
     AI_WORKER_URL: z.url({ protocol: /^https?$/ }).default("http://127.0.0.1:8000"),
     AI_WORKER_TOKEN: z.string().min(32, "must be at least 32 characters"),
     AI_WORKER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(150_000),
+
+    // Cosine similarity above which two questions are reported as near-duplicates (ADR-0006).
+    // A warning to a content expert, never a refusal, so it is tuned rather than argued about.
+    CONTENT_DUPLICATE_THRESHOLD: z.coerce
+      .number()
+      .min(0)
+      .max(1)
+      .default(CONTENT_DUPLICATE_THRESHOLD),
 
     // Background jobs (BullMQ on REDIS_URL). QUEUE_PREFIX namespaces the Redis keys.
     JOBS_ENABLED: booleanFlag,

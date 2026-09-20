@@ -158,3 +158,10 @@ export const CONTENT_DUPLICATE_THRESHOLD = 0.92;
 
 /** Embedding vector length; must match the `vector(N)` column in the migration (ADR-0006). */
 export const EMBEDDING_DIMENSIONS = 1024;
+
+/**
+ * One request to the worker's embedding route. `textMaxLength` comfortably holds a question's
+ * prompt and its context together; `batchMax` keeps a re-embed run's requests small enough to
+ * retry cheaply.
+ */
+export const EMBEDDING_LIMITS = { textMaxLength: 8_000, batchMax: 32 } as const;
