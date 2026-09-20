@@ -31,31 +31,27 @@ beside the sign-up form) — the page itself holds no text.
 | "text interviews are light on bandwidth, and voice falls back to text if your signal drops" | CLAUDE.md §5: Opus audio, graceful fallback to text |
 | "a 15-minute diagnostic interview … builds your study plan" | spec §4.1 and §4.2 |
 
-## ⚠ The honesty question this draft cannot answer for you
+## The honesty question — decided (owner, 2026-09-20)
 
-Several sentences describe features that are **specified but not built yet** (M3–M5). Today a new
-account reaches a home page that says the diagnostic interview "arrives in the next update".
+Several sentences describe features that are **specified but not built yet** (M3–M5): the AI
+interviewer, voice mode, follow-up questions, reports and lessons, the study plan, and the
+15-minute diagnostic. Written in the present tense, as marketing copy normally is, they read as
+available today, while a new account currently reaches a home page that says the diagnostic
+interview "arrives in the next update".
 
-Written in the present tense, as marketing copy normally is, these read as available now:
+The owner chose to **say plainly that it is early**, as one line rather than a "live now / coming
+soon" split. It sits in the hero, under the lead and **above the buttons**, set as a margin note
+(`landing.inTheOpen`):
 
-- "Practise with an AI interviewer that asks follow-up questions" (the hero lead)
-- "By text, or by voice if your connection allows" (step 1)
-- "The interviewer asks up to two follow-up questions" (step 2)
-- "Read your report … with a lesson for each gap" (step 3)
-- "Your first session is a 15-minute diagnostic interview" (the closing section)
-- "Start free, with 3 text mock interviews every month" (what it costs)
+> Readi is being built in the open. Today you can set up your profile and CV; mock interviews,
+> feedback reports and study plans are on the way.
 
-Three ways to go, your call:
+It is placed before the call to action on purpose: nobody should sign up without having read it.
+The wording is the owner's to edit, like the rest of this draft. When the features land, the line
+comes out — it is on the pre-public checklist in `docs/progress/2026-09-20-d1.md`.
 
-1. **Leave the present tense** and keep the page off the public internet until M5, when the
-   sentences are true. Simplest, and nothing has to be rewritten later.
-2. **Say plainly that it is early**: one line under the hero, e.g. "Readi is being built in the
-   open. Sign up and you will be practising as soon as the first interviews are ready."
-   Honest today, and the line comes out when it stops being true.
-3. **Cut to what exists now** — sign up, set your goals, add a CV, choose your privacy settings —
-   and add the rest as it lands. Truthful, but the page stops explaining what Readi is for.
-
-I have left the draft at (1) because the page is not published yet.
+The two options not taken, for the record: keeping the present tense and not publishing until M5,
+and cutting the page back to what exists today (which stops it explaining what Readi is for).
 
 ## The draft, in order
 
@@ -66,6 +62,8 @@ I have left the draft at (1) because the page is not published yet.
 - **Honest feedback before the interview that counts.**
 - Practise with an AI interviewer that asks follow-up questions. Then read feedback that quotes
   your own answers and shows you what to fix.
+- _Margin note, above the buttons:_ Readi is being built in the open. Today you can set up your
+  profile and CV; mock interviews, feedback reports and study plans are on the way.
 - **Start free** · Log in
 - Free plan: 3 text mock interviews every month. Frontend, backend and QA.
 

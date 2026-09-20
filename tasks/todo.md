@@ -142,6 +142,9 @@ Decisions (owner, 2026-09-20):
    mentor notes). Draft copy for the owner's review, in `messages/en.json`.
 4. **Screenshots and Slow 4G run on the e2e build** (`.next-e2e`, `dist-cli`, ports 3010/4010/8010),
    never `apps/web/.next` or `apps/api/dist`.
+5. **Say plainly that it is early.** Six sentences on the landing page describe features that are
+   specified but not built. One honest line in the hero, above the buttons, covers them until they
+   land: "Readi is being built in the open…". The copy stays a draft for the owner to edit.
 
 ### Phase 0 — baseline (done, 2026-09-20)
 
@@ -247,13 +250,24 @@ Decisions (owner, 2026-09-20):
       Nothing new is loaded for it: the example is text, the tick and the sweep are inline SVG and
       CSS, and "naira" is spelled out so the ₦ face is still never fetched.
 
-### Phase 4 — verification and docs
+### Phase 4 — verification and docs (done, 2026-09-20)
 
-- [ ] 80 "after" screenshots, reviewed against Phase 0
-- [ ] Slow 4G re-measured and reported against the Phase 0 baseline (expect +55.8 KB of fonts)
-- [ ] `pnpm lint`, `typecheck`, `format:check`, `test`, `build`, `check:contracts`, `test:e2e`
-- [ ] Docs: CLAUDE.md §6 conventions, README, `packages/ui` description, this file,
-      `docs/progress/2026-09-20-d1.md`. No `subprocessors.md` change — the fonts are self-hosted
+- [x] The "built in the open" line in the hero (owner decision 5), above the buttons, and the
+      decision recorded in the copy draft
+- [x] 80 "after" screenshots in `screenshots/after/`, reviewed screen by screen against
+      `screenshots/before/`
+- [x] Slow 4G against the Phase 0 baseline: landing **169 → 232 KB**, sign-up **202 → 265 KB**,
+      log in **202 → 264 KB**. 55.8 KB of that is the fonts; ~7 KB is the whole chrome and hero.
+      The landing page sits **18 KB under** the owner's 250 KB line.
+- [x] `pnpm lint`, `typecheck`, `format:check`, `test` (433: 376 TypeScript + 57 Python), `build`,
+      `check:contracts`, `test:e2e` — all green
+- [x] Docs: CLAUDE.md §6 conventions, README (a Design section and the commands), `packages/ui`
+      description, this file, `docs/progress/2026-09-20-d1.md` and the landing copy draft.
+      No `subprocessors.md` change — the fonts are self-hosted, and nothing new processes data.
+- [x] The handover carries a **"before the landing page goes public"** checklist: the draft copy,
+      the six future-tense claims and the line that covers them, no hardcoded prices, the real
+      support email, removing the `/status` link (N4), the missing legal pages, the example answer
+      being an illustration, and M10's icons and Lighthouse pass.
 
 ## Carried forward
 

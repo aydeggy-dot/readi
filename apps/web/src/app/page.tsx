@@ -38,6 +38,11 @@ export default function LandingPage() {
               {t("landing.heading")}
             </h1>
             <p className="max-w-[33rem] text-lg leading-relaxed sm:text-xl">{t("landing.lead")}</p>
+            {/* Said before the buttons, not after: most of what this page describes is still being
+                built, and nobody should sign up without knowing that (owner, 2026-09-20). */}
+            <Note as="p" className="max-w-[33rem]">
+              {t("landing.inTheOpen")}
+            </Note>
           </div>
 
           {/* The demonstration. It has to make sense on its own, before any heading does. */}
