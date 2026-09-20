@@ -54,7 +54,9 @@ describe("HttpAiWorkerClient", () => {
       authorization: `Bearer ${env.AI_WORKER_TOKEN}`,
       "content-type": "application/json",
     });
-    expect(JSON.parse(String(calls[0]?.init.body))).toEqual(request);
+    const body = calls[0]?.init.body;
+    expect(typeof body).toBe("string");
+    expect(JSON.parse(body as string)).toEqual(request);
   });
 
   it.each([
@@ -68,7 +70,7 @@ describe("HttpAiWorkerClient", () => {
       },
     ],
   ])("reports the worker unavailable when %s", async (_label, handler) => {
-    stubFetch(handler as () => Response);
+    stubFetch(handler);
     await expect(new HttpAiWorkerClient(env).parseCv(request)).rejects.toBeInstanceOf(
       AiWorkerUnavailableError,
     );
