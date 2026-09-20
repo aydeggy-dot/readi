@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeading } from "@/components/layout/page-heading";
 import { ProfileForm } from "@/components/onboarding/profile-form";
 import { t } from "@/i18n";
 import { getProfile, todayIsoDate } from "@/lib/profile-data";
@@ -12,7 +13,7 @@ export default async function EditProfilePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">{t("profile.editTitle")}</h1>
+      <PageHeading title={t("profile.editTitle")} />
       <ProfileForm initial={profile} name={me.name} mode="edit" today={todayIsoDate()} />
     </>
   );

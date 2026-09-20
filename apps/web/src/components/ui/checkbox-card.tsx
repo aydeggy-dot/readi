@@ -25,8 +25,8 @@ export function CheckboxCard({
       <input type="checkbox" className="mt-1 size-5 shrink-0 accent-primary" {...inputProps} />
       <span className="flex flex-col gap-1">
         <span className="font-bold text-heading">{title}</span>
-        <span className="text-sm text-muted-foreground">{description}</span>
-        {note && <span className="text-sm">{note}</span>}
+        <span className="text-base text-muted-foreground">{description}</span>
+        {note && <span className="text-base">{note}</span>}
       </span>
     </label>
   );

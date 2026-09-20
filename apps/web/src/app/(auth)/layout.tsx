@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { Wordmark } from "@/components/layout/wordmark";
+import { PublicHeader } from "@/components/layout/public-header";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col gap-8 px-5 py-8 sm:py-16">
-      <Wordmark href="/" tone="paper" className="self-start" />
-      {children}
-    </main>
+    <>
+      <PublicHeader />
+      <main className="mx-auto w-full max-w-5xl px-5 pt-8 pb-16 sm:px-8 lg:pt-12">{children}</main>
+    </>
   );
 }

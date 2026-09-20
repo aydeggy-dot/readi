@@ -201,10 +201,16 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   (`apps/web/src/lib/session.ts`); `proxy.ts` only redirects cookie-less visitors. Browser code calls the
   API through `@readi/api-client` and imports only types or `@readi/shared-types/constants` from
   shared-types (lint-enforced). Forms use react-hook-form rules, not Zod (ADR-0012).
-- The Margin chrome is `apps/web/src/components/layout` (`Wordmark`, `AppHeader`, `NavLink`,
-  `SiteFooter`) and its reading primitives are `components/ui/margin.tsx` (`Margined`, `Note`,
-  `Highlight`). Anything drawn on the structural grey bar goes inside `data-nav-surface`, which
-  re-points `--ring` at `--nav-accent`: the page's own focus ring is 1.46:1 on that grey (ADR-0013).
+- The Margin chrome is `apps/web/src/components/layout` (`Wordmark`, `AppHeader` + `NavLink` for
+  signed-in pages, `PublicHeader` for the rest, `PageHeading`, `SiteFooter`) and its reading
+  primitives are `components/ui/margin.tsx` (`Margined`, `Note`, `Highlight`) plus `TextLink`.
+  Anything drawn on the structural grey bar goes inside `data-nav-surface`, which re-points
+  `--ring` at `--nav-accent`: the page's own focus ring is 1.46:1 on that grey (ADR-0013).
+  Headings are the serif at one weight, secondary text is `text-base` (never `text-sm`), and the
+  page's one animation is the highlighter sweep in `globals.css`, keyed to `data-sweep` and off
+  under `prefers-reduced-motion`. `app/global-error.tsx` renders outside the root layout, so it
+  carries its own inline CSS and must never depend on the tokens, `globals.css` or the fonts.
+  The landing copy is a draft for the owner: `docs/progress/2026-09-20-d1-landing-copy.md`.
 - API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
   `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
 - User files are uploaded by the browser to object storage with presigned URLs (type and length

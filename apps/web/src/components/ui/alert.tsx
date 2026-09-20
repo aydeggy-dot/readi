@@ -16,7 +16,7 @@ export function Alert({
       role={variant === "error" ? "alert" : "status"}
       className={cn(
         // Long unbreakable values (email addresses) appear in these; they must wrap, not overflow.
-        "rounded-md border px-4 py-3 text-sm break-words",
+        "rounded-md border px-4 py-3 text-base break-words",
         variant === "error" && "border-destructive/40 bg-destructive/5 text-destructive",
         variant === "success" && "border-success/40 bg-success/5 text-success",
         variant === "info" && "bg-muted",

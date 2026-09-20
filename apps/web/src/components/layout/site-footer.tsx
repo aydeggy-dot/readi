@@ -10,7 +10,7 @@ export function SiteFooter({ children, className }: { children?: ReactNode; clas
   return (
     <footer
       className={cn(
-        "mt-10 flex flex-col gap-3 border-t border-frame pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between",
+        "mt-10 flex flex-col gap-3 border-t border-frame pt-6 text-base text-muted-foreground sm:flex-row sm:items-center sm:justify-between",
         className,
       )}
     >

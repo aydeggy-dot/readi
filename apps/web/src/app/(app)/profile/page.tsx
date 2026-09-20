@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PageHeading } from "@/components/layout/page-heading";
+import { TextLink } from "@/components/ui/text-link";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { Button } from "@/components/ui/button";
 import { formatDate, t } from "@/i18n";
@@ -17,7 +19,7 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">{t("profile.title")}</h1>
+      <PageHeading title={t("profile.title")} />
       {me.email && !me.email_verified && <VerifyEmailBanner email={me.email} />}
 
       <Section title={t("profile.goals")} action={<EditLink href="/profile/edit" />}>
@@ -38,7 +40,10 @@ export default async function ProfilePage() {
               value={
                 <ul className="flex flex-wrap gap-2">
                   {profile.stack.map((item) => (
-                    <li key={item} className="rounded-full border px-3 py-0.5 text-sm">
+                    <li
+                      key={item}
+                      className="rounded-md bg-secondary px-3 py-1 text-base font-bold text-secondary-foreground"
+                    >
                       {item}
                     </li>
                   ))}
@@ -104,11 +109,7 @@ export default async function ProfilePage() {
         />
         <Row
           label={t("profile.dataAndAccount")}
-          value={
-            <Link href="/profile/account" className="underline underline-offset-4">
-              {t("account.subtitle")}
-            </Link>
-          }
+          value={<TextLink href="/profile/account">{t("account.subtitle")}</TextLink>}
         />
       </Section>
     </>
@@ -125,20 +126,21 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col rounded-lg border">
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
-        <h2 className="font-semibold">{title}</h2>
+    // A ruled section rather than a box: the page reads as one sheet with rules on it (ADR-0013).
+    <section className="flex flex-col">
+      <div className="flex items-center justify-between gap-2 border-b border-frame pb-2">
+        <h2 className="text-xl leading-tight">{title}</h2>
         {action}
       </div>
-      <dl className="divide-y">{children}</dl>
+      <dl className="divide-y divide-border">{children}</dl>
     </section>
   );
 }
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:justify-between sm:gap-4">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
+    <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-6">
+      <dt className="text-base text-muted-foreground">{label}</dt>
       <dd className="break-words sm:text-right">{value}</dd>
     </div>
   );

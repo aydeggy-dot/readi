@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { PageHeading } from "@/components/layout/page-heading";
 import { OnboardingSteps } from "@/components/onboarding/onboarding-steps";
 import { ProfileForm } from "@/components/onboarding/profile-form";
 import { t } from "@/i18n";
@@ -16,10 +17,7 @@ export default async function OnboardingProfilePage() {
   return (
     <>
       <OnboardingSteps current="profile" />
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("onboarding.profile.title")}</h1>
-        <p className="text-muted-foreground">{t("onboarding.profile.subtitle")}</p>
-      </div>
+      <PageHeading title={t("onboarding.profile.title")} lead={t("onboarding.profile.subtitle")} />
       <ProfileForm initial={profile} name={me.name} mode="onboarding" today={todayIsoDate()} />
     </>
   );

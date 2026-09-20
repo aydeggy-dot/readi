@@ -135,7 +135,7 @@ export function CvEditor({
       </Field>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-medium">{t("cv.fields.experience")}</legend>
+        <legend className="mb-1 text-base font-bold">{t("cv.fields.experience")}</legend>
         {experience.fields.map((item, index) => {
           return (
             <div key={item.id} className="flex flex-col gap-3 rounded-md border p-3">
@@ -189,7 +189,7 @@ export function CvEditor({
                   inputProps={register(`experience.${index}.end`, month)}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-base">
                 <input
                   type="checkbox"
                   className="size-4 accent-primary"
@@ -241,7 +241,7 @@ export function CvEditor({
       </fieldset>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-medium">{t("cv.fields.projects")}</legend>
+        <legend className="mb-1 text-base font-bold">{t("cv.fields.projects")}</legend>
         {projects.fields.map((item, index) => (
           <div key={item.id} className="flex flex-col gap-3 rounded-md border p-3">
             <Field
@@ -314,8 +314,8 @@ export function CvEditor({
       </fieldset>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="text-sm font-medium">{t("cv.fields.gaps")}</legend>
-        <p className="-mt-1 text-sm text-muted-foreground">{t("cv.fields.gapsHint")}</p>
+        <legend className="text-base font-bold">{t("cv.fields.gaps")}</legend>
+        <p className="-mt-1 text-base text-muted-foreground">{t("cv.fields.gapsHint")}</p>
         {gaps.fields.map((item, index) => (
           <div key={item.id} className="flex items-start gap-2">
             <Textarea

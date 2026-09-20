@@ -210,16 +210,42 @@ Decisions (owner, 2026-09-20):
       page's ceiling for the Phase 3 hero is **250 KB**: past it, ask the owner rather than widen it.
 - [x] 80 screenshots in `screenshots/phase2/`, reviewed against `screenshots/before/`.
 
-### Phase 3 — restyle every screen
+### Phase 3 — restyle every screen (done, 2026-09-20)
 
-- [ ] Public/auth: `/`, `/signup`, `/login`, `/phone`, `/forgot-password`, `/reset-password`,
-      `/account-deleted`
-- [ ] Onboarding: `/onboarding`, `/onboarding/profile`, `/onboarding/cv`, `/onboarding/consent`
-- [ ] App: `/home`, `/profile`, `/profile/edit`, `/profile/cv`, `/profile/consent`, `/profile/account`
-- [ ] Other: `/admin`, `/status`, `~offline`, `error`, `global-error`, `not-found`, both `loading`
-      files. `global-error` renders outside the root layout, so it must not depend on fonts or tokens
-- [ ] The Margin hero on the landing page, with the highlighter sweep off under reduced motion
-- [ ] E2E stays green; locators may change, assertions may not
+- [x] Public/auth: `/`, `/signup`, `/login`, `/phone`, `/forgot-password`, `/reset-password`,
+      `/account-deleted`. The auth pages now sit under the same grey bar as the app (`PublicHeader`)
+      and use `AuthCard`, which is a `Margined` grid: the form in the reading column, and an
+      optional note in the margin. Only sign-up has notes — two, both true of the app today.
+- [x] Onboarding: the step indicator is the mockup's named list (`Step 2 of 3` over "Your goals ·
+      Your CV · Privacy choices", the current one underlined in the pen and carrying
+      `aria-current="step"`) instead of three anonymous bars
+- [x] App: `/home`, `/profile`, `/profile/edit`, `/profile/cv`, `/profile/consent`,
+      `/profile/account`. The profile's four boxes became ruled sections — a heading on a
+      `--frame` rule with rows divided by the light `--border` — which is the editorial reading of
+      the same information. The one framed panel left on a page is the thing you are meant to act
+      on (home's diagnostic card, the delete-account block).
+- [x] Other: `/admin`, `/status` (now has the public bar), `~offline`, `error`, `not-found`, both
+      `loading` files (the spinner is a pen mark). **`global-error` no longer imports anything
+      visual**: it renders its own document, so it now carries its own inline CSS with the palette
+      written out in both themes and the system type stack. If the tokens, `globals.css` or the
+      fonts are what broke, it still renders.
+- [x] The Margin hero, with the annotated example answer. Order at 360px: headline, lead, **the
+      example**, then the buttons — the demonstration comes before the call to action. At `lg` the
+      example moves alongside and spans both rows. The highlighter sweep lives in `globals.css`,
+      keyed to `data-sweep`, inside `@media (prefers-reduced-motion: no-preference)`; the
+      screenshot run (reduced motion) catches the settled state.
+- [x] E2E stays green, assertions untouched: 3 specs pass, plus the capture and Slow 4G runs.
+- [x] Type scale swept: secondary text is `text-base` everywhere (`text-sm` was 14px against a 17px
+      body), `font-medium` became `font-bold` (the sans ships 400 and 700 only, so `medium` was
+      rendering as 400), and headings dropped `tracking-tight`, which fought the serif.
+- [x] Landing copy is a **draft for the owner**: `docs/progress/2026-09-20-d1-landing-copy.md` has
+      the whole text, the spec line each claim rests on, and the one open question — several
+      sentences describe features that are specified but not built yet (voice, the diagnostic,
+      reports, study plan), with three options for how to handle that before the page goes public.
+- [x] Slow 4G after the hero: landing **232 KB / 2.7 s** (Phase 2: 227 KB), sign-up **265 KB**,
+      log in **264 KB**. The hero cost ~5 KB and the landing page is **18 KB under the 250 KB line**.
+      Nothing new is loaded for it: the example is text, the tick and the sweep are inline SVG and
+      CSS, and "naira" is spelled out so the ₦ face is still never fetched.
 
 ### Phase 4 — verification and docs
 

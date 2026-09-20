@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { ExportDataButton } from "@/components/account/export-data-button";
+import { PageHeading } from "@/components/layout/page-heading";
 import { clientEnv } from "@/env/client";
 import { t } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -17,14 +18,11 @@ export default async function AccountPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("account.title")}</h1>
-        <p className="text-muted-foreground">{t("account.subtitle")}</p>
-      </div>
+      <PageHeading title={t("account.title")} lead={t("account.subtitle")} />
 
       <Section id="export" title={t("account.export.title")}>
         <p>{t("account.export.body")}</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {t("account.export.cvLink", { minutes: DATA_EXPORT_CV_LINK_MINUTES })}
         </p>
         <ExportDataButton />
@@ -34,8 +32,8 @@ export default async function AccountPage() {
         <p>
           {t("account.delete.body", { days })} {t("account.delete.noSignIn", { days })}
         </p>
-        <p className="text-sm text-muted-foreground">{t("account.delete.kept")}</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">{t("account.delete.kept")}</p>
+        <p className="text-base text-muted-foreground">
           {t("account.delete.cancel", { email: clientEnv.supportEmail, days })}{" "}
           {t("account.delete.exportFirst")}
         </p>
@@ -57,14 +55,18 @@ function Section({
   children: ReactNode;
 }) {
   return (
+    // Leaving is a serious action, so the dangerous half keeps its own frame rather than a rule.
     <section
       aria-labelledby={`${id}-title`}
-      className={cn("flex flex-col rounded-lg border", danger && "border-destructive/50")}
+      className={cn(
+        "flex flex-col",
+        danger ? "rounded-lg border border-destructive/60 p-5" : "border-t border-frame pt-6",
+      )}
     >
-      <h2 id={`${id}-title`} className="border-b px-4 py-2 font-semibold">
+      <h2 id={`${id}-title`} className="text-xl leading-tight">
         {title}
       </h2>
-      <div className="flex flex-col gap-3 px-4 py-4">{children}</div>
+      <div className="mt-4 flex flex-col gap-3">{children}</div>
     </section>
   );
 }

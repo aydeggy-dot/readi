@@ -74,7 +74,7 @@ export function CvPanel({
       {cv.status === "none" && !manual && (
         <div className="flex flex-col gap-3">
           <CvUploader label={t("cv.choose")} onUploaded={update} />
-          <p className="text-sm text-muted-foreground">{t("cv.privacyNote")}</p>
+          <p className="text-base text-muted-foreground">{t("cv.privacyNote")}</p>
           {/* Plenty of junior candidates have no CV file at all; they can still fill this in. */}
           <Button
             type="button"
@@ -115,10 +115,10 @@ export function CvPanel({
       {showEditor && (
         <section className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-xl leading-tight">
               {cv.status === "parsed" ? t("cv.reviewTitle") : t("cv.manualTitle")}
             </h2>
-            <p className="text-sm text-muted-foreground">{t("cv.reviewHint")}</p>
+            <p className="text-base text-muted-foreground">{t("cv.reviewHint")}</p>
           </div>
           <CvEditor
             key={`${cv.status}-${cv.parsed_at ?? ""}`}
@@ -138,7 +138,7 @@ export function CvPanel({
       {cv.status !== "none" && cv.status !== "processing" && (
         <div className="flex flex-col gap-3 border-t pt-4">
           {uploadedOn && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               {t("cv.uploadedOn", { date: uploadedOn })}
             </p>
           )}
@@ -148,7 +148,7 @@ export function CvPanel({
           {mode === "profile" &&
             (confirmRemove ? (
               <div className="flex flex-col gap-2">
-                <p className="text-sm">{t("cv.removeConfirm")}</p>
+                <p className="text-base">{t("cv.removeConfirm")}</p>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => void remove()}>
                     {t("cv.remove")}

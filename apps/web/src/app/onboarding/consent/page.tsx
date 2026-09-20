@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConsentForm } from "@/components/onboarding/consent-form";
+import { PageHeading } from "@/components/layout/page-heading";
 import { OnboardingSteps } from "@/components/onboarding/onboarding-steps";
 import { t } from "@/i18n";
 import { getConsents } from "@/lib/profile-data";
@@ -17,10 +18,7 @@ export default async function OnboardingConsentPage() {
   return (
     <>
       <OnboardingSteps current="consent" />
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("onboarding.consent.title")}</h1>
-        <p className="text-muted-foreground">{t("onboarding.consent.subtitle")}</p>
-      </div>
+      <PageHeading title={t("onboarding.consent.title")} lead={t("onboarding.consent.subtitle")} />
       <ConsentForm consents={consents} mode="onboarding" />
     </>
   );
