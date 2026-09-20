@@ -28,9 +28,12 @@ export default function HomePage() {
             </li>
           ))}
         </ul>
-        <div>
-          <Button disabled className="w-full sm:w-auto">
-            {t("landing.comingSoon")}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/signup">{t("landing.getStarted")}</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/login">{t("landing.logIn")}</Link>
           </Button>
         </div>
       </section>

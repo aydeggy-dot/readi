@@ -66,7 +66,8 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
 /infra
   docker-compose.yml   postgres (pgvector), redis, s3 (SeaweedFS), livekit (dev); ports in ADR-0001
 /docs
-  PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), progress/ (handovers), runbooks/
+  PRODUCT_SPEC.md, PROMPTS.md, adr/ (architecture decision records), progress/ (handovers), runbooks/,
+  privacy/subprocessors.md (third parties that process personal data — update it when one is added)
 /content
   seed/           Seed question banks, rubrics, lessons (YAML/JSON), reviewed by humans
 /evals
@@ -87,12 +88,18 @@ pnpm dev                     # run web + api (turbo)
 pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
+pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
-pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003); commit the generated files
-pnpm check:contracts         # regenerate and fail on drift (as CI does)
+pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
+pnpm check:contracts         # regenerate both and fail on drift (as CI does)
 pnpm db:seed                 # load /content/seed (stub until M2)
+pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
+pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
+pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
+curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
+cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite (from M4)
 ```
 
@@ -146,9 +153,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Never log transcripts, CVs, emails, or phone numbers to application logs or Sentry. Use ids.
 - Langfuse traces contain personal data: opaque ids only, CV contact details masked, same retention as
   recordings, deleted on account deletion (ADR-0008).
-- Support data export and account deletion endpoints from day one. Deletion removes personal data; rows that must
-  be kept (payments, subscriptions, webhook events, audit logs) are retained with personal data stripped and the
-  user reference replaced by a tombstone id.
+- Support data export and account deletion endpoints from day one (ADR-0011). Deletion is a request with a typed
+  confirmation and a recent sign-in, then a soft delete that blocks every sign-in method, then erasure by an hourly
+  sweep after a 7-day grace period; cancelling in between is an audited admin action. Rows that must be kept
+  (payments, subscriptions, webhook events, audit logs) reference the user by plain uuid with no foreign key and are
+  retained with that id replaced by a tombstone id; list any new such column in `TOMBSTONED_COLUMNS` (a schema test
+  fails otherwise). Exports never contain password hashes or tokens and identify staff only as "admin".
 
 ### Performance & low bandwidth
 - Mobile-first responsive layouts; test at 360px width.
@@ -179,8 +189,34 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   lazy-load optional SDKs (ADR-0001).
 - Turborepo runs tasks in strict env mode: every env var a task reads must be declared in `turbo.json`
   (`env` for build/test so caches key on it, `passThroughEnv` for dev), or it is silently dropped.
+- API routes are default-deny: every controller route needs a session unless marked `@Public()`, and
+  `@Roles()` restricts by role. Depend on `AuthService`, never on Better Auth types (ADR-0005/0009).
+- Every email goes through `EmailSender`, which refuses `.invalid` placeholder addresses (ADR-0009).
+- API errors that the UI must explain carry a stable `code` (`ApiError`); validation 400s list field paths.
+  The web app maps both to i18n copy and never shows the server's English message (ADR-0012).
+- A nullable string in a contract needs a constraint (format, pattern, length): a bare
+  `z.string().nullable()` becomes an array in the OpenAPI document. A shared-types test enforces this.
+- Web: pages resolve the user on the server with `requireUser()` / `requireOnboarded()` / `requireAdmin()`
+  (`apps/web/src/lib/session.ts`); `proxy.ts` only redirects cookie-less visitors. Browser code calls the
+  API through `@readi/api-client` and imports only types or `@readi/shared-types/constants` from
+  shared-types (lint-enforced). Forms use react-hook-form rules, not Zod (ADR-0012).
+- API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
+  `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
+- User files are uploaded by the browser to object storage with presigned URLs (type and length
+  signed), land in `cv-uploads/` (quarantine, auto-expiring) and are checked on confirm (ADR-0010).
+- LLM output goes through `LLMClient`, is schema-validated, retried at most twice on invalid output
+  (never on refusal), normalised in code, and reported as `AiCallRecord`s for `ai_call_log`.
+- Consent texts are versioned (`CONSENT_VERSIONS`): changing the wording means bumping the version and
+  adding `consent.types.<type>.v<N>` copy; decisions on an old version no longer count as granted.
 - Error reporting never carries candidate data: Sentry is configured without request bodies or stack-frame
   locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
+- End-to-end tests live in `apps/web/e2e` and run against the built apps on their own ports, database,
+  bucket and build folders (`pnpm test:e2e`), with the console email/SMS providers and `LLM_PROVIDER=fake`,
+  so a run costs nothing and never disturbs a running `pnpm dev`. `E2E_SLOW_NETWORK=1 pnpm test:e2e
+  slow-network` reports page weight and load time on Chrome's Slow 4G profile. Never run a build that writes
+  `apps/api/dist` or `apps/web/.next` while the owner's dev servers are up.
+- Adding a third party that processes personal data means updating `docs/privacy/subprocessors.md` and
+  making sure account erasure reaches it (ADR-0011).
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.
 - Write small, focused commits with conventional commit messages (`feat:`, `fix:`, `chore:` …).
 
@@ -200,7 +236,7 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - [ ] Meets the acceptance criteria in the milestone prompt
 - [ ] Types/schemas shared where relevant; input validated
 - [ ] Unit tests for logic; integration test for each new endpoint; e2e for core user flows
-- [ ] Works at 360px mobile width and on a throttled "Slow 4G" profile
+- [ ] Works at 360px mobile width and on a throttled "Slow 4G" profile (the e2e suite runs at 360px)
 - [ ] No PII in logs; errors reported to Sentry
 - [ ] `.env.example`, README, and this file updated if needed
 - [ ] Lint, typecheck, tests all green

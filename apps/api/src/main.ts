@@ -1,10 +1,13 @@
 import "./instrument";
 import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import * as Sentry from "@sentry/nestjs";
 import { AppModule } from "./app.module";
+import { configureApp } from "./app.setup";
 import { EnvValidationError, parseEnv, type Env } from "./config/env";
+import { ScrubbingLogger } from "./logging/scrubbing-logger";
 import { createOpenApiDocument } from "./openapi";
 
 function readEnv(): Env {
@@ -21,8 +24,11 @@ function readEnv(): Env {
 
 async function bootstrap(): Promise<void> {
   const env = readEnv();
-  const app = await NestFactory.create(AppModule.register(env));
-  app.enableShutdownHooks();
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.register(env), {
+    bodyParser: false,
+    logger: new ScrubbingLogger(),
+  });
+  configureApp(app);
 
   if (env.NODE_ENV !== "production") {
     SwaggerModule.setup("docs", app, createOpenApiDocument(app));

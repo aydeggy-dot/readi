@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { CvParseRequest, CvParseResponse } from "./cv.js";
 import { HealthResponse } from "./health.js";
 
 /**
@@ -13,4 +14,6 @@ import { HealthResponse } from "./health.js";
  */
 export const contractRegistry: Record<string, z.ZodType> = {
   HealthResponse,
+  CvParseRequest,
+  CvParseResponse,
 };

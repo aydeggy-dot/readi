@@ -11,6 +11,10 @@ dependencies = [
     "pydantic-settings==2.15.0", # env validation at startup
     "redis==8.1.0",              # ephemeral engine state + health check (ADR-0004)
     "sentry-sdk[fastapi]==2.68.1", # error reporting; disabled without SENTRY_DSN
+    "anthropic==1.2.0",          # Claude SDK for the LLMClient adapter (ADR-0010)
+    "pypdf==6.19.0",             # PDF text extraction; newest pinned on purpose: most releases fix DoS issues on untrusted input
+    "python-docx==1.2.0",        # DOCX text extraction
+    "jinja2==3.1.6",             # versioned prompt templates (CLAUDE.md "Prompts")
 ]
 
 [dependency-groups]
@@ -35,7 +39,7 @@ extend-exclude = ["readi_worker/contracts/generated"]
 select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "ASYNC", "S", "PT", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+"tests/**" = ["S101", "S105", "S106", "S107"]  # asserts; fixed test-only secrets
 
 [tool.mypy]
 python_version = "3.12"

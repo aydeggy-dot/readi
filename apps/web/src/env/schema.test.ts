@@ -15,14 +15,47 @@ describe("parseServerEnv", () => {
   });
 });
 
+describe("parseServerEnv in production", () => {
+  it("requires the proxy secret and client IP header", () => {
+    expect(() => parseServerEnv({ APP_ENV: "production" })).toThrow(
+      /WEB_PROXY_SECRET[\s\S]*CLIENT_IP_HEADER/,
+    );
+  });
+
+  it("accepts a complete production configuration", () => {
+    const env = parseServerEnv({
+      APP_ENV: "production",
+      WEB_PROXY_SECRET: "s".repeat(32),
+      CLIENT_IP_HEADER: "CF-Connecting-IP",
+    });
+    expect(env.CLIENT_IP_HEADER).toBe("cf-connecting-ip");
+  });
+});
+
 describe("parseClientEnv", () => {
   it("accepts an empty configuration (analytics and error reporting disabled)", () => {
-    expect(parseClientEnv({ NEXT_PUBLIC_POSTHOG_KEY: "", NEXT_PUBLIC_SENTRY_DSN: "" })).toEqual({});
+    expect(parseClientEnv({ NEXT_PUBLIC_POSTHOG_KEY: "", NEXT_PUBLIC_SENTRY_DSN: "" })).toEqual({
+      APP_ENV: "development",
+    });
   });
 
   it("rejects an invalid Sentry DSN", () => {
     expect(() => parseClientEnv({ NEXT_PUBLIC_SENTRY_DSN: "nope" })).toThrow(
       /NEXT_PUBLIC_SENTRY_DSN/,
     );
+  });
+});
+
+describe("parseClientEnv in production", () => {
+  it("requires a real support address", () => {
+    for (const address of [undefined, "", "support@readi.invalid"]) {
+      expect(() =>
+        parseClientEnv({ APP_ENV: "production", NEXT_PUBLIC_SUPPORT_EMAIL: address }),
+      ).toThrow(/NEXT_PUBLIC_SUPPORT_EMAIL/);
+    }
+    expect(
+      parseClientEnv({ APP_ENV: "production", NEXT_PUBLIC_SUPPORT_EMAIL: "help@readi.example" })
+        .NEXT_PUBLIC_SUPPORT_EMAIL,
+    ).toBe("help@readi.example");
   });
 });

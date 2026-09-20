@@ -18,3 +18,285 @@ model HealthCheck {
 
   @@map("health_check")
 }
+
+// ---------------------------------------------------------------------------------------------
+// Identity (Better Auth tables, ADR-0005/0009). Field names must match Better Auth's schema; the
+// columns are snake_case. Timestamps are timestamptz (CLAUDE.md §5).
+
+enum Role {
+  candidate
+  content_expert
+  admin
+
+  @@map("role")
+}
+
+enum SignupMethod {
+  email
+  google
+  phone
+
+  @@map("signup_method")
+}
+
+model User {
+  id                   String       @id @default(uuid()) @db.Uuid
+  name                 String
+  /// Phone sign-ups hold a placeholder under the reserved .invalid TLD (ADR-0009); never shown or emailed.
+  email                String       @unique
+  emailVerified        Boolean      @default(false) @map("email_verified")
+  image                String?
+  /// E.164.
+  phoneNumber          String?      @unique @map("phone_number")
+  phoneNumberVerified  Boolean?     @default(false) @map("phone_number_verified")
+  role                 Role         @default(candidate)
+  signupMethod         SignupMethod @map("signup_method")
+  country              String?
+  locale               String?
+  /// Soft delete (ADR-0011): set when the user asks to delete their account.
+  deletedAt            DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  deletionScheduledFor DateTime?    @map("deletion_scheduled_for") @db.Timestamptz(6)
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions Session[]
+  accounts Account[]
+  profile  Profile?
+  consents ConsentRecord[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id") @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(6)
+  scope                 String?
+  /// Password hash (email + password accounts only).
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Profile and consent (spec §4.1, §6.1). Personal data: deleted with the user (cascade).
+
+enum TargetRole {
+  frontend
+  backend
+  qa
+
+  @@map("target_role")
+}
+
+enum ExperienceLevel {
+  intern_junior
+  mid
+
+  @@map("experience_level")
+}
+
+enum TargetCompanyType {
+  local_startup
+  enterprise_bank_telco
+  remote_foreign
+  big_tech
+
+  @@map("target_company_type")
+}
+
+model Profile {
+  userId                String            @id @map("user_id") @db.Uuid
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole            TargetRole        @map("target_role")
+  level                 ExperienceLevel
+  yearsExperience       Int               @map("years_experience")
+  stack                 String[]
+  targetCompanyType     TargetCompanyType @map("target_company_type")
+  /// A calendar date, not a timestamp.
+  targetDate            DateTime?         @map("target_date") @db.Date
+  onboardingCompletedAt DateTime?         @map("onboarding_completed_at") @db.Timestamptz(6)
+  /// CV (spec §4.1): the accepted file in object storage and its parsed, candidate-editable content.
+  cvStatus              CvStatus          @default(none) @map("cv_status")
+  cvFileKey             String?           @map("cv_file_key")
+  cvContentType         String?           @map("cv_content_type")
+  cvUploadedAt          DateTime?         @map("cv_uploaded_at") @db.Timestamptz(6)
+  cvParsed              Json?             @map("cv_parsed")
+  cvParsedAt            DateTime?         @map("cv_parsed_at") @db.Timestamptz(6)
+  cvEditedAt            DateTime?         @map("cv_edited_at") @db.Timestamptz(6)
+  /// Why parsing did not succeed (CvParseError in @readi/shared-types); never CV content.
+  cvError               String?           @map("cv_error")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("profiles")
+}
+
+enum CvStatus {
+  none
+  processing
+  parsed
+  unreadable
+  failed
+
+  @@map("cv_status")
+}
+
+enum ConsentType {
+  audio_processing
+  recording_storage
+  camera_coaching
+  marketing
+
+  @@map("consent_type")
+}
+
+/// Append-only: one row per change of a consent decision. The latest row per (user, type) is the
+/// current state; spec §6.1 `granted_at`/`revoked_at` are the `created_at` of granting/revoking rows.
+model ConsentRecord {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ConsentType
+  granted   Boolean
+  /// Version of the consent text the user was shown (CONSENT_VERSIONS in @readi/shared-types).
+  version   Int
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, type, createdAt])
+  @@map("consent_records")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Audit and deletion (ADR-0011). Rows kept after account deletion reference users by plain uuid
+// (no foreign key) so the reference can be replaced by a tombstone id.
+
+enum AuditActorType {
+  user
+  admin
+  system
+
+  @@map("audit_actor_type")
+}
+
+model AuditLog {
+  id         String         @id @default(uuid()) @db.Uuid
+  actorType  AuditActorType @map("actor_type")
+  /// User or tombstone id; null for system actions.
+  actorId    String?        @map("actor_id") @db.Uuid
+  action     String
+  targetType String         @map("target_type")
+  targetId   String?        @map("target_id") @db.Uuid
+  /// Snapshots must not contain personal data beyond ids (they outlive account deletion).
+  before     Json?
+  after      Json?
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}
+
+/// Replacement identity for retained rows of a deleted user. Deliberately not linked to the old id.
+model UserTombstone {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("user_tombstones")
+}
+
+// ---------------------------------------------------------------------------------------------
+// AI cost accounting (ADR-0007). One row per external AI call, reported by the worker. No content
+// and no personal data: user and session are plain uuids (no foreign key), replaced by a tombstone
+// id on account deletion (ADR-0011).
+
+enum AiCallPurpose {
+  interviewer
+  follow_up
+  evaluator
+  cv_parse
+  plan_summary
+  embedding
+  stt
+  tts
+  avatar
+
+  @@map("ai_call_purpose")
+}
+
+enum AiUnitKind {
+  tokens
+  characters
+  seconds
+
+  @@map("ai_unit_kind")
+}
+
+enum AiCallStatus {
+  ok
+  error
+
+  @@map("ai_call_status")
+}
+
+model AiCallLog {
+  id              String        @id @default(uuid()) @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  sessionId       String?       @map("session_id") @db.Uuid
+  userId          String?       @map("user_id") @db.Uuid
+  purpose         AiCallPurpose
+  provider        String
+  model           String
+  status          AiCallStatus
+  errorCode       String?       @map("error_code")
+  latencyMs       Int           @map("latency_ms")
+  inputUnits      Int           @map("input_units")
+  outputUnits     Int           @map("output_units")
+  unitKind        AiUnitKind    @map("unit_kind")
+  /// Integer micro-USD (1 USD = 1,000,000).
+  costMicroUsd    BigInt        @map("cost_micro_usd")
+  langfuseTraceId String?       @map("langfuse_trace_id")
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("ai_call_log")
+}

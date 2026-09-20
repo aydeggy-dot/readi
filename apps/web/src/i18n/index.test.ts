@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { t, type MessageKey } from "./index";
+import { formatDate, t, type MessageKey } from "./index";
 
 describe("t", () => {
   it("returns the message for a key", () => {
@@ -16,5 +16,12 @@ describe("t", () => {
 
   it("throws for a key that is not a message", () => {
     expect(() => t("status" as MessageKey)).toThrow(/Missing message/);
+  });
+});
+
+describe("formatDate", () => {
+  it("formats a calendar date without shifting it by time zone", () => {
+    expect(formatDate("2026-12-01")).toBe("1 December 2026");
+    expect(formatDate("2027-01-01")).toBe("1 January 2027");
   });
 });

@@ -22,8 +22,11 @@
   --destructive: oklch(0.577 0.245 27.325);
   --success: oklch(0.527 0.154 150.069);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Field borders and the focus ring carry meaning, so they need 3:1 against the background
+     (WCAG 2.2 §1.4.11). The shadcn defaults are 1.2:1 and 1.5:1; these are 4.8:1 and 5.9:1.
+     ADR-0013 sets the same value for --input in the Margin theme. */
+  --input: oklch(0.551 0.023 264.36);
+  --ring: oklch(0.446 0.026 256.8);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,8 +48,8 @@
     --destructive: oklch(0.704 0.191 22.216);
     --success: oklch(0.723 0.192 149.579);
     --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --input: oklch(0.707 0.022 261.3);
+    --ring: oklch(0.872 0.01 258.3);
   }
 }
 

@@ -23,3 +23,13 @@ export function t(key: MessageKey, vars: Record<string, string | number> = {}): 
     name in vars ? String(vars[name]) : match,
   );
 }
+
+/** Locale for formatting. English (Nigeria) at launch; later from the user's profile. */
+export const LOCALE = "en-NG";
+
+/** Formats a calendar date (YYYY-MM-DD) without shifting it across time zones. */
+export function formatDate(isoDate: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle: "long", timeZone: "UTC" }).format(
+    new Date(`${isoDate}T00:00:00Z`),
+  );
+}

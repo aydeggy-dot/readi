@@ -15,3 +15,8 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0006](0006-embeddings-voyage.md) | Voyage AI for embeddings | Accepted |
 | [0007](0007-ai-cost-micro-usd.md) | AI cost in integer micro-USD, in a separate `ai_call_log` | Accepted |
 | [0008](0008-langfuse-personal-data-store.md) | Langfuse is treated as a personal-data store | Accepted |
+| [0009](0009-auth-integration.md) | Auth integration: Better Auth in NestJS, same-origin cookies, trusted client IP | Accepted |
+| [0010](0010-llm-adapter-and-cv-parsing.md) | LLM adapter and CV parsing: browser upload to storage, extraction in the worker | Accepted |
+| [0011](0011-export-and-deletion.md) | Data export and account deletion: soft delete, grace period, tombstoned records | Accepted |
+| [0012](0012-web-client-and-session.md) | Web client: generated API client, server-resolved sessions, forms without Zod | Accepted |
+| [0013](0013-visual-identity.md) | Visual identity: the Margin direction, its tokens, fonts and chart rules | Accepted |

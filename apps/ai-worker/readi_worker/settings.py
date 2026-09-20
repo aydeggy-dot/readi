@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field, RedisDsn, ValidationError, field_validator
+from pydantic import Field, RedisDsn, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,10 +17,30 @@ class Settings(BaseSettings):
     health_check_timeout_ms: int = Field(default=2000, ge=50, le=30_000)
     sentry_dsn: str | None = None
 
-    @field_validator("sentry_dsn", mode="before")
+    # API → worker authentication (ADR-0004): the API sends `Authorization: Bearer <token>`.
+    service_token: SecretStr = Field(min_length=32)
+
+    # LLM adapter (ADR-0010). `fake` returns deterministic output without calling any provider.
+    llm_provider: Literal["anthropic", "fake"] = "anthropic"
+    anthropic_api_key: SecretStr | None = None
+    llm_model_cv_parse: str = Field(default="claude-sonnet-5", min_length=1)
+    llm_timeout_s: float = Field(default=90.0, gt=0, le=600)
+
+    @field_validator("sentry_dsn", "anthropic_api_key", mode="before")
     @classmethod
     def _empty_is_none(cls, value: object) -> object:
         return None if value == "" else value
+
+    @model_validator(mode="after")
+    def _llm_configured(self) -> "Settings":
+        if self.llm_provider == "anthropic" and self.anthropic_api_key is None:
+            raise ValueError(
+                "ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic "
+                "(set LLM_PROVIDER=fake for local development without a key)"
+            )
+        if self.environment == "production" and self.llm_provider == "fake":
+            raise ValueError("LLM_PROVIDER=fake is not allowed in production")
+        return self
 
 
 class SettingsError(RuntimeError):

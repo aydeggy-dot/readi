@@ -4,12 +4,20 @@ node_modules/
 
 # builds
 dist/
+dist-cli/
 .next/
+.next-e2e/
 out/
 *.tsbuildinfo
 next-env.d.ts
 coverage/
 .turbo/
+
+# Playwright (end-to-end) artefacts
+apps/web/e2e/.artifacts/
+playwright-report/
+blob-report/
+.playwright/
 
 # generated at build time (committed generated contracts live elsewhere)
 apps/api/src/generated/
@@ -39,3 +47,10 @@ Thumbs.db
 
 # logs
 *.log
+
+# CV comparison reports and sample CVs: personal data, never committed
+apps/ai-worker/.cv-compare/
+sample-cvs/
+
+# Playwright MCP snapshots and draft screenshots
+.playwright-mcp/

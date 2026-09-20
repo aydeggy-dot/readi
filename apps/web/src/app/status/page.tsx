@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { serverEnv } from "@/env/server";
 import { t } from "@/i18n";
+import { canViewStatus } from "@/lib/access";
 import { fetchApiHealth } from "@/lib/api-health";
 import { buildStatusRows } from "@/lib/status-rows";
+import { getMe } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: t("status.title") };
@@ -13,6 +16,13 @@ export const metadata: Metadata = { title: t("status.title") };
 export const dynamic = "force-dynamic";
 
 export default async function StatusPage() {
+  // Public in development; admins only in production (it reveals infrastructure health).
+  if (
+    serverEnv.APP_ENV === "production" &&
+    !canViewStatus(serverEnv.APP_ENV, (await getMe())?.role)
+  ) {
+    notFound();
+  }
   const rows = buildStatusRows(await fetchApiHealth(serverEnv.API_INTERNAL_URL));
 
   return (

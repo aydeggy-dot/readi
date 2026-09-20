@@ -6,4 +6,6 @@ export const clientEnv = {
   posthogKey: unsetIfEmpty(process.env.NEXT_PUBLIC_POSTHOG_KEY),
   posthogHost: unsetIfEmpty(process.env.NEXT_PUBLIC_POSTHOG_HOST) ?? "https://eu.i.posthog.com",
   sentryDsn: unsetIfEmpty(process.env.NEXT_PUBLIC_SENTRY_DSN),
+  /** Required in production (checked at build time); a placeholder that reaches no one otherwise. */
+  supportEmail: unsetIfEmpty(process.env.NEXT_PUBLIC_SUPPORT_EMAIL) ?? "support@readi.invalid",
 };

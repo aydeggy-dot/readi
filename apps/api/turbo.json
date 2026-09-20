@@ -6,10 +6,45 @@
       "inputs": ["prisma/schema.prisma", "prisma.config.ts"],
       "outputs": ["src/generated/**"]
     },
-    "build": { "dependsOn": ["^build", "db:generate"], "outputs": ["dist/**"] },
-    "typecheck": { "dependsOn": ["^build", "db:generate"] },
-    "lint": { "dependsOn": ["^build", "db:generate"] },
-    "test": { "dependsOn": ["^build", "db:generate"] },
-    "dev": { "dependsOn": ["^build", "db:generate"] }
+    "build": {
+      "dependsOn": ["^build", "db:generate"],
+      "outputs": ["dist/**"]
+    },
+    "build:standalone": {
+      "dependsOn": ["^build", "db:generate"],
+      "outputs": ["dist-cli/**"]
+    },
+    "e2e:prepare": {
+      "dependsOn": ["build:standalone"],
+      "cache": false,
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "DATABASE_POOL_MAX",
+        "REDIS_URL",
+        "PUBLIC_WEB_URL",
+        "BETTER_AUTH_SECRET",
+        "AI_WORKER_TOKEN",
+        "S3_ENDPOINT",
+        "S3_REGION",
+        "S3_BUCKET",
+        "S3_ACCESS_KEY_ID",
+        "S3_SECRET_ACCESS_KEY",
+        "S3_FORCE_PATH_STYLE",
+        "NODE_ENV",
+        "SUPPORT_EMAIL"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "db:generate"]
+    },
+    "lint": {
+      "dependsOn": ["^build", "db:generate"]
+    },
+    "test": {
+      "dependsOn": ["^build", "db:generate"]
+    },
+    "dev": {
+      "dependsOn": ["^build", "db:generate"]
+    }
   }
 }
