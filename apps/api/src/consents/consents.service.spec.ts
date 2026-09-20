@@ -7,13 +7,17 @@ vi.mock("@readi/shared-types", async (importOriginal) => {
   return { ...actual, CONSENT_VERSIONS: { ...actual.CONSENT_VERSIONS, marketing: 2 } };
 });
 
-const { ConsentsService } = await import("./consents.service");
-const { CONSENT_TYPES } = await import("@readi/shared-types");
+// Static imports are fine: vitest hoists vi.mock above them (and apps/api type-checks tests as
+// CommonJS, where a top-level await does not compile — tasks/lessons.md).
+import { CONSENT_TYPES } from "@readi/shared-types";
+import type { ConsentRecord } from "../generated/prisma/client";
+import type { PrismaService } from "../prisma/prisma.service";
+import { ConsentsService } from "./consents.service";
 
 const USER = "0b0d0b0d-0b0d-4b0d-8b0d-0b0d0b0d0b0d";
 
 /** One stored decision per type, all granted; `marketing` was decided against the old wording. */
-const records = CONSENT_TYPES.map((type) => ({
+const records: ConsentRecord[] = CONSENT_TYPES.map((type) => ({
   id: type,
   userId: USER,
   type,
@@ -22,13 +26,12 @@ const records = CONSENT_TYPES.map((type) => ({
   createdAt: new Date("2026-09-01T00:00:00.000Z"),
 }));
 
-const prisma = {
-  consentRecord: { findMany: vi.fn() },
-} as unknown as import("../prisma/prisma.service").PrismaService;
+const findMany = vi.fn<() => Promise<ConsentRecord[]>>();
+const prisma = { consentRecord: { findMany } } as unknown as PrismaService;
 
 describe("ConsentsService with a bumped consent version", () => {
   beforeEach(() => {
-    vi.mocked(prisma.consentRecord.findMany).mockResolvedValue(records);
+    findMany.mockResolvedValue(records);
   });
 
   it("reports the outdated decision as not granted, and names both versions", async () => {
@@ -44,7 +47,7 @@ describe("ConsentsService with a bumped consent version", () => {
   });
 
   it("is decided again once the user answers the current text", async () => {
-    vi.mocked(prisma.consentRecord.findMany).mockResolvedValue(
+    findMany.mockResolvedValue(
       records.map((record) => (record.type === "marketing" ? { ...record, version: 2 } : record)),
     );
     expect(await new ConsentsService(prisma).allDecided(USER)).toBe(true);

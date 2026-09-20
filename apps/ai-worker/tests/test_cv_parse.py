@@ -62,7 +62,8 @@ def test_labels_cover_every_enum_value() -> None:
     fields = CvParseRequest.model_fields
     roles = set(typing.get_args(fields["target_role"].annotation))
     levels = set(typing.get_args(fields["level"].annotation))
-    assert roles and levels, "expected Literal enums from the generated contracts"
+    assert roles, "expected a Literal enum for target_role from the generated contracts"
+    assert levels, "expected a Literal enum for level from the generated contracts"
     assert roles <= set(ROLE_LABELS), f"no prompt label for {roles - set(ROLE_LABELS)}"
     assert levels <= set(LEVEL_LABELS), f"no prompt label for {levels - set(LEVEL_LABELS)}"
 

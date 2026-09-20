@@ -54,6 +54,8 @@ export class AccountDeletionService {
         data: { deletedAt: now, deletionScheduledFor: scheduledFor },
       });
       if (updated.count === 0) {
+        // Unreachable through the API today — a pending deletion revokes every session and blocks
+        // new ones — so this guards a concurrent second request, not a user-visible path.
         throw new ApiError(HttpStatus.CONFLICT, "deletion_pending", "deletion already requested");
       }
       await tx.auditLog.create({
