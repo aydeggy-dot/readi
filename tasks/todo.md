@@ -269,6 +269,45 @@ Decisions (owner, 2026-09-20):
       support email, removing the `/status` link (N4), the missing legal pages, the example answer
       being an illustration, and M10's icons and Lighthouse pass.
 
+## M2 — content model, admin CMS, seed content (branch `feat/m2-content`, from `main` at `c5f6814`)
+
+Plan approved by the owner (2026-09-20) with two changes: the seed importer and drafted content come
+**before** the admin UI, so the CMS is built against real content; and decision 3 gets a leak test
+over raw JSON, not just separate schemas. Plan: `~/.claude/plans/twinkly-twirling-kay.md`.
+
+Decisions (recorded in ADR-0014 in phase 6): status lives on the publishable units (Track, Lesson,
+Question, Rubric) and a Module inherits its track's; version history is one `content_versions` table
+of JSONB snapshots; **candidate payloads never carry the answer key**; authorship columns are plain
+uuids with no foreign key and are tombstoned on erasure; admin gets its own route group with a wider
+column; `EMBEDDING_PROVIDER=fake` until the Voyage key arrives; markdown preview renders lazily in
+the browser.
+
+### Phase 1 — contracts, schema, migration (done, 2026-09-20)
+
+- [x] `packages/shared-types`: content constants, `contracts/content.ts` with **separate admin and
+      candidate shapes** (the candidate ones have no rubric, criteria, level descriptors or ideal
+      points at all), and a test that proves it plus the rubric weight rule
+- [x] Prisma: `Topic`, `Track`, `TrackTopic(is_core)`, `Module`, `Lesson`, `Rubric`,
+      `RubricCriterion`, `Question`, `ContentFlag`, `ContentVersion`, and the `content_status` /
+      `question_type` / `content_entity_type` / flag enums
+- [x] Migration `content_model`, hand-edited below the generated SQL for the two things Prisma
+      cannot express: the HNSW cosine index on `questions.embedding`, and a **partial unique index**
+      giving at most one published track per (role, level) — so the candidate API always finds one
+- [x] Erasure: the five authorship columns are tombstoned (ADR-0011), and the schema test that
+      catches unlisted user references now also looks at columns ending in `_by`, not only
+      `%user_id` — the previous pattern would have missed a `created_by`
+- [x] `content-schema.int.spec.ts` proves the vector column, the HNSW index, the one-published-track
+      rule and the version uniqueness against the real database
+- [x] Checks: lint, typecheck, format, `check:contracts`, and 460 tests (403 TypeScript + 57 Python)
+- Note: `EMBEDDING_DIMENSIONS` lives in shared-types and the migration hard-codes `vector(1024)`;
+  phase 3 adds the startup check that the worker's configured dimension matches.
+
+### Phases 2–6
+
+2. Content service and APIs (workflow guard, admin CRUD + transitions + versions, candidate reads,
+   **the leak test**), 3. embeddings (worker adapter + fake, publish-time embed, duplicate warnings,
+   re-embed CLI), 4. seed format + importer + drafted content, 5. admin UI in Margin + e2e, 6. verification, ADR-0014, docs and handover.
+
 ## Carried forward
 
 - M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is

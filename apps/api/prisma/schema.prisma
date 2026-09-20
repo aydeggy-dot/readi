@@ -59,10 +59,11 @@ model User {
   createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  sessions Session[]
-  accounts Account[]
-  profile  Profile?
-  consents ConsentRecord[]
+  sessions     Session[]
+  accounts     Account[]
+  profile      Profile?
+  consents     ConsentRecord[]
+  contentFlags ContentFlag[]
 
   @@map("users")
 }
@@ -299,4 +300,269 @@ model AiCallLog {
   @@index([sessionId])
   @@index([createdAt])
   @@map("ai_call_log")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Learning content (spec §4.2, §4.8, §6.1; ADR-0014). Status lives on the publishable units —
+// Track, Lesson, Question and Rubric; a Module is structural and inherits its track's status.
+// Only `published` content reaches candidates, and candidate responses never carry rubrics,
+// criteria, level descriptors or ideal points.
+//
+// `created_by_user_id` / `changed_by_user_id` are plain uuids with NO foreign key: content
+// outlives the account that wrote it, so erasure replaces them with a tombstone id (ADR-0011) and
+// they are listed in TOMBSTONED_COLUMNS. A candidate's own flag is the opposite case and cascades.
+
+enum ContentStatus {
+  draft
+  in_review
+  published
+  retired
+
+  @@map("content_status")
+}
+
+enum QuestionType {
+  behavioral
+  technical
+  scenario
+  test_design
+
+  @@map("question_type")
+}
+
+enum ContentEntityType {
+  track
+  module
+  lesson
+  question
+  rubric
+
+  @@map("content_entity_type")
+}
+
+/// The curated topic taxonomy shared across tracks (spec §4.2). Referenced, never duplicated.
+model Topic {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tracks    TrackTopic[]
+  lessons   Lesson[]
+  questions Question[]
+
+  @@map("topics")
+}
+
+/// A programme for one role and level. At most one may be published per (role, level) — enforced
+/// by a partial unique index in the migration, so the candidate API always finds exactly one.
+model Track {
+  id              String          @id @default(uuid()) @db.Uuid
+  slug            String          @unique
+  role            TargetRole
+  level           ExperienceLevel
+  title           String
+  summary         String?
+  status          ContentStatus   @default(draft)
+  version         Int             @default(1)
+  createdByUserId String?         @map("created_by_user_id") @db.Uuid
+  publishedAt     DateTime?       @map("published_at") @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  modules Module[]
+  topics  TrackTopic[]
+
+  @@index([role, level, status])
+  @@map("tracks")
+}
+
+/// Which topics a track covers, and which of them are core (drives readiness coverage, spec §7).
+model TrackTopic {
+  trackId String  @map("track_id") @db.Uuid
+  track   Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  topicId String  @map("topic_id") @db.Uuid
+  topic   Topic   @relation(fields: [topicId], references: [id])
+  isCore  Boolean @map("is_core")
+
+  @@id([trackId, topicId])
+  @@index([topicId])
+  @@map("track_topics")
+}
+
+/// A section of a track. Structural: it has no status of its own and rides on its track's.
+model Module {
+  id        String   @id @default(uuid()) @db.Uuid
+  trackId   String   @map("track_id") @db.Uuid
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  slug      String
+  title     String
+  summary   String?
+  /// Order within the track; ties break by slug, so reordering never needs a unique swap.
+  position  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lessons Lesson[]
+
+  @@unique([trackId, slug])
+  @@index([trackId, position])
+  @@map("modules")
+}
+
+model Lesson {
+  id               String        @id @default(uuid()) @db.Uuid
+  moduleId         String        @map("module_id") @db.Uuid
+  module           Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  slug             String        @unique
+  title            String
+  /// Markdown. Rendered on the server for candidates; the admin preview renders it in the browser.
+  body             String
+  topicId          String?       @map("topic_id") @db.Uuid
+  topic            Topic?        @relation(fields: [topicId], references: [id])
+  position         Int
+  estimatedMinutes Int?          @map("estimated_minutes")
+  status           ContentStatus @default(draft)
+  version          Int           @default(1)
+  createdByUserId  String?       @map("created_by_user_id") @db.Uuid
+  publishedAt      DateTime?     @map("published_at") @db.Timestamptz(6)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([moduleId, position])
+  @@index([status])
+  @@index([topicId])
+  @@map("lessons")
+}
+
+/// How an answer is scored (spec §6.1). A rubric may serve several questions.
+model Rubric {
+  id              String        @id @default(uuid()) @db.Uuid
+  slug            String        @unique
+  name            String
+  status          ContentStatus @default(draft)
+  version         Int           @default(1)
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  publishedAt     DateTime?     @map("published_at") @db.Timestamptz(6)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  criteria  RubricCriterion[]
+  questions Question[]
+
+  @@index([status])
+  @@map("rubrics")
+}
+
+model RubricCriterion {
+  id          String   @id @default(uuid()) @db.Uuid
+  rubricId    String   @map("rubric_id") @db.Uuid
+  rubric      Rubric   @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  dimension   String
+  description String
+  /// Percentage share; a rubric's criteria must total 100 before it can be published.
+  weight      Int
+  /// Descriptors for levels 0–4, keyed by the level as a string (spec §6.1).
+  levels      Json
+  position    Int
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([rubricId, position])
+  @@map("rubric_criteria")
+}
+
+model Question {
+  id              String            @id @default(uuid()) @db.Uuid
+  slug            String            @unique
+  roles           TargetRole[]
+  levels          ExperienceLevel[]
+  type            QuestionType
+  topicId         String            @map("topic_id") @db.Uuid
+  topic           Topic             @relation(fields: [topicId], references: [id])
+  subtopic        String?
+  /// 1–5 (spec §6.1).
+  difficulty      Int
+  prompt          String
+  context         String?
+  rubricId        String            @map("rubric_id") @db.Uuid
+  rubric          Rubric            @relation(fields: [rubricId], references: [id])
+  /// ANSWER KEY: what a strong answer covers. Never included in a candidate-facing response.
+  idealPoints     String[]          @map("ideal_points")
+  status          ContentStatus     @default(draft)
+  version         Int               @default(1)
+  createdByUserId String?           @map("created_by_user_id") @db.Uuid
+  publishedAt     DateTime?         @map("published_at") @db.Timestamptz(6)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  /// pgvector, 1024 dimensions (ADR-0006). Prisma cannot read or write this type, so every
+  /// query that touches it lives in question-embeddings.repository.ts as raw SQL.
+  embedding      Unsupported("vector(1024)")?
+  embeddingModel String?                      @map("embedding_model")
+  embeddedAt     DateTime?                    @map("embedded_at") @db.Timestamptz(6)
+
+  flags ContentFlag[]
+
+  @@index([status])
+  @@index([topicId])
+  @@index([type, difficulty])
+  @@map("questions")
+}
+
+/// A candidate's report about a question (spec §6.1). Personal to them: it cascades on deletion.
+model ContentFlag {
+  id         String            @id @default(uuid()) @db.Uuid
+  questionId String            @map("question_id") @db.Uuid
+  question   Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String            @map("user_id") @db.Uuid
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason     ContentFlagReason
+  note       String?
+  status     ContentFlagStatus @default(open)
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt DateTime?         @map("resolved_at") @db.Timestamptz(6)
+
+  @@index([questionId, status])
+  @@index([userId])
+  @@map("content_flags")
+}
+
+enum ContentFlagReason {
+  unclear
+  incorrect
+  duplicate
+  offensive
+  other
+
+  @@map("content_flag_reason")
+}
+
+enum ContentFlagStatus {
+  open
+  reviewing
+  resolved
+  rejected
+
+  @@map("content_flag_status")
+}
+
+/// Version history for every editable content entity: the row as it was before the change that
+/// produced the next version. One table rather than a shadow table per entity (ADR-0014).
+model ContentVersion {
+  id              String            @id @default(uuid()) @db.Uuid
+  entityType      ContentEntityType @map("entity_type")
+  entityId        String            @map("entity_id") @db.Uuid
+  version         Int
+  /// The entity as it stood, including its children (a rubric carries its criteria).
+  snapshot        Json
+  changedByUserId String?           @map("changed_by_user_id") @db.Uuid
+  changeNote      String?           @map("change_note")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([entityType, entityId, version])
+  @@index([entityType, entityId, createdAt])
+  @@map("content_versions")
 }

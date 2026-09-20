@@ -97,3 +97,14 @@
 - Next's `<Link>` prefetches (`?_rsc=…`) land after `load`, so they are outside the Slow 4G figure
   but inside a naive `performance.getEntriesByType("resource")` dump taken later. Compare like with
   like, or the two numbers disagree by a few KB for no reason.
+- Build the CMS against real content, not empty tables (owner, M2 planning). The plan had the admin
+  UI before the seed importer; the owner swapped them so the screens are designed and reviewed with
+  real tracks, lessons and rubrics in them, and so the drafted content reaches expert reviewers a
+  phase earlier. Default to ordering a milestone's phases by "what makes the next phase's work
+  reviewable", not by dependency order alone.
+- A product invariant needs a test that cannot be satisfied by the types (owner, M2 planning).
+  Separate admin and candidate schemas express "candidates never see the answer key" but do not
+  enforce it — one `.extend()` undoes it. The enforcement is a test that greps the **raw serialized
+  JSON** of every candidate endpoint for sentinel strings planted in the rubric, and derives its
+  endpoint list from the OpenAPI document so a new endpoint is covered the day it is added. Ask of
+  any rule that matters: what would fail if someone widened the type later?

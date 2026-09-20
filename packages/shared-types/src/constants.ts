@@ -86,3 +86,73 @@ export const ACCOUNT_DELETION = {
 
 /** Data export (ADR-0011): how long the CV download link in an export stays valid. */
 export const DATA_EXPORT_CV_LINK_MINUTES = 15;
+
+// -----------------------------------------------------------------------------------------------
+// Learning content (spec §4.2, §4.8; ADR-0014).
+
+/**
+ * The content workflow. Only `published` content reaches candidates; `retired` is withdrawn
+ * without being deleted, because sessions and reports still reference it.
+ */
+export const CONTENT_STATUSES = ["draft", "in_review", "published", "retired"] as const;
+
+/** What kind of answer a question asks for (spec §4.2; `test_design` and `scenario` are QA's). */
+export const QUESTION_TYPES = ["behavioral", "technical", "scenario", "test_design"] as const;
+
+/** Entities that carry version history, in `content_versions.entity_type`. */
+export const CONTENT_ENTITY_TYPES = ["track", "module", "lesson", "question", "rubric"] as const;
+
+/** Why a candidate flagged a question (spec §6.1 `ContentFlag`). */
+export const CONTENT_FLAG_REASONS = [
+  "unclear",
+  "incorrect",
+  "duplicate",
+  "offensive",
+  "other",
+] as const;
+
+export const CONTENT_FLAG_STATUSES = ["open", "reviewing", "resolved", "rejected"] as const;
+
+/** Slugs are the stable key seed files and URLs use: lowercase words joined by single hyphens. */
+export const SLUG_PATTERN = "^[a-z0-9]+(?:-[a-z0-9]+)*$";
+
+/** Difficulty is 1–5 (spec §6.1). */
+export const DIFFICULTY_RANGE = { min: 1, max: 5 } as const;
+
+/** A rubric's criterion weights must add up to exactly this (checked before publishing). */
+export const RUBRIC_WEIGHT_TOTAL = 100;
+
+/** The five rubric levels every criterion describes, 0 (absent) to 4 (excellent). */
+export const RUBRIC_LEVELS = ["0", "1", "2", "3", "4"] as const;
+
+export const CONTENT_LIMITS = {
+  slugMaxLength: 80,
+  titleMaxLength: 140,
+  summaryMaxLength: 400,
+  /** Lesson bodies are markdown; long enough for a full lesson, short enough to render fast. */
+  lessonBodyMaxLength: 20_000,
+  lessonMinutesMax: 120,
+  questionPromptMaxLength: 2_000,
+  questionContextMaxLength: 4_000,
+  subtopicMaxLength: 80,
+  idealPoints: 10,
+  idealPointMaxLength: 300,
+  /** House style is 3–5 criteria; the contract leaves room without inviting a wall of them. */
+  rubricCriteria: { min: 2, max: 8 },
+  dimensionMaxLength: 80,
+  criterionDescriptionMaxLength: 300,
+  levelDescriptorMaxLength: 300,
+  changeNoteMaxLength: 200,
+  flagNoteMaxLength: 500,
+  searchMaxLength: 100,
+  pageSize: { default: 20, max: 100 },
+} as const;
+
+/**
+ * Cosine similarity above which two questions are reported as near-duplicates (ADR-0006). A
+ * warning, never a block: the API returns the matches and a human decides.
+ */
+export const CONTENT_DUPLICATE_THRESHOLD = 0.92;
+
+/** Embedding vector length; must match the `vector(N)` column in the migration (ADR-0006). */
+export const EMBEDDING_DIMENSIONS = 1024;

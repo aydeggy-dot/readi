@@ -12,6 +12,12 @@ export const TOMBSTONED_COLUMNS = [
   { table: "audit_logs", column: "actor_id" },
   { table: "audit_logs", column: "target_id" },
   { table: "ai_call_log", column: "user_id" },
+  // Learning content outlives the expert who wrote it (ADR-0014).
+  { table: "tracks", column: "created_by_user_id" },
+  { table: "lessons", column: "created_by_user_id" },
+  { table: "rubrics", column: "created_by_user_id" },
+  { table: "questions", column: "created_by_user_id" },
+  { table: "content_versions", column: "changed_by_user_id" },
 ] as const;
 
 /** Object-storage folder holding a user's files (their CV). */
@@ -51,6 +57,18 @@ export async function eraseUser(
     await tx.auditLog.updateMany({ where: { actorId: userId }, data: { actorId: tombstone.id } });
     await tx.auditLog.updateMany({ where: { targetId: userId }, data: { targetId: tombstone.id } });
     await tx.aiCallLog.updateMany({ where: { userId }, data: { userId: tombstone.id } });
+    // Content the user authored stays exactly as it is; only the authorship reference moves to the
+    // tombstone (ADR-0014). A candidate's own content flags are personal and cascade with the row.
+    const authored = { createdByUserId: userId };
+    const toTombstone = { createdByUserId: tombstone.id };
+    await tx.track.updateMany({ where: authored, data: toTombstone });
+    await tx.lesson.updateMany({ where: authored, data: toTombstone });
+    await tx.rubric.updateMany({ where: authored, data: toTombstone });
+    await tx.question.updateMany({ where: authored, data: toTombstone });
+    await tx.contentVersion.updateMany({
+      where: { changedByUserId: userId },
+      data: { changedByUserId: tombstone.id },
+    });
     // Codes and reset tokens. Identifiers are sometimes the bare address or number and sometimes
     // suffixed (Better Auth writes `<phone>-request-password-reset`), so match by prefix too.
     await tx.verification.deleteMany({

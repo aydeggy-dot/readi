@@ -461,7 +461,8 @@ describe("data export and account deletion (ADR-0011)", () => {
         SELECT c.table_name AS "table", c.column_name AS "column"
         FROM information_schema.columns c
         WHERE c.table_schema = 'public' AND c.data_type = 'uuid'
-          AND (c.column_name LIKE '%user_id' OR c.column_name IN ('actor_id', 'target_id'))`;
+          AND (c.column_name LIKE '%user_id' OR c.column_name LIKE '%\\_by' ESCAPE '\\'
+               OR c.column_name IN ('actor_id', 'target_id'))`;
       // ...minus those that are foreign keys to users with ON DELETE CASCADE.
       const cascading = await prisma.$queryRaw<{ table: string; column: string }[]>`
         SELECT kcu.table_name AS "table", kcu.column_name AS "column"
