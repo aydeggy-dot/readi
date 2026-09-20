@@ -101,22 +101,75 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
       CV "gap" field shares one accessible name; alerts rendered in the first server response are
       not announced; no skip link.
 
-## D1 — design system (after M1 merges; own branch from `main`)
+## D1 — design system (branch `feat/d1-design-system`, from `main` at `98bb8fd`)
 
 Decision (owner, 2026-09-19): the **Margin** direction with adjustments, recorded in ADR-0013. Mockups,
 screenshots and scripts are on the reference branch `design/explorations` (commit `0b976e2`), which is
-**not merged** into `main`. Order agreed: finish M1 phases 4–5, merge M1, then start D1.
+**not merged** into `main`; only tokens, fonts, licences and `trim-fonts.sh` come across.
 
-- [ ] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens (light and dark)
-- [ ] Fonts: trimmed Alegreya 500 + Alegreya Sans 400/700 via next/font/local, naira-only faces with
-      `unicode-range: U+20A6`, build script (port `design/explorations/tools/trim-fonts.sh`), OFL
-      licences, and a check that keeps first-visit fonts ≤ 60 KB
+Decisions (owner, 2026-09-20):
+
+1. **Preload both sans weights.** `next/font` preloads per call and 400+700 must share one call to
+   stay one family, so Alegreya Sans 400 _and_ 700 (36.8 KB) are preloaded; the serif and both ₦
+   faces are not. A documented deviation from ADR-0013's "only Alegreya Sans 400 is preloaded".
+2. **Tab bar and SVG chart move to M3.** No screen today has three destinations or a chart, so D1
+   ships only what an existing screen renders. ADR-0013 still specifies both.
+3. **Draft the full Margin hero** on the landing page (sample answer, two highlighted phrases, two
+   mentor notes). Draft copy for the owner's review, in `messages/en.json`.
+4. **Screenshots and Slow 4G run on the e2e build** (`.next-e2e`, `dist-cli`, ports 3010/4010/8010),
+   never `apps/web/.next` or `apps/api/dist`.
+
+### Phase 0 — baseline (done, 2026-09-20)
+
+- [x] Branch `feat/d1-design-system` off `main`
+- [x] 80 "before" screenshots (20 screens × 360/1280 × light/dark) in `.playwright-mcp/before/`
+- [x] Slow 4G re-baselined on this machine at `98bb8fd`: landing **2.3 s / 169 KB**, sign-up
+      **2.6 s / 202 KB**, log in **2.6 s / 202 KB**. M1's handover recorded 1.9 s / 145 KB and
+      2.5 s / 188 KB for the same code, so D1 is judged against today's column, not the handover's.
+- [x] This plan
+
+### Phase 1 — tokens, fonts, primitives
+
+- [ ] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens, light and dark, plus the Readi
+      additions (`--heading`, `--primary-hover`, `--brand`, `--pen`, `--highlight`, `--progress`,
+      `--progress-surface`, `--track`, `--frame`, `--nav*`, `--chart-1/2`) and `@theme inline`
+- [ ] Contrast check: Vitest in `packages/ui` asserting all 26 ADR pairs in both themes (fails on a
+      missing token too); `pnpm --filter @readi/ui contrast` prints the Markdown table
+- [ ] Fonts: the six trimmed faces + both OFL licences into `apps/web/src/fonts/`, declared with
+      `next/font/local`; `adjustFontFallback: false` everywhere plus a hand-written `size-adjust`
+      fallback face _after_ the ₦ family, or ₦ silently renders in Arial and the ₦ face never loads
+- [ ] `tools/trim-fonts.sh` ported from the explorations branch, paths repointed
+- [ ] Budget test in `apps/web`: the three Latin faces ≤ 60 KB, ₦ faces `preload: false`
 - [ ] `font-synthesis-weight: none`; serif only for headings and mentor notes
-- [ ] Button `size="lg"` (48 px); `--input` #6B7280 on every form field; 2 px focus ring
-- [ ] Components: navigation bar and phone tab bar (structural grey), Note, Highlight, wordmark
-- [ ] SVG chart pattern (percent geometry, CSS-pixel labels, hover/focus readout, table view); no Recharts
-- [ ] Restyle M1 screens; "Readi by DegRon" in the footer and on legal and billing pages
-- [ ] Verify at 360 px and Slow 4G, light and dark; update CLAUDE.md conventions and the README
+- [ ] Button `size="lg"` (48 px), `--primary-hover` instead of `hover:bg-primary/90`; 2 px `--ring`
+      focus outline with 2 px offset applied once in `globals.css`; `border-input` on every field
+- [ ] Prove the ₦ stack: the face is fetched on a page showing ₦ and on no other page
+
+### Phase 2 — Margin chrome
+
+- [ ] Wordmark (Alegreya 500, dotless ı + inline SVG pen tick)
+- [ ] `AppHeader` onto the structural grey `--nav` bar, `NavLink` gaining `aria-current`
+- [ ] `Note`, `Highlight`, `Margined` (38rem reading column + 15rem margin at `lg`)
+- [ ] "Readi by DegRon" footer line on the landing page and the account pages
+
+### Phase 3 — restyle every screen
+
+- [ ] Public/auth: `/`, `/signup`, `/login`, `/phone`, `/forgot-password`, `/reset-password`,
+      `/account-deleted`
+- [ ] Onboarding: `/onboarding`, `/onboarding/profile`, `/onboarding/cv`, `/onboarding/consent`
+- [ ] App: `/home`, `/profile`, `/profile/edit`, `/profile/cv`, `/profile/consent`, `/profile/account`
+- [ ] Other: `/admin`, `/status`, `~offline`, `error`, `global-error`, `not-found`, both `loading`
+      files. `global-error` renders outside the root layout, so it must not depend on fonts or tokens
+- [ ] The Margin hero on the landing page, with the highlighter sweep off under reduced motion
+- [ ] E2E stays green; locators may change, assertions may not
+
+### Phase 4 — verification and docs
+
+- [ ] 80 "after" screenshots, reviewed against Phase 0
+- [ ] Slow 4G re-measured and reported against the Phase 0 baseline (expect +55.8 KB of fonts)
+- [ ] `pnpm lint`, `typecheck`, `format:check`, `test`, `build`, `check:contracts`, `test:e2e`
+- [ ] Docs: CLAUDE.md §6 conventions, README, `packages/ui` description, this file,
+      `docs/progress/2026-09-20-d1.md`. No `subprocessors.md` change — the fonts are self-hosted
 
 ## Carried forward
 
