@@ -77,6 +77,9 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
     request bodies (`sendDefaultPii: false` does not cover them in the JS SDKs).
   - Slow 4G, measured: landing 1.9 s / 145 KB, sign-up and log-in 2.5 s / 188 KB (uncompressed
     over loopback; `E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network` re-measures).
+  - Final verification on a clean clone: lint, typecheck, format, build, contract drift, the built-API
+    smoke test and the e2e all green; 366 tests (309 TypeScript, 57 Python).
+  - Handover: `docs/progress/2026-09-20-m1.md`.
 
 ## Deferred from the M1 review (each is a real finding, none is a blocker)
 
