@@ -86,6 +86,11 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
 - [ ] M10: the whole message catalogue (~14.6 KB, ~4 KB gzip) ships to the browser on every page,
       because `t()` indexes the imported object dynamically. Split per area, or resolve strings on
       the server. Add a per-page byte budget to `slow-network.spec.ts` to stop the drift.
+      Sharpened during D1 phase 0 (2026-09-20): since `468a78c` it reaches the **landing page**,
+      which did not ship it at all before, and it arrives **twice** — Turbopack inlines it into two
+      separate client chunks (14 KB encoded of the landing page's 24 KB growth). `error.tsx` and
+      `not-found.tsx` are client components that call `t()`, and they are part of every route's
+      shell, so nothing can be signed out of it today.
 - [ ] M10 or D1: no component tests in `apps/web` (no testing-library). The riskiest logic was
       extracted into tested helpers instead (`confirmsDeletion`, `apiFailure`); the rest rides on
       the e2e. Decide deliberately rather than by default.
@@ -124,8 +129,18 @@ Decisions (owner, 2026-09-20):
 - [x] Branch `feat/d1-design-system` off `main`
 - [x] 80 "before" screenshots (20 screens × 360/1280 × light/dark) in `.playwright-mcp/before/`
 - [x] Slow 4G re-baselined on this machine at `98bb8fd`: landing **2.3 s / 169 KB**, sign-up
-      **2.6 s / 202 KB**, log in **2.6 s / 202 KB**. M1's handover recorded 1.9 s / 145 KB and
-      2.5 s / 188 KB for the same code, so D1 is judged against today's column, not the handover's.
+      **2.6 s / 202 KB**, log in **2.6 s / 202 KB**.
+- [x] Explained the gap to M1's recorded 145 KB / 188 KB. It is **not** an environment difference:
+      the handover's figures were measured at `4d91a5c`, one commit before `468a78c` (the M1
+      review's web fixes) landed, and that commit wrote the numbers into the docs without
+      re-measuring. Rebuilding `4d91a5c` in a throwaway worktree reproduces 145 KB and 188 KB
+      exactly, and `98bb8fd` reproduces 169 KB and 202 KB. Nothing environmental is involved:
+      no analytics key is set (`.env.local` holds only `WEB_PROXY_SECRET`), the service worker is
+      identical, and the `?_rsc=` link prefetches are outside the measurement in both.
+      The +24 KB on the landing page is the new `error.tsx` / `not-found.tsx` / `loading.tsx`
+      boundaries and, through them, the message catalogue — see the M10 item above.
+- [x] Screenshot capture kept as `apps/web/e2e/visual/capture.spec.ts` (skipped unless
+      `E2E_SCREENSHOTS=<label>`), so later UI milestones get the same before/after for free
 - [x] This plan
 
 ### Phase 1 — tokens, fonts, primitives
