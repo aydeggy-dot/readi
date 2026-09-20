@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeading } from "@/components/layout/page-heading";
 import { CvPanel } from "@/components/cv/cv-panel";
 import { t } from "@/i18n";
 import { getCv } from "@/lib/profile-data";
@@ -12,7 +13,7 @@ export default async function ProfileCvPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">{t("cv.title")}</h1>
+      <PageHeading title={t("cv.title")} />
       <CvPanel initial={cv} mode="profile" />
     </>
   );

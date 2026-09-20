@@ -52,7 +52,7 @@ export function TagInput({
           {value.map((item) => (
             <li
               key={item}
-              className="flex min-w-0 items-center gap-1 rounded-full border bg-accent py-1 pr-1 pl-3 text-sm"
+              className="flex min-w-0 items-center gap-1 rounded-md bg-secondary py-1 pr-1 pl-3 text-base font-bold text-secondary-foreground"
             >
               <span className="min-w-0 break-words">{item}</span>
               <button
@@ -92,19 +92,19 @@ export function TagInput({
         </Button>
       </div>
       {notice && (
-        <p className="text-sm text-muted-foreground" role="status">
+        <p className="text-base text-muted-foreground" role="status">
           {notice}
         </p>
       )}
       {remaining.length > 0 && !full && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">{t("common.suggestions")}</p>
+          <p className="text-base text-muted-foreground">{t("common.suggestions")}</p>
           <div className="flex flex-wrap gap-2">
             {remaining.map((item) => (
               <button
                 key={item}
                 type="button"
-                className="min-h-9 rounded-full border border-dashed px-3 text-sm hover:bg-accent"
+                className="min-h-9 rounded-md border border-dashed border-input px-3 text-base hover:bg-accent"
                 onClick={() => add(item)}
               >
                 + {item}

@@ -116,7 +116,7 @@ export function CvUploader({
           />
         </div>
       )}
-      <p className="text-sm text-muted-foreground">{t("cv.hint", { mb: CV_MAX_MB })}</p>
+      <p className="text-base text-muted-foreground">{t("cv.hint", { mb: CV_MAX_MB })}</p>
       {failure && <ErrorAlert failure={failure} />}
     </div>
   );

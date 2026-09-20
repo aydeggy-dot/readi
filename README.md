@@ -39,7 +39,7 @@ pnpm dev                # web on http://localhost:3002, API on http://localhost:
 pnpm dev:worker         # AI worker on http://localhost:8000 (separate terminal)
 ```
 
-Open http://localhost:3002 and choose **Get started** to sign up (email, phone or, once
+Open http://localhost:3002 and choose **Start free** to sign up (email, phone or, once
 `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set, Google), then complete onboarding.
 http://localhost:3002/status shows API, database, and Redis health (admins only when `APP_ENV=production`).
 Emails and SMS are not sent locally: read them (verification links, OTP codes) from the dev mailbox,
@@ -65,6 +65,24 @@ The first end-to-end run needs the browser: `pnpm --filter @readi/web exec playw
 Page weight on a throttled connection: `E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network` (not in CI —
 timings depend on the machine).
 
+## Design
+
+The visual identity is **Margin** (ADR-0013): a reading column with a margin for the mentor's
+notes, DegRon grey for structure, and orange used only as the mentor's pen.
+
+```bash
+pnpm --filter @readi/ui test          # the contrast gate: every token pair, both themes
+pnpm --filter @readi/ui contrast      # prints the same table as Markdown
+bash tools/trim-fonts.sh              # rebuilds the subset fonts from Fontsource (needs uv)
+E2E_SCREENSHOTS=after pnpm test:e2e visual   # 80 screenshots for a before/after review
+```
+
+Tokens live in `packages/ui/src/tokens.css` and are the single source for the contrast test, so a
+colour cannot drift from its own check. The typefaces are self-hosted subsets in
+`apps/web/src/fonts` (55.8 KB for the three Latin faces, with a budget test); the naira sign has
+its own tiny face per family, fetched only on a page that shows ₦. The chrome components are in
+`apps/web/src/components/layout` and the reading primitives in `apps/web/src/components/ui/margin.tsx`.
+
 ## Layout
 
 | Path                    | What                                                                  |
@@ -74,7 +92,7 @@ timings depend on the machine).
 | `apps/ai-worker`        | Python/FastAPI AI worker (interviewer, evaluator); no database access |
 | `packages/shared-types` | Zod contracts — the source of truth for cross-language types          |
 | `packages/api-client`   | API client generated from the API's OpenAPI document (ADR-0012)       |
-| `packages/ui`           | Design tokens                                                         |
+| `packages/ui`           | Design tokens and their contrast gate (ADR-0013)                      |
 | `packages/config`       | Shared tsconfig, ESLint, Prettier, Vitest preset                      |
 | `infra/`                | Docker Compose for local development                                  |
 

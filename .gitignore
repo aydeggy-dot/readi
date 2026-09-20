@@ -54,3 +54,6 @@ sample-cvs/
 
 # Playwright MCP snapshots and draft screenshots
 .playwright-mcp/
+
+# Visual review screenshots (e2e/visual): looked at, never committed
+screenshots/

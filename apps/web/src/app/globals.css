@@ -1,11 +1,81 @@
 @import "tailwindcss";
 @import "@readi/ui/tokens.css";
 
+/*
+ * The two font stacks the tokens expect. The naira-only family comes first in each so it can match
+ * ₦ before next/font's metric fallback does; see src/fonts/index.ts.
+ */
+:root {
+  --font-readi-sans:
+    var(--font-alegreya-sans-naira), var(--font-alegreya-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-readi-serif: var(--font-alegreya-naira), var(--font-alegreya), ui-serif, Georgia, serif;
+}
+
 @layer base {
   * {
-    @apply border-border outline-ring;
+    @apply border-border;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-[1.0625rem] text-foreground antialiased;
+    /* The serif ships at one weight. Without this a stray `font-bold` would smear it into a fake
+       bold that is not the mentor's hand (ADR-0013). */
+    font-synthesis-weight: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-serif text-heading;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* 2px at 2px offset on every interactive element, in --ring (3:1 or better in both themes).
+     Set once here rather than per component, so nothing can be built without it. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* The navigation bar is the structural grey, and the page's ring (#C2410C) is 1.46:1 on it —
+     a focus outline nobody can see. Inside the bar the ring becomes --nav-accent (3.34:1 there),
+     which the contrast test holds to 3:1. Redefining the token rather than the rule means every
+     focusable thing on the bar, now and later, is covered. */
+  [data-nav-surface] {
+    --ring: var(--nav-accent);
+  }
+}
+
+/*
+ * The one orchestrated moment on the page (ADR-0013): the mentor's highlighter sweeps across the
+ * quoted phrases, once, shortly after the page settles. It is decoration over text that is already
+ * readable — under reduced motion the highlights are simply painted, with no animation at all.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-sweep] mark {
+    background-color: transparent;
+    background-image: linear-gradient(var(--highlight), var(--highlight));
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
+    animation: readi-sweep 0.7s cubic-bezier(0.5, 0, 0.2, 1) 0.5s forwards;
+  }
+
+  [data-sweep] mark:nth-of-type(2) {
+    animation-delay: 1.1s;
+  }
+
+  @keyframes readi-sweep {
+    to {
+      background-size: 100% 100%;
+    }
   }
 }

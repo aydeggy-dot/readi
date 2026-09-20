@@ -1,0 +1,10 @@
+{
+  "extends": "@readi/config/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "*.ts"]
+}

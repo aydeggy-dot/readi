@@ -84,8 +84,32 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
 ## Deferred from the M1 review (each is a real finding, none is a blocker)
 
 - [ ] M10: the whole message catalogue (~14.6 KB, ~4 KB gzip) ships to the browser on every page,
-      because `t()` indexes the imported object dynamically. Split per area, or resolve strings on
-      the server. Add a per-page byte budget to `slow-network.spec.ts` to stop the drift.
+      because `t()` indexes the imported object dynamically, and on the landing page it ships
+      **twice**. Precisely (verified in the built output, D1 phase 2, 2026-09-20): the two client
+      entries `app/error.tsx` and `app/global-error.tsx` each call `t()`, so Turbopack inlines a
+      full copy of `messages/en.json` into each one's chunk — `1dk8p1i7hcf_1.js` 23.0 KB (error)
+      and `0dhsjt1ff3r4f.js` 14.3 KB (global-error), both in the landing page's script list, ~14 KB
+      of the 24 KB encoded that `468a78c` added to that page. `not-found.tsx` is a **server**
+      component and ships none of it — the earlier phase-0 note named the wrong second file.
+      Every route's shell pulls both boundaries, so no page can sign out of it today.
+
+      Fix options, cheapest first:
+
+      - **Split the catalogue per area** (`messages/errors.json`, `messages/auth.json`, …) and let
+        `t()` take a namespace. Each client entry then inlines its own area (<1 KB) instead of the
+        whole file. Still duplicated, but the duplicate stops mattering. No build machinery.
+      - **A copy module for the boundaries**: the handful of strings `error` and `global-error`
+        need, exported as consts from one small module, with a Vitest that asserts they still match
+        `en.json`. The fewest bytes; a second way to write copy, so CLAUDE.md §5 would have to say
+        where each is allowed.
+      - **Resolve `t()` at build time** for client components (an SWC/Babel transform, or codegen
+        emitting one const per key), so only the strings actually used are emitted. The real fix,
+        and the most machinery; worth it only if client-side copy keeps growing.
+      - Ruled out: passing the strings in from a server parent. Next renders `error.tsx` and
+        `global-error.tsx` itself and hands them only `{ error, reset }`, so there is no prop.
+
+      Whichever we pick, add a per-page byte budget to `slow-network.spec.ts` to stop the drift.
+
 - [ ] M10 or D1: no component tests in `apps/web` (no testing-library). The riskiest logic was
       extracted into tested helpers instead (`confirmsDeletion`, `apiFailure`); the rest rides on
       the e2e. Decide deliberately rather than by default.
@@ -101,22 +125,149 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
       CV "gap" field shares one accessible name; alerts rendered in the first server response are
       not announced; no skip link.
 
-## D1 — design system (after M1 merges; own branch from `main`)
+## D1 — design system (branch `feat/d1-design-system`, from `main` at `98bb8fd`)
 
 Decision (owner, 2026-09-19): the **Margin** direction with adjustments, recorded in ADR-0013. Mockups,
 screenshots and scripts are on the reference branch `design/explorations` (commit `0b976e2`), which is
-**not merged** into `main`. Order agreed: finish M1 phases 4–5, merge M1, then start D1.
+**not merged** into `main`; only tokens, fonts, licences and `trim-fonts.sh` come across.
 
-- [ ] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens (light and dark)
-- [ ] Fonts: trimmed Alegreya 500 + Alegreya Sans 400/700 via next/font/local, naira-only faces with
-      `unicode-range: U+20A6`, build script (port `design/explorations/tools/trim-fonts.sh`), OFL
-      licences, and a check that keeps first-visit fonts ≤ 60 KB
-- [ ] `font-synthesis-weight: none`; serif only for headings and mentor notes
-- [ ] Button `size="lg"` (48 px); `--input` #6B7280 on every form field; 2 px focus ring
-- [ ] Components: navigation bar and phone tab bar (structural grey), Note, Highlight, wordmark
-- [ ] SVG chart pattern (percent geometry, CSS-pixel labels, hover/focus readout, table view); no Recharts
-- [ ] Restyle M1 screens; "Readi by DegRon" in the footer and on legal and billing pages
-- [ ] Verify at 360 px and Slow 4G, light and dark; update CLAUDE.md conventions and the README
+Decisions (owner, 2026-09-20):
+
+1. **Preload both sans weights.** `next/font` preloads per call and 400+700 must share one call to
+   stay one family, so Alegreya Sans 400 _and_ 700 (36.8 KB) are preloaded; the serif and both ₦
+   faces are not. A documented deviation from ADR-0013's "only Alegreya Sans 400 is preloaded".
+2. **Tab bar and SVG chart move to M3.** No screen today has three destinations or a chart, so D1
+   ships only what an existing screen renders. ADR-0013 still specifies both.
+3. **Draft the full Margin hero** on the landing page (sample answer, two highlighted phrases, two
+   mentor notes). Draft copy for the owner's review, in `messages/en.json`.
+4. **Screenshots and Slow 4G run on the e2e build** (`.next-e2e`, `dist-cli`, ports 3010/4010/8010),
+   never `apps/web/.next` or `apps/api/dist`.
+5. **Say plainly that it is early.** Six sentences on the landing page describe features that are
+   specified but not built. One honest line in the hero, above the buttons, covers them until they
+   land: "Readi is being built in the open…". The copy stays a draft for the owner to edit.
+
+### Phase 0 — baseline (done, 2026-09-20)
+
+- [x] Branch `feat/d1-design-system` off `main`
+- [x] 80 "before" screenshots (20 screens × 360/1280 × light/dark) in `.playwright-mcp/before/`
+- [x] Slow 4G re-baselined on this machine at `98bb8fd`: landing **2.3 s / 169 KB**, sign-up
+      **2.6 s / 202 KB**, log in **2.6 s / 202 KB**.
+- [x] Explained the gap to M1's recorded 145 KB / 188 KB. It is **not** an environment difference:
+      the handover's figures were measured at `4d91a5c`, one commit before `468a78c` (the M1
+      review's web fixes) landed, and that commit wrote the numbers into the docs without
+      re-measuring. Rebuilding `4d91a5c` in a throwaway worktree reproduces 145 KB and 188 KB
+      exactly, and `98bb8fd` reproduces 169 KB and 202 KB. Nothing environmental is involved:
+      no analytics key is set (`.env.local` holds only `WEB_PROXY_SECRET`), the service worker is
+      identical, and the `?_rsc=` link prefetches are outside the measurement in both.
+      The +24 KB on the landing page is the new `error.tsx` / `not-found.tsx` / `loading.tsx`
+      boundaries and, through them, the message catalogue — see the M10 item above.
+- [x] Screenshot capture kept as `apps/web/e2e/visual/capture.spec.ts` (skipped unless
+      `E2E_SCREENSHOTS=<label>`), so later UI milestones get the same before/after for free
+- [x] This plan
+
+### Phase 1 — tokens, fonts, primitives (done, 2026-09-20, `61d6853`)
+
+- [x] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens, light and dark, plus the Readi
+      additions (`--heading`, `--primary-hover`, `--brand`, `--pen`, `--highlight`, `--progress`,
+      `--progress-surface`, `--track`, `--frame`, `--nav*`, `--chart-1/2`) and `@theme inline`
+- [x] Contrast check: Vitest in `packages/ui` asserting all 26 ADR pairs in both themes (fails on a
+      missing token too); `pnpm --filter @readi/ui contrast` prints the Markdown table
+- [x] Fonts: the six trimmed faces + both OFL licences into `apps/web/src/fonts/`, declared with
+      `next/font/local`; `adjustFontFallback: false` everywhere plus a hand-written `size-adjust`
+      fallback face _after_ the ₦ family, or ₦ silently renders in Arial and the ₦ face never loads
+- [x] `tools/trim-fonts.sh` ported from the explorations branch, paths repointed
+- [x] Budget test in `apps/web`: the three Latin faces ≤ 60 KB, ₦ faces `preload: false`
+- [x] `font-synthesis-weight: none`; serif only for headings and mentor notes
+- [x] Button `size="lg"` (48 px), `--primary-hover` instead of `hover:bg-primary/90`; 2 px `--ring`
+      focus outline with 2 px offset applied once in `globals.css`; `border-input` on every field
+- [x] Prove the ₦ stack: the face is fetched on a page showing ₦ and on no other page
+  - The ₦ family must come **first** in each stack, not last as the plan assumed: next/font puts its
+    metric-adjusted Arial fallback inside the family variable, and that fallback has no
+    `unicode-range`, so a ₦ family behind it is never reached.
+  - Both sans weights are preloaded (owner decision 1); the serif and both ₦ faces are not.
+
+### Phase 2 — Margin chrome (done, 2026-09-20)
+
+- [x] Wordmark (Alegreya 500, dotless ı + inline SVG pen tick), in two tones: `nav` (tick in
+      `--nav-accent`) and `paper` (tick in `--pen`). On the landing page, the auth pages and the bar.
+- [x] `AppHeader` onto the structural grey `--nav` bar; `NavLink` is now a client component that
+      marks the page you are on with `aria-current="page"` and the pen underline. The section logic
+      is `isCurrentPath` in `lib/navigation.ts` (unit-tested): a link owns its section, `/profile`
+      is current on `/profile/edit`, and `/` only ever matches itself.
+- [x] `Note`, `Highlight`, `Margined` in `components/ui/margin.tsx` (38rem column + 15rem margin at
+      `lg`, notes under their paragraph below that). **Not used by any screen yet** — Phase 3 is
+      where they land, so they ship here unexercised on purpose.
+- [x] "Readi by DegRon" footer line: the landing page and every signed-in page (the `(app)` layout,
+      which is where `/profile/account` lives). Onboarding stays free of it, as in the mockups.
+- [x] Focus on the bar. The page ring (#C2410C) is **1.46:1** on the grey — invisible. Everything
+      inside `data-nav-surface` now resolves `--ring` to `--nav-accent` (3.34:1), so the rule in
+      `globals.css` needs no per-component help. Two new guards: a 27th contrast pair in
+      `packages/ui` ("Focus ring on the navigation bar" — ADR-0013's table has 26 and never
+      considered this one), and an e2e step that tabs to the wordmark and asserts the computed
+      outline is `rgb(251, 146, 60)`.
+- [x] Button gains a `nav` variant for the bar; `SignOutButton` uses it (`ghost`'s `--heading` text
+      would have been near-invisible there).
+- [x] Slow 4G after Phase 2: landing **227 KB / 2.7 s**, sign-up and log in **260 KB / 2.9 s**
+      (Phase 0 baseline 169/202 KB, plus 55.8 KB of fonts from Phase 1; the chrome itself is ~1 KB,
+      the wordmark being inline SVG and the nav link the only new client component). The landing
+      page's ceiling for the Phase 3 hero is **250 KB**: past it, ask the owner rather than widen it.
+- [x] 80 screenshots in `screenshots/phase2/`, reviewed against `screenshots/before/`.
+
+### Phase 3 — restyle every screen (done, 2026-09-20)
+
+- [x] Public/auth: `/`, `/signup`, `/login`, `/phone`, `/forgot-password`, `/reset-password`,
+      `/account-deleted`. The auth pages now sit under the same grey bar as the app (`PublicHeader`)
+      and use `AuthCard`, which is a `Margined` grid: the form in the reading column, and an
+      optional note in the margin. Only sign-up has notes — two, both true of the app today.
+- [x] Onboarding: the step indicator is the mockup's named list (`Step 2 of 3` over "Your goals ·
+      Your CV · Privacy choices", the current one underlined in the pen and carrying
+      `aria-current="step"`) instead of three anonymous bars
+- [x] App: `/home`, `/profile`, `/profile/edit`, `/profile/cv`, `/profile/consent`,
+      `/profile/account`. The profile's four boxes became ruled sections — a heading on a
+      `--frame` rule with rows divided by the light `--border` — which is the editorial reading of
+      the same information. The one framed panel left on a page is the thing you are meant to act
+      on (home's diagnostic card, the delete-account block).
+- [x] Other: `/admin`, `/status` (now has the public bar), `~offline`, `error`, `not-found`, both
+      `loading` files (the spinner is a pen mark). **`global-error` no longer imports anything
+      visual**: it renders its own document, so it now carries its own inline CSS with the palette
+      written out in both themes and the system type stack. If the tokens, `globals.css` or the
+      fonts are what broke, it still renders.
+- [x] The Margin hero, with the annotated example answer. Order at 360px: headline, lead, **the
+      example**, then the buttons — the demonstration comes before the call to action. At `lg` the
+      example moves alongside and spans both rows. The highlighter sweep lives in `globals.css`,
+      keyed to `data-sweep`, inside `@media (prefers-reduced-motion: no-preference)`; the
+      screenshot run (reduced motion) catches the settled state.
+- [x] E2E stays green, assertions untouched: 3 specs pass, plus the capture and Slow 4G runs.
+- [x] Type scale swept: secondary text is `text-base` everywhere (`text-sm` was 14px against a 17px
+      body), `font-medium` became `font-bold` (the sans ships 400 and 700 only, so `medium` was
+      rendering as 400), and headings dropped `tracking-tight`, which fought the serif.
+- [x] Landing copy is a **draft for the owner**: `docs/progress/2026-09-20-d1-landing-copy.md` has
+      the whole text, the spec line each claim rests on, and the one open question — several
+      sentences describe features that are specified but not built yet (voice, the diagnostic,
+      reports, study plan), with three options for how to handle that before the page goes public.
+- [x] Slow 4G after the hero: landing **232 KB / 2.7 s** (Phase 2: 227 KB), sign-up **265 KB**,
+      log in **264 KB**. The hero cost ~5 KB and the landing page is **18 KB under the 250 KB line**.
+      Nothing new is loaded for it: the example is text, the tick and the sweep are inline SVG and
+      CSS, and "naira" is spelled out so the ₦ face is still never fetched.
+
+### Phase 4 — verification and docs (done, 2026-09-20)
+
+- [x] The "built in the open" line in the hero (owner decision 5), above the buttons, and the
+      decision recorded in the copy draft
+- [x] 80 "after" screenshots in `screenshots/after/`, reviewed screen by screen against
+      `screenshots/before/`
+- [x] Slow 4G against the Phase 0 baseline: landing **169 → 232 KB**, sign-up **202 → 265 KB**,
+      log in **202 → 264 KB**. 55.8 KB of that is the fonts; ~7 KB is the whole chrome and hero.
+      The landing page sits **18 KB under** the owner's 250 KB line.
+- [x] `pnpm lint`, `typecheck`, `format:check`, `test` (433: 376 TypeScript + 57 Python), `build`,
+      `check:contracts`, `test:e2e` — all green
+- [x] Docs: CLAUDE.md §6 conventions, README (a Design section and the commands), `packages/ui`
+      description, this file, `docs/progress/2026-09-20-d1.md` and the landing copy draft.
+      No `subprocessors.md` change — the fonts are self-hosted, and nothing new processes data.
+- [x] The handover carries a **"before the landing page goes public"** checklist: the draft copy,
+      the six future-tense claims and the line that covers them, no hardcoded prices, the real
+      support email, removing the `/status` link (N4), the missing legal pages, the example answer
+      being an illustration, and M10's icons and Lighthouse pass.
 
 ## Carried forward
 

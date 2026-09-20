@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeading } from "@/components/layout/page-heading";
 import { ConsentForm } from "@/components/onboarding/consent-form";
 import { t } from "@/i18n";
 import { getConsents } from "@/lib/profile-data";
@@ -12,10 +13,7 @@ export default async function EditConsentPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("profile.consentTitle")}</h1>
-        <p className="text-muted-foreground">{t("onboarding.consent.subtitle")}</p>
-      </div>
+      <PageHeading title={t("profile.consentTitle")} lead={t("onboarding.consent.subtitle")} />
       <ConsentForm consents={consents} mode="edit" />
     </>
   );

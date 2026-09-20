@@ -1,29 +1,24 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { t } from "@/i18n";
+import { Wordmark } from "@/components/layout/wordmark";
 
-/** Header for signed-in pages. `nav` is omitted during onboarding. */
+/**
+ * Header for signed-in pages, on the structural DegRon grey bar (ADR-0013). `nav` is omitted
+ * during onboarding, where the only way on is forward.
+ *
+ * `data-nav-surface` re-points --ring at --nav-accent for everything inside the bar; see
+ * globals.css, where the page's own #C2410C ring would be 1.46:1 against this grey.
+ */
 export function AppHeader({ nav }: { nav?: ReactNode }) {
   return (
-    <header className="border-b">
+    <header data-nav-surface className="bg-nav">
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-5 py-3 sm:px-8">
-        <Link href="/home" className="text-lg font-semibold tracking-tight">
-          {t("app.name")}
-        </Link>
-        <div className="flex items-center gap-1">
+        <Wordmark href="/home" />
+        <div className="flex items-center gap-2">
           {nav}
           <SignOutButton />
         </div>
       </div>
     </header>
-  );
-}
-
-export function NavLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent">
-      {children}
-    </Link>
   );
 }

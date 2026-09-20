@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CvPanel } from "@/components/cv/cv-panel";
+import { PageHeading } from "@/components/layout/page-heading";
 import { OnboardingSteps } from "@/components/onboarding/onboarding-steps";
 import { t } from "@/i18n";
 import { getCv } from "@/lib/profile-data";
@@ -17,10 +18,7 @@ export default async function OnboardingCvPage() {
   return (
     <>
       <OnboardingSteps current="cv" />
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("onboarding.cv.title")}</h1>
-        <p className="text-muted-foreground">{t("onboarding.cv.subtitle")}</p>
-      </div>
+      <PageHeading title={t("onboarding.cv.title")} lead={t("onboarding.cv.subtitle")} />
       <CvPanel initial={cv} mode="onboarding" />
     </>
   );

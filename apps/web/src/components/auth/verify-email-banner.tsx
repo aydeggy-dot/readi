@@ -30,7 +30,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
     <Alert className="flex flex-col gap-2">
       <p>{t("verifyEmail.message", { email })}</p>
       {state === "sent" ? (
-        <p className="font-medium">{t("verifyEmail.sent")}</p>
+        <p className="font-bold">{t("verifyEmail.sent")}</p>
       ) : (
         <Button
           type="button"

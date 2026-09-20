@@ -1,6 +1,7 @@
 import { SerwistProvider } from "@serwist/turbopack/react";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { fontVariables } from "@/fonts";
 import { t } from "@/i18n";
 import "./globals.css";
 
@@ -15,16 +16,16 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // --background in each theme (ADR-0013).
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: dark)", color: "#111827" },
   ],
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" dir="ltr">
-      {/* System font stack: no web-font download on slow connections. */}
+    <html lang="en" dir="ltr" className={fontVariables}>
       <body className="min-h-dvh font-sans">
         {/* No service worker in development: runtime caching would serve stale chunks. */}
         <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === "development"}>

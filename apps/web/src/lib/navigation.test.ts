@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextOnboardingPath, safeNextPath, isoDateParam } from "./navigation";
+import { isCurrentPath, nextOnboardingPath, safeNextPath, isoDateParam } from "./navigation";
 
 describe("safeNextPath", () => {
   it.each(["/home", "/profile/edit?x=1", "/onboarding/consent"])("keeps %s", (path) => {
@@ -48,5 +48,31 @@ describe("isoDateParam", () => {
     ]) {
       expect(isoDateParam(value)).toBeNull();
     }
+  });
+});
+
+describe("isCurrentPath", () => {
+  it("marks the page you are on", () => {
+    expect(isCurrentPath("/profile", "/profile")).toBe(true);
+    expect(isCurrentPath("/profile/", "/profile")).toBe(true);
+  });
+
+  it("marks the section a link owns", () => {
+    expect(isCurrentPath("/profile/edit", "/profile")).toBe(true);
+    expect(isCurrentPath("/profile/cv", "/profile")).toBe(true);
+  });
+
+  it("does not let a link claim a path that merely starts with it", () => {
+    expect(isCurrentPath("/profiles", "/profile")).toBe(false);
+    expect(isCurrentPath("/admin", "/profile")).toBe(false);
+  });
+
+  it("keeps the root to itself, so it is not current everywhere", () => {
+    expect(isCurrentPath("/", "/")).toBe(true);
+    expect(isCurrentPath("/home", "/")).toBe(false);
+  });
+
+  it("is false before the pathname is known", () => {
+    expect(isCurrentPath(null, "/profile")).toBe(false);
   });
 });

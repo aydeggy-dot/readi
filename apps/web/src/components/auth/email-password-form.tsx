@@ -1,7 +1,6 @@
 "use client";
 
 import { PASSWORD_LIMITS } from "@readi/shared-types/constants";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -9,6 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { TextLink } from "@/components/ui/text-link";
 import { t } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { describeAuthError, runAuth } from "@/lib/auth-errors";
@@ -101,9 +101,9 @@ export function EmailPasswordForm({ mode, next }: { mode: "login" | "signup"; ne
         )}
       </Field>
       {mode === "login" && (
-        <Link href="/forgot-password" className="self-start text-sm underline underline-offset-4">
+        <TextLink href="/forgot-password" className="self-start text-base">
           {t("auth.login.forgot")}
-        </Link>
+        </TextLink>
       )}
       <Button type="submit" disabled={isSubmitting}>
         {mode === "login" ? t("auth.login.submit") : t("auth.signup.submit")}

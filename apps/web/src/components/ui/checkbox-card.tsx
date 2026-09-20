@@ -16,16 +16,17 @@ export function CheckboxCard({
   return (
     <label
       className={cn(
-        "flex cursor-pointer gap-3 rounded-md border p-4 transition-colors",
-        "has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-[3px] has-focus-visible:ring-ring",
+        "flex cursor-pointer gap-3 rounded-md border border-input bg-background p-4 transition-colors hover:bg-accent",
+        "has-checked:border-primary has-checked:bg-accent",
+        "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring",
         className,
       )}
     >
       <input type="checkbox" className="mt-1 size-5 shrink-0 accent-primary" {...inputProps} />
       <span className="flex flex-col gap-1">
-        <span className="font-medium">{title}</span>
-        <span className="text-sm text-muted-foreground">{description}</span>
-        {note && <span className="text-sm">{note}</span>}
+        <span className="font-bold text-heading">{title}</span>
+        <span className="text-base text-muted-foreground">{description}</span>
+        {note && <span className="text-base">{note}</span>}
       </span>
     </label>
   );

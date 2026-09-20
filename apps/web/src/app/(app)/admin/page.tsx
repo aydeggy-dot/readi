@@ -1,5 +1,6 @@
 import { ROLES } from "@readi/shared-types/constants";
 import type { Metadata } from "next";
+import { PageHeading } from "@/components/layout/page-heading";
 import { t } from "@/i18n";
 import { requireAdmin, serverApi } from "@/lib/session";
 
@@ -13,21 +14,19 @@ export default async function AdminPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("admin.title")}</h1>
-        <p className="text-muted-foreground">{t("admin.description")}</p>
-      </div>
-      <section className="flex flex-col gap-3 rounded-lg border p-5">
-        <p className="text-3xl font-bold" data-testid="admin-users-total">
+      <PageHeading title={t("admin.title")} lead={t("admin.description")} />
+      <section className="flex flex-col gap-2 border-t border-frame pt-6">
+        {/* Figures are sans, always, whatever is around them (ADR-0013). */}
+        <p className="text-5xl leading-none font-bold" data-testid="admin-users-total">
           {data.users_total}
         </p>
-        <p className="text-sm text-muted-foreground">{t("admin.usersTotal")}</p>
-        <h2 className="mt-2 font-semibold">{t("admin.byRole")}</h2>
-        <dl className="divide-y">
+        <p className="text-base text-muted-foreground">{t("admin.usersTotal")}</p>
+        <h2 className="mt-6 text-xl leading-tight">{t("admin.byRole")}</h2>
+        <dl className="divide-y divide-border">
           {ROLES.map((role) => (
             <div key={role} className="flex justify-between py-2">
               <dt>{t(`admin.roles.${role}`)}</dt>
-              <dd className="font-medium">{data.users_by_role[role] ?? 0}</dd>
+              <dd className="font-bold">{data.users_by_role[role] ?? 0}</dd>
             </div>
           ))}
         </dl>

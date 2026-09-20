@@ -88,3 +88,12 @@
   CONFIRMED or SUSPECTED, and every finding is re-verified in the source before acting: of ~30
   findings across five reviewers, two were blockers, several were wrong about severity, and the
   confirmations that mattered were the ones two reviewers reached independently.
+- A page-weight figure belongs to a commit, not to a milestone. M1's 145 KB / 188 KB were measured
+  one commit before the review fixes landed and then written into the handover by the very commit
+  that invalidated them, so D1's first honest measurement looked like a 24 KB regression. Rebuilding
+  the old commit in a throwaway worktree (`git worktree add`, `pnpm install` is seconds because the
+  store is shared) settles this kind of question in minutes — do that before theorising about
+  environments. Record the commit next to the number.
+- Next's `<Link>` prefetches (`?_rsc=…`) land after `load`, so they are outside the Slow 4G figure
+  but inside a naive `performance.getEntriesByType("resource")` dump taken later. Compare like with
+  like, or the two numbers disagree by a few KB for no reason.

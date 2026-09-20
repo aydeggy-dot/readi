@@ -89,6 +89,7 @@ pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
+E2E_SCREENSHOTS=before pnpm test:e2e visual   # 80 before/after screenshots for a visual change (apps/web/e2e/visual)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
@@ -200,6 +201,16 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   (`apps/web/src/lib/session.ts`); `proxy.ts` only redirects cookie-less visitors. Browser code calls the
   API through `@readi/api-client` and imports only types or `@readi/shared-types/constants` from
   shared-types (lint-enforced). Forms use react-hook-form rules, not Zod (ADR-0012).
+- The Margin chrome is `apps/web/src/components/layout` (`Wordmark`, `AppHeader` + `NavLink` for
+  signed-in pages, `PublicHeader` for the rest, `PageHeading`, `SiteFooter`) and its reading
+  primitives are `components/ui/margin.tsx` (`Margined`, `Note`, `Highlight`) plus `TextLink`.
+  Anything drawn on the structural grey bar goes inside `data-nav-surface`, which re-points
+  `--ring` at `--nav-accent`: the page's own focus ring is 1.46:1 on that grey (ADR-0013).
+  Headings are the serif at one weight, secondary text is `text-base` (never `text-sm`), and the
+  page's one animation is the highlighter sweep in `globals.css`, keyed to `data-sweep` and off
+  under `prefers-reduced-motion`. `app/global-error.tsx` renders outside the root layout, so it
+  carries its own inline CSS and must never depend on the tokens, `globals.css` or the fonts.
+  The landing copy is a draft for the owner: `docs/progress/2026-09-20-d1-landing-copy.md`.
 - API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
   `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
 - User files are uploaded by the browser to object storage with presigned URLs (type and length
@@ -212,9 +223,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   locals (Python: `max_request_body_size="never"`, `include_local_variables=False`), with tests.
 - End-to-end tests live in `apps/web/e2e` and run against the built apps on their own ports, database,
   bucket and build folders (`pnpm test:e2e`), with the console email/SMS providers and `LLM_PROVIDER=fake`,
-  so a run costs nothing and never disturbs a running `pnpm dev`. `E2E_SLOW_NETWORK=1 pnpm test:e2e
-  slow-network` reports page weight and load time on Chrome's Slow 4G profile. Never run a build that writes
-  `apps/api/dist` or `apps/web/.next` while the owner's dev servers are up.
+  so a run costs nothing and never disturbs a running `pnpm dev`. Two specs are skipped unless asked for:
+  `E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network` reports page weight and load time on Chrome's Slow 4G
+  profile, and `E2E_SCREENSHOTS=<label> pnpm test:e2e visual` captures every screen at 360px and 1280px in
+  both themes into `screenshots/<label>/` (gitignored) for a before/after review — see
+  `apps/web/e2e/visual/README.md`. Never run a build that writes `apps/api/dist` or `apps/web/.next` while
+  the owner's dev servers are up.
 - Adding a third party that processes personal data means updating `docs/privacy/subprocessors.md` and
   making sure account erasure reaches it (ADR-0011).
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.

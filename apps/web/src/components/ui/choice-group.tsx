@@ -22,14 +22,15 @@ export function ChoiceGroup<T extends string>({
   const errorId = error ? `${name}-error` : undefined;
   return (
     <fieldset className="flex flex-col gap-2" aria-describedby={errorId}>
-      <legend className="mb-2 text-sm font-medium">{legend}</legend>
+      <legend className="mb-2 font-bold text-heading">{legend}</legend>
       <div className={cn("grid gap-2", columns === 2 && "sm:grid-cols-2")}>
         {options.map((option) => (
           <label
             key={option.value}
             className={cn(
-              "flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-base transition-colors",
-              "has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-[3px] has-focus-visible:ring-ring",
+              "flex min-h-12 cursor-pointer items-center gap-3 rounded-md border border-input bg-background px-4 py-3 font-bold text-heading transition-colors hover:bg-accent",
+              "has-checked:border-primary has-checked:bg-accent",
+              "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring",
             )}
           >
             <input
