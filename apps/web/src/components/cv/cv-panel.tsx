@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { formatDate, t } from "@/i18n";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { CvEditor } from "./cv-editor";
 import { CvUploader } from "./cv-uploader";
@@ -44,31 +46,46 @@ export function CvPanel({
   });
   const [manual, setManual] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const [removeError, setRemoveError] = useState<string>();
+  const [removeFailure, setRemoveFailure] = useState<ApiFailure>();
   const update = (next: CvResponse) => queryClient.setQueryData(CV_QUERY_KEY, next);
 
   async function remove() {
-    setRemoveError(undefined);
+    setRemoveFailure(undefined);
     try {
-      const { data } = await browserApi.DELETE("/api/me/cv");
+      const { data, response } = await browserApi.DELETE("/api/me/cv");
       if (!data) {
-        setRemoveError(t("common.errors.generic"));
+        setRemoveFailure(apiFailure(response.status));
         return;
       }
       setManual(false);
       setConfirmRemove(false);
       update(data);
     } catch {
-      setRemoveError(t("common.errors.network"));
+      setRemoveFailure(networkFailure());
     }
   }
 
   const uploadedOn = cv.uploaded_at ? formatDate(cv.uploaded_at.slice(0, 10)) : null;
   const showEditor = cv.status === "parsed" || (manual && cv.status !== "processing");
+  const manualFromScratch = manual && cv.status === "none";
 
   return (
     <div className="flex flex-col gap-6">
-      {cv.status === "none" && <CvUploader label={t("cv.choose")} onUploaded={update} />}
+      {cv.status === "none" && !manual && (
+        <div className="flex flex-col gap-3">
+          <CvUploader label={t("cv.choose")} onUploaded={update} />
+          <p className="text-sm text-muted-foreground">{t("cv.privacyNote")}</p>
+          {/* Plenty of junior candidates have no CV file at all; they can still fill this in. */}
+          <Button
+            type="button"
+            variant="outline"
+            className="self-start"
+            onClick={() => setManual(true)}
+          >
+            {t("cv.fillManuallyFirst")}
+          </Button>
+        </div>
+      )}
 
       {cv.status === "processing" && (
         <Alert className="flex items-center gap-3">
@@ -114,6 +131,10 @@ export function CvPanel({
         </section>
       )}
 
+      {manualFromScratch && (
+        <CvUploader label={t("cv.choose")} variant="outline" onUploaded={update} />
+      )}
+
       {cv.status !== "none" && cv.status !== "processing" && (
         <div className="flex flex-col gap-3 border-t pt-4">
           {uploadedOn && (
@@ -147,7 +168,7 @@ export function CvPanel({
                 {t("cv.remove")}
               </Button>
             ))}
-          {removeError && <Alert variant="error">{removeError}</Alert>}
+          {removeFailure && <ErrorAlert failure={removeFailure} />}
         </div>
       )}
 

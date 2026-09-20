@@ -21,6 +21,7 @@ export default async function AccountDeletedPage({ searchParams }: PageProps<"/a
           : t("account.deleted.bodyNoDate", { days: ACCOUNT_DELETION.graceDays })}
       </p>
       <p className="text-sm text-muted-foreground">
+        {t("account.deleted.noSignIn")}{" "}
         {t("account.deleted.cancel", { email: clientEnv.supportEmail })}
       </p>
       <Button asChild variant="outline">

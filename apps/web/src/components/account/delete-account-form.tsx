@@ -7,11 +7,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { t } from "@/i18n";
 import { authClient } from "@/lib/auth-client";
 import { runAuth } from "@/lib/auth-errors";
+import { confirmsDeletion } from "@/lib/account";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 
 const WORD = ACCOUNT_DELETION.confirmation;
@@ -27,7 +30,7 @@ interface Values {
  */
 export function DeleteAccountForm() {
   const router = useRouter();
-  const [formError, setFormError] = useState<string>();
+  const [failure, setFailure] = useState<ApiFailure>();
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const {
     register,
@@ -36,7 +39,7 @@ export function DeleteAccountForm() {
   } = useForm<Values>();
 
   const onSubmit = handleSubmit(async () => {
-    setFormError(undefined);
+    setFailure(undefined);
     setNeedsSignIn(false);
     try {
       const { data, error, response } = await browserApi.POST("/api/me/deletion", {
@@ -44,10 +47,7 @@ export function DeleteAccountForm() {
       });
       if (!data) {
         if (errorCode(error) === "recent_sign_in_required") setNeedsSignIn(true);
-        else
-          setFormError(
-            t(response.status === 429 ? "common.errors.rateLimited" : "common.errors.generic"),
-          );
+        else setFailure(apiFailure(response.status));
         return;
       }
       // Clears the (already revoked) session cookie from the browser.
@@ -55,7 +55,7 @@ export function DeleteAccountForm() {
       router.replace(`/account-deleted?on=${data.deletion_scheduled_for.slice(0, 10)}`);
       router.refresh();
     } catch {
-      setFormError(t("common.errors.network"));
+      setFailure(networkFailure());
     }
   });
 
@@ -67,7 +67,7 @@ export function DeleteAccountForm() {
 
   return (
     <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-4">
-      {formError && <Alert variant="error">{formError}</Alert>}
+      {failure && <ErrorAlert failure={failure} />}
       {needsSignIn && (
         <Alert variant="error" className="flex flex-col items-start gap-3">
           <span>
@@ -96,7 +96,7 @@ export function DeleteAccountForm() {
             {...register("confirmation", {
               // Trailing spaces from mobile keyboards are forgiven; the word itself must match.
               validate: (value) =>
-                value.trim() === WORD || t("account.delete.confirmMismatch", { word: WORD }),
+                confirmsDeletion(value) || t("account.delete.confirmMismatch", { word: WORD }),
             })}
           />
         )}

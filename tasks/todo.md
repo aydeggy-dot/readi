@@ -70,7 +70,33 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
     CLIs now build to `dist-cli` and strip the separator.
   - Dev data: `phase4-check@example.com` (password `correct horse battery staple`) is left in the dev
     database from the walkthrough; delete it whenever you like.
-- [ ] Phase 5 — Playwright e2e + CI job, subprocessors, docs, review (ADR-0010 and ADR-0012 already written; ADR-0011 in phase 4)
+- [x] Phase 5 — Playwright e2e (sign-up → onboarding, and export → deletion) + CI `e2e` job,
+      `docs/privacy/subprocessors.md`, docs, 360px and Slow 4G checks, and the full M1 review
+  - Review found two blockers, both fixed: Better Auth's phone password-reset routes were live
+    (account takeover by guessing a code nobody was ever sent), and Sentry was configured to send
+    request bodies (`sendDefaultPii: false` does not cover them in the JS SDKs).
+  - Slow 4G, measured: landing 1.9 s / 145 KB, sign-up and log-in 2.5 s / 188 KB (uncompressed
+    over loopback; `E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network` re-measures).
+
+## Deferred from the M1 review (each is a real finding, none is a blocker)
+
+- [ ] M10: the whole message catalogue (~14.6 KB, ~4 KB gzip) ships to the browser on every page,
+      because `t()` indexes the imported object dynamically. Split per area, or resolve strings on
+      the server. Add a per-page byte budget to `slow-network.spec.ts` to stop the drift.
+- [ ] M10 or D1: no component tests in `apps/web` (no testing-library). The riskiest logic was
+      extracted into tested helpers instead (`confirmsDeletion`, `apiFailure`); the rest rides on
+      the e2e. Decide deliberately rather than by default.
+- [ ] M10: the dev mailbox is gated on `NODE_ENV` and the console providers alone, so a staging box
+      left on those settings would hand out OTPs. Add an explicit flag or bind it to loopback.
+- [ ] M10: rate-limit and dev-mailbox Redis keys contain the raw phone number or email (TTL-bounded,
+      never logged). Hash the identifier into the key.
+- [ ] M10: no per-account sign-in throttle — limits are per IP per route, so distributed credential
+      stuffing against one known account is unbounded.
+- [ ] M8 (checkout, where an email becomes mandatory): a privacy notice page, linked from sign-up.
+      The CV step already says in one line that an AI provider outside Nigeria reads the file.
+- [ ] Small accessibility polish: radios do not carry `aria-invalid` when their group fails; every
+      CV "gap" field shares one accessible name; alerts rendered in the first server response are
+      not announced; no skip link.
 
 ## D1 — design system (after M1 merges; own branch from `main`)
 

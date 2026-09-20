@@ -31,7 +31,9 @@ export default async function AccountPage() {
       </Section>
 
       <Section id="delete" title={t("account.delete.title")} danger>
-        <p>{t("account.delete.body", { days })}</p>
+        <p>
+          {t("account.delete.body", { days })} {t("account.delete.noSignIn", { days })}
+        </p>
         <p className="text-sm text-muted-foreground">{t("account.delete.kept")}</p>
         <p className="text-sm text-muted-foreground">
           {t("account.delete.cancel", { email: clientEnv.supportEmail, days })}{" "}

@@ -12,6 +12,7 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
       adapter: new PrismaPg({
         connectionString: env.DATABASE_URL,
         connectionTimeoutMillis: env.HEALTH_CHECK_TIMEOUT_MS,
+        max: env.DATABASE_POOL_MAX,
       }),
     });
   }

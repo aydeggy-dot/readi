@@ -14,6 +14,7 @@ import { AccountDeletionService } from "../src/account/account-deletion.service"
 import { cancelDeletion, DeletionNotCancellableError } from "../src/account/cancel-deletion";
 import { eraseUser, TOMBSTONED_COLUMNS } from "../src/account/erase-user";
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
+import { Prisma } from "../src/generated/prisma/client";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { StorageService } from "../src/storage/storage.service";
 import { FakeAiWorker, PARSED } from "./fake-ai-worker";
@@ -403,7 +404,8 @@ describe("data export and account deletion (ADR-0011)", () => {
         data: { identifier: fresh, value: "123456:0", expiresAt: new Date(Date.now() + 300_000) },
       });
 
-      await app.get(AccountDeletionService).purgeExpiredVerifications();
+      const deletion: AccountDeletionService = app.get(AccountDeletionService);
+      await deletion.purgeExpiredVerifications();
 
       expect(await prisma.verification.count({ where: { identifier: phone } })).toBe(0);
       expect(await prisma.verification.count({ where: { identifier: fresh } })).toBe(1);
@@ -437,6 +439,20 @@ describe("data export and account deletion (ADR-0011)", () => {
       await expect(
         cancelDeletion(prisma, { user: { email }, actor: { type: "system" } }),
       ).rejects.toBeInstanceOf(DeletionNotCancellableError);
+    });
+
+    it("audit snapshots hold ids and enum values only, never personal data", async () => {
+      // These rows outlive the account (attached to a tombstone) and are part of the export, so a
+      // writer that logged an old email or phone number would break both promises at once.
+      const rows = await prisma.auditLog.findMany({
+        where: { OR: [{ before: { not: Prisma.DbNull } }, { after: { not: Prisma.DbNull } }] },
+        take: 500,
+        orderBy: { createdAt: "desc" },
+      });
+      expect(rows.length).toBeGreaterThan(0);
+      const snapshots = JSON.stringify(rows.map((row) => [row.before, row.after]));
+      expect(snapshots).not.toMatch(/@/);
+      expect(snapshots).not.toMatch(/\+234/);
     });
 
     it("every user reference without a cascading foreign key is tombstoned", async () => {

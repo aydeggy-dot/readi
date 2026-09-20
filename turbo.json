@@ -28,7 +28,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "REDIS_URL", "S3_ENDPOINT"]
+      "env": ["DATABASE_URL", "DATABASE_POOL_MAX", "REDIS_URL", "S3_ENDPOINT"]
     },
     "dev": {
       "dependsOn": ["^build"],
@@ -44,6 +44,7 @@
         "AUTH_RATE_LIMIT_ENABLED",
         "BETTER_AUTH_SECRET",
         "CLIENT_IP_HEADER",
+        "DATABASE_POOL_MAX",
         "DATABASE_URL",
         "EMAIL_FROM",
         "EMAIL_PROVIDER",

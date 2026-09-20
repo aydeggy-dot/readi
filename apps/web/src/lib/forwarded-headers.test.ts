@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLIENT_IP, forwardedHeaders, PROXY_SECRET } from "./forwarded-headers";
+import { CLIENT_IP, forwardedHeaders, isSingleIpAddress, PROXY_SECRET } from "./forwarded-headers";
 
 const secret = "s".repeat(32);
 
@@ -48,5 +48,28 @@ describe("forwardedHeaders", () => {
 
     expect(out.has(CLIENT_IP)).toBe(false);
     expect(out.has(PROXY_SECRET)).toBe(false);
+  });
+});
+
+describe("isSingleIpAddress", () => {
+  it("accepts one address", () => {
+    for (const value of ["102.89.1.1", "8.8.8.8", "2001:db8::1", "::1"]) {
+      expect(isSingleIpAddress(value), value).toBe(true);
+    }
+  });
+
+  it("rejects chains, junk and oversized values", () => {
+    for (const value of [
+      "102.89.1.1, 10.0.0.1",
+      "999.1.1.1",
+      "010.1.1.1",
+      "not-an-ip",
+      "102.89.1.1 ",
+      "2001:db8::1::2",
+      "a".repeat(46),
+      "",
+    ]) {
+      expect(isSingleIpAddress(value), value).toBe(false);
+    }
   });
 });

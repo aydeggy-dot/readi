@@ -2,9 +2,10 @@
 
 import type { CvResponse } from "@readi/shared-types";
 import { useRef, useState } from "react";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { t } from "@/i18n";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { CV_MAX_MB, checkCvFile, cvContentType, putWithProgress } from "@/lib/cv-file";
 
@@ -22,20 +23,22 @@ export function CvUploader({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
-  const [error, setError] = useState<string>();
+  const [failure, setFailure] = useState<ApiFailure>();
 
   async function upload(file: File) {
-    setError(undefined);
+    setFailure(undefined);
     const problem = checkCvFile(file);
     const contentType = cvContentType(file);
     if (problem || !contentType) {
-      setError(
-        problem === "tooLarge"
-          ? t("cv.errors.tooLarge", { mb: CV_MAX_MB })
-          : problem === "empty"
-            ? t("cv.errors.empty")
-            : t("cv.errors.type"),
-      );
+      setFailure({
+        message:
+          problem === "tooLarge"
+            ? t("cv.errors.tooLarge", { mb: CV_MAX_MB })
+            : problem === "empty"
+              ? t("cv.errors.empty")
+              : t("cv.errors.type"),
+        signedOut: false,
+      });
       return;
     }
     try {
@@ -44,11 +47,7 @@ export function CvUploader({
         body: { content_type: contentType, size_bytes: file.size },
       });
       if (!created.data) {
-        setError(
-          t(
-            created.response.status === 429 ? "common.errors.rateLimited" : "common.errors.generic",
-          ),
-        );
+        setFailure(apiFailure(created.response.status));
         return;
       }
       const { upload_id, url, headers } = created.data;
@@ -56,25 +55,18 @@ export function CvUploader({
         setStage({ kind: "uploading", percent: Math.round(fraction * 100) }),
       );
       if (status < 200 || status >= 300) {
-        setError(t("cv.errors.upload"));
+        setFailure({ message: t("cv.errors.upload"), signedOut: false });
         return;
       }
       setStage({ kind: "checking" });
       const confirmed = await browserApi.POST("/api/me/cv", { body: { upload_id } });
       if (!confirmed.data) {
-        const code = confirmed.response.status;
-        setError(
-          code === 422
-            ? t("cv.errors.invalidFile")
-            : code === 429
-              ? t("common.errors.rateLimited")
-              : t("common.errors.generic"),
-        );
+        setFailure(apiFailure(confirmed.response.status, { 422: t("cv.errors.invalidFile") }));
         return;
       }
       onUploaded(confirmed.data);
     } catch {
-      setError(t("common.errors.network"));
+      setFailure(networkFailure());
     } finally {
       setStage({ kind: "idle" });
     }
@@ -125,7 +117,7 @@ export function CvUploader({
         </div>
       )}
       <p className="text-sm text-muted-foreground">{t("cv.hint", { mb: CV_MAX_MB })}</p>
-      {error && <Alert variant="error">{error}</Alert>}
+      {failure && <ErrorAlert failure={failure} />}
     </div>
   );
 }

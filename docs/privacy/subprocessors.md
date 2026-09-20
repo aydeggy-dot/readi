@@ -8,7 +8,7 @@ see the checklist at the end.
 Status: **M1**. Nothing here is a legal opinion; this file is what the system actually does, which is
 what legal review needs as input.
 
-Last reviewed: 2026-09-20 (M1).
+Last reviewed: 2026-09-20 (M1 review).
 
 ## In use today
 
@@ -30,7 +30,7 @@ They become subprocessors the moment they are enabled in an environment that ser
 
 | Subprocessor | Purpose | What it would receive |
 |---|---|---|
-| **Sentry** | Error reporting | Error events with **no** request bodies and no stack-frame locals (both SDKs are configured that way, with tests); user ids only |
+| **Sentry** | Error reporting | Error events with **no** request bodies, cookies or secret headers, and no stack-frame locals. All three SDKs are configured that way and each has a test. `sendDefaultPii: false` alone does **not** do this in the JavaScript SDKs — the HTTP integration captures bodies unless `maxIncomingRequestBodySize: "none"` is set, which is why every event also goes through a scrubber. User ids only |
 | **PostHog** | Product analytics (M9) | Opaque user ids and event names |
 
 ## Planned, by milestone
@@ -57,6 +57,10 @@ Add each to the table above — with its region and retention — in the milesto
   email, phone or id (ADR-0004). AI calls are recorded locally as cost rows without content (ADR-0007).
 - **No training on candidate data.** Providers are chosen so that inputs are not used to train their
   models; check this at renewal, not just at signup.
+- **Uploads that are never confirmed** sit under `cv-uploads/<upload id>` rather than a per-user
+  folder, so account erasure does not target them; the bucket's 1-day expiry rule removes them
+  well inside the 7-day grace period, which is why erasure does not need to. That rule is applied
+  by `pnpm storage:setup` and must exist on the production bucket.
 - **Camera coaching never leaves the device.** MediaPipe runs in the browser and only numeric metrics
   are sent to us (spec §8), so no third party sees video.
 

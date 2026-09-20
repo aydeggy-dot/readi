@@ -6,10 +6,11 @@ import { CONSENT_TYPES, CONSENT_VERSIONS } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { CheckboxCard } from "@/components/ui/checkbox-card";
 import { t } from "@/i18n";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { consentCopy } from "@/lib/consent-copy";
 import { HOME_PATH } from "@/lib/navigation";
@@ -28,7 +29,7 @@ export function ConsentForm({
   mode: "onboarding" | "edit";
 }) {
   const router = useRouter();
-  const [formError, setFormError] = useState<string>();
+  const [failure, setFailure] = useState<ApiFailure>();
   const {
     register,
     handleSubmit,
@@ -40,7 +41,7 @@ export function ConsentForm({
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    setFormError(undefined);
+    setFailure(undefined);
     try {
       const decisions = CONSENT_TYPES.map((type) => ({
         type,
@@ -49,26 +50,22 @@ export function ConsentForm({
       }));
       const saved = await browserApi.PUT("/api/me/consents", { body: { decisions } });
       if (!saved.response.ok) {
-        setFormError(
+        setFailure(
           errorCode(saved.error) === "consent_version_outdated"
-            ? t("consent.outdated")
-            : t(
-                saved.response.status === 429
-                  ? "common.errors.rateLimited"
-                  : "common.errors.generic",
-              ),
+            ? { message: t("consent.outdated"), signedOut: false }
+            : apiFailure(saved.response.status),
         );
         return;
       }
       if (mode === "onboarding") {
         const completed = await browserApi.POST("/api/me/onboarding/complete");
         if (!completed.response.ok) {
-          setFormError(t("common.errors.generic"));
+          setFailure(apiFailure(completed.response.status));
           return;
         }
       }
     } catch {
-      setFormError(t("common.errors.network"));
+      setFailure(networkFailure());
       return;
     }
     router.push(mode === "onboarding" ? HOME_PATH : "/profile");
@@ -77,7 +74,7 @@ export function ConsentForm({
 
   return (
     <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
-      {formError && <Alert variant="error">{formError}</Alert>}
+      {failure && <ErrorAlert failure={failure} />}
       {CONSENT_TYPES.map((type) => {
         const copy = consentCopy(type);
         return (

@@ -51,6 +51,11 @@ Langfuse traces are not exported: they are operational copies of data the export
    nothing is lost if Redis is flushed, a failed run is simply retried by the next one, and a
    cancelled deletion needs no job removed. One user's failure does not stop the others.
 
+Unconfirmed uploads live under `cv-uploads/<upload id>`, outside the user's folder, so erasure does
+not delete them; the bucket rule that expires them after a day always fires long before the grace
+period ends. Expired verification codes (phone OTPs keyed by the number itself) are dropped by the
+same hourly sweep, because people who never finish signing up leave no account to erase.
+
 **Tombstones.** Rows that must be kept reference users by plain uuid **without a foreign key**, so
 erasure can replace that id with a fresh `user_tombstones` id: `audit_logs.actor_id`,
 `audit_logs.target_id` and `ai_call_log.user_id` today. One tombstone per erased user keeps their

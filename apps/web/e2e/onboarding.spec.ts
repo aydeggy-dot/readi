@@ -68,6 +68,9 @@ test("email sign-up through onboarding to home", async ({ page }) => {
   await test.step("onboarding is complete and the profile kept what was entered", async () => {
     await page.goto("/profile");
     await expect(page.getByRole("heading", { name: "Your profile", level: 1 })).toBeVisible();
+    // The unverified-email banner echoes the address; at 360px it must wrap, not overflow.
+    await expect(page.getByText(email, { exact: false }).first()).toBeVisible();
+    await page.screenshot({ path: "e2e/.artifacts/profile-360.png", fullPage: true });
     await expect(page.getByText("Backend engineer")).toBeVisible();
     await expect(page.getByText("Ready", { exact: true })).toBeVisible();
     // Onboarding is finished, so the app stops redirecting to its steps.

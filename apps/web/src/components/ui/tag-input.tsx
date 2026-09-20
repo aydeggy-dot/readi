@@ -28,13 +28,19 @@ export function TagInput({
   describedBy?: string;
 }) {
   const [draft, setDraft] = useState("");
+  const [notice, setNotice] = useState<string>();
   const has = (item: string) => value.some((v) => v.toLowerCase() === item.toLowerCase());
   const full = value.length >= maxItems;
 
   function add(raw: string) {
     const item = raw.trim().slice(0, maxLength);
-    if (item && !has(item) && !full) onChange([...value, item]);
     setDraft("");
+    if (!item) return;
+    // Silence here reads as a broken field: say which rule stopped the item going in.
+    if (has(item)) return setNotice(t("profileForm.errors.stackDuplicate", { item }));
+    if (full) return setNotice(t("profileForm.errors.stackMax", { max: maxItems }));
+    setNotice(undefined);
+    onChange([...value, item]);
   }
 
   const remaining = suggestions.filter((s) => !has(s));
@@ -46,12 +52,12 @@ export function TagInput({
           {value.map((item) => (
             <li
               key={item}
-              className="flex items-center gap-1 rounded-full border bg-accent py-1 pr-1 pl-3 text-sm"
+              className="flex min-w-0 items-center gap-1 rounded-full border bg-accent py-1 pr-1 pl-3 text-sm"
             >
-              {item}
+              <span className="min-w-0 break-words">{item}</span>
               <button
                 type="button"
-                className="flex size-7 items-center justify-center rounded-full hover:bg-background"
+                className="flex size-7 shrink-0 items-center justify-center rounded-full hover:bg-background"
                 aria-label={t("common.removeItem", { item })}
                 onClick={() => onChange(value.filter((v) => v !== item))}
               >
@@ -67,11 +73,13 @@ export function TagInput({
           value={draft}
           maxLength={maxLength}
           placeholder={placeholder}
-          disabled={full}
           aria-invalid={invalid}
           aria-describedby={describedBy}
           enterKeyHint="done"
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setNotice(undefined);
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === ",") {
               event.preventDefault();
@@ -79,15 +87,15 @@ export function TagInput({
             }
           }}
         />
-        <Button
-          type="button"
-          variant="outline"
-          disabled={full || !draft.trim()}
-          onClick={() => add(draft)}
-        >
+        <Button type="button" variant="outline" disabled={!draft.trim()} onClick={() => add(draft)}>
           {t("common.add")}
         </Button>
       </div>
+      {notice && (
+        <p className="text-sm text-muted-foreground" role="status">
+          {notice}
+        </p>
+      )}
       {remaining.length > 0 && !full && (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">{t("common.suggestions")}</p>

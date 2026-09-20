@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { t } from "@/i18n";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { filenameFromDisposition, saveBlob } from "@/lib/download";
 
@@ -13,17 +15,15 @@ import { filenameFromDisposition, saveBlob } from "@/lib/download";
  */
 export function ExportDataButton() {
   const [state, setState] = useState<"idle" | "working" | "done">("idle");
-  const [error, setError] = useState<string>();
+  const [failure, setFailure] = useState<ApiFailure>();
 
   async function download() {
     setState("working");
-    setError(undefined);
+    setFailure(undefined);
     try {
       const { data, response } = await browserApi.GET("/api/me/export", { parseAs: "blob" });
       if (!data) {
-        setError(
-          t(response.status === 429 ? "common.errors.rateLimited" : "common.errors.generic"),
-        );
+        setFailure(apiFailure(response.status));
         setState("idle");
         return;
       }
@@ -32,7 +32,7 @@ export function ExportDataButton() {
       saveBlob(data, filename);
       setState("done");
     } catch {
-      setError(t("common.errors.network"));
+      setFailure(networkFailure());
       setState("idle");
     }
   }
@@ -49,7 +49,7 @@ export function ExportDataButton() {
         {state === "working" ? t("account.export.preparing") : t("account.export.button")}
       </Button>
       {state === "done" && <Alert variant="success">{t("account.export.done")}</Alert>}
-      {error && <Alert variant="error">{error}</Alert>}
+      {failure && <ErrorAlert failure={failure} />}
     </div>
   );
 }

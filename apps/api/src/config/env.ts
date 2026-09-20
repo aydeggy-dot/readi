@@ -20,6 +20,12 @@ export const EnvSchema = z
     HOST: z.string().min(1).default("127.0.0.1"),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+    /**
+     * Database connections this process may hold. The default suits one API instance; the test
+     * suite runs many apps at once against one server, so `.env.test` lowers it (the pg default
+     * of 10 per client exhausts a 100-connection Postgres at ~10 parallel test files).
+     */
+    DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
     REDIS_URL: z.url({ protocol: /^rediss?$/ }),
     HEALTH_CHECK_TIMEOUT_MS: z.coerce.number().int().min(50).max(30_000).default(2000),
     SENTRY_DSN: optional(z.url()),

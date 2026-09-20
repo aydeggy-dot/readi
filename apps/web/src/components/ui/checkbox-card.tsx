@@ -17,7 +17,7 @@ export function CheckboxCard({
     <label
       className={cn(
         "flex cursor-pointer gap-3 rounded-md border p-4 transition-colors",
-        "has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
+        "has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-[3px] has-focus-visible:ring-ring",
         className,
       )}
     >

@@ -19,6 +19,7 @@
       "cache": false,
       "passThroughEnv": [
         "DATABASE_URL",
+        "DATABASE_POOL_MAX",
         "REDIS_URL",
         "PUBLIC_WEB_URL",
         "BETTER_AUTH_SECRET",

@@ -11,13 +11,14 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
 import { t } from "@/i18n";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { STACK_SUGGESTIONS } from "@/lib/stack-suggestions";
 
@@ -41,7 +42,7 @@ export function ProfileForm({
   today: string;
 }) {
   const router = useRouter();
-  const [formError, setFormError] = useState<string>();
+  const [failure, setFailure] = useState<ApiFailure>();
   const {
     register,
     control,
@@ -62,7 +63,7 @@ export function ProfileForm({
   const role: TargetRole | undefined = useWatch({ control, name: "target_role" });
 
   const onSubmit = handleSubmit(async (values) => {
-    setFormError(undefined);
+    setFailure(undefined);
     const body: UpdateProfileRequest = {
       ...values,
       years_experience: Number(values.years_experience),
@@ -82,17 +83,15 @@ export function ProfileForm({
             });
           }
         }
-        if (fields.length === 0) setFormError(t("common.errors.generic"));
+        if (fields.length === 0) setFailure(apiFailure(response.status));
         return;
       }
       if (!response.ok) {
-        setFormError(
-          t(response.status === 429 ? "common.errors.rateLimited" : "common.errors.generic"),
-        );
+        setFailure(apiFailure(response.status));
         return;
       }
     } catch {
-      setFormError(t("common.errors.network"));
+      setFailure(networkFailure());
       return;
     }
     router.push(mode === "onboarding" ? "/onboarding/cv" : "/profile");
@@ -103,7 +102,7 @@ export function ProfileForm({
 
   return (
     <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-6">
-      {formError && <Alert variant="error">{formError}</Alert>}
+      {failure && <ErrorAlert failure={failure} />}
 
       <Field id="name" label={t("profileForm.name")} error={errors.name?.message}>
         {(describedBy) => (

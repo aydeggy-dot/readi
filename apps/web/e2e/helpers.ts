@@ -2,8 +2,12 @@ import { randomUUID } from "node:crypto";
 
 const API_URL = process.env.E2E_API_URL ?? `http://127.0.0.1:${process.env.E2E_API_PORT ?? 4010}`;
 
-/** A fresh address per run, so a rerun never meets the previous run's account. */
-export const uniqueEmail = () => `e2e-${randomUUID()}@example.com`;
+/**
+ * A fresh address per run, so a rerun never meets the previous run's account. Deliberately long
+ * and unbreakable: it is echoed in the "verify your email" banner, which must wrap at 360px
+ * rather than push the page sideways.
+ */
+export const uniqueEmail = () => `e2e-${randomUUID()}@a-long-employer-domain.example`;
 
 export interface MailboxEntry {
   channel: string;

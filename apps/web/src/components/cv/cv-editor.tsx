@@ -13,11 +13,13 @@ import {
 } from "react-hook-form";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ErrorAlert } from "@/components/ui/error-alert";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
 import { t } from "@/i18n";
+import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -76,7 +78,8 @@ export function CvEditor({
   parsed: ParsedCv | null;
   onSaved: (cv: CvResponse) => void;
 }) {
-  const [message, setMessage] = useState<{ kind: "error" | "success"; text: string }>();
+  const [saved, setSaved] = useState(false);
+  const [failure, setFailure] = useState<ApiFailure>();
   const {
     control,
     register,
@@ -92,22 +95,20 @@ export function CvEditor({
   };
 
   const onSubmit = handleSubmit(async (values) => {
-    setMessage(undefined);
+    setSaved(false);
+    setFailure(undefined);
     try {
       const { data, response } = await browserApi.PUT("/api/me/cv/parsed", {
         body: toParsed(values),
       });
       if (!data) {
-        setMessage({
-          kind: "error",
-          text: t(response.status === 400 ? "common.errors.invalidField" : "common.errors.generic"),
-        });
+        setFailure(apiFailure(response.status, { 400: t("common.errors.invalidField") }));
         return;
       }
-      setMessage({ kind: "success", text: t("cv.fields.saved") });
+      setSaved(true);
       onSaved(data);
     } catch {
-      setMessage({ kind: "error", text: t("common.errors.network") });
+      setFailure(networkFailure());
     }
   });
 
@@ -346,7 +347,8 @@ export function CvEditor({
         )}
       </fieldset>
 
-      {message && <Alert variant={message.kind}>{message.text}</Alert>}
+      {saved && <Alert variant="success">{t("cv.fields.saved")}</Alert>}
+      {failure && <ErrorAlert failure={failure} />}
       <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto sm:self-start">
         {isSubmitting ? t("common.saving") : t("cv.fields.save")}
       </Button>

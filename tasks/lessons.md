@@ -71,3 +71,20 @@
 - Better Auth: a `databaseHooks.session.create.before` hook that throws `APIError.from(...)` with a `code`
   blocks every sign-in method at one point; the OAuth callback turns that code into `?error=<CODE>` on the
   error URL (appended, so the login page may see several `error` values).
+- Better Auth plugins register every endpoint they own, not just the ones you configure. The
+  phone-number plugin ships password-reset and password sign-in routes that were live and dangerous
+  here (a reset code is stored for any number even when no sender is configured). List the routes a
+  plugin adds and disable the ones the product does not offer (`disabledPaths`), with a test.
+- `sendDefaultPii: false` does not stop the Sentry JavaScript SDKs sending request bodies: the HTTP
+  integration buffers 10 KB of every incoming body (`maxIncomingRequestBodySize`) and
+  requestDataIntegration attaches it regardless. The Python SDK has the same shape with different
+  option names. Read the installed SDK rather than trusting the flag's name — this is the second
+  time this exact assumption was wrong in this repo.
+- A build that works locally can still fail on a fresh checkout: running package scripts directly
+  (`pnpm --filter x build`) skips the turbo task graph, so generated code (the Prisma client) and
+  workspace dependencies are missing in CI. Run anything CI runs through turbo, and rehearse it with
+  the generated files deleted.
+- Subagent reviews are worth their cost when each gets one dimension, is told to mark findings
+  CONFIRMED or SUSPECTED, and every finding is re-verified in the source before acting: of ~30
+  findings across five reviewers, two were blockers, several were wrong about severity, and the
+  confirmations that mattered were the ones two reviewers reached independently.

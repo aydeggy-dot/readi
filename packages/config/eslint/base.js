@@ -9,7 +9,16 @@ import tseslint from "typescript-eslint";
  */
 export function base({ tsconfigRootDir }) {
   return defineConfig(
-    globalIgnores(["**/dist/**", "**/.next/**", "**/generated/**", "**/coverage/**"]),
+    globalIgnores([
+      "**/dist/**",
+      // Build outputs the end-to-end run and the CLIs use (apps/api/dist-cli, apps/web/.next-e2e).
+      "**/dist-cli/**",
+      "**/.next/**",
+      "**/.next-e2e/**",
+      "**/generated/**",
+      "**/coverage/**",
+      "**/e2e/.artifacts/**",
+    ]),
     js.configs.recommended,
     tseslint.configs.recommendedTypeChecked,
     {
