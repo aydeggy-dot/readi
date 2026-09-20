@@ -45,4 +45,12 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* The navigation bar is the structural grey, and the page's ring (#C2410C) is 1.46:1 on it —
+     a focus outline nobody can see. Inside the bar the ring becomes --nav-accent (3.34:1 there),
+     which the contrast test holds to 3:1. Redefining the token rather than the rule means every
+     focusable thing on the bar, now and later, is covered. */
+  [data-nav-surface] {
+    --ring: var(--nav-accent);
+  }
 }

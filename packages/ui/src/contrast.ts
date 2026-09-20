@@ -143,6 +143,15 @@ export const PAIRS: readonly Pair[] = [
     background: "nav",
     min: 3,
   },
+  // Not in ADR-0013's table: the ADR set one page-wide focus ring and did not ask what it looks
+  // like on the bar. It is 1.46:1 there, so inside the bar --ring becomes --nav-accent
+  // (apps/web globals.css) — which makes this pair a promise of its own, measured here.
+  {
+    use: "Focus ring on the navigation bar",
+    foreground: "nav-accent",
+    background: "nav",
+    min: 3,
+  },
   {
     use: "Frames, section rules, note rails",
     foreground: "frame",

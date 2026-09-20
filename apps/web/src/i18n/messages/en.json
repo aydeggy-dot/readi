@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Readi",
-    "tagline": "Practise tech interviews with an AI interviewer and get honest, specific feedback."
+    "tagline": "Practise tech interviews with an AI interviewer and get honest, specific feedback.",
+    "byline": "Readi by DegRon"
   },
   "landing": {
     "heading": "Walk into your next tech interview ready.",
@@ -41,7 +42,8 @@
     "home": "Home",
     "profile": "Profile",
     "admin": "Admin",
-    "main": "Main"
+    "main": "Main",
+    "wordmark": "Readi home"
   },
   "auth": {
     "email": "Email",

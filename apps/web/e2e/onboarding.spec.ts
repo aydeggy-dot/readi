@@ -78,6 +78,24 @@ test("email sign-up through onboarding to home", async ({ page }) => {
     await expect(page).toHaveURL(/\/home$/);
   });
 
+  await test.step("the navigation bar marks where you are, and shows focus on its own grey", async () => {
+    await page.goto("/profile");
+    const nav = page.getByRole("navigation", { name: "Main" });
+    await expect(nav.getByRole("link", { name: "Profile" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    // The page's focus ring (#C2410C) is 1.46:1 on the bar's grey, so inside the bar it becomes
+    // --nav-accent (#FB923C). Tab once from the top: the wordmark is the first thing focusable.
+    await page.keyboard.press("Tab");
+    const focused = page.locator(":focus-visible");
+    await expect(focused).toHaveAttribute("aria-label", "Readi home");
+    expect(await focused.evaluate((el) => getComputedStyle(el).outlineColor)).toBe(
+      "rgb(251, 146, 60)",
+    );
+  });
+
   expect(await horizontalOverflow(page)).toBe(false);
   expect(consoleErrors).toEqual([]);
 });

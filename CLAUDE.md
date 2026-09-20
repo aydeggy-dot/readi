@@ -201,6 +201,10 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   (`apps/web/src/lib/session.ts`); `proxy.ts` only redirects cookie-less visitors. Browser code calls the
   API through `@readi/api-client` and imports only types or `@readi/shared-types/constants` from
   shared-types (lint-enforced). Forms use react-hook-form rules, not Zod (ADR-0012).
+- The Margin chrome is `apps/web/src/components/layout` (`Wordmark`, `AppHeader`, `NavLink`,
+  `SiteFooter`) and its reading primitives are `components/ui/margin.tsx` (`Margined`, `Note`,
+  `Highlight`). Anything drawn on the structural grey bar goes inside `data-nav-surface`, which
+  re-points `--ring` at `--nav-accent`: the page's own focus ring is 1.46:1 on that grey (ADR-0013).
 - API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
   `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
 - User files are uploaded by the browser to object storage with presigned URLs (type and length

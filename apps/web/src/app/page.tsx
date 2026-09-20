@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { Wordmark } from "@/components/layout/wordmark";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
 
@@ -12,7 +14,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-between gap-10 px-5 py-8 sm:px-8 sm:py-16">
       <header>
-        <p className="text-lg font-semibold tracking-tight">{t("app.name")}</p>
+        <Wordmark href="/" tone="paper" />
       </header>
 
       <section className="flex flex-col gap-6">
@@ -38,11 +40,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="text-sm text-muted-foreground">
+      <SiteFooter>
         <Link href="/status" className="underline underline-offset-4 hover:text-foreground">
           {t("landing.statusLink")}
         </Link>
-      </footer>
+      </SiteFooter>
     </main>
   );
 }

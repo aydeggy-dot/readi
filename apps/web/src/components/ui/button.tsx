@@ -19,6 +19,8 @@ const buttonVariants = cva(
         destructive:
           "border border-destructive bg-background text-destructive hover:bg-destructive/10",
         ghost: "text-heading hover:bg-accent",
+        // For the structural grey bar, where the page's own text colours would disappear.
+        nav: "text-nav-foreground hover:bg-white/10",
         // Always underlined: a link must not be signalled by colour alone.
         link: "text-primary underline underline-offset-4 hover:text-primary-hover",
       },

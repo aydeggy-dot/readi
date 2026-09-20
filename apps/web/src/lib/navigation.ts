@@ -28,3 +28,16 @@ export function isoDateParam(value: string | string[] | undefined): string | nul
     ? value
     : null;
 }
+
+/**
+ * Whether a navigation link points at the page being shown, so it can be marked `aria-current`.
+ * A link owns its section: /profile is current on /profile/edit, and on /profile/cv. Exactness
+ * matters for the roots — /home must not light up for every path, and "/" only for "/" itself.
+ */
+export function isCurrentPath(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  const target = href.length > 1 ? href.replace(/\/+$/, "") : href;
+  if (path === target) return true;
+  return target !== "/" && path.startsWith(`${target}/`);
+}

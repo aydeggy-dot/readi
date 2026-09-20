@@ -84,13 +84,32 @@ side-by-side comparison script; Langfuse deferred to M3 (`ai_call_log` only); st
 ## Deferred from the M1 review (each is a real finding, none is a blocker)
 
 - [ ] M10: the whole message catalogue (~14.6 KB, ~4 KB gzip) ships to the browser on every page,
-      because `t()` indexes the imported object dynamically. Split per area, or resolve strings on
-      the server. Add a per-page byte budget to `slow-network.spec.ts` to stop the drift.
-      Sharpened during D1 phase 0 (2026-09-20): since `468a78c` it reaches the **landing page**,
-      which did not ship it at all before, and it arrives **twice** — Turbopack inlines it into two
-      separate client chunks (14 KB encoded of the landing page's 24 KB growth). `error.tsx` and
-      `not-found.tsx` are client components that call `t()`, and they are part of every route's
-      shell, so nothing can be signed out of it today.
+      because `t()` indexes the imported object dynamically, and on the landing page it ships
+      **twice**. Precisely (verified in the built output, D1 phase 2, 2026-09-20): the two client
+      entries `app/error.tsx` and `app/global-error.tsx` each call `t()`, so Turbopack inlines a
+      full copy of `messages/en.json` into each one's chunk — `1dk8p1i7hcf_1.js` 23.0 KB (error)
+      and `0dhsjt1ff3r4f.js` 14.3 KB (global-error), both in the landing page's script list, ~14 KB
+      of the 24 KB encoded that `468a78c` added to that page. `not-found.tsx` is a **server**
+      component and ships none of it — the earlier phase-0 note named the wrong second file.
+      Every route's shell pulls both boundaries, so no page can sign out of it today.
+
+      Fix options, cheapest first:
+
+      - **Split the catalogue per area** (`messages/errors.json`, `messages/auth.json`, …) and let
+        `t()` take a namespace. Each client entry then inlines its own area (<1 KB) instead of the
+        whole file. Still duplicated, but the duplicate stops mattering. No build machinery.
+      - **A copy module for the boundaries**: the handful of strings `error` and `global-error`
+        need, exported as consts from one small module, with a Vitest that asserts they still match
+        `en.json`. The fewest bytes; a second way to write copy, so CLAUDE.md §5 would have to say
+        where each is allowed.
+      - **Resolve `t()` at build time** for client components (an SWC/Babel transform, or codegen
+        emitting one const per key), so only the strings actually used are emitted. The real fix,
+        and the most machinery; worth it only if client-side copy keeps growing.
+      - Ruled out: passing the strings in from a server parent. Next renders `error.tsx` and
+        `global-error.tsx` itself and hands them only `{ error, reset }`, so there is no prop.
+
+      Whichever we pick, add a per-page byte budget to `slow-network.spec.ts` to stop the drift.
+
 - [ ] M10 or D1: no component tests in `apps/web` (no testing-library). The riskiest logic was
       extracted into tested helpers instead (`confirmsDeletion`, `apiFailure`); the rest rides on
       the e2e. Decide deliberately rather than by default.
@@ -143,29 +162,53 @@ Decisions (owner, 2026-09-20):
       `E2E_SCREENSHOTS=<label>`), so later UI milestones get the same before/after for free
 - [x] This plan
 
-### Phase 1 — tokens, fonts, primitives
+### Phase 1 — tokens, fonts, primitives (done, 2026-09-20, `61d6853`)
 
-- [ ] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens, light and dark, plus the Readi
+- [x] Replace `packages/ui/src/tokens.css` with the ADR-0013 tokens, light and dark, plus the Readi
       additions (`--heading`, `--primary-hover`, `--brand`, `--pen`, `--highlight`, `--progress`,
       `--progress-surface`, `--track`, `--frame`, `--nav*`, `--chart-1/2`) and `@theme inline`
-- [ ] Contrast check: Vitest in `packages/ui` asserting all 26 ADR pairs in both themes (fails on a
+- [x] Contrast check: Vitest in `packages/ui` asserting all 26 ADR pairs in both themes (fails on a
       missing token too); `pnpm --filter @readi/ui contrast` prints the Markdown table
-- [ ] Fonts: the six trimmed faces + both OFL licences into `apps/web/src/fonts/`, declared with
+- [x] Fonts: the six trimmed faces + both OFL licences into `apps/web/src/fonts/`, declared with
       `next/font/local`; `adjustFontFallback: false` everywhere plus a hand-written `size-adjust`
       fallback face _after_ the ₦ family, or ₦ silently renders in Arial and the ₦ face never loads
-- [ ] `tools/trim-fonts.sh` ported from the explorations branch, paths repointed
-- [ ] Budget test in `apps/web`: the three Latin faces ≤ 60 KB, ₦ faces `preload: false`
-- [ ] `font-synthesis-weight: none`; serif only for headings and mentor notes
-- [ ] Button `size="lg"` (48 px), `--primary-hover` instead of `hover:bg-primary/90`; 2 px `--ring`
+- [x] `tools/trim-fonts.sh` ported from the explorations branch, paths repointed
+- [x] Budget test in `apps/web`: the three Latin faces ≤ 60 KB, ₦ faces `preload: false`
+- [x] `font-synthesis-weight: none`; serif only for headings and mentor notes
+- [x] Button `size="lg"` (48 px), `--primary-hover` instead of `hover:bg-primary/90`; 2 px `--ring`
       focus outline with 2 px offset applied once in `globals.css`; `border-input` on every field
-- [ ] Prove the ₦ stack: the face is fetched on a page showing ₦ and on no other page
+- [x] Prove the ₦ stack: the face is fetched on a page showing ₦ and on no other page
+  - The ₦ family must come **first** in each stack, not last as the plan assumed: next/font puts its
+    metric-adjusted Arial fallback inside the family variable, and that fallback has no
+    `unicode-range`, so a ₦ family behind it is never reached.
+  - Both sans weights are preloaded (owner decision 1); the serif and both ₦ faces are not.
 
-### Phase 2 — Margin chrome
+### Phase 2 — Margin chrome (done, 2026-09-20)
 
-- [ ] Wordmark (Alegreya 500, dotless ı + inline SVG pen tick)
-- [ ] `AppHeader` onto the structural grey `--nav` bar, `NavLink` gaining `aria-current`
-- [ ] `Note`, `Highlight`, `Margined` (38rem reading column + 15rem margin at `lg`)
-- [ ] "Readi by DegRon" footer line on the landing page and the account pages
+- [x] Wordmark (Alegreya 500, dotless ı + inline SVG pen tick), in two tones: `nav` (tick in
+      `--nav-accent`) and `paper` (tick in `--pen`). On the landing page, the auth pages and the bar.
+- [x] `AppHeader` onto the structural grey `--nav` bar; `NavLink` is now a client component that
+      marks the page you are on with `aria-current="page"` and the pen underline. The section logic
+      is `isCurrentPath` in `lib/navigation.ts` (unit-tested): a link owns its section, `/profile`
+      is current on `/profile/edit`, and `/` only ever matches itself.
+- [x] `Note`, `Highlight`, `Margined` in `components/ui/margin.tsx` (38rem column + 15rem margin at
+      `lg`, notes under their paragraph below that). **Not used by any screen yet** — Phase 3 is
+      where they land, so they ship here unexercised on purpose.
+- [x] "Readi by DegRon" footer line: the landing page and every signed-in page (the `(app)` layout,
+      which is where `/profile/account` lives). Onboarding stays free of it, as in the mockups.
+- [x] Focus on the bar. The page ring (#C2410C) is **1.46:1** on the grey — invisible. Everything
+      inside `data-nav-surface` now resolves `--ring` to `--nav-accent` (3.34:1), so the rule in
+      `globals.css` needs no per-component help. Two new guards: a 27th contrast pair in
+      `packages/ui` ("Focus ring on the navigation bar" — ADR-0013's table has 26 and never
+      considered this one), and an e2e step that tabs to the wordmark and asserts the computed
+      outline is `rgb(251, 146, 60)`.
+- [x] Button gains a `nav` variant for the bar; `SignOutButton` uses it (`ghost`'s `--heading` text
+      would have been near-invisible there).
+- [x] Slow 4G after Phase 2: landing **227 KB / 2.7 s**, sign-up and log in **260 KB / 2.9 s**
+      (Phase 0 baseline 169/202 KB, plus 55.8 KB of fonts from Phase 1; the chrome itself is ~1 KB,
+      the wordmark being inline SVG and the nav link the only new client component). The landing
+      page's ceiling for the Phase 3 hero is **250 KB**: past it, ask the owner rather than widen it.
+- [x] 80 screenshots in `screenshots/phase2/`, reviewed against `screenshots/before/`.
 
 ### Phase 3 — restyle every screen
 

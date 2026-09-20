@@ -19,13 +19,7 @@ export function SignOutButton() {
   }
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      disabled={pending}
-      onClick={() => void signOut()}
-    >
+    <Button type="button" variant="nav" size="sm" disabled={pending} onClick={() => void signOut()}>
       {t("common.logOut")}
     </Button>
   );
