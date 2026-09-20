@@ -17,7 +17,11 @@ export interface AuditEntry {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async record(entry: AuditEntry): Promise<void> {
-    await this.prisma.auditLog.create({ data: entry });
+  /**
+   * Records an entry. Pass the transaction client when the entry must land with the change it
+   * describes — a content edit writes its row, its version snapshot and its audit entry together.
+   */
+  async record(entry: AuditEntry, client: Prisma.TransactionClient = this.prisma): Promise<void> {
+    await client.auditLog.create({ data: entry });
   }
 }

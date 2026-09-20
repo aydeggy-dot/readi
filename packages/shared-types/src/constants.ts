@@ -146,6 +146,8 @@ export const CONTENT_LIMITS = {
   flagNoteMaxLength: 500,
   searchMaxLength: 100,
   pageSize: { default: 20, max: 100 },
+  /** Keyset cursors are base64url of `{updated_at, id}`; this leaves room for both. */
+  cursorMaxLength: 200,
 } as const;
 
 /**

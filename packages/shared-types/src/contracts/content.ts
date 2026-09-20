@@ -23,6 +23,14 @@ import { ExperienceLevel, TargetRole } from "./profiles.js";
  * schemas below are separate, smaller shapes rather than the admin ones with fields omitted — an
  * omission is one careless `.extend()` away from leaking. `content-no-answer-key.int.spec.ts`
  * enforces it against the raw JSON of every candidate endpoint.
+ *
+ * ## Which schemas carry `.meta({ id })`
+ *
+ * The same rule the registry follows (ADR-0003): a schema a controller uses as a DTO root — every
+ * `*Input`, `Topic`, `Track`, `Module`, `Lesson`, `Rubric`, `Question` and the response objects —
+ * carries **no** root id, because nestjs-zod would then emit two OpenAPI components with the same
+ * name. Schemas that only ever appear nested inside another one do carry an id, so they become one
+ * shared definition instead of being inlined at every use.
  */
 
 const slug = () =>
@@ -59,16 +67,14 @@ export type ContentTransition = z.infer<typeof ContentTransition>;
 // -----------------------------------------------------------------------------------------------
 // Topics: the curated taxonomy every question and lesson hangs from (spec §4.2).
 
-export const TopicInput = z
-  .object({
-    slug: slug(),
-    name: title(),
-    description: summary(),
-  })
-  .meta({ id: "TopicInput" });
+export const TopicInput = z.object({
+  slug: slug(),
+  name: title(),
+  description: summary(),
+});
 export type TopicInput = z.infer<typeof TopicInput>;
 
-export const Topic = TopicInput.extend({ id: z.uuid() }).meta({ id: "Topic" });
+export const Topic = TopicInput.extend({ id: z.uuid() });
 export type Topic = z.infer<typeof Topic>;
 
 // -----------------------------------------------------------------------------------------------
@@ -116,45 +122,40 @@ export const RubricInput = z
   .refine((rubric) => weightsTotalCorrectly(rubric.criteria), {
     message: `criterion weights must add up to ${RUBRIC_WEIGHT_TOTAL}`,
     path: ["criteria"],
-  })
-  .meta({ id: "RubricInput" });
+  });
 export type RubricInput = z.infer<typeof RubricInput>;
 
-export const Rubric = z
-  .object({
-    id: z.uuid(),
-    slug: slug(),
-    name: title(),
-    status: ContentStatus,
-    version: z.int().min(1),
-    criteria: z.array(RubricCriterion),
-    updated_at: z.iso.datetime(),
-  })
-  .meta({ id: "Rubric" });
+export const Rubric = z.object({
+  id: z.uuid(),
+  slug: slug(),
+  name: title(),
+  status: ContentStatus,
+  version: z.int().min(1),
+  criteria: z.array(RubricCriterion),
+  updated_at: z.iso.datetime(),
+});
 export type Rubric = z.infer<typeof Rubric>;
 
-export const QuestionInput = z
-  .object({
-    slug: slug(),
-    /** Which roles this question suits; a question may serve more than one (spec §6.1). */
-    roles: z.array(TargetRole).min(1).max(3),
-    levels: z.array(ExperienceLevel).min(1).max(2),
-    type: QuestionType,
-    topic_id: z.uuid(),
-    subtopic: z.string().trim().min(1).max(CONTENT_LIMITS.subtopicMaxLength).nullable(),
-    difficulty: z.int().min(DIFFICULTY_RANGE.min).max(DIFFICULTY_RANGE.max),
-    /** What the interviewer asks. Markdown. */
-    prompt: z.string().trim().min(1).max(CONTENT_LIMITS.questionPromptMaxLength),
-    /** Optional setup the candidate is given before the question (markdown). */
-    context: z.string().trim().min(1).max(CONTENT_LIMITS.questionContextMaxLength).nullable(),
-    rubric_id: z.uuid(),
-    /** ANSWER KEY — what a strong answer covers. Never sent to a candidate. */
-    ideal_points: z
-      .array(z.string().trim().min(1).max(CONTENT_LIMITS.idealPointMaxLength))
-      .min(1)
-      .max(CONTENT_LIMITS.idealPoints),
-  })
-  .meta({ id: "QuestionInput" });
+export const QuestionInput = z.object({
+  slug: slug(),
+  /** Which roles this question suits; a question may serve more than one (spec §6.1). */
+  roles: z.array(TargetRole).min(1).max(3),
+  levels: z.array(ExperienceLevel).min(1).max(2),
+  type: QuestionType,
+  topic_id: z.uuid(),
+  subtopic: z.string().trim().min(1).max(CONTENT_LIMITS.subtopicMaxLength).nullable(),
+  difficulty: z.int().min(DIFFICULTY_RANGE.min).max(DIFFICULTY_RANGE.max),
+  /** What the interviewer asks. Markdown. */
+  prompt: z.string().trim().min(1).max(CONTENT_LIMITS.questionPromptMaxLength),
+  /** Optional setup the candidate is given before the question (markdown). */
+  context: z.string().trim().min(1).max(CONTENT_LIMITS.questionContextMaxLength).nullable(),
+  rubric_id: z.uuid(),
+  /** ANSWER KEY — what a strong answer covers. Never sent to a candidate. */
+  ideal_points: z
+    .array(z.string().trim().min(1).max(CONTENT_LIMITS.idealPointMaxLength))
+    .min(1)
+    .max(CONTENT_LIMITS.idealPoints),
+});
 export type QuestionInput = z.infer<typeof QuestionInput>;
 
 export const Question = QuestionInput.extend({
@@ -166,20 +167,18 @@ export const Question = QuestionInput.extend({
   /** Which model produced the stored embedding, so stale vectors can be found (ADR-0006). */
   embedding_model: z.string().min(1).max(60).nullable(),
   updated_at: z.iso.datetime(),
-}).meta({ id: "Question" });
+});
 export type Question = z.infer<typeof Question>;
 
-export const LessonInput = z
-  .object({
-    slug: slug(),
-    title: title(),
-    /** The lesson itself, in markdown. */
-    body: z.string().trim().min(1).max(CONTENT_LIMITS.lessonBodyMaxLength),
-    topic_id: z.uuid().nullable(),
-    position: z.int().min(0).max(999),
-    estimated_minutes: z.int().min(1).max(CONTENT_LIMITS.lessonMinutesMax).nullable(),
-  })
-  .meta({ id: "LessonInput" });
+export const LessonInput = z.object({
+  slug: slug(),
+  title: title(),
+  /** The lesson itself, in markdown. */
+  body: z.string().trim().min(1).max(CONTENT_LIMITS.lessonBodyMaxLength),
+  topic_id: z.uuid().nullable(),
+  position: z.int().min(0).max(999),
+  estimated_minutes: z.int().min(1).max(CONTENT_LIMITS.lessonMinutesMax).nullable(),
+});
 export type LessonInput = z.infer<typeof LessonInput>;
 
 export const Lesson = LessonInput.extend({
@@ -188,24 +187,22 @@ export const Lesson = LessonInput.extend({
   status: ContentStatus,
   version: z.int().min(1),
   updated_at: z.iso.datetime(),
-}).meta({ id: "Lesson" });
+});
 export type Lesson = z.infer<typeof Lesson>;
 
-export const ModuleInput = z
-  .object({
-    slug: slug(),
-    title: title(),
-    summary: summary(),
-    position: z.int().min(0).max(999),
-  })
-  .meta({ id: "ModuleInput" });
+export const ModuleInput = z.object({
+  slug: slug(),
+  title: title(),
+  summary: summary(),
+  position: z.int().min(0).max(999),
+});
 export type ModuleInput = z.infer<typeof ModuleInput>;
 
 export const Module = ModuleInput.extend({
   id: z.uuid(),
   track_id: z.uuid(),
   lessons: z.array(Lesson),
-}).meta({ id: "Module" });
+});
 export type Module = z.infer<typeof Module>;
 
 /** Which topics a track covers, and which of them are core (drives readiness, spec §7). */
@@ -214,34 +211,151 @@ export const TrackTopicInput = z
   .meta({ id: "TrackTopicInput" });
 export type TrackTopicInput = z.infer<typeof TrackTopicInput>;
 
-export const TrackInput = z
-  .object({
-    slug: slug(),
-    role: TargetRole,
-    level: ExperienceLevel,
-    title: title(),
-    summary: summary(),
-    topics: z.array(TrackTopicInput).max(40),
-  })
-  .meta({ id: "TrackInput" });
+export const TrackInput = z.object({
+  slug: slug(),
+  role: TargetRole,
+  level: ExperienceLevel,
+  title: title(),
+  summary: summary(),
+  topics: z.array(TrackTopicInput).max(40),
+});
 export type TrackInput = z.infer<typeof TrackInput>;
 
-export const Track = z
+export const Track = z.object({
+  id: z.uuid(),
+  slug: slug(),
+  role: TargetRole,
+  level: ExperienceLevel,
+  title: title(),
+  summary: summary(),
+  status: ContentStatus,
+  version: z.int().min(1),
+  topics: z.array(TrackTopicInput),
+  modules: z.array(Module),
+  updated_at: z.iso.datetime(),
+});
+export type Track = z.infer<typeof Track>;
+
+// -----------------------------------------------------------------------------------------------
+// Admin listing. One filter bar over four entities, and the row shapes the CMS lists.
+
+/**
+ * Query understood by every admin list endpoint. Each endpoint applies the filters that make sense
+ * for its entity and ignores the rest (`type` means nothing to a track), so the CMS keeps one
+ * filter bar. Paging is keyset, not offset: send the previous page's `next_cursor` back as
+ * `cursor` and rows inserted meanwhile never shift a page under the reader.
+ */
+export const ContentListQuery = z.object({
+  status: ContentStatus.optional(),
+  /** Free text, matched without regard to case against the slug and the title or name. */
+  q: z.string().trim().min(1).max(CONTENT_LIMITS.searchMaxLength).optional(),
+  role: TargetRole.optional(),
+  level: ExperienceLevel.optional(),
+  type: QuestionType.optional(),
+  topic_id: z.uuid().optional(),
+  cursor: z.string().min(1).max(CONTENT_LIMITS.cursorMaxLength).optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(CONTENT_LIMITS.pageSize.max)
+    .default(CONTENT_LIMITS.pageSize.default),
+});
+export type ContentListQuery = z.infer<typeof ContentListQuery>;
+
+/** Null once the last page has been read. */
+const nextCursor = () => z.string().min(1).max(CONTENT_LIMITS.cursorMaxLength).nullable();
+
+export const TrackListItem = z
   .object({
     id: z.uuid(),
     slug: slug(),
     role: TargetRole,
     level: ExperienceLevel,
     title: title(),
-    summary: summary(),
     status: ContentStatus,
     version: z.int().min(1),
-    topics: z.array(TrackTopicInput),
-    modules: z.array(Module),
+    module_count: z.int().min(0),
     updated_at: z.iso.datetime(),
   })
-  .meta({ id: "Track" });
-export type Track = z.infer<typeof Track>;
+  .meta({ id: "TrackListItem" });
+export type TrackListItem = z.infer<typeof TrackListItem>;
+
+export const TrackListResponse = z.object({
+  items: z.array(TrackListItem),
+  next_cursor: nextCursor(),
+});
+export type TrackListResponse = z.infer<typeof TrackListResponse>;
+
+export const LessonListItem = z
+  .object({
+    id: z.uuid(),
+    slug: slug(),
+    title: title(),
+    module_id: z.uuid(),
+    track_id: z.uuid(),
+    status: ContentStatus,
+    version: z.int().min(1),
+    updated_at: z.iso.datetime(),
+  })
+  .meta({ id: "LessonListItem" });
+export type LessonListItem = z.infer<typeof LessonListItem>;
+
+export const LessonListResponse = z.object({
+  items: z.array(LessonListItem),
+  next_cursor: nextCursor(),
+});
+export type LessonListResponse = z.infer<typeof LessonListResponse>;
+
+/**
+ * A question as the CMS lists it. Deliberately without `ideal_points`: a list is read over
+ * shoulders in a shared office, and nothing needs the answer key to draw a row.
+ */
+export const QuestionListItem = z
+  .object({
+    id: z.uuid(),
+    slug: slug(),
+    type: QuestionType,
+    roles: z.array(TargetRole),
+    levels: z.array(ExperienceLevel),
+    difficulty: z.int().min(DIFFICULTY_RANGE.min).max(DIFFICULTY_RANGE.max),
+    topic: Topic,
+    rubric_slug: slug(),
+    status: ContentStatus,
+    version: z.int().min(1),
+    updated_at: z.iso.datetime(),
+  })
+  .meta({ id: "QuestionListItem" });
+export type QuestionListItem = z.infer<typeof QuestionListItem>;
+
+export const QuestionListResponse = z.object({
+  items: z.array(QuestionListItem),
+  next_cursor: nextCursor(),
+});
+export type QuestionListResponse = z.infer<typeof QuestionListResponse>;
+
+export const RubricListItem = z
+  .object({
+    id: z.uuid(),
+    slug: slug(),
+    name: title(),
+    status: ContentStatus,
+    version: z.int().min(1),
+    criteria_count: z.int().min(0),
+    updated_at: z.iso.datetime(),
+  })
+  .meta({ id: "RubricListItem" });
+export type RubricListItem = z.infer<typeof RubricListItem>;
+
+export const RubricListResponse = z.object({
+  items: z.array(RubricListItem),
+  next_cursor: nextCursor(),
+});
+export type RubricListResponse = z.infer<typeof RubricListResponse>;
+
+/** The whole taxonomy: small by design, so it is not paged. */
+export const TopicsResponse = z.object({ topics: z.array(Topic) });
+export type TopicsResponse = z.infer<typeof TopicsResponse>;
 
 // -----------------------------------------------------------------------------------------------
 // Candidate shapes. Deliberately separate from the admin ones: no rubric, no criteria, no level
@@ -308,8 +422,36 @@ export type CandidatePracticeItem = z.infer<typeof CandidatePracticeItem>;
 export const CandidatePracticeResponse = z.object({ items: z.array(CandidatePracticeItem) });
 export type CandidatePracticeResponse = z.infer<typeof CandidatePracticeResponse>;
 
+/** Query for `GET /api/content/track`; both fall back to the candidate's own profile. */
+export const CandidateTrackQuery = z.object({
+  role: TargetRole.optional(),
+  level: ExperienceLevel.optional(),
+});
+export type CandidateTrackQuery = z.infer<typeof CandidateTrackQuery>;
+
+/** Query for `GET /api/content/practice`; `topic` is a topic slug. */
+export const CandidatePracticeQuery = z.object({
+  topic: slug().optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(CONTENT_LIMITS.pageSize.max)
+    .default(CONTENT_LIMITS.pageSize.default),
+});
+export type CandidatePracticeQuery = z.infer<typeof CandidatePracticeQuery>;
+
 // -----------------------------------------------------------------------------------------------
 // Workflow, versions and flags.
+
+/**
+ * The URL vocabulary for the entities that carry a status and a history. A module is missing on
+ * purpose: it is structural, so it is versioned as part of its track (ADR-0014).
+ */
+export const ContentEntityPath = z
+  .enum(["tracks", "lessons", "questions", "rubrics"])
+  .meta({ id: "ContentEntityPath" });
+export type ContentEntityPath = z.infer<typeof ContentEntityPath>;
 
 /** Body of the transition endpoints: the move, and why (the note is kept in the version history). */
 export const ContentTransitionRequest = z.object({
@@ -317,6 +459,19 @@ export const ContentTransitionRequest = z.object({
   note: z.string().trim().min(1).max(CONTENT_LIMITS.changeNoteMaxLength).nullable(),
 });
 export type ContentTransitionRequest = z.infer<typeof ContentTransitionRequest>;
+
+/**
+ * What a transition returns: the entity's new state, not the entity. The CMS refetches what it is
+ * showing, and one small shape serves all four entities.
+ */
+export const ContentTransitionResponse = z.object({
+  entity: ContentEntityPath,
+  id: z.uuid(),
+  status: ContentStatus,
+  version: z.int().min(1),
+  updated_at: z.iso.datetime(),
+});
+export type ContentTransitionResponse = z.infer<typeof ContentTransitionResponse>;
 
 export const ContentVersionSummary = z
   .object({

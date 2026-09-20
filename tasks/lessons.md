@@ -108,3 +108,9 @@
   JSON** of every candidate endpoint for sentinel strings planted in the rubric, and derives its
   endpoint list from the OpenAPI document so a new endpoint is covered the day it is added. Ask of
   any rule that matters: what would fail if someone widened the type later?
+- A safety-net test must be shown to fail (owner, M2 phase 2). Sentinels and an OpenAPI-derived
+  endpoint list are not enough: the fixture has to contain a _real_ answer key, the test has to
+  prove it is really there (the admin API returns it), and a negative control has to run the same
+  detector over a payload that does leak. Then verify by hand once — widen the candidate schema,
+  watch the test fail, revert — and record in the spec what was done and when. Written for a leak
+  test; true of every invariant test.

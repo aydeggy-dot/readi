@@ -302,11 +302,43 @@ the browser.
 - Note: `EMBEDDING_DIMENSIONS` lives in shared-types and the migration hard-codes `vector(1024)`;
   phase 3 adds the startup check that the worker's configured dimension matches.
 
-### Phases 2–6
+### Phase 2 — content service and APIs (done, 2026-09-20)
 
-2. Content service and APIs (workflow guard, admin CRUD + transitions + versions, candidate reads,
-   **the leak test**), 3. embeddings (worker adapter + fake, publish-time embed, duplicate warnings,
-   re-embed CLI), 4. seed format + importer + drafted content, 5. admin UI in Margin + e2e, 6. verification, ADR-0014, docs and handover.
+- [x] `apps/api/src/content/`: `content-workflow.ts` (pure guard, who may move what where),
+      `content-cursor.ts` (the API's first keyset paging), `content-diff.ts` (a snapshot only when
+      the content changed), `content.mappers.ts` (admin and candidate shapes built separately),
+      `content.service.ts`, `content-admin.controller.ts`, `content.controller.ts`
+- [x] Contracts: admin list query + row shapes, `TopicsResponse`, `CandidateTrackQuery` /
+      `CandidatePracticeQuery`, `ContentEntityPath`, `ContentTransitionResponse`
+- [x] Admin API under `/api/admin/content/*` — topics, tracks, modules, lessons, rubrics, questions,
+      plus one generic transition route and two version routes for all four publishable entities
+- [x] Candidate API under `/api/content/*` — `track?role&level` (falls back to the profile),
+      `lessons/{slug}`, `practice?topic&limit`
+- [x] Publish guards: rubric weights total 100, a question's rubric published first, a track has at
+      least one module, one published track per (role, level) — the last from the partial index
+- [x] **The leak test** (`content-no-answer-key.int.spec.ts`): sentinels through the whole answer
+      key, endpoints read from the OpenAPI document, two negative controls, and verified by hand —
+      widening `CandidatePracticeItem` made it fail on both the marker and the field name
+- [x] `AuditService.record` takes an optional transaction client, so a content change and its audit
+      row land together
+- [x] Checks: lint, typecheck, format, 516 tests (459 TypeScript + 57 Python), `pnpm gen:contracts`
+- Notes for later phases:
+  - A DTO root must not carry `.meta({ id })` — nestjs-zod 5.5 then emits two components with the
+    same name. It cost a `gen:contracts` failure; the rule is now in CLAUDE.md §6.
+  - Test files that publish a track must own a (role, level) pair: the partial unique index allows
+    one published track per pair and the suite shares one database. The table is in
+    `apps/api/test/content-fixtures.ts`.
+  - `ContentEntityType.module` is unused for now: a module has no status or version of its own, so
+    editing one versions its track (ADR-0014 decision 1). Say so in the ADR.
+  - Candidate flag submission (`ContentFlagInput`, `POST /api/content/flags`) is **not** built — it
+    was not in the phase's scope; it belongs with the feedback loop in M9.
+  - Retiring a rubric silently hides its published questions from practice. Correct, but the CMS
+    should warn: phase 5.
+
+### Phases 3–6
+
+3. Embeddings (worker adapter + fake, publish-time embed, duplicate warnings, re-embed CLI), 4. seed format + importer + drafted content, 5. admin UI in Margin + e2e, 6. verification,
+   ADR-0014, docs and handover.
 
 ## Carried forward
 
