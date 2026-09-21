@@ -41,9 +41,13 @@ Tools, versions and idioms move. The lessons in each track need the same eye.
 Whichever is least work for you:
 
 - **Mark up the markdown page** — comments, strikethrough, anything. Send it back however you like.
+  This is the normal path, and the one we expect for the first round.
 - **Edit the YAML directly** (`content/seed/<role>/questions.yaml`) and open a pull request. If you
   do, change `author: ai_draft` to `author: human` in any file you have been through, and clear or
   replace the `reviewer_notes` you have answered.
+- **Edit it in the CMS** at `/admin/content`, if you have a Readi login with the content-expert
+  role. That is where the rubric editor, the markdown preview and the publishing workflow are, and
+  it is the better home for the content once this first review has landed — see below.
 
 Either way, tell us which questions you would **cut**. A bank of six questions you stand behind is
 worth more than eight you half-trust, and cutting is the cheapest improvement available.
@@ -66,7 +70,18 @@ worth more than eight you half-trust, and cutting is the cheapest improvement av
 
 ## What happens to your review
 
-We edit the seed files, regenerate the review pages, and re-import. The importer only writes what
-actually changed, so a second pass over one question does not disturb anything else. Content only
-reaches candidates when an admin publishes it in the CMS — a deliberate action, taken after this
-review, never by an import.
+For this first round we edit the seed files, regenerate these review pages, and re-import. The
+importer only writes what actually changed, so a second pass over one question does not disturb
+anything else. Content only reaches candidates when an admin publishes it in the CMS — a deliberate
+action, taken after this review, never by an import.
+
+After that, the CMS is where the content lives (ADR-0014). The rule is simple and the tooling
+enforces it:
+
+> **The files create; the CMS owns.** The moment anyone saves a change to an item in
+> `/admin/content`, `pnpm db:seed` stops overwriting that item — it reports it as kept instead. The
+> YAML copy becomes a historical draft.
+
+So: **corrections to a whole bank at once, before anyone has touched the CMS, go in the YAML;
+everything after that goes in the CMS.** Nobody has to remember which is which — the importer says
+what it left alone, every time it runs.

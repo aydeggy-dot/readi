@@ -194,9 +194,12 @@ describe("tracks and transitions", () => {
         status: "published",
         version: 1,
         criteria: [{ id: TOPIC_ID, ...criterion(RUBRIC_WEIGHT_TOTAL) }],
+        seed_managed: false,
         updated_at: "2026-09-21T10:00:00.000Z",
       },
       embedding_model: "fake-1",
+      // Written in the CMS, so `/content/seed` no longer overwrites it (ADR-0014 decision 5).
+      seed_managed: false,
       updated_at: "2026-09-21T10:00:00.000Z",
     });
     expect(parsed.success).toBe(true);

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -6,6 +7,7 @@ import type { CandidatePracticeResponse } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ContentService } from "../src/content/content.service";
+import { questionContent, questionInclude } from "../src/content/content.mappers";
 import { SeedImporter, SeedReferenceError } from "../src/content/seed-import";
 import { loadSeedDirectory, loadSeedSource } from "../src/content/seed-loader";
 import { PrismaService } from "../src/prisma/prisma.service";
@@ -46,7 +48,7 @@ describe("seeding content", () => {
     const directory = mkdtempSync(join(tmpdir(), "readi-seed-"));
     const slug = `seedtest-${Date.now()}`;
 
-    const file = (prompt: string) => `
+    const file = (prompt: string, rubricName = "Seed test rubric") => `
 version: 1
 author: ai_draft
 status: draft
@@ -56,7 +58,7 @@ topics:
     description: null
 rubrics:
   - slug: ${slug}-rubric
-    name: Seed test rubric
+    name: ${rubricName}
     criteria:
       - dimension: One
         description: The first criterion.
@@ -81,10 +83,13 @@ questions:
     reviewer_notes: Written by a test; nothing here needs an expert.
 `;
 
-    const write = (prompt: string) => {
-      writeFileSync(join(directory, "seed.yaml"), file(prompt));
+    const write = (prompt: string, rubricName?: string) => {
+      writeFileSync(join(directory, "seed.yaml"), file(prompt, rubricName));
       return loadSeedDirectory(directory, directory).files;
     };
+
+    /** A person editing in the CMS: a real actor id, which is what takes the item over. */
+    const expert = { id: randomUUID(), role: "content_expert" as const };
 
     afterAll(async () => {
       await prisma.question.deleteMany({ where: { slug: `${slug}-question` } });
@@ -159,6 +164,97 @@ questions:
       expect(report.questions).toMatchObject({ updated: 1 });
       const after = await prisma.question.findUniqueOrThrow({ where: { id: before.id } });
       expect(after.prompt).toBe("A rewritten prompt.");
+    });
+
+    /**
+     * The case the whole of ADR-0014 decision 5 exists for: an expert rewords a seeded question in
+     * the CMS, someone re-runs `pnpm db:seed` from muscle memory, and the expert's work survives.
+     */
+    it("keeps an item the CMS has edited, and names it in the report", async () => {
+      const question = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(question.seedManaged).toBe(true);
+
+      const full = await prisma.question.findUniqueOrThrow({
+        where: { id: question.id },
+        include: questionInclude,
+      });
+      await content.updateQuestion(
+        question.id,
+        { ...questionContent(full), prompt: "The expert's wording." },
+        { actor: expert },
+      );
+      const edited = await prisma.question.findUniqueOrThrow({ where: { id: question.id } });
+      expect(edited.seedManaged).toBe(false);
+
+      const report = await new SeedImporter(prisma, content).import(write("A fourth prompt."));
+
+      expect(report.questions.skipped).toEqual([`${slug}-question`]);
+      expect(report.questions).toMatchObject({ created: 0, updated: 0, unchanged: 0 });
+      const after = await prisma.question.findUniqueOrThrow({ where: { id: question.id } });
+      expect(after.prompt).toBe("The expert's wording.");
+      expect(after.version).toBe(edited.version);
+      expect(after.updatedAt).toEqual(edited.updatedAt);
+    });
+
+    /**
+     * The other half of the rule: the skipped list is for file changes that did not land, so an
+     * item the CMS owns but whose content still matches its file is not named in every future run.
+     */
+    it("does not name a CMS-owned item whose content still matches its file", async () => {
+      const report = await new SeedImporter(prisma, content).import(write("The expert's wording."));
+      expect(report.questions).toMatchObject({ created: 0, updated: 0, unchanged: 1, skipped: [] });
+    });
+
+    it("plans the same way in a dry run", async () => {
+      const report = await new SeedImporter(prisma, content, { dryRun: true }).import(
+        write("A fifth prompt."),
+      );
+      expect(report.questions.skipped).toEqual([`${slug}-question`]);
+    });
+
+    it("overwrites it with --force, and takes the item back for the files", async () => {
+      const report = await new SeedImporter(prisma, content, { force: true }).import(
+        write("The file's wording."),
+      );
+
+      expect(report.questions).toMatchObject({ updated: 1, skipped: [] });
+      const after = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(after.prompt).toBe("The file's wording.");
+      expect(after.seedManaged).toBe(true);
+      // The history says what happened, so a forced overwrite is never a silent one.
+      const snapshot = await prisma.contentVersion.findFirstOrThrow({
+        where: { entityId: after.id },
+        orderBy: { version: "desc" },
+      });
+      expect(snapshot.changeNote).toBe("seed import (forced)");
+      expect(snapshot.snapshot).toMatchObject({ prompt: "The expert's wording." });
+    });
+
+    /**
+     * Publishing seeded content is an admin's decision about its readiness, not a claim on its
+     * words, so the files keep it (ADR-0014 decision 5).
+     */
+    it("still updates an item an admin has published", async () => {
+      const rubric = await prisma.rubric.findUniqueOrThrow({ where: { slug: `${slug}-rubric` } });
+      const admin = { id: randomUUID(), role: "admin" as const };
+      await content.transition(expert, "rubrics", rubric.id, { transition: "submit", note: null });
+      await content.transition(admin, "rubrics", rubric.id, { transition: "publish", note: null });
+      expect(
+        (await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } })).seedManaged,
+      ).toBe(true);
+
+      const report = await new SeedImporter(prisma, content).import(
+        write("The file's wording.", "A renamed rubric"),
+      );
+
+      expect(report.rubrics).toMatchObject({ updated: 1, skipped: [] });
+      const after = await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } });
+      expect(after.name).toBe("A renamed rubric");
+      expect(after.status).toBe("published");
     });
 
     it("refuses a reference nothing defines, naming the file", async () => {

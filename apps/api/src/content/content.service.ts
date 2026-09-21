@@ -79,7 +79,7 @@ import {
  * Learning content: the CMS behind `/api/admin/content/*` and the published reads behind
  * `/api/content/*` (spec §4.2, §4.8, §6.1; ADR-0014).
  *
- * Three rules hold this file together:
+ * Four rules hold this file together:
  *
  * 1. **Candidates see published content only**, and never the answer key. The candidate reads at
  *    the bottom select what they need and map it with the `toCandidate*` mappers, which have no
@@ -88,6 +88,9 @@ import {
  *    land together or not at all.
  * 3. **A snapshot is written only when the content actually changed.** Saving a form twice, or
  *    running the seed importer twice, leaves no trail of identical versions.
+ * 4. **Every content write records who owns the words.** `seed_managed` stays true only while
+ *    `/content/seed` is the source; the first CMS edit clears it and the importer stops
+ *    overwriting that item (ADR-0014 decision 5). Transitions leave it untouched.
  */
 
 const ENTITY_TYPE: Readonly<Record<ContentEntityPath, ContentEntityType>> = {
@@ -106,16 +109,29 @@ const isPrismaError = (error: unknown, code: string): boolean =>
  * Who is making a change. `id` is null for the seed importer and other CLIs: they act as the
  * system, so the audit row says `system` and the authorship column stays empty rather than
  * pointing at whichever admin happened to run the command.
+ *
+ * `source` is a different question — not who, but *where the words come from*. Only the seed
+ * importer writes as `seed`; everything else is a person in the CMS (ADR-0014 decision 5).
  */
 export interface Actor {
   id: string | null;
   role: AuthenticatedUser["role"];
+  source?: "cms" | "seed";
 }
 
-/** The importer and the CLIs. An admin's authority, nobody's name. */
+/** The CLIs. An admin's authority, nobody's name. */
 export const SYSTEM_ACTOR: Actor = { id: null, role: "admin" };
 
+/** The seed importer: the same authority, and `/content/seed`'s claim on what it writes. */
+export const SEED_ACTOR: Actor = { ...SYSTEM_ACTOR, source: "seed" };
+
 const actorType = (actor: Actor) => (actor.id ? "admin" : "system");
+
+/**
+ * Who owns the content this write is about to store. Set on every content write and **never** on a
+ * transition: publishing seeded content is not a claim on its words (ADR-0014 decision 5).
+ */
+const ownership = (actor: Actor) => ({ seedManaged: actor.source === "seed" });
 
 /** What a mutation needs to record itself: who, what changed, and why. */
 interface ChangeContext {
@@ -141,7 +157,14 @@ export class ContentService {
 
   async createTopic(actor: Actor, input: TopicInput): Promise<Topic> {
     const topic = await this.prisma.topic
-      .create({ data: { slug: input.slug, name: input.name, description: input.description } })
+      .create({
+        data: {
+          slug: input.slug,
+          name: input.name,
+          description: input.description,
+          ...ownership(actor),
+        },
+      })
       .catch((error: unknown) => this.rethrowWriteError(error));
     await this.audit.record({
       actorType: actorType(actor),
@@ -158,7 +181,12 @@ export class ContentService {
     const topic = await this.prisma.topic
       .update({
         where: { id },
-        data: { slug: input.slug, name: input.name, description: input.description },
+        data: {
+          slug: input.slug,
+          name: input.name,
+          description: input.description,
+          ...ownership(actor),
+        },
       })
       .catch((error: unknown) => this.rethrowWriteError(error));
     await this.audit.record({
@@ -207,6 +235,7 @@ export class ContentService {
           title: input.title,
           summary: input.summary,
           createdByUserId: actor.id,
+          ...ownership(actor),
           topics: {
             create: sortTopics(input.topics).map((link) => ({
               topicId: link.topic_id,
@@ -243,6 +272,7 @@ export class ContentService {
             title: input.title,
             summary: input.summary,
             version: { increment: 1 },
+            ...ownership(context.actor),
             topics: {
               create: sortTopics(input.topics).map((link) => ({
                 topicId: link.topic_id,
@@ -268,12 +298,15 @@ export class ContentService {
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "track", track, trackContent(track), context);
         const row = await tx.module.create({
+          // The module's own ownership; the track's is left alone, because the importer
+          // updates a track's own fields and its modules as separate decisions.
           data: {
             trackId,
             slug: input.slug,
             title: input.title,
             summary: input.summary,
             position: input.position,
+            ...ownership(context.actor),
           },
           include: moduleInclude,
         });
@@ -318,6 +351,7 @@ export class ContentService {
             title: input.title,
             summary: input.summary,
             position: input.position,
+            ...ownership(context.actor),
           },
           include: moduleInclude,
         });
@@ -375,6 +409,7 @@ export class ContentService {
           position: input.position,
           estimatedMinutes: input.estimated_minutes,
           createdByUserId: actor.id,
+          ...ownership(actor),
         },
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
@@ -404,6 +439,7 @@ export class ContentService {
             position: input.position,
             estimatedMinutes: input.estimated_minutes,
             version: { increment: 1 },
+            ...ownership(context.actor),
           },
         });
         await this.recordUpdate(tx, context.actor, "lesson", row.id, row.status, row.version);
@@ -444,6 +480,7 @@ export class ContentService {
           slug: input.slug,
           name: input.name,
           createdByUserId: actor.id,
+          ...ownership(actor),
           criteria: { create: this.criteriaRows(input) },
         },
         include: rubricInclude,
@@ -474,6 +511,7 @@ export class ContentService {
             slug: input.slug,
             name: input.name,
             version: { increment: 1 },
+            ...ownership(context.actor),
             criteria: { create: this.criteriaRows(input) },
           },
           include: rubricInclude,
@@ -516,7 +554,7 @@ export class ContentService {
   async createQuestion(actor: Actor, input: QuestionInput): Promise<Question> {
     const question = await this.prisma.question
       .create({
-        data: { ...this.questionRow(input), createdByUserId: actor.id },
+        data: { ...this.questionRow(input), createdByUserId: actor.id, ...ownership(actor) },
         include: questionInclude,
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
@@ -538,7 +576,11 @@ export class ContentService {
         await this.writeSnapshot(tx, "question", current, questionContent(current), context);
         const row = await tx.question.update({
           where: { id },
-          data: { ...this.questionRow(input), version: { increment: 1 } },
+          data: {
+            ...this.questionRow(input),
+            version: { increment: 1 },
+            ...ownership(context.actor),
+          },
           include: questionInclude,
         });
         await this.recordUpdate(tx, context.actor, "question", row.id, row.status, row.version);

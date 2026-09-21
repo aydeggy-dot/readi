@@ -79,6 +79,7 @@ export const toRubric = (row: RubricRow): Rubric => ({
   name: row.name,
   status: row.status,
   version: row.version,
+  seed_managed: row.seedManaged,
   criteria: row.criteria.map((criterion) => ({
     id: criterion.id,
     dimension: criterion.dimension,
@@ -107,6 +108,7 @@ export const toQuestion = (row: QuestionRow): Question => ({
   topic: toTopic(row.topic),
   rubric: toRubric(row.rubric),
   embedding_model: row.embeddingModel,
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 
@@ -121,6 +123,7 @@ export const toLesson = (row: LessonRow): Lesson => ({
   estimated_minutes: row.estimatedMinutes,
   status: row.status,
   version: row.version,
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 
@@ -131,6 +134,7 @@ export const toModule = (row: ModuleRow): Module => ({
   title: row.title,
   summary: row.summary,
   position: row.position,
+  seed_managed: row.seedManaged,
   lessons: row.lessons.map(toLesson),
 });
 
@@ -145,6 +149,7 @@ export const toTrack = (row: TrackRow): Track => ({
   version: row.version,
   topics: row.topics.map((link) => ({ topic_id: link.topicId, is_core: link.isCore })),
   modules: row.modules.map(toModule),
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 
@@ -162,6 +167,7 @@ export const toTrackListItem = (
   status: row.status,
   version: row.version,
   module_count: row._count.modules,
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 
@@ -175,6 +181,7 @@ export const toLessonListItem = (
   track_id: row.module.trackId,
   status: row.status,
   version: row.version,
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 
@@ -193,6 +200,7 @@ export const toQuestionListItem = (
   rubric_slug: row.rubric.slug,
   status: row.status,
   version: row.version,
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 
@@ -205,6 +213,7 @@ export const toRubricListItem = (
   status: row.status,
   version: row.version,
   criteria_count: row._count.criteria,
+  seed_managed: row.seedManaged,
   updated_at: iso(row.updatedAt),
 });
 

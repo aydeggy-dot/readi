@@ -2746,6 +2746,9 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -2761,6 +2764,7 @@
           "status",
           "version",
           "module_count",
+          "seed_managed",
           "updated_at"
         ],
         "additionalProperties": false
@@ -2935,6 +2939,9 @@
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
+                "seed_managed": {
+                  "type": "boolean"
+                },
                 "lessons": {
                   "type": "array",
                   "items": {
@@ -2991,6 +2998,9 @@
                         "minimum": 1,
                         "maximum": 9007199254740991
                       },
+                      "seed_managed": {
+                        "type": "boolean"
+                      },
                       "updated_at": {
                         "type": "string",
                         "format": "date-time",
@@ -3008,15 +3018,28 @@
                       "module_id",
                       "status",
                       "version",
+                      "seed_managed",
                       "updated_at"
                     ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["slug", "title", "summary", "position", "id", "track_id", "lessons"],
+              "required": [
+                "slug",
+                "title",
+                "summary",
+                "position",
+                "id",
+                "track_id",
+                "seed_managed",
+                "lessons"
+              ],
               "additionalProperties": false
             }
+          },
+          "seed_managed": {
+            "type": "boolean"
           },
           "updated_at": {
             "type": "string",
@@ -3035,6 +3058,7 @@
           "version",
           "topics",
           "modules",
+          "seed_managed",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3102,6 +3126,9 @@
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "lessons": {
             "type": "array",
             "items": {
@@ -3158,6 +3185,9 @@
                   "minimum": 1,
                   "maximum": 9007199254740991
                 },
+                "seed_managed": {
+                  "type": "boolean"
+                },
                 "updated_at": {
                   "type": "string",
                   "format": "date-time",
@@ -3175,13 +3205,23 @@
                 "module_id",
                 "status",
                 "version",
+                "seed_managed",
                 "updated_at"
               ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["slug", "title", "summary", "position", "id", "track_id", "lessons"],
+        "required": [
+          "slug",
+          "title",
+          "summary",
+          "position",
+          "id",
+          "track_id",
+          "seed_managed",
+          "lessons"
+        ],
         "additionalProperties": false
       },
       "LessonListItem_Output": {
@@ -3221,6 +3261,9 @@
             "minimum": 1,
             "maximum": 9007199254740991
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3235,6 +3278,7 @@
           "track_id",
           "status",
           "version",
+          "seed_managed",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3351,6 +3395,9 @@
             "minimum": 1,
             "maximum": 9007199254740991
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3368,6 +3415,7 @@
           "module_id",
           "status",
           "version",
+          "seed_managed",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3404,13 +3452,25 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
-        "required": ["id", "slug", "name", "status", "version", "criteria_count", "updated_at"],
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "status",
+          "version",
+          "criteria_count",
+          "seed_managed",
+          "updated_at"
+        ],
         "additionalProperties": false
       },
       "RubricListResponseDto_Output": {
@@ -3607,13 +3667,25 @@
               "$ref": "#/components/schemas/RubricCriterion_Output"
             }
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           }
         },
-        "required": ["id", "slug", "name", "status", "version", "criteria", "updated_at"],
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "status",
+          "version",
+          "criteria",
+          "seed_managed",
+          "updated_at"
+        ],
         "additionalProperties": false
       },
       "QuestionListItem_Output": {
@@ -3693,6 +3765,9 @@
             "minimum": 1,
             "maximum": 9007199254740991
           },
+          "seed_managed": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3710,6 +3785,7 @@
           "rubric_slug",
           "status",
           "version",
+          "seed_managed",
           "updated_at"
         ],
         "additionalProperties": false
@@ -4034,13 +4110,25 @@
                   "$ref": "#/components/schemas/RubricCriterion_Output"
                 }
               },
+              "seed_managed": {
+                "type": "boolean"
+              },
               "updated_at": {
                 "type": "string",
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
               }
             },
-            "required": ["id", "slug", "name", "status", "version", "criteria", "updated_at"],
+            "required": [
+              "id",
+              "slug",
+              "name",
+              "status",
+              "version",
+              "criteria",
+              "seed_managed",
+              "updated_at"
+            ],
             "additionalProperties": false
           },
           "embedding_model": {
@@ -4048,6 +4136,9 @@
             "minLength": 1,
             "maxLength": 60,
             "nullable": true
+          },
+          "seed_managed": {
+            "type": "boolean"
           },
           "updated_at": {
             "type": "string",
@@ -4073,6 +4164,7 @@
           "topic",
           "rubric",
           "embedding_model",
+          "seed_managed",
           "updated_at"
         ],
         "additionalProperties": false

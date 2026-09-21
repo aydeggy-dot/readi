@@ -787,6 +787,7 @@ export interface components {
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
             module_count: number;
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -834,6 +835,7 @@ export interface components {
                 id: string;
                 /** Format: uuid */
                 track_id: string;
+                seed_managed: boolean;
                 lessons: {
                     slug: string;
                     title: string;
@@ -848,10 +850,12 @@ export interface components {
                     module_id: string;
                     status: components["schemas"]["ContentStatus_Output"];
                     version: number;
+                    seed_managed: boolean;
                     /** Format: date-time */
                     updated_at: string;
                 }[];
             }[];
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -870,6 +874,7 @@ export interface components {
             id: string;
             /** Format: uuid */
             track_id: string;
+            seed_managed: boolean;
             lessons: {
                 slug: string;
                 title: string;
@@ -884,6 +889,7 @@ export interface components {
                 module_id: string;
                 status: components["schemas"]["ContentStatus_Output"];
                 version: number;
+                seed_managed: boolean;
                 /** Format: date-time */
                 updated_at: string;
             }[];
@@ -899,6 +905,7 @@ export interface components {
             track_id: string;
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -929,6 +936,7 @@ export interface components {
             module_id: string;
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -940,6 +948,7 @@ export interface components {
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
             criteria_count: number;
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -988,6 +997,7 @@ export interface components {
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
             criteria: components["schemas"]["RubricCriterion_Output"][];
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -1009,6 +1019,7 @@ export interface components {
             rubric_slug: string;
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };
@@ -1083,10 +1094,12 @@ export interface components {
                 status: components["schemas"]["ContentStatus_Output"];
                 version: number;
                 criteria: components["schemas"]["RubricCriterion_Output"][];
+                seed_managed: boolean;
                 /** Format: date-time */
                 updated_at: string;
             };
             embedding_model: string | null;
+            seed_managed: boolean;
             /** Format: date-time */
             updated_at: string;
         };

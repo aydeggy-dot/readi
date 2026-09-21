@@ -94,7 +94,7 @@ pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
 pnpm check:contracts         # regenerate both and fail on drift (as CI does)
-pnpm db:seed                 # import /content/seed (idempotent; `-- --dry-run` validates and plans)
+pnpm db:seed                 # import /content/seed (idempotent; `-- --dry-run` plans, `-- --force` overwrites CMS edits)
 pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
 pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
@@ -162,6 +162,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   required `reviewer_notes` per question for the experts who review them. The importer writes through
   `ContentService` as the system, skips anything unchanged — no version, no audit row — and never
   deletes, publishes or embeds. `content/seed/REVIEW.md` is the guide the reviewers are given.
+- **The files create; the CMS owns** (ADR-0014 decision 5). Every content row carries `seed_managed`:
+  true while `/content/seed` is the source of its content, false from the first save in the CMS. The
+  importer updates only `seed_managed` rows and **names** the rest in its report; `pnpm db:seed --
+  --force` overwrites them and takes them back. A status transition is not an edit, so publishing
+  seeded content leaves it under the files. `seed_managed` is written in `ContentService` alone,
+  from `Actor.source` (`SEED_ACTOR`), and never by a transition.
 
 ### Prompts
 - Prompts live in versioned files: `apps/ai-worker/readi_worker/prompts/<name>.v<N>.md` (Jinja2 templates).

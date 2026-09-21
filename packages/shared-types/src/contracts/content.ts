@@ -125,6 +125,13 @@ export const RubricInput = z
   });
 export type RubricInput = z.infer<typeof RubricInput>;
 
+/**
+ * Whether `/content/seed` still owns this item's content (ADR-0014 decision 5): true until someone
+ * saves a change to it in the CMS, after which `pnpm db:seed` reports it as skipped rather than
+ * overwriting the edit. Admin shapes only — a candidate has no use for it.
+ */
+const seedManaged = () => z.boolean();
+
 export const Rubric = z.object({
   id: z.uuid(),
   slug: slug(),
@@ -132,6 +139,7 @@ export const Rubric = z.object({
   status: ContentStatus,
   version: z.int().min(1),
   criteria: z.array(RubricCriterion),
+  seed_managed: seedManaged(),
   updated_at: z.iso.datetime(),
 });
 export type Rubric = z.infer<typeof Rubric>;
@@ -166,6 +174,7 @@ export const Question = QuestionInput.extend({
   rubric: Rubric,
   /** Which model produced the stored embedding, so stale vectors can be found (ADR-0006). */
   embedding_model: z.string().min(1).max(60).nullable(),
+  seed_managed: seedManaged(),
   updated_at: z.iso.datetime(),
 });
 export type Question = z.infer<typeof Question>;
@@ -186,6 +195,7 @@ export const Lesson = LessonInput.extend({
   module_id: z.uuid(),
   status: ContentStatus,
   version: z.int().min(1),
+  seed_managed: seedManaged(),
   updated_at: z.iso.datetime(),
 });
 export type Lesson = z.infer<typeof Lesson>;
@@ -201,6 +211,7 @@ export type ModuleInput = z.infer<typeof ModuleInput>;
 export const Module = ModuleInput.extend({
   id: z.uuid(),
   track_id: z.uuid(),
+  seed_managed: seedManaged(),
   lessons: z.array(Lesson),
 });
 export type Module = z.infer<typeof Module>;
@@ -232,6 +243,7 @@ export const Track = z.object({
   version: z.int().min(1),
   topics: z.array(TrackTopicInput),
   modules: z.array(Module),
+  seed_managed: seedManaged(),
   updated_at: z.iso.datetime(),
 });
 export type Track = z.infer<typeof Track>;
@@ -276,6 +288,7 @@ export const TrackListItem = z
     status: ContentStatus,
     version: z.int().min(1),
     module_count: z.int().min(0),
+    seed_managed: seedManaged(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "TrackListItem" });
@@ -296,6 +309,7 @@ export const LessonListItem = z
     track_id: z.uuid(),
     status: ContentStatus,
     version: z.int().min(1),
+    seed_managed: seedManaged(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "LessonListItem" });
@@ -323,6 +337,7 @@ export const QuestionListItem = z
     rubric_slug: slug(),
     status: ContentStatus,
     version: z.int().min(1),
+    seed_managed: seedManaged(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "QuestionListItem" });
@@ -342,6 +357,7 @@ export const RubricListItem = z
     status: ContentStatus,
     version: z.int().min(1),
     criteria_count: z.int().min(0),
+    seed_managed: seedManaged(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "RubricListItem" });

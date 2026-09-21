@@ -4,27 +4,31 @@ import type {
   QuestionInput,
   RubricInput,
   SeedFile,
+  SeedModule,
   SeedQuestion,
   SeedTrack,
   TopicInput,
 } from "@readi/shared-types";
 import { PrismaService } from "../prisma/prisma.service";
 import { sameContent } from "./content-diff";
-import { ContentService, SYSTEM_ACTOR } from "./content.service";
+import { ContentService, SEED_ACTOR } from "./content.service";
 import type { LoadedSeedFile } from "./seed-loader";
 
 /**
  * Importing `/content/seed` into the database (spec §4.2).
  *
- * Two rules shape it:
+ * Three rules shape it:
  *
  * - **It writes through `ContentService`**, exactly as the CMS does, so a seeded change produces
  *   the same version snapshot and the same audit row as a change made by a person — as the system,
- *   with no name attached (`SYSTEM_ACTOR`).
+ *   with no name attached (`SEED_ACTOR`).
  * - **It is idempotent.** An item whose content has not changed is not written at all, so running
  *   `pnpm db:seed` twice leaves no second version, no audit row and no new timestamp. That is the
- *   milestone's acceptance criterion, and it is also what makes the importer safe to re-run after
- *   an expert edits one question in a file of forty.
+ *   milestone's acceptance criterion.
+ * - **The CMS wins.** The files create; once a person has edited an item in the CMS
+ *   (`seed_managed = false`), the importer leaves it alone and names it, so a re-run from muscle
+ *   memory cannot undo an expert's work. `--force` overwrites anyway and takes the item back for
+ *   the files (ADR-0014 decision 5).
  *
  * It never deletes and never publishes: content removed from a file stays in the database (a
  * person may have edited it since), and everything it writes is a draft.
@@ -34,9 +38,21 @@ export interface SeedCounts {
   created: number;
   updated: number;
   unchanged: number;
+  /**
+   * Slugs the CMS owns now, left exactly as they are. Named rather than counted: "3 skipped" sends
+   * a reader hunting, and the point of the report is to say what the files no longer control.
+   */
+  skipped: string[];
 }
 
 export type SeedEntityKind = "topics" | "rubrics" | "questions" | "tracks" | "modules" | "lessons";
+
+export interface SeedOptions {
+  /** Report the plan without writing anything. */
+  dryRun?: boolean;
+  /** Overwrite items the CMS owns, taking them back for the files (ADR-0014 decision 5). */
+  force?: boolean;
+}
 
 export type SeedReport = Record<SeedEntityKind, SeedCounts>;
 
@@ -51,7 +67,7 @@ export class SeedReferenceError extends Error {
   }
 }
 
-const emptyCounts = (): SeedCounts => ({ created: 0, updated: 0, unchanged: 0 });
+const emptyCounts = (): SeedCounts => ({ created: 0, updated: 0, unchanged: 0, skipped: [] });
 
 const emptyReport = (): SeedReport => ({
   topics: emptyCounts(),
@@ -75,8 +91,43 @@ export class SeedImporter {
   constructor(
     private readonly prisma: PrismaService,
     private readonly content: ContentService,
-    private readonly options: { dryRun: boolean } = { dryRun: false },
+    private readonly options: SeedOptions = {},
   ) {}
+
+  /** The note every seeded edit carries, so the history says where it came from. */
+  private get note(): string {
+    return this.options.force ? "seed import (forced)" : "seed import";
+  }
+
+  /**
+   * What to do about a row that already exists, in one place for all six kinds of content.
+   *
+   * The order of the two questions matters. **Has it changed?** comes first, so a CMS-owned item
+   * that happens to match its file is reported as unchanged rather than named in every future
+   * run — the skipped list is for file changes that did not land, and a list that never empties
+   * is a list nobody reads. **May we write it?** comes second: a row the CMS has taken over is
+   * left exactly as it is and named, unless `--force` is passed, in which case the write goes
+   * through `ContentService` as the seed actor and the row becomes the files' again
+   * (ADR-0014 decision 5).
+   */
+  private async applyChange(
+    counts: SeedCounts,
+    slug: string,
+    existing: { seedManaged: boolean },
+    unchanged: () => Promise<boolean>,
+    update: () => Promise<unknown>,
+  ): Promise<void> {
+    if (await unchanged()) {
+      counts.unchanged += 1;
+      return;
+    }
+    if (!existing.seedManaged && !this.options.force) {
+      counts.skipped.push(slug);
+      return;
+    }
+    counts.updated += 1;
+    if (!this.options.dryRun) await update();
+  }
 
   /**
    * Imports every file, in dependency order rather than file order: topics before the questions
@@ -106,7 +157,7 @@ export class SeedImporter {
       };
       const existing = await this.prisma.topic.findUnique({ where: { slug: topic.slug } });
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createTopic(SYSTEM_ACTOR, input);
+        if (!this.options.dryRun) await this.content.createTopic(SEED_ACTOR, input);
         report.topics.created += 1;
         continue;
       }
@@ -115,12 +166,13 @@ export class SeedImporter {
         name: existing.name,
         description: existing.description,
       };
-      if (sameContent(current, input)) {
-        report.topics.unchanged += 1;
-        continue;
-      }
-      if (!this.options.dryRun) await this.content.updateTopic(SYSTEM_ACTOR, existing.id, input);
-      report.topics.updated += 1;
+      await this.applyChange(
+        report.topics,
+        topic.slug,
+        existing,
+        () => Promise.resolve(sameContent(current, input)),
+        () => this.content.updateTopic(SEED_ACTOR, existing.id, input),
+      );
     }
   }
 
@@ -133,14 +185,16 @@ export class SeedImporter {
       };
       const existing = await this.prisma.rubric.findUnique({ where: { slug: rubric.slug } });
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createRubric(SYSTEM_ACTOR, input);
+        if (!this.options.dryRun) await this.content.createRubric(SEED_ACTOR, input);
         report.rubrics.created += 1;
         continue;
       }
-      await this.applyUpdate(
+      await this.applyChange(
         report.rubrics,
-        () => this.content.updateRubric(existing.id, input, { actor: SYSTEM_ACTOR, note }),
+        rubric.slug,
+        existing,
         async () => sameContent(await this.rubricContentOf(existing.id), input),
+        () => this.content.updateRubric(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
       );
     }
   }
@@ -150,32 +204,30 @@ export class SeedImporter {
       const input = await this.questionInput(file, question);
       const existing = await this.prisma.question.findUnique({ where: { slug: question.slug } });
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createQuestion(SYSTEM_ACTOR, input);
+        if (!this.options.dryRun) await this.content.createQuestion(SEED_ACTOR, input);
         report.questions.created += 1;
         continue;
       }
-      await this.applyUpdate(
+      const current: QuestionInput = {
+        slug: existing.slug,
+        roles: existing.roles,
+        levels: existing.levels,
+        type: existing.type,
+        topic_id: existing.topicId,
+        subtopic: existing.subtopic,
+        difficulty: existing.difficulty,
+        prompt: existing.prompt,
+        context: existing.context,
+        rubric_id: existing.rubricId,
+        ideal_points: existing.idealPoints,
+      };
+      await this.applyChange(
         report.questions,
-        () => this.content.updateQuestion(existing.id, input, { actor: SYSTEM_ACTOR, note }),
+        question.slug,
+        existing,
+        () => Promise.resolve(sameContent(current, input)),
         () =>
-          Promise.resolve(
-            sameContent(
-              {
-                slug: existing.slug,
-                roles: existing.roles,
-                levels: existing.levels,
-                type: existing.type,
-                topic_id: existing.topicId,
-                subtopic: existing.subtopic,
-                difficulty: existing.difficulty,
-                prompt: existing.prompt,
-                context: existing.context,
-                rubric_id: existing.rubricId,
-                ideal_points: existing.idealPoints,
-              },
-              input,
-            ),
-          ),
+          this.content.updateQuestion(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
       );
     }
   }
@@ -209,65 +261,67 @@ export class SeedImporter {
         report.modules.created += 1;
         if (!this.options.dryRun) {
           moduleId = (
-            await this.content.createModule(trackId, input, { actor: SYSTEM_ACTOR, note })
+            await this.content.createModule(trackId, input, { actor: SEED_ACTOR, note: this.note })
           ).id;
         }
-      } else if (
-        sameContent(
-          {
-            slug: existing.slug,
-            title: existing.title,
-            summary: existing.summary,
-            position: existing.position,
-          },
-          input,
-        )
-      ) {
-        report.modules.unchanged += 1;
       } else {
-        report.modules.updated += 1;
-        if (!this.options.dryRun) {
-          await this.content.updateModule(existing.id, input, { actor: SYSTEM_ACTOR, note });
-        }
-      }
-      if (!moduleId) continue;
-
-      for (const [lessonPosition, lesson] of module.lessons.entries()) {
-        const input: LessonInput = {
-          slug: lesson.slug,
-          title: lesson.title,
-          body: lesson.body,
-          topic_id: lesson.topic ? await this.topicId(file, lesson.topic) : null,
-          position: lessonPosition,
-          estimated_minutes: lesson.estimated_minutes,
+        const current: ModuleInput = {
+          slug: existing.slug,
+          title: existing.title,
+          summary: existing.summary,
+          position: existing.position,
         };
-        const existing = await this.prisma.lesson.findUnique({ where: { slug: lesson.slug } });
-        if (!existing) {
-          if (!this.options.dryRun) {
-            await this.content.createLesson(SYSTEM_ACTOR, moduleId, input);
-          }
-          report.lessons.created += 1;
-          continue;
-        }
-        await this.applyUpdate(
-          report.lessons,
-          () => this.content.updateLesson(existing.id, input, { actor: SYSTEM_ACTOR, note }),
+        await this.applyChange(
+          report.modules,
+          module.slug,
+          existing,
+          () => Promise.resolve(sameContent(current, input)),
           () =>
-            Promise.resolve(
-              sameContent(
-                {
-                  slug: existing.slug,
-                  title: existing.title,
-                  body: existing.body,
-                  topic_id: existing.topicId,
-                  position: existing.position,
-                  estimated_minutes: existing.estimatedMinutes,
-                },
-                input,
-              ),
-            ),
+            this.content.updateModule(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
         );
       }
+      // A module the CMS owns still has lessons the files may own, so they are considered either way.
+      if (!moduleId) continue;
+      await this.importLessons(file, module, moduleId, report);
+    }
+  }
+
+  private async importLessons(
+    file: string,
+    module: SeedModule,
+    moduleId: string,
+    report: SeedReport,
+  ): Promise<void> {
+    for (const [position, lesson] of module.lessons.entries()) {
+      const existing = await this.prisma.lesson.findUnique({ where: { slug: lesson.slug } });
+      const input: LessonInput = {
+        slug: lesson.slug,
+        title: lesson.title,
+        body: lesson.body,
+        topic_id: lesson.topic ? await this.topicId(file, lesson.topic) : null,
+        position,
+        estimated_minutes: lesson.estimated_minutes,
+      };
+      if (!existing) {
+        if (!this.options.dryRun) await this.content.createLesson(SEED_ACTOR, moduleId, input);
+        report.lessons.created += 1;
+        continue;
+      }
+      const current: LessonInput = {
+        slug: existing.slug,
+        title: existing.title,
+        body: existing.body,
+        topic_id: existing.topicId,
+        position: existing.position,
+        estimated_minutes: existing.estimatedMinutes,
+      };
+      await this.applyChange(
+        report.lessons,
+        lesson.slug,
+        existing,
+        () => Promise.resolve(sameContent(current, input)),
+        () => this.content.updateLesson(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+      );
     }
   }
 
@@ -296,7 +350,7 @@ export class SeedImporter {
     if (!existing) {
       report.tracks.created += 1;
       if (this.options.dryRun) return null;
-      return (await this.content.createTrack(SYSTEM_ACTOR, input)).id;
+      return (await this.content.createTrack(SEED_ACTOR, input)).id;
     }
     const current = {
       slug: existing.slug,
@@ -306,34 +360,17 @@ export class SeedImporter {
       summary: existing.summary,
       topics: existing.topics.map((link) => ({ topic_id: link.topicId, is_core: link.isCore })),
     };
-    if (sameContent(sortTopics(current), sortTopics(input))) report.tracks.unchanged += 1;
-    else {
-      report.tracks.updated += 1;
-      if (!this.options.dryRun) {
-        await this.content.updateTrack(existing.id, input, { actor: SYSTEM_ACTOR, note });
-      }
-    }
+    await this.applyChange(
+      report.tracks,
+      track.slug,
+      existing,
+      () => Promise.resolve(sameContent(sortTopics(current), sortTopics(input))),
+      () => this.content.updateTrack(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+    );
     return existing.id;
   }
 
   // -------------------------------------------------------------------------------------------
-
-  /** Counts an update, and performs it unless this is a dry run. */
-  private async applyUpdate(
-    counts: SeedCounts,
-    update: () => Promise<{ changed: boolean }>,
-    unchanged: () => Promise<boolean>,
-  ): Promise<void> {
-    if (this.options.dryRun) {
-      if (await unchanged()) counts.unchanged += 1;
-      else counts.updated += 1;
-      return;
-    }
-    // Outside a dry run the service decides: it compares the same content and answers `changed`.
-    const result = await update();
-    if (result.changed) counts.updated += 1;
-    else counts.unchanged += 1;
-  }
 
   private async questionInput(file: string, question: SeedQuestion): Promise<QuestionInput> {
     const rubric = await this.prisma.rubric.findUnique({ where: { slug: question.rubric } });
@@ -393,9 +430,6 @@ export class SeedImporter {
     };
   }
 }
-
-/** The change note every seeded edit carries, so the history says where it came from. */
-const note = "seed import";
 
 const sortTopics = <T extends { topics: { topic_id: string; is_core: boolean }[] }>(
   value: T,

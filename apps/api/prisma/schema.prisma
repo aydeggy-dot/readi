@@ -346,6 +346,10 @@ model Topic {
   slug        String   @unique
   name        String
   description String?
+  /// True while `/content/seed` is still the source of this row's content: the importer sets it,
+  /// and any edit made in the CMS clears it, so a re-import never undoes an expert's work
+  /// (ADR-0014 decision 5). A status change is not an edit and leaves it alone.
+  seedManaged Boolean  @default(false) @map("seed_managed")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -367,6 +371,8 @@ model Track {
   summary         String?
   status          ContentStatus   @default(draft)
   version         Int             @default(1)
+  /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
+  seedManaged     Boolean         @default(false) @map("seed_managed")
   createdByUserId String?         @map("created_by_user_id") @db.Uuid
   publishedAt     DateTime?       @map("published_at") @db.Timestamptz(6)
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -394,16 +400,18 @@ model TrackTopic {
 
 /// A section of a track. Structural: it has no status of its own and rides on its track's.
 model Module {
-  id        String   @id @default(uuid()) @db.Uuid
-  trackId   String   @map("track_id") @db.Uuid
-  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  slug      String
-  title     String
-  summary   String?
+  id          String   @id @default(uuid()) @db.Uuid
+  trackId     String   @map("track_id") @db.Uuid
+  track       Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  slug        String
+  title       String
+  summary     String?
   /// Order within the track; ties break by slug, so reordering never needs a unique swap.
-  position  Int
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  position    Int
+  /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
+  seedManaged Boolean  @default(false) @map("seed_managed")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   lessons Lesson[]
 
@@ -426,6 +434,8 @@ model Lesson {
   estimatedMinutes Int?          @map("estimated_minutes")
   status           ContentStatus @default(draft)
   version          Int           @default(1)
+  /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
+  seedManaged      Boolean       @default(false) @map("seed_managed")
   createdByUserId  String?       @map("created_by_user_id") @db.Uuid
   publishedAt      DateTime?     @map("published_at") @db.Timestamptz(6)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -444,6 +454,8 @@ model Rubric {
   name            String
   status          ContentStatus @default(draft)
   version         Int           @default(1)
+  /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
+  seedManaged     Boolean       @default(false) @map("seed_managed")
   createdByUserId String?       @map("created_by_user_id") @db.Uuid
   publishedAt     DateTime?     @map("published_at") @db.Timestamptz(6)
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -493,6 +505,8 @@ model Question {
   idealPoints     String[]          @map("ideal_points")
   status          ContentStatus     @default(draft)
   version         Int               @default(1)
+  /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
+  seedManaged     Boolean           @default(false) @map("seed_managed")
   createdByUserId String?           @map("created_by_user_id") @db.Uuid
   publishedAt     DateTime?         @map("published_at") @db.Timestamptz(6)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)

@@ -24,6 +24,7 @@ is not defined anywhere.
 ```bash
 pnpm db:seed -- --dry-run     # validate and print the plan; writes nothing
 pnpm db:seed                  # import; running it twice changes nothing
+pnpm db:seed -- --force       # also overwrite items that have been edited in the CMS
 pnpm --filter @readi/api content:review-doc   # regenerate review/*.md after editing content
 ```
 
@@ -50,6 +51,14 @@ questions[2].ideal_points: expected array`.
   edited it in the CMS since.
 - **Never publishes, and never embeds.** Embeddings are computed when a question is published
   (ADR-0006), which by then is a human's decision.
+- **Never overwrites a CMS edit.** Every row carries `seed_managed`, true while these files are
+  still the source of its content and false from the first save in `/admin/content`. The importer
+  creates what is missing, updates what is still `seed_managed`, and **names** everything else in
+  its report. `--force` overwrites those too and takes them back for the files, with
+  `seed import (forced)` in the version history. A status change is not an edit: publishing seeded
+  content leaves it under these files (ADR-0014 decision 5).
+
+The rule of thumb: **edit the YAML until the first expert review lands, and the CMS after.**
 
 `reviewer_notes` and `author` are seed metadata: the importer validates them and leaves them in the
 file. They have no column in the database. If the CMS should show them one day, that is a

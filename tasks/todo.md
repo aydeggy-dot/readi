@@ -405,9 +405,38 @@ the browser.
   Two spec files that both publish a track for one (role, level) pair still conflict; the fixtures
   now clear only _published_ tracks for a pair, so the seeded drafts survive.
 
-### Phases 5–6
+### Phase 5 — admin UI, and the source of truth after import (in progress)
 
-5. Admin UI in Margin + e2e, 6. verification, ADR-0014, docs and handover.
+Owner's ask (2026-09-21): settle where content lives once it has been imported, record it in
+ADR-0014, and say how expert feedback on `content/seed/review/*.md` comes back.
+
+**The decision (ADR-0014 decision 5).** The seed files create; the CMS owns. Every content row
+carries `seed_managed`: true while the importer is the only thing that has written its content,
+false the moment a person saves a change to it in the CMS. The importer creates what is missing,
+updates only rows that are still `seed_managed`, and **skips and reports** the rest. `--force`
+overwrites anyway and takes the row back. A status transition is not an edit, so publishing
+seeded content does not take it away from the file; saving a form without changing anything does
+not either (the service already compares content before writing).
+
+- [ ] `docs/adr/0014-content-model-and-workflow.md` — decisions 1–4 from the approved plan, plus
+      decision 5 (source of truth) and the feedback loop for `content/seed/review/*.md`
+- [ ] Prisma: `seed_managed` on `topics`, `tracks`, `modules`, `lessons`, `rubrics`, `questions`;
+      migration backfills existing rows (created by the system ⇒ seed-managed)
+- [ ] `ContentService`: `Actor.source`, `SEED_ACTOR`, the flag written by content writes only
+- [ ] `SeedImporter`: `skipped` counts + the slugs, `force`, reported by `pnpm db:seed`
+- [ ] Contracts: `seed_managed` on the admin shapes, so the CMS can say who owns an item
+- [ ] Tests: the case the owner named — import, edit in the CMS, re-import, the edit survives;
+      and `--force` overwrites it and takes the row back
+- [ ] Web: route group `(admin)` at `max-w-5xl`, `requireContentEditor()`, admin sub-nav
+- [ ] Screens: content home; lists with filters, search and keyset paging for questions, rubrics,
+      lessons, tracks, topics; create/edit forms; rubric editor; transitions; version history;
+      duplicate warnings; markdown preview (lazy, sanitised, admin-only chunk)
+- [ ] e2e `apps/web/e2e/content.spec.ts` + the new screens in `e2e/visual/capture.spec.ts`
+- [ ] Checks: lint, typecheck, format, tests, `check:contracts`, e2e
+
+### Phase 6
+
+Verification, docs and handover (ADR-0014 now lands in phase 5).
 
 ## Carried forward
 
