@@ -35,7 +35,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         status={lesson.data.status}
         role={me.role}
       />
-      <VersionHistory entity="lessons" id={lesson.data.id} />
+      <VersionHistory entity="lessons" id={lesson.data.id} version={lesson.data.version} />
     </>
   );
 }

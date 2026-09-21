@@ -14,9 +14,21 @@ import { browserApi } from "@/lib/browser-api";
  * It loads after the page, and one snapshot at a time: history is the least urgent thing on an
  * editor's screen and the heaviest to send.
  */
-export function VersionHistory({ entity, id }: { entity: ContentEntityPath; id: string }) {
+export function VersionHistory({
+  entity,
+  id,
+  version,
+}: {
+  entity: ContentEntityPath;
+  id: string;
+  /**
+   * The item's current version. It is part of the query key, so saving or publishing — both of
+   * which bump it — asks for the history again rather than showing the one from before the change.
+   */
+  version: number;
+}) {
   const { data, isPending, isError } = useQuery({
-    queryKey: ["content-versions", entity, id],
+    queryKey: ["content-versions", entity, id, version],
     queryFn: async () => {
       const { data } = await browserApi.GET("/api/admin/content/{entity}/{id}/versions", {
         params: { path: { entity, id } },

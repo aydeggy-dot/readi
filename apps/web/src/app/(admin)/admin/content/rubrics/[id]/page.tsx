@@ -27,7 +27,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
       />
       <RubricForm rubric={data} />
       <TransitionPanel entity="rubrics" id={data.id} status={data.status} role={me.role} />
-      <VersionHistory entity="rubrics" id={data.id} />
+      <VersionHistory entity="rubrics" id={data.id} version={data.version} />
     </>
   );
 }

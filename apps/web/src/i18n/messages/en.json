@@ -348,7 +348,8 @@
         "topic": "Topic",
         "any": "Any",
         "apply": "Apply",
-        "clear": "Clear filters"
+        "clear": "Clear filters",
+        "more": "Narrow it down"
       },
       "list": {
         "empty": "Nothing here yet.",

@@ -37,7 +37,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         status={track.data.status}
         role={me.role}
       />
-      <VersionHistory entity="tracks" id={track.data.id} />
+      <VersionHistory entity="tracks" id={track.data.id} version={track.data.version} />
     </>
   );
 }

@@ -40,7 +40,7 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
         status={question.data.status}
         role={me.role}
       />
-      <VersionHistory entity="questions" id={question.data.id} />
+      <VersionHistory entity="questions" id={question.data.id} version={question.data.version} />
     </>
   );
 }
