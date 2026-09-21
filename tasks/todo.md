@@ -452,6 +452,9 @@ alone, every run.
       database, then grants the role) and eight CMS screens
 - [x] Checks: lint, typecheck, format, `check:contracts`, build, 507 TypeScript + 76 Python tests,
       the full e2e suite
+- [x] Slow 4G, measured at `8bf3fef` (`E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network`, cold context,
+      uncompressed over loopback): CMS question list 274 KB / 2.9 s, question form 294 KB / 1.3 s —
+      in line with sign-up (275 KB). 112 screenshots in `screenshots/m2-phase5/` for review
 - Deviation from the approved plan: retire/publish confirm with a second click and a sentence,
   not a typed word. Both moves are reversible (`retired → draft`), and a modal at 360px costs more
   than it protects. Say so if you would rather have the typed confirmation.

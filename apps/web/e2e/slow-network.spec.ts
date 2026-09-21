@@ -64,8 +64,8 @@ test.describe("on a Slow 4G connection", () => {
     });
   }
 
-  test("the CMS on a phone connection", async ({ page, context }) => {
-    // Signing up is not what is being measured, so it happens before the throttling.
+  test("the CMS on a phone connection", async ({ page, browser }) => {
+    // Signing up is not what is being measured, so it happens first, unthrottled.
     const email = uniqueEmail();
     await page.goto("/signup");
     await page.getByRole("textbox", { name: "Email" }).fill(email);
@@ -74,15 +74,23 @@ test.describe("on a Slow 4G connection", () => {
     await page.waitForURL(/\/onboarding\/profile$/);
     grantRole(email, "content_expert");
 
-    const client = await context.newCDPSession(page);
+    // A *fresh* context with those cookies: measuring in the context that just signed up would
+    // count chunks the browser already had, which is how a 250 KB page reports 800 KB.
+    const cold = await browser.newContext({ storageState: await page.context().storageState() });
+    const coldPage = await cold.newPage();
+    const client = await cold.newCDPSession(coldPage);
     await client.send("Network.enable");
     await client.send("Network.emulateNetworkConditions", SLOW_4G);
 
-    for (const { path, name } of SIGNED_IN_PAGES) {
-      const { loaded, kb } = await measure(page, path);
-      console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
-      expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
-      expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
+    try {
+      for (const { path, name } of SIGNED_IN_PAGES) {
+        const { loaded, kb } = await measure(coldPage, path);
+        console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
+        expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
+        expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
+      }
+    } finally {
+      await cold.close();
     }
   });
 });

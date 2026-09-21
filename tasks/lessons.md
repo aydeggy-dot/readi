@@ -133,3 +133,7 @@
   excess-property checks for hyphenated JSX attributes, so `<Alert data-testid="x">` compiles even
   though `Alert` does not spread its props — and the test id is simply not in the DOM. Put a test id
   on an element, or on a component that spreads, and check it renders once.
+- Page weight must be measured in a **cold** browser context (M2 phase 5). Measuring the CMS in the
+  context that had just signed up reported 801 KB for a 274 KB page: `encodedBodySize` counts
+  resources served from the browser cache, and the load time (667 ms on a 1.6 Mbps profile) was the
+  tell — 800 KB cannot arrive in 667 ms. When a weight and a duration disagree, the weight is wrong.
