@@ -119,3 +119,17 @@
   surfaced as a nonsense error in an untouched component (`TextLink` props "not assignable to
   IntrinsicAttributes"). A full install fixed it. A duplicated `@types/*` is the usual cause of a
   type error in code nobody edited — check for two versions before debugging the component.
+- Prisma proposes dropping the hand-written HNSW index in **every** migration that touches
+  `questions` (M2 phase 5). It cannot see an index on an `Unsupported` column, so
+  `DROP INDEX questions_embedding_hnsw` appears at the top of each generated migration and, if it
+  ships, turns near-duplicate search into a sequential scan with nothing failing. Read every
+  generated migration for statements that undo hand-written SQL before applying it — the rule
+  generalises to any index, constraint or trigger Prisma does not model.
+- Generated types reach the web app through a **built** workspace package (M2 phase 5). After
+  `pnpm gen:contracts`, `packages/api-client/src/generated/schema.ts` is current but `dist` is not,
+  so `apps/web` typechecks against the old shapes and the errors read as if the contract change
+  never happened. Build the package (or run the turbo task that does) before believing a typecheck.
+- `data-*` attributes type-check on any component and then vanish (M2 phase 5). TypeScript skips
+  excess-property checks for hyphenated JSX attributes, so `<Alert data-testid="x">` compiles even
+  though `Alert` does not spread its props — and the test id is simply not in the DOM. Put a test id
+  on an element, or on a component that spreads, and check it renders once.
