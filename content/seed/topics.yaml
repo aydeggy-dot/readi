@@ -1,0 +1,62 @@
+# The topic taxonomy every question, lesson and track hangs from (spec §4.2).
+# Shared across roles: a topic is a thing to know, not a thing one role owns.
+version: 1
+author: ai_draft
+status: draft
+
+topics:
+  - slug: javascript-fundamentals
+    name: JavaScript fundamentals
+    description: The language itself — types, scope, closures, asynchrony, and how the runtime schedules work.
+
+  - slug: react-state
+    name: React state and data flow
+    description: Where state lives, how it moves between components, and when React re-renders.
+
+  - slug: browser-rendering
+    name: Browser rendering and performance
+    description: How a page becomes pixels, what blocks it, and what makes it slow on a real device.
+
+  - slug: css-layout
+    name: CSS layout and responsive design
+    description: Flow, flexbox and grid; building one layout that works from 360px upward.
+
+  - slug: web-networking
+    name: HTTP, APIs and the network
+    description: Requests, status codes, caching, and what a slow or failing network does to a page.
+
+  - slug: accessibility
+    name: Accessibility
+    description: Semantics, keyboard use and assistive technology as part of building, not as an audit.
+
+  - slug: frontend-testing
+    name: Testing frontend code
+    description: What is worth testing in a UI, and tests that fail for the right reason.
+
+  - slug: debugging
+    name: Debugging and diagnosis
+    description: Turning a report into a reproduction, a reproduction into a cause, and a cause into a fix.
+
+  - slug: collaboration
+    name: Working with a team
+    description: Code review, asking for help, disagreement, and saying what you do not know.
+
+  - slug: api-design
+    name: API design
+    description: Resources, status codes, error shapes and the contract a client has to live with.
+
+  - slug: databases
+    name: Databases and data modelling
+    description: Schemas, indexes, transactions, and the queries an application actually runs.
+
+  - slug: backend-reliability
+    name: Reliability and failure handling
+    description: Timeouts, retries, idempotency, and what a service does when a dependency is down.
+
+  - slug: test-design
+    name: Test design and coverage
+    description: Choosing cases worth writing — boundaries, states and the paths users take.
+
+  - slug: defect-reporting
+    name: Defect reporting and triage
+    description: Reports a developer can act on, and judging severity honestly.

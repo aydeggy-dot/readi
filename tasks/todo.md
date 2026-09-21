@@ -367,10 +367,47 @@ the browser.
   SDK). The contract generator wraps length-constrained strings in a RootModel, so the worker
   unwraps `request.texts[i].root` — a comment says what to delete if that ever changes.
 
-### Phases 4–6
+### Phase 4 — seed format, importer, drafted content (done, 2026-09-21)
 
-4. Seed format + importer + drafted content, 5. admin UI in Margin + e2e, 6. verification,
-   ADR-0014, docs and handover.
+- [x] `contracts/seed.ts`: the YAML format — slug references rather than uuids, `status: draft` as
+      the only status a file may declare, `author`, and a **required `reviewer_notes` per
+      question** (owner's ask: make review easy)
+- [x] `seed-loader.ts`: `yaml`'s `parseDocument` + a `LineCounter`, so every complaint carries
+      file, line, column and the path in the file's own words — and reports every problem, not the
+      first. A missing key is reported against the item that is missing it
+- [x] `seed-import.ts`: writes through `ContentService` as `SYSTEM_ACTOR`, so a seeded change makes
+      the same version snapshot and audit row as a human edit; skips anything unchanged; never
+      deletes, publishes or embeds. `--dry-run` resolves forward references to a placeholder so it
+      can print the whole plan
+- [x] `pnpm db:seed` (replacing the M2 placeholder) and `pnpm --filter @readi/api content:review-doc`
+- [x] Content, all `status: draft` / `author: ai_draft`: 14 topics; **frontend** — 1 track, 3
+      modules, 6 lessons, **8 questions** (5 technical, 1 scenario, 2 behavioural) with 6 sharp
+      rubrics plus a shared behavioural one; **backend** and **qa** skeletons — 1 track, 1 module,
+      2 lessons, 3 questions each
+- [x] `content/seed/REVIEW.md` — the guide the experts are given (the four checks, how to send it
+      back, what to know first) — and `content/seed/README.md` for engineers
+- [x] `content/seed/review/{frontend,backend,qa}.md` — generated printable pages: each question with
+      its answer key, all five level descriptors per criterion, the drafter's uncertainties, and a
+      tick box per check. Regenerate after editing the YAML; do not hand-edit
+- [x] Tests: loader unit tests (line/column, every problem, draft-only) and assertions over the real
+      corpus (valid, all draft, references resolve, weights total 100, notes present); integration
+      tests for create/idempotent/update-history/dry-run/bad-reference, plus **the answer-key
+      detector run over the corpus we actually ship** — the leak test's second pass, moved into the
+      seed spec so two files never import concurrently
+- [x] Checks: 572 tests (496 TypeScript + 76 Python), lint, typecheck, format, contracts
+- [x] Verified by hand: `pnpm db:seed -- --dry-run` → 14 topics, 11 rubrics, 14 questions, 3 tracks,
+      5 modules, 10 lessons to create; import; second run reports everything unchanged
+- Owner action: **the frontend bank needs expert review** — `content/seed/review/frontend.md` is the
+  page to send. Quality over quantity was the instruction, so cuts are welcome; the questions I am
+  least sure about are `js-async-ordering` (level) and `pushing-back-on-a-release` (cultural fit).
+- Notes: `yaml@2.9.1` is a new API dependency. `reviewer_notes` and `author` stay in the files —
+  they have no column — so if the CMS should show them, that is a migration in a later milestone.
+  Two spec files that both publish a track for one (role, level) pair still conflict; the fixtures
+  now clear only _published_ tracks for a pair, so the seeded drafts survive.
+
+### Phases 5–6
+
+5. Admin UI in Margin + e2e, 6. verification, ADR-0014, docs and handover.
 
 ## Carried forward
 

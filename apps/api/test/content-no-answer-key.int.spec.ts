@@ -2,6 +2,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createOpenApiDocument } from "../src/openapi";
+import { answerKeyLeaks } from "./answer-key";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
 import {
@@ -36,31 +37,6 @@ import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
  * mapper that builds it made this file fail on both counts — the marker text and the field name —
  * and nothing else in the suite noticed. That is the failure this test exists to cause.
  */
-
-const ANSWER_KEY_FIELD = /rubric|criteri|ideal_point|levels|weight/i;
-
-/** Every complaint about one payload: markers found, and answer-key-shaped keys found. */
-function answerKeyLeaks(payload: unknown, markers: readonly string[]): string[] {
-  const leaks: string[] = [];
-  const raw = JSON.stringify(payload) ?? "";
-  for (const marker of markers) {
-    if (raw.includes(marker)) leaks.push(`answer-key text ${marker}`);
-  }
-  const walk = (value: unknown, path: string): void => {
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => walk(item, `${path}[${index}]`));
-      return;
-    }
-    if (value === null || typeof value !== "object") return;
-    for (const [key, item] of Object.entries(value)) {
-      const here = path ? `${path}.${key}` : key;
-      if (ANSWER_KEY_FIELD.test(key)) leaks.push(`answer-key field ${here}`);
-      walk(item, here);
-    }
-  };
-  walk(payload, "");
-  return leaks;
-}
 
 describe("candidate content never carries the answer key", () => {
   let app: NestExpressApplication;

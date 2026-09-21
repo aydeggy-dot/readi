@@ -65,8 +65,9 @@ export async function seedPublishedContent(
   const status = options.status ?? "published";
   const id = randomUUID().slice(0, 8);
 
-  // This spec file owns this (role, level) pair; clear anything an interrupted run left behind.
-  await prisma.track.deleteMany({ where: { role, level } });
+  // This spec file owns this (role, level) pair. Only a *published* track can block it (the
+  // partial unique index), and only a published one is cleared — the seeded drafts stay.
+  await prisma.track.deleteMany({ where: { role, level, status: "published" } });
 
   const idealPoints = [marker("ideal-1"), marker("ideal-2")];
   const criteria = [60, 40].map((weight, index) => ({

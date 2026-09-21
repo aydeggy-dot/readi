@@ -121,7 +121,9 @@ describe("admin content API", () => {
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
-    await prisma.track.deleteMany({ where: { role: "frontend", level: "intern_junior" } });
+    await prisma.track.deleteMany({
+      where: { role: "frontend", level: "intern_junior", status: "published" },
+    });
 
     const expertUser = await signUpWithEmail(app, uniqueEmail());
     expert = expertUser.cookie;

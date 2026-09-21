@@ -102,10 +102,20 @@ const contains = (q: string) => ({ contains: q, mode: Prisma.QueryMode.insensiti
 const isPrismaError = (error: unknown, code: string): boolean =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === code;
 
-interface Actor {
-  id: string;
+/**
+ * Who is making a change. `id` is null for the seed importer and other CLIs: they act as the
+ * system, so the audit row says `system` and the authorship column stays empty rather than
+ * pointing at whichever admin happened to run the command.
+ */
+export interface Actor {
+  id: string | null;
   role: AuthenticatedUser["role"];
 }
+
+/** The importer and the CLIs. An admin's authority, nobody's name. */
+export const SYSTEM_ACTOR: Actor = { id: null, role: "admin" };
+
+const actorType = (actor: Actor) => (actor.id ? "admin" : "system");
 
 /** What a mutation needs to record itself: who, what changed, and why. */
 interface ChangeContext {
@@ -134,7 +144,7 @@ export class ContentService {
       .create({ data: { slug: input.slug, name: input.name, description: input.description } })
       .catch((error: unknown) => this.rethrowWriteError(error));
     await this.audit.record({
-      actorType: "admin",
+      actorType: actorType(actor),
       actorId: actor.id,
       action: "content.topic.created",
       targetType: "topic",
@@ -152,7 +162,7 @@ export class ContentService {
       })
       .catch((error: unknown) => this.rethrowWriteError(error));
     await this.audit.record({
-      actorType: "admin",
+      actorType: actorType(actor),
       actorId: actor.id,
       action: "content.topic.updated",
       targetType: "topic",
@@ -593,7 +603,7 @@ export class ContentService {
                 : await tx.rubric.update({ where: { id }, data });
         await this.audit.record(
           {
-            actorType: "admin",
+            actorType: actorType(actor),
             actorId: actor.id,
             action: `content.${ENTITY_TYPE[entity]}.${check.rule.verb}`,
             targetType: ENTITY_TYPE[entity],
@@ -872,7 +882,7 @@ export class ContentService {
     status: ContentStatus,
   ): Promise<void> {
     await this.audit.record({
-      actorType: "admin",
+      actorType: actorType(actor),
       actorId: actor.id,
       action: `content.${entityType}.created`,
       targetType: entityType,
@@ -892,7 +902,7 @@ export class ContentService {
     // Status and version only: the audit table outlives the content and holds no prose (ADR-0011).
     await this.audit.record(
       {
-        actorType: "admin",
+        actorType: actorType(actor),
         actorId: actor.id,
         action: `content.${entityType}.updated`,
         targetType: entityType,

@@ -1,0 +1,45 @@
+# Rubrics used by more than one role. A behavioural answer is judged the same way whether the
+# candidate is a frontend, backend or QA engineer, so there is one rubric rather than three copies
+# that would drift apart.
+version: 1
+author: ai_draft
+status: draft
+
+rubrics:
+  - slug: behavioural-answer-quality
+    name: Behavioural answer quality
+    criteria:
+      - dimension: A specific, real situation
+        description: >-
+          The answer is about one thing that actually happened, with enough detail — what the task
+          was, who else was involved, when — to be believable, rather than a general description of
+          how the candidate likes to work.
+        weight: 30
+        levels:
+          "0": No situation given; answers in generalities ("I always communicate early").
+          "1": Names a situation but with no detail that fixes it in time or place.
+          "2": One situation with some context, but key details are missing or vague.
+          "3": One clear situation with the context an outsider needs to follow it.
+          "4": One clear situation, concrete and specific, including what made it hard.
+      - dimension: Their own actions
+        description: >-
+          What the candidate personally did, in enough detail to judge, rather than what the team
+          did or what should have been done in principle.
+        weight: 40
+        levels:
+          "0": No actions described, or entirely "we" with no visible role for the candidate.
+          "1": Actions are generic ("I fixed it") and could describe anyone.
+          "2": Some of their own actions, but the sequence or reasoning is unclear.
+          "3": A clear account of what they did and why, in their own words.
+          "4": A clear account, including a decision they weighed and the trade-off they took.
+      - dimension: Outcome and what they took from it
+        description: >-
+          How it ended, honestly — including if it went badly — and something specific they do
+          differently now as a result.
+        weight: 30
+        levels:
+          "0": No outcome, or an outcome that does not follow from the actions described.
+          "1": States that it worked out, with nothing to show for it.
+          "2": An outcome, but the lesson is a platitude ("communication is important").
+          "3": A clear outcome and one specific thing they changed afterwards.
+          "4": A clear outcome, honest about what went wrong, and a change they can point to since.

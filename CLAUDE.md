@@ -94,11 +94,12 @@ pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
 pnpm check:contracts         # regenerate both and fail on drift (as CI does)
-pnpm db:seed                 # load /content/seed (stub until M2)
+pnpm db:seed                 # import /content/seed (idempotent; `-- --dry-run` validates and plans)
 pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
 pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
+pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -156,6 +157,11 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - `EMBEDDING_PROVIDER=fake` (the default) derives a vector from the text, so only identical questions
   ever match. Duplicate detection means something only on the real provider —
   `docs/runbooks/embeddings-switchover.md` is the path from one to the other.
+- Seed files in `/content/seed` refer to each other by **slug**, may declare only `status: draft`
+  (publishing is an admin's decision in the CMS, never a line in a file), and carry `author` and a
+  required `reviewer_notes` per question for the experts who review them. The importer writes through
+  `ContentService` as the system, skips anything unchanged — no version, no audit row — and never
+  deletes, publishes or embeds. `content/seed/REVIEW.md` is the guide the reviewers are given.
 
 ### Prompts
 - Prompts live in versioned files: `apps/ai-worker/readi_worker/prompts/<name>.v<N>.md` (Jinja2 templates).

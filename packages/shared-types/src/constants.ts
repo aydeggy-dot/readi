@@ -143,6 +143,8 @@ export const CONTENT_LIMITS = {
   criterionDescriptionMaxLength: 300,
   levelDescriptorMaxLength: 300,
   changeNoteMaxLength: 200,
+  /** Seed-file notes from the drafter to the reviewing expert (`/content/seed`). */
+  reviewerNotesMaxLength: 1_000,
   flagNoteMaxLength: 500,
   searchMaxLength: 100,
   pageSize: { default: 20, max: 100 },

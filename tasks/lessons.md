@@ -114,3 +114,8 @@
   detector over a payload that does leak. Then verify by hand once — widen the candidate schema,
   watch the test fail, revert — and record in the spec what was done and when. Written for a leak
   test; true of every invariant test.
+- After `pnpm add` in a workspace, run `pnpm install` before trusting a typecheck (M2 phase 4). The
+  incremental install left `apps/web` resolving a second copy of `@types/react`, and the failure
+  surfaced as a nonsense error in an untouched component (`TextLink` props "not assignable to
+  IntrinsicAttributes"). A full install fixed it. A duplicated `@types/*` is the usual cause of a
+  type error in code nobody edited — check for two versions before debugging the component.

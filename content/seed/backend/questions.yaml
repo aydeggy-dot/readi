@@ -1,0 +1,73 @@
+version: 1
+author: ai_draft
+status: draft
+
+questions:
+  - slug: api-error-shape
+    roles: [backend]
+    levels: [mid]
+    type: technical
+    topic: api-design
+    subtopic: error handling
+    difficulty: 3
+    prompt: >-
+      You are designing the error responses for an API that a mobile app and a web app both use.
+      What does an error look like, and how does the client know what to do with it?
+    context: null
+    rubric: api-error-contract
+    ideal_points:
+      - A stable machine-readable code per error, separate from the human message.
+      - Status codes used by category, including the difference between 401, 403 and 404.
+      - Validation failures name the offending fields so the client can mark them.
+      - Nothing internal in the body — no stack traces, no SQL — and a request id for support.
+      - One shape, the same across every endpoint, written down.
+    reviewer_notes: >-
+      Marked mid rather than junior because the interesting part is the contract, not the syntax.
+      Is 409 versus 422 (in the top descriptor of criterion 2) a reasonable thing to expect, or is
+      it the kind of distinction that only reads as knowledge because it is obscure?
+
+  - slug: n-plus-one-diagnosis
+    roles: [backend]
+    levels: [mid]
+    type: technical
+    topic: databases
+    subtopic: query performance
+    difficulty: 3
+    prompt: >-
+      An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your
+      machine. Nothing in the code looks expensive. How do you find out what is happening?
+    context: null
+    rubric: query-performance-diagnosis
+    ideal_points:
+      - Look at the queries the request actually made, not just the code.
+      - Twenty-one queries instead of one is the signature of an N+1.
+      - Round trips dominate when the database is across a network, which is why the laptop lies.
+      - "`EXPLAIN ANALYZE` the worst query; check for a sequential scan and the real row count."
+      - Fetch related rows in one query, or add the index the plan asks for — then re-measure.
+    reviewer_notes: >-
+      The "fast locally, slow in production" framing is meant to push towards round trips rather
+      than raw query time. It may be too strong a hint. Would you rather the question said nothing
+      about the local machine?
+
+  - slug: incident-you-contributed-to
+    roles: [backend, frontend, qa]
+    levels: [mid]
+    type: behavioral
+    topic: collaboration
+    subtopic: incidents
+    difficulty: 3
+    prompt: >-
+      Tell me about a production problem you had a hand in causing. What happened, what did you do
+      at the time, and what changed afterwards?
+    context: null
+    rubric: behavioural-answer-quality
+    ideal_points:
+      - A specific incident, with their own part in it stated plainly.
+      - What they did during it — and whether they told anyone early.
+      - How it was resolved, including what was rolled back or hot-fixed.
+      - "A change that outlived the incident: a test, an alert, a check in the deploy."
+      - No blaming of a colleague or of "the process" without owning their share.
+    reviewer_notes: >-
+      Candidates often arrive coached to avoid admitting fault, so the answers may be evasive
+      regardless of the person. Is this worth asking at mid level, or does it mostly measure
+      interview training? If it stays, should the rubric explicitly reward admitting a mistake?

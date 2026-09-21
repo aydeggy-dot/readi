@@ -1,0 +1,218 @@
+# The frontend question bank: eight questions for an intern or junior interview.
+#
+# Draft, written by a model. `reviewer_notes` on each question says what the drafter is unsure
+# about — read those first, and see content/seed/REVIEW.md for what we are asking you to check.
+version: 1
+author: ai_draft
+status: draft
+
+questions:
+  - slug: js-async-ordering
+    roles: [frontend]
+    levels: [intern_junior, mid]
+    type: technical
+    topic: javascript-fundamentals
+    subtopic: event loop
+    difficulty: 3
+    prompt: >-
+      Have a look at this snippet. In what order do the four numbers appear in the console, and
+      what is it about the way the browser runs JavaScript that makes it come out that way?
+    context: |
+      ```js
+      console.log("1");
+      setTimeout(() => console.log("4"), 0);
+      Promise.resolve().then(() => console.log("3"));
+      console.log("2");
+      ```
+    rubric: async-ordering-understanding
+    ideal_points:
+      - The order is 1, 2, 3, 4.
+      - JavaScript runs on one thread; the synchronous lines run to completion first.
+      - Promise callbacks are microtasks and are drained after the current work, before the next task.
+      - A zero-delay `setTimeout` is a task, so it waits behind the microtasks — "0ms" is not "now".
+      - The same thread paints, so long synchronous work blocks rendering and input.
+    reviewer_notes: >-
+      Difficulty 3 is a judgement call: plenty of good juniors have never heard the word microtask,
+      and we may be rewarding people who have read a blog post rather than people who can build.
+      Is this a fair question for an intern, or should it be mid only? If it stays, is criterion 3
+      ("connects it to the user") the right way to stop it being trivia?
+
+  - slug: fetch-failure-states
+    roles: [frontend]
+    levels: [intern_junior]
+    type: technical
+    topic: web-networking
+    subtopic: error handling
+    difficulty: 2
+    prompt: >-
+      You are building a screen that loads a list of jobs from an API and shows them. Walk me
+      through everything that screen has to handle — not just the case where the jobs come back.
+    context: null
+    rubric: network-failure-handling
+    ideal_points:
+      - "Four states, not one: loading, empty, error, and data."
+      - An empty list is a normal result and needs its own message, not an error.
+      - "`fetch` resolves for a 404 or a 500: the status has to be checked, e.g. `response.ok`."
+      - A request needs a deadline, because a phone that has lost signal hangs rather than failing.
+      - The error state should offer the user something to do — retry, or go back.
+    reviewer_notes: >-
+      This is deliberately open rather than a puzzle, so a candidate who has built a real screen
+      does well and one who has memorised trivia does not. The risk is that it rewards talkers.
+      Does the rubric weight (40% on HTTP error handling) put enough of the score on the one thing
+      that is objectively right or wrong?
+
+  - slug: react-state-placement
+    roles: [frontend]
+    levels: [intern_junior, mid]
+    type: technical
+    topic: react-state
+    subtopic: lifting state
+    difficulty: 3
+    prompt: >-
+      Two components on the same page need to know which job the user has selected: a list on the
+      left and a detail panel on the right. Where would you keep that selection, and why there?
+    context: null
+    rubric: state-placement-reasoning
+    ideal_points:
+      - Lift it to the nearest component that contains both — not to a global store by reflex.
+      - Keep the id, not a copy of the job object, so there is one source of truth.
+      - The job data itself is server state and belongs in a cache that can refetch, not in `useState`.
+      - Consider the URL, so the selection survives a reload and can be shared.
+      - Name the cost of the choice — prop drilling, or re-rendering the list when the selection changes.
+    reviewer_notes: >-
+      "Put it in the URL" is the answer I would most like to hear, but it may be unreasonable at
+      intern level and it is not in the top level descriptor. Should it be? Also: is asking for the
+      *cost* of the decision (30% of the score) fair on someone who has only worked on small apps?
+
+  - slug: react-unnecessary-effect
+    roles: [frontend]
+    levels: [intern_junior, mid]
+    type: technical
+    topic: react-state
+    subtopic: effects
+    difficulty: 3
+    prompt: >-
+      This component works, but a reviewer has asked you to change it. What would you say is wrong
+      with it, what does it actually cost, and how would you write it instead?
+    context: |
+      ```jsx
+      function Cart({ items }) {
+        const [total, setTotal] = useState(0);
+
+        useEffect(() => {
+          setTotal(items.reduce((sum, item) => sum + item.price, 0));
+        }, [items]);
+
+        return <p>Total: ₦{total}</p>;
+      }
+      ```
+    rubric: effect-diagnosis
+    ideal_points:
+      - The total is derived from props, so it is not state at all — compute it during render.
+      - The effect runs after render, so the user sees the old total for one frame.
+      - It costs an extra render every time `items` changes.
+      - It creates a second place for the truth to live, which can disagree with `items`.
+      - Effects are for synchronising with things outside React, not for keeping values in step.
+    reviewer_notes: >-
+      This is the clearest "one right answer" question in the bank, which makes it good for
+      calibration but weak at separating a solid candidate from an excellent one. The excellence
+      descriptors lean on naming the rule and on memoisation — is that the right bar, or would you
+      rather see them notice the one-frame-stale UI?
+
+  - slug: css-overflow-at-360
+    roles: [frontend]
+    levels: [intern_junior]
+    type: technical
+    topic: css-layout
+    subtopic: responsive debugging
+    difficulty: 2
+    prompt: >-
+      A tester reports that on their phone the page scrolls sideways — there is a strip of empty
+      space to the right of everything. It looks fine on your laptop. How do you find what is
+      causing it, and what would you expect the culprit to be?
+    context: null
+    rubric: responsive-layout-diagnosis
+    ideal_points:
+      - Reproduce it first at a narrow width (360px) in the device toolbar, rather than guessing.
+      - Narrow down to the element wider than the viewport, e.g. by inspecting or bisecting the DOM.
+      - Usual suspects — a fixed width or `min-width`, a wide table or image, a long unbroken string, negative margins, `100vw` next to a scrollbar.
+      - "Fix the cause; `overflow-x: hidden` hides the symptom and usually hides a real bug."
+      - Prefer a fix that holds at every width over a media query for one size.
+    reviewer_notes: >-
+      Listed at difficulty 2 because the method matters more than the knowledge, but juniors who
+      have only built desktop-first sites may never have met it. Are the "usual suspects" the right
+      list for the sites people here actually build, and is `100vw` with a scrollbar too obscure to
+      belong in the top descriptor?
+
+  - slug: slow-page-on-3g
+    roles: [frontend]
+    levels: [intern_junior, mid]
+    type: scenario
+    topic: browser-rendering
+    subtopic: performance investigation
+    difficulty: 3
+    prompt: >-
+      A user writes in: "your site takes forever to load on my phone". You cannot reproduce it —
+      on your laptop the page appears instantly. What do you do, in order, and how do you decide
+      what to change?
+    context: null
+    rubric: performance-investigation
+    ideal_points:
+      - Ask for what the report is missing — which page, which device, on mobile data or wifi, every time or once.
+      - Reproduce under the user's conditions — throttle the network to Slow 4G and the CPU 4–6×.
+      - Record a load and read it — the waterfall for bytes and round trips, the main thread for long tasks.
+      - Decide which budget is blown, network or CPU, before choosing a fix.
+      - Make the change the measurement points to, then measure again to see whether it helped.
+    reviewer_notes: >-
+      The intended shape of a strong answer is "reproduce, measure, then act", and the rubric puts
+      40% on that. My worry is that a candidate who has never used the Performance panel but says
+      sensible things scores 3s across the board. Is there a follow-up you would always ask here to
+      tell those two apart?
+
+  - slug: stuck-and-asked-for-help
+    roles: [frontend, backend, qa]
+    levels: [intern_junior]
+    type: behavioral
+    topic: collaboration
+    subtopic: asking for help
+    difficulty: 2
+    prompt: >-
+      Tell me about a time you were properly stuck on something. How long did you spend before you
+      asked for help, what did you ask, and what happened?
+    context: null
+    rubric: behavioural-answer-quality
+    ideal_points:
+      - One specific occasion, with enough detail to be believable.
+      - What they tried before asking — evidence of an attempt, not just a search.
+      - How they asked — what they had tried, what they expected, what happened instead.
+      - "A sense of proportion about timing: long enough to have tried, not so long that the team lost a day."
+      - What they do differently now, stated concretely.
+    reviewer_notes: >-
+      Intended to reward good judgement about when to ask, which matters more for a junior than
+      almost any technical skill. The risk is cultural: in some teams here asking early is read as
+      weakness, so candidates may under-report it. Does the question need rewording so it does not
+      sound like a trap?
+
+  - slug: feedback-on-your-code
+    roles: [frontend, backend, qa]
+    levels: [intern_junior, mid]
+    type: behavioral
+    topic: collaboration
+    subtopic: code review
+    difficulty: 2
+    prompt: >-
+      Tell me about a piece of your work that came back with a lot of review comments. What were
+      they about, how did you handle it, and what did the code end up looking like?
+    context: null
+    rubric: behavioural-answer-quality
+    ideal_points:
+      - A real review, described specifically rather than as a general attitude to feedback.
+      - At least one comment they disagreed with, and how they resolved it.
+      - Evidence they separated the code from themselves.
+      - What changed in the end — including where the reviewer turned out to be right.
+      - A habit they picked up from it that shows in how they write code now.
+    reviewer_notes: >-
+      Pairs with `stuck-and-asked-for-help`; both use the shared behavioural rubric. Two
+      behavioural questions out of eight is my guess at the right ratio for a junior interview —
+      tell me if it should be more. Also: is asking about "a lot of comments" leading them towards
+      a story where they were wrong?
