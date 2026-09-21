@@ -1,6 +1,7 @@
 import { ROLES } from "@readi/shared-types/constants";
 import type { Metadata } from "next";
 import { PageHeading } from "@/components/layout/page-heading";
+import { TextLink } from "@/components/ui/text-link";
 import { t } from "@/i18n";
 import { requireAdmin, serverApi } from "@/lib/session";
 
@@ -15,6 +16,10 @@ export default async function AdminPage() {
   return (
     <>
       <PageHeading title={t("admin.title")} lead={t("admin.description")} />
+      <p className="text-lg">
+        <TextLink href="/admin/content">{t("admin.content.title")}</TextLink>{" "}
+        <span className="text-muted-foreground">{t("admin.content.description")}</span>
+      </p>
       <section className="flex flex-col gap-2 border-t border-frame pt-6">
         {/* Figures are sans, always, whatever is around them (ADR-0013). */}
         <p className="text-5xl leading-none font-bold" data-testid="admin-users-total">

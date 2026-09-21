@@ -12,8 +12,17 @@ import { isCurrentPath } from "@/lib/navigation";
  * (ADR-0013). Client-side only because the current path is a browser fact; the label itself is
  * still translated on the server and passed in as children, so no copy reaches the bundle.
  */
-export function NavLink({ href, children }: { href: string; children: ReactNode }) {
-  const current = isCurrentPath(usePathname(), href);
+export function NavLink({
+  href,
+  exact,
+  children,
+}: {
+  href: string;
+  /** For a link whose section contains another link's page, e.g. /admin beside /admin/content. */
+  exact?: boolean;
+  children: ReactNode;
+}) {
+  const current = isCurrentPath(usePathname(), href, { exact });
   return (
     <Link
       href={href}

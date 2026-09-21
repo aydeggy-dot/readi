@@ -405,34 +405,59 @@ the browser.
   Two spec files that both publish a track for one (role, level) pair still conflict; the fixtures
   now clear only _published_ tracks for a pair, so the seeded drafts survive.
 
-### Phase 5 — admin UI, and the source of truth after import (in progress)
+### Phase 5 — admin UI, and the source of truth after import (done, 2026-09-21)
 
-Owner's ask (2026-09-21): settle where content lives once it has been imported, record it in
-ADR-0014, and say how expert feedback on `content/seed/review/*.md` comes back.
+Owner's ask: settle where content lives once it has been imported, record it in ADR-0014, and say
+how expert feedback on `content/seed/review/*.md` comes back.
 
 **The decision (ADR-0014 decision 5).** The seed files create; the CMS owns. Every content row
 carries `seed_managed`: true while the importer is the only thing that has written its content,
 false the moment a person saves a change to it in the CMS. The importer creates what is missing,
-updates only rows that are still `seed_managed`, and **skips and reports** the rest. `--force`
-overwrites anyway and takes the row back. A status transition is not an edit, so publishing
-seeded content does not take it away from the file; saving a form without changing anything does
-not either (the service already compares content before writing).
+updates only rows that are still `seed_managed`, and **names** the rest in its report. `--force`
+overwrites anyway and takes the row back. Two things deliberately do not take a row away from the
+files: a status transition (publishing is not authorship) and a save that changed nothing. The
+skipped list only names items whose file content actually differs, so it stays a list of file
+changes that did not land rather than one that never empties.
 
-- [ ] `docs/adr/0014-content-model-and-workflow.md` — decisions 1–4 from the approved plan, plus
-      decision 5 (source of truth) and the feedback loop for `content/seed/review/*.md`
-- [ ] Prisma: `seed_managed` on `topics`, `tracks`, `modules`, `lessons`, `rubrics`, `questions`;
-      migration backfills existing rows (created by the system ⇒ seed-managed)
-- [ ] `ContentService`: `Actor.source`, `SEED_ACTOR`, the flag written by content writes only
-- [ ] `SeedImporter`: `skipped` counts + the slugs, `force`, reported by `pnpm db:seed`
-- [ ] Contracts: `seed_managed` on the admin shapes, so the CMS can say who owns an item
-- [ ] Tests: the case the owner named — import, edit in the CMS, re-import, the edit survives;
-      and `--force` overwrites it and takes the row back
-- [ ] Web: route group `(admin)` at `max-w-5xl`, `requireContentEditor()`, admin sub-nav
-- [ ] Screens: content home; lists with filters, search and keyset paging for questions, rubrics,
-      lessons, tracks, topics; create/edit forms; rubric editor; transitions; version history;
-      duplicate warnings; markdown preview (lazy, sanitised, admin-only chunk)
-- [ ] e2e `apps/web/e2e/content.spec.ts` + the new screens in `e2e/visual/capture.spec.ts`
-- [ ] Checks: lint, typecheck, format, tests, `check:contracts`, e2e
+**Feedback flow** (written into `content/seed/REVIEW.md` and `README.md`): the YAML until the first
+expert review lands, the CMS after. Nobody has to remember which — the importer says what it left
+alone, every run.
+
+- [x] `docs/adr/0014-content-model-and-workflow.md` — decisions 1–4 from the approved plan plus
+      decision 5 and the feedback loop; ADR index updated
+- [x] Migration `content_seed_managed` on all six content tables, backfilling existing rows as
+      seed-managed. Prisma's generated `DROP INDEX questions_embedding_hnsw` was removed by hand —
+      it proposes that in **every** migration that touches `questions`
+- [x] `Actor.source` / `SEED_ACTOR` in `ContentService`; the flag is written by content writes only
+- [x] Importer: `skipped` slugs, `--force`, and six per-entity update paths collapsed into one
+      `applyChange` helper; `pnpm db:seed` reports what it kept and how to overwrite it
+- [x] `seed_managed` on the admin contracts (not `Topic` — it is the one admin shape the candidate
+      responses share), so the CMS can say which items a re-import still controls
+- [x] Web: route group `(admin)` at `max-w-5xl`, `requireContentEditor()`, admin bar + content
+      section bar, `NavLink` gained `exact` (/admin and /admin/content are siblings, not a section)
+- [x] Screens: content home with the "waiting for an admin" queue; lists with a GET filter bar,
+      search and keyset paging for questions, rubrics, lessons, tracks; topics managed in place;
+      create/edit forms for questions, rubrics, lessons, tracks and modules; the rubric editor with
+      a live weight total; transitions; version history with snapshots; duplicate warnings
+- [x] Markdown preview: `marked` 18.0.12 + `dompurify` 3.4.15, dynamically imported and sanitised.
+      Verified in the build: the two chunks (27 KB + 42 KB) are in **no** route's initial JS
+- [x] `CONTENT_TRANSITIONS` moved to `@readi/shared-types/constants`, so the CMS draws its buttons
+      from the same table the API guard enforces instead of a second copy that would drift
+- [x] e2e `apps/web/e2e/content.spec.ts`: candidate gets a 404 from the CMS; expert adds a topic,
+      writes a rubric (weights 60/40, five descriptors each) and a question, previews the markdown
+      and submits both; expert has no Publish button; the candidate API does not have the question;
+      admin's publish is refused until the rubric is published, then succeeds; history shows the
+      snapshot; the candidate sees the question and none of the answer key
+- [x] `e2e/visual/capture.spec.ts`: a fourth `expert` state (seeds `/content/seed` into the e2e
+      database, then grants the role) and eight CMS screens
+- [x] Checks: lint, typecheck, format, `check:contracts`, build, 507 TypeScript + 76 Python tests,
+      the full e2e suite
+- Deviation from the approved plan: retire/publish confirm with a second click and a sentence,
+  not a typed word. Both moves are reversible (`retired → draft`), and a modal at 360px costs more
+  than it protects. Say so if you would rather have the typed confirmation.
+- Not built, and worth a decision later: reordering modules and lessons by drag (position is a
+  number field today), and `reviewer_notes` / `author` in the CMS — they have no column, so showing
+  them is a migration (noted in phase 4 too).
 
 ### Phase 6
 

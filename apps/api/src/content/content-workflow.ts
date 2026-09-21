@@ -1,4 +1,5 @@
 import type { ContentStatus, ContentTransition, Role } from "@readi/shared-types";
+import { CONTENT_TRANSITIONS } from "@readi/shared-types/constants";
 
 /**
  * The content workflow (spec §4.8, ADR-0014): who may move a piece of content where. A content
@@ -14,22 +15,12 @@ export interface TransitionRule {
   readonly verb: string;
 }
 
-export const TRANSITIONS: Readonly<Record<ContentTransition, TransitionRule>> = {
-  submit: {
-    from: ["draft"],
-    to: "in_review",
-    roles: ["content_expert", "admin"],
-    verb: "submitted",
-  },
-  return_to_draft: {
-    from: ["in_review", "retired"],
-    to: "draft",
-    roles: ["content_expert", "admin"],
-    verb: "returned_to_draft",
-  },
-  publish: { from: ["in_review"], to: "published", roles: ["admin"], verb: "published" },
-  retire: { from: ["published"], to: "retired", roles: ["admin"], verb: "retired" },
-};
+/**
+ * The table itself is in `@readi/shared-types/constants`, because the CMS needs the same one to
+ * draw its buttons and a second copy would drift. This file is still the guard: nothing changes a
+ * status without going through `checkTransition`.
+ */
+export const TRANSITIONS: Readonly<Record<ContentTransition, TransitionRule>> = CONTENT_TRANSITIONS;
 
 export type TransitionCheck =
   | { allowed: true; rule: TransitionRule }

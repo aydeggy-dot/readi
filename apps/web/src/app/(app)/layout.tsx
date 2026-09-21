@@ -14,7 +14,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         nav={
           <nav aria-label={t("nav.main")} className="flex items-center gap-1 sm:gap-3">
             <NavLink href="/profile">{t("nav.profile")}</NavLink>
+            {/* One way into the staff side, whichever staff role it is; /admin links on to the CMS. */}
             {me.role === "admin" && <NavLink href="/admin">{t("nav.admin")}</NavLink>}
+            {me.role === "content_expert" && (
+              <NavLink href="/admin/content">{t("nav.content")}</NavLink>
+            )}
           </nav>
         }
       />

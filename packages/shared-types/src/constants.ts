@@ -125,6 +125,55 @@ export const RUBRIC_WEIGHT_TOTAL = 100;
 /** The five rubric levels every criterion describes, 0 (absent) to 4 (excellent). */
 export const RUBRIC_LEVELS = ["0", "1", "2", "3", "4"] as const;
 
+/**
+ * Who may move a piece of content where (spec §4.8, ADR-0014 decision 1). A content expert writes
+ * and submits; only an admin publishes or retires.
+ *
+ * It lives here, with the other plain values, because two sides need the same table: the API
+ * enforces it (`apps/api/src/content/content-workflow.ts`, which is still the guard), and the CMS
+ * draws only the buttons that would work. A second copy in the web app would drift.
+ */
+export const CONTENT_TRANSITIONS = {
+  submit: {
+    from: ["draft"],
+    to: "in_review",
+    roles: ["content_expert", "admin"],
+    /** The verb the audit log records, as `content.<entity>.<verb>`. */
+    verb: "submitted",
+  },
+  return_to_draft: {
+    from: ["in_review", "retired"],
+    to: "draft",
+    roles: ["content_expert", "admin"],
+    verb: "returned_to_draft",
+  },
+  publish: { from: ["in_review"], to: "published", roles: ["admin"], verb: "published" },
+  retire: { from: ["published"], to: "retired", roles: ["admin"], verb: "retired" },
+} as const satisfies Record<
+  string,
+  {
+    from: readonly (typeof CONTENT_STATUSES)[number][];
+    to: (typeof CONTENT_STATUSES)[number];
+    roles: readonly (typeof ROLES)[number][];
+    verb: string;
+  }
+>;
+
+/** The moves a role could make from a status, so the CMS draws only the buttons that work. */
+export function availableTransitions(
+  status: (typeof CONTENT_STATUSES)[number],
+  role: (typeof ROLES)[number],
+): (keyof typeof CONTENT_TRANSITIONS)[] {
+  const names = Object.keys(CONTENT_TRANSITIONS) as (keyof typeof CONTENT_TRANSITIONS)[];
+  return names.filter((name) => {
+    const rule = CONTENT_TRANSITIONS[name];
+    return (
+      (rule.roles as readonly string[]).includes(role) &&
+      (rule.from as readonly string[]).includes(status)
+    );
+  });
+}
+
 export const CONTENT_LIMITS = {
   slugMaxLength: 80,
   titleMaxLength: 140,

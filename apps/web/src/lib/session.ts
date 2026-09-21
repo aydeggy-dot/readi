@@ -42,3 +42,13 @@ export async function requireAdmin(): Promise<MeResponse> {
   if (me.role !== "admin") notFound();
   return me;
 }
+
+/**
+ * The CMS: a content expert writes and submits, an admin publishes (ADR-0014 decision 1), so both
+ * reach `/admin/content`. Like `requireAdmin`, everyone else gets a 404 rather than a hint.
+ */
+export async function requireContentEditor(): Promise<MeResponse> {
+  const me = await requireUser();
+  if (me.role !== "admin" && me.role !== "content_expert") notFound();
+  return me;
+}

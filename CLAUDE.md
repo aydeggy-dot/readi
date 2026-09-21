@@ -248,6 +248,13 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   under `prefers-reduced-motion`. `app/global-error.tsx` renders outside the root layout, so it
   carries its own inline CSS and must never depend on the tokens, `globals.css` or the fonts.
   The landing copy is a draft for the owner: `docs/progress/2026-09-20-d1-landing-copy.md`.
+- The CMS is its own route group, `apps/web/src/app/(admin)`, at `max-w-5xl` — staff screens, not
+  reading. Every page states its own access rule (`requireAdmin`, `requireContentEditor`), and the
+  lists are server-rendered: the filter bar is a plain GET form and the pager a link, so filtering,
+  searching and paging need no JavaScript. Which workflow buttons to draw comes from
+  `CONTENT_TRANSITIONS` in `@readi/shared-types/constants` — the same table the API guard enforces.
+  The markdown preview (`marked` + `dompurify`, sanitised) is imported dynamically, so no candidate
+  page ever loads it.
 - API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
   `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
 - User files are uploaded by the browser to object storage with presigned URLs (type and length

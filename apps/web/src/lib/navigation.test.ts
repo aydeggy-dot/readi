@@ -62,6 +62,13 @@ describe("isCurrentPath", () => {
     expect(isCurrentPath("/profile/cv", "/profile")).toBe(true);
   });
 
+  it("keeps a section link off when the page belongs to a sibling", () => {
+    // /admin and /admin/content sit side by side in the bar, so only one may be current.
+    expect(isCurrentPath("/admin/content/questions", "/admin")).toBe(true);
+    expect(isCurrentPath("/admin/content/questions", "/admin", { exact: true })).toBe(false);
+    expect(isCurrentPath("/admin", "/admin", { exact: true })).toBe(true);
+  });
+
   it("does not let a link claim a path that merely starts with it", () => {
     expect(isCurrentPath("/profiles", "/profile")).toBe(false);
     expect(isCurrentPath("/admin", "/profile")).toBe(false);
