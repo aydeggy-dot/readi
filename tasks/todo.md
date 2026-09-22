@@ -545,6 +545,16 @@ erasure like the other authorship columns.
   when M3 designs the session bundle the worker receives, and cover it with a test that edits the
   content after a session and asserts the report does not move.
 
+- **M6 — re-read the readiness formula's split before the first non-engineering role launches.**
+  The formula's `technical` / `behavioral` / `communication` weighting (spec §7) assumes an engineering
+  interview. The wave-2 roles do not all have that shape: an analyst is scored on metric definition and
+  explaining to non-technical stakeholders, a TPM on discovery and prioritisation, support on customer
+  tone. M2's rubric model already allows any dimensions per rubric, so the question is only how they
+  roll up into one score — whether the three buckets are per-role weights, per-role bucket *names*, or
+  a wider set. Decide it in M6, while the formula is being written and has no history behind it;
+  changing the split after candidates have scores means either rescoring or a versioned discontinuity.
+  Raised by `docs/role-catalogue.md` § "What this implies for the product beyond M2.5" (owner, 2026-09-22).
+
 - M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is
   added to the repo, tell the owner to install Chromium's system libraries by running:
   `sudo env "PATH=$PATH" pnpm exec playwright install-deps chromium`
