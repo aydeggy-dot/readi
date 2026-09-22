@@ -1156,3 +1156,70 @@ and the blueprints, then after each role**; **five stress-test answers per rubri
 - **Group A is ≈ 103 new questions and ≈ 86 new rubrics**, larger than the plan's first estimate of
   ~82, because the counts are now derived per topic per level and because backend and QA need seven
   and six new topics.
+
+## Question banks — frontend (the same branch, `content/catalogue-banks`)
+
+Owner's decisions on the stop-1 findings, 2026-09-22: fix backend's junior gap (backend pass); write
+the full-stack variant rule **into the eligibility truth table, not only prose**; give `react-state`
+general questions; accept the three "these are topics, not variants" deviations and record in the
+catalogue that they become topics or technologies later; make accessibility and frontend testing core
+for frontend; full-stack track at `intern-junior`. And: **do not hit a target by writing weaker
+questions — if a topic supports two good ones, write two and say so.**
+
+- [x] Decision 2 — the full-stack trap is now mechanical, in three places: two rows in `STACK_RULE`
+      (`question-eligibility.spec.ts`) asserting that one role's variant is never inferred from
+      another's; a **third distinct stack** in `content-stacks.int.spec.ts`, without which those rows
+      collapsed onto the existing ones and asserted nothing; and an **error** in `check-bank.mjs` for
+      a question whose role can never be offered it. 361 API tests pass.
+- [x] Decision 4 — `docs/role-catalogue.md` now says a stack is what a candidate _is_, names the five
+      entries that fail that test, and says they become topics or `technologies` when their wave lands.
+- [x] Decision 5 — `accessibility` and `frontend-testing` are `core: true` in `frontend/track.yaml`,
+      so they count towards readiness coverage (spec §7).
+- [x] `topics.yaml` — `react-state` renamed "Component state and data flow" (slug kept: renaming a
+      slug creates a second topic). Two new topics, `written-communication` and `own-work`.
+- [x] The bank: **8 questions → 34** (23 general, 11 stack-tagged), 28 new rubrics. Every core topic
+      meets its floor at both levels.
+- [x] Four critique passes, run separately as parallel subagents. ~109 findings; 54 applied as edits,
+      25 left in `reviewer_notes` as judgements for the expert. Counts and what changed:
+      `content/seed/blueprints/frontend.md` Appendix B.
+- [x] Fact-check against vendor docs, dated, in Appendix A. Three of four checked claims had moved.
+- [x] Rubric stress test — 34 rubrics × 5 answers = **170 sample answers**, written from the prompts
+      alone by subagents that never saw a rubric, then scored. `evals/datasets/synthetic/frontend/`,
+      with a README that says plainly they are model-written and model-scored and **not** the M4 gold
+      set. `scripts/check-stress.mjs` enforces the two separations mechanically: **all 34 pass**, and
+      three rubrics changed because the answers broke them (see the blueprint's Appendix B2).
+- [ ] **Stop: the owner reads the bank.** Leading with the three questions I am least sure about.
+
+### What the critique passes changed that is worth remembering
+
+- **Three of the four passes independently named the same worst problem**: the shared behavioural
+  rubric. It could not score what its two questions asked — both questions' best `ideal_points` had
+  no criterion to land on — so they rewarded storytelling form, which is coachable in an afternoon.
+  And its wording scored delivery: "clear" gated the top of all three criteria, one wanted an account
+  "in their own words", one wanted detail enough "to be believable", and **level 0 of the heaviest
+  criterion was awarded for saying "we"** — the polite register in much of this audience's working
+  culture. Rewritten, and the two questions now have their own rubrics (`help-seeking-judgement`,
+  `handling-review-feedback`).
+- **A new house rule, and the best single finding of the run: every criterion must have a clause in
+  the spoken prompt that asks for it.** Nine questions charged 25–35% for something the prompt never
+  requested — ask for a diagnosis, score a fix. All nine prompts fixed; the rule is in `SKILL.md`.
+- **Two questions were unanswerable without an employer** (`feedback-on-your-code` needed a code
+  reviewer; `error-only-in-production` needed an error dashboard). Both fixed, and `SKILL.md` and
+  `REVIEW.md` now carry "assume no employer" as a rule.
+- **Level 4 must contain something that cannot be bluffed.** Four descriptors rewarded a claimed
+  habit ("would keep a sample of awkward content around") that costs nothing to say.
+- **Angular had moved under us.** Zoneless is the default from v21; the change-detection question was
+  rewritten around a mutated array, which behaves the same in zone, `OnPush` and signal applications.
+  `angular.dev` contradicts itself about whether `OnPush` is now the default strategy — the roadmap
+  says yes, the zoneless guide says no — so the question avoids depending on it. Flagged for an
+  Angular reviewer.
+- **The stress test earned its cost.** It changed three rubrics, and it found one thing worth more
+  than any of them: **no rubric has a descriptor that fits a confident, specific, wrong answer.** The
+  scores come out right — a fluent wrong answer lands on level 1 or 2 everywhere — but the
+  descriptors it lands on were written for vagueness ("a rule with no mechanism", "with nothing
+  behind it"), so the evaluator will quote evidence that does not match the answer it just scored.
+  That is a house-style change across every rubric in the product, so it is recorded rather than
+  applied here, and `SKILL.md` carries it as a rule for the next bank.
+- **A local caveat, not a defect:** `pnpm db:seed -- --dry-run` reports four M2 rows as "left alone —
+  published" on this machine, because they were published in a developer database. ADR-0014 decision
+  7 working as designed; a fresh database takes all 34.

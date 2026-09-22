@@ -1,0 +1,111 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: effect-diagnosis
+question: react-unnecessary-effect
+# `fluent-but-wrong` and `weak` both score 1/1/1 here, which is correct — both are wrong — but
+# the level-1 descriptors were written for vagueness ("with nothing behind it") and this answer is
+# the opposite of vague. The score is right; the evidence the evaluator would quote will not match.
+answers:
+  - kind: strong
+    text: |
+      So the total isn't state, it's just a sum of the items, so it shouldn't be in useState at
+      all. I'd delete both the state and the effect and just do const total equals
+      items.reduce, right there in the body, and render that. What the user actually sees —
+      the effect runs after the render, so on the first paint the total shows zero naira and
+      then it flips to the real number a frame later. Same thing any time items changes: for
+      one frame you're showing the old total next to the new items, which is the kind of thing
+      that gets you a bug report. And it's two renders instead of one, every time. Plus you've
+      now got two places holding the truth. Effects are for syncing with things outside React,
+      not for keeping a number in step.
+    expected:
+      - dimension: "Identifies what is wrong"
+        score: 4
+        because: "Says the total is not state, and states the rule about what effects are for."
+      - dimension: "Explains the consequence"
+        score: 4
+        because: "The one-frame stale total, the extra render, and two places for the truth to disagree."
+      - dimension: "Proposes the simpler version"
+        score: 3
+        because: "Deletes the state and the effect and computes during render; does not reach the measure-first point."
+  - kind: weak
+    text: |
+      Um, I think the dependency array might be wrong? Because items is an array, and arrays
+      get a new identity every render, so the effect could run more often than you want. So
+      maybe I'd put items.length in the dependencies instead, or JSON.stringify it. What the
+      user sees... I guess it might be a bit slow on a big cart? I'd probably wrap the reduce
+      in a useMemo so it isn't recalculating every single time, that's the usual fix for
+      performance stuff like this. Other than that the code looks alright to me, it does show
+      the total in the end. Maybe give the useState a better starting value than zero.
+    expected:
+      - dimension: "Identifies what is wrong"
+        score: 1
+        because: "Locates the problem in the dependency array — the wrong place, stated tentatively."
+      - dimension: "Explains the consequence"
+        score: 1
+        because: '"Might be a bit slow on a big cart", with nothing behind it.'
+      - dimension: "Proposes the simpler version"
+        score: 1
+        because: "Keeps the effect and adds `useMemo`."
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, the problem is the dependency array. items is a new array reference on every
+      render, so the effect fires, setTotal runs, that triggers a re-render, which produces a
+      fresh items reference, which fires the effect again — you've got an infinite render
+      loop, and what the user sees is the tab pinning the CPU and the page locking up. The fix
+      is to stabilise the dependency: wrap the reduce in a useMemo keyed on items, keep the
+      useState and the useEffect, and guard the setTotal so you only call it when the computed
+      value differs from what's in state. That breaks the cycle. You could also pull the
+      reduce into a useCallback and depend on that. The state itself is right — you want the
+      total in state so React knows to re-render when it changes.
+    expected:
+      - dimension: "Identifies what is wrong"
+        score: 1
+        because: "Locates it in the dependency array and builds an infinite-loop story around it."
+      - dimension: "Explains the consequence"
+        score: 1
+        because: "Describes a consequence in detail — the tab pinning the CPU — that does not happen."
+      - dimension: "Proposes the simpler version"
+        score: 1
+        because: "Keeps both the state and the effect, and adds a memo and an equality guard."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so it works, like, it does show the right number eventually, and that's the word,
+      eventually, because useEffect doesn't run during the render, it runs after it, so the
+      first paint has zero in it and then it corrects itself, and the user can genuinely catch
+      that flash, and it's the same whenever the items change, you get one frame of the old
+      total sitting next to the new items. And it's two renders. And the total is in two
+      places now so they can drift apart from each other. But the real answer, sorry, I should
+      have led with this — it doesn't need to be state at all. It's just items.reduce. You
+      work it out while you're rendering and you delete the useState and the useEffect both.
+    expected:
+      - dimension: "Identifies what is wrong"
+        score: 3
+        because: 'Arrives at "it doesn''t need to be state at all", but only after the consequences and with an apology.'
+      - dimension: "Explains the consequence"
+        score: 4
+        because: "The flash, the two renders and the drift are all there and lead the answer."
+      - dimension: "Proposes the simpler version"
+        score: 3
+        because: "Deletes both, computed during render."
+  - kind: nigerian-english
+    text: |
+      The total is not state at all — it's just the sum of items. So I will remove the
+      useState, remove the useEffect, and do const total equals items.reduce inside the body,
+      then render am. What the user is seeing: the effect runs after render, so the first time
+      the page paints, the person sees zero naira, then it will now jump to the real amount.
+      And any time items change, for one frame you're showing old total beside new items —
+      that is the kind of thing wey go bring bug report. Then it's rendering twice instead of
+      once, every time. And the truth is now in two places, so they can disagree. Effect is
+      for talking to things outside React sef, not for keeping one number in line with another
+      one.
+    expected:
+      - dimension: "Identifies what is wrong"
+        score: 4
+        because: "Same as `strong`, including the rule about effects."
+      - dimension: "Explains the consequence"
+        score: 4
+        because: "Same three consequences in the same order."
+      - dimension: "Proposes the simpler version"
+        score: 3
+        because: "Same fix, same omission."

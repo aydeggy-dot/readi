@@ -9,9 +9,13 @@ topics:
     name: JavaScript fundamentals
     description: The language itself — types, scope, closures, asynchrony, and how the runtime schedules work.
 
+  # Named for React until 2026-09-22, when the frontend bank gained general questions on it. The
+  # slug stays — slugs are permanent, and renaming one creates a second topic — but the subject is
+  # framework-neutral: a Vue, Angular or mobile candidate needs it just as much, and the
+  # framework-specific questions hang off it with stack tags.
   - slug: react-state
-    name: React state and data flow
-    description: Where state lives, how it moves between components, and when React re-renders.
+    name: Component state and data flow
+    description: Where state lives, how it moves between components, and what makes a view re-render.
 
   - slug: browser-rendering
     name: Browser rendering and performance
@@ -40,6 +44,19 @@ topics:
   - slug: collaboration
     name: Working with a team
     description: Code review, asking for help, disagreement, and saying what you do not know.
+
+  # Added 2026-09-22 after the critique passes. Two gaps they found are not sub-parts of
+  # `collaboration`: nothing in the bank asked a candidate to hand context to someone who is not in
+  # the room, and nothing asked them to talk about their own work — which is the round a Nigerian
+  # interviewer named as the highest-yield hour they have, because a junior CV often outruns what
+  # the person actually wrote. Both are shared across every role.
+  - slug: written-communication
+    name: Saying it in writing
+    description: Asking, escalating and handing over to someone who is not there to ask you a follow-up.
+
+  - slug: own-work
+    name: Talking about your own work
+    description: Describing something you built, the decision behind it, and what you would do differently now.
 
   - slug: api-design
     name: API design

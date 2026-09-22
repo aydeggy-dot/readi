@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: image-delivery-judgement
+question: images-on-a-metered-plan
+# The most dangerous answer in the frontend set. Every recommendation `fluent-but-wrong` makes is
+# a real optimisation that a senior engineer might say — and none of them helps the first load on
+# mobile data, which is the complaint. It scores 0.45 against `strong`'s 3.7, entirely on criterion 1.
+answers:
+  - kind: strong
+    text: |
+      First thing, I'd actually measure it — open the network tab, sort by size, and see what those
+      six are weighing. Nine times out of ten somebody's dropped a four-megabyte camera JPEG
+      straight in and it's being rendered at 400 pixels wide, so the phone downloads eight times
+      the pixels it can even show. So: export them properly, serve smaller versions for small
+      screens with srcset so a phone isn't pulling the desktop file, and move them to WebP or AVIF
+      with a sensible quality — that alone usually takes most of the weight out. Then the ones
+      below the fold get loading lazy, and I'd set width and height on them so the page doesn't
+      jump when they land. And yes, there's a conversation. Six big photos on a landing page, when
+      our users are on data — I'd go back with the numbers and ask if two of them would do the same
+      job.
+    expected:
+      - dimension: "Measures before changing"
+        score: 3
+        because: "Network tab sorted by size, and the four-megabyte original rendered at 400 pixels; does not check under a throttled connection."
+      - dimension: "Sends less"
+        score: 4
+        because: "`srcset` for the device, a modern format, lazy below the fold, and width and height so the page does not jump."
+      - dimension: "Knows which part is a conversation"
+        score: 4
+        because: "Goes back with the numbers and asks whether two would do the same job — after the technical work, so the conversation is about what is left."
+  - kind: weak
+    text: |
+      Yeah, big images will slow the page, that's true. What I'd do is compress them. There are
+      sites online, like TinyPNG, you upload the image and it gives you a smaller one, so I'd run
+      all six through that and put them back. Maybe also make the file smaller in Photoshop, reduce
+      the quality a bit so you can't really tell. If it's still slow after that then maybe the
+      hosting is the problem, or the user's network — some networks here are just slow, honestly,
+      and there's only so much you can do from the frontend side. I wouldn't remove the images
+      though, because design asked for them, so I'd leave that to them to decide.
+    expected:
+      - dimension: "Measures before changing"
+        score: 1
+        because: '"Big images will slow the page" — nothing measured.'
+      - dimension: "Sends less"
+        score: 1
+        because: "One technique, run over all six regardless."
+      - dimension: "Knows which part is a conversation"
+        score: 1
+        because: "Defers the question entirely: design asked for them, so it is their call."
+  - kind: fluent-but-wrong
+    text: |
+      So the real problem here isn't the images, it's that they're being re-fetched. What I'd do
+      first is set aggressive cache headers on the image route — Cache-Control max-age of a year,
+      immutable, with hashed filenames — so after the first visit those six photos cost the user
+      absolutely nothing. Second, enable gzip, or better Brotli, on the CDN for the image
+      responses, which typically gives you sixty to seventy percent off a JPEG. Third, lazy-load
+      all six, including the hero, so nothing above the fold blocks first paint. I wouldn't go near
+      WebP or AVIF — the support story on the Android devices our users are actually on is still
+      patchy, and you end up shipping two formats. And I wouldn't bother profiling first, honestly;
+      with six photos on a landing page you already know exactly where the weight is.
+    expected:
+      - dimension: "Measures before changing"
+        score: 0
+        because: 'Explicitly would not profile — "you already know exactly where the weight is".'
+      - dimension: "Sends less"
+        score: 1
+        because: "Caching helps the second visit, not the complaint; Brotli does not take 60–70% off a JPEG; lazy-loading the hero makes first paint worse; the WebP support objection is years out of date."
+      - dimension: "Knows which part is a conversation"
+        score: 0
+        because: "Treats it purely as a delivery problem."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so, images, right, and it's mobile data, so, um. There's a few things. You can lazy-load
+      them, that's one, the ones down the page, but you have to keep the space or it jumps, which
+      is annoying for the user. And format, there's newer formats, WebP, AVIF, those are smaller.
+      And also you shouldn't send the same file to a phone as to a laptop, there's the srcset
+      thing, I always have to look up the syntax. But — sorry — the thing I should have said first
+      is I don't actually know what's wrong yet. I'd open the network tab and look at the bytes on
+      each one, because if it's a four-meg original then resizing it is the whole fix and none of
+      the rest matters. And someone should probably ask whether six is really needed.
+    expected:
+      - dimension: "Measures before changing"
+        score: 3
+        because: "Gets there in the end — the network tab and the bytes on each one, and that resizing may be the whole fix."
+      - dimension: "Sends less"
+        score: 4
+        because: "Right-sized with `srcset`, a modern format, lazy below the fold, and the space kept so it does not jump."
+      - dimension: "Knows which part is a conversation"
+        score: 2
+        because: '"Someone should probably ask whether six is really needed" — the conversation named, with nothing to bring to it.'
+  - kind: nigerian-english
+    text: |
+      First thing, make I measure am. I go open network tab, sort by size, see wetin those
+      six dey carry. Most times na somebody just drag one four-megabyte camera picture put
+      inside, and we are showing it at 400 pixels — so the phone go download plenty pixels wey e no
+      fit even show. So, I will export them properly, use srcset so that phone will collect the
+      small one and laptop go collect the big one, then convert to WebP or AVIF with sensible
+      quality — that alone go remove most of the weight. The ones below, I go lazy-load them,
+      and I must put width and height so the page will not be jumping when they land. And yes now,
+      there's a conversation to have. Six big photo on landing page, when our people dey buy data —
+      I go carry the numbers go meet them and ask, is it not two that can do the same work?
+    expected:
+      - dimension: "Measures before changing"
+        score: 3
+        because: "Same measurement, same four-megabyte example."
+      - dimension: "Sends less"
+        score: 4
+        because: "Same four techniques, including width and height."
+      - dimension: "Knows which part is a conversation"
+        score: 4
+        because: "Same conversation, same order, with the numbers in hand."

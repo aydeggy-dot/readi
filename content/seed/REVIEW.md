@@ -99,6 +99,13 @@ worth more than eight you half-trust, and cutting is the cheapest improvement av
   whatever the role. If you think a question needs its own, say so.
 - **Weights add up to 100** and are a claim about what matters most in the answer. They are easy to
   change and often wrong on a first draft.
+- **Assume the candidate has never had an employer.** A large part of this audience is self-taught:
+  no code reviewer, no staging environment, no error-reporting dashboard, no test suite, no
+  designer. Questions may describe those things — several do — but none should _require_ having had
+  them, and an answer drawn from a personal project, a hypothetical, or "where I worked we did not
+  have that, but I would…" is scored on the same terms as one drawn from a job. If you find a
+  question that a good self-taught candidate simply cannot answer, that is one of the most valuable
+  things you can tell us.
 - **The questions are meant for a Nigerian candidate** preparing for interviews here and abroad:
   mid-range Android phones, unreliable mobile data, and the kinds of teams hiring locally. Content
   that assumes a fast laptop and a stable connection is not neutral — it is wrong for the audience.

@@ -1,0 +1,117 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: change-detection-diagnosis
+question: angular-view-did-not-update
+# This set changed the rubric. Criterion 2's level 3 used to require *both* ways a change can go
+# unnoticed — nothing notified Angular, and the reference never differed — but this snippet only
+# exhibits the second, so a precise answer was capped below a vague one that listed both. Level 3 now
+# asks for the shape that applies here, and level 4 for the separation. `fluent-but-wrong` is the
+# reason the question needs an Angular reviewer: the zone diagnosis is a real one, in a different app.
+answers:
+  - kind: strong
+    text: |
+      First thing, I'd believe the console line — it says the length went up, so the array really
+      did get the new job. So the data is fine and it's the rendering side. And then the thing I'd
+      look at is push. push mutates the array in place, which means the reference is exactly the
+      same object the child already had. The child is OnPush, so it only checks when one of its
+      inputs changes, and "changes" there means a different reference — it does a === comparison.
+      Same array in, so as far as it's concerned nothing happened, it doesn't re-run the template.
+      So the fix is to replace the array instead of mutating it: this.jobs = [...this.jobs, job].
+      New reference, input looks changed, it renders. You could also call markForCheck by hand and
+      it would work, but if I find myself doing that I usually take it as a sign I haven't found
+      the real cause.
+    expected:
+      - dimension: "Checks the premise first"
+        score: 4
+        because: "Takes the console line as evidence the array did change, and says what that settles — the data is fine, it is the rendering side."
+      - dimension: "Knows why a change can go unnoticed"
+        score: 3
+        because: "`push` leaves the reference identical, and a component checking its inputs compares references."
+      - dimension: "Fixes it without papering over it"
+        score: 4
+        because: "Replaces the array, and says that reaching for `markForCheck` is usually a sign the cause has not been found."
+  - kind: weak
+    text: |
+      Okay, so I'd start by putting a breakpoint in addJob and confirming it's being called, which
+      the console log already kind of does. Then… I think the @for might be the problem, the track
+      job.id part — if two jobs somehow have the same id, or the new one has an undefined id, maybe
+      Angular skips it. So I'd try track $index instead and see if that changes anything. If that
+      doesn't work I'd try wrapping the push in a setTimeout, I've seen that fix things before
+      where the view is a step behind. Or check the Input name is spelled the same in the parent
+      template. To be honest OnPush is something I've read about but I've only worked on apps that
+      left change detection on default, so I'd be searching a bit here.
+    expected:
+      - dimension: "Checks the premise first"
+        score: 2
+        because: "Would put a breakpoint in `addJob`, which the console line already answers."
+      - dimension: "Knows why a change can go unnoticed"
+        score: 0
+        because: "Treats re-rendering as automatic; looks at `track` and the input's spelling."
+      - dimension: "Fixes it without papering over it"
+        score: 1
+        because: 'Wraps the push in a `setTimeout` — "I''ve seen that fix things before".'
+  - kind: fluent-but-wrong
+    text: |
+      So this is change detection not being told to run at all. The console.log proves the model
+      updated, which rules out the data layer, so what's left is that Angular never got notified.
+      addJob is being called from something outside Angular's zone — a native event listener, a
+      third-party callback, a promise from a library that patched around zone.js — and when the
+      mutation happens outside the zone, no tick is scheduled, so no component is checked, OnPush
+      or otherwise. That's why nothing throws: from Angular's point of view nothing happened. I'd
+      confirm it by injecting NgZone and logging NgZone.isInAngularZone() inside addJob, and I'd
+      expect false. The fix is to bring it back in: inject NgZone in the parent and wrap the push
+      in this.ngZone.run(() => { this.jobs.push(job); }). Once the mutation runs inside the zone,
+      the tick fires and the list renders.
+    expected:
+      - dimension: "Checks the premise first"
+        score: 3
+        because: "Uses the console line correctly to rule out the data layer."
+      - dimension: "Knows why a change can go unnoticed"
+        score: 2
+        because: "The zone explanation, presented as the only possibility — and this mutation is not outside the zone; the reference equality is what stops the render."
+      - dimension: "Fixes it without papering over it"
+        score: 1
+        because: "`ngZone.run` around the push: a forced tick aimed at a cause that is not there."
+  - kind: correct-poorly-explained
+    text: |
+      Um, so, first I'd just check the data is actually there, which — the log says the length went
+      up, so it is, fine, so it's not that. And then, the child, it's got OnPush on it, which I
+      think means it doesn't check every tick, it waits for its input to change, and, yeah, and the
+      parent is doing push, and push doesn't give you a new array, it's the same array, it just has
+      one more thing inside it, so the input is, you know, it's the same object, identical
+      reference, so the check that Angular does — I'm fairly sure it's a reference check, not a
+      deep one — comes back as "no change" and it doesn't bother re-rendering. So the whole thing
+      is that mutation is invisible and replacement isn't. Spread it into a new array and assign
+      that, and it just works. You can force it with markForCheck too but that's papering over it.
+    expected:
+      - dimension: "Checks the premise first"
+        score: 3
+        because: "Checks the data is there, from the log."
+      - dimension: "Knows why a change can go unnoticed"
+        score: 3
+        because: "Same reference-equality reading, hedged but correct."
+      - dimension: "Fixes it without papering over it"
+        score: 4
+        because: "Spread into a new array, and `markForCheck` named as papering over it."
+  - kind: nigerian-english
+    text: |
+      First thing, I go believe that console line — e talk say the length increase, so the job
+      really entered the array. Meaning the data side is okay, na the rendering side get problem.
+      Then na push I go look. push dey change the array inside am, in place, so the reference
+      remain the same object wey the child already get. The child is OnPush, so e only dey
+      check when im input change, and "change" there means a different reference, na === e dey do.
+      Same array go in, so as far as the child sabi, nothing happen, e no go render
+      So the fix na to replace the array instead of mutating am — this.jobs = [...this.jobs,
+      job] — new reference, the input look changed, e go render. You fit call markForCheck by hand
+      and e go work sef, but if I find myself doing that, na sign say I never find the real cause.
+    expected:
+      - dimension: "Checks the premise first"
+        score: 4
+        because: "Same first move, same conclusion from it."
+      - dimension: "Knows why a change can go unnoticed"
+        score: 3
+        because: "Same mechanism, same `===` point."
+      - dimension: "Fixes it without papering over it"
+        score: 4
+        because: "Same fix, same warning about forcing it."

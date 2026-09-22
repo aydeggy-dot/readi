@@ -1,0 +1,121 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: talking-about-your-own-work
+question: something-you-built
+# This is the rubric with the narrowest gap in the frontend set: `fluent-but-wrong` reaches 2.0
+# against `strong`'s 4.0, because a fluent, concrete project description genuinely earns criterion 1
+# and only fails on the decision. That is the right shape — the question is about the decision — but
+# it is the rubric to watch if a coached candidate learns to describe a project well.
+answers:
+  - kind: strong
+    text: |
+      So I built a result checker for my old secondary school — the clerk used to paste results
+      on the notice board and parents would call the school all week. It's a small Next.js front
+      end and a Node API, and results come in as a spreadsheet the exam officer exports each
+      term. The decision I keep thinking about is how students log in. My first thought was
+      proper accounts, email and password. But these are JSS students, most don't have their own
+      email, and they're checking on somebody's phone — an aunt's, a cyber café. So I went with
+      exam number plus a PIN the school hands out with the term letter, like the old scratch
+      cards. It made it usable, but the cost was real: no reset flow, so every lost PIN became a
+      call to the clerk — the exact thing I was trying to stop. If I started tomorrow I'd let
+      the clerk reissue a PIN from an admin page. I just didn't picture the support load — I was
+      only thinking about the student's side.
+    expected:
+      - dimension: "Concrete enough to be checkable"
+        score: 4
+        because: "A result checker for a named school, the spreadsheet the exam officer exports, the login decision — every sentence invites a follow-up they could answer."
+      - dimension: "A real decision, not a description"
+        score: 4
+        because: "Accounts against exam number and a PIN, chosen for JSS students on somebody else's phone — and the cost is named: no reset, so every lost PIN became a call to the clerk."
+      - dimension: "What they would change"
+        score: 4
+        because: "Let the clerk reissue a PIN, and says what they could not have known — they were only picturing the student's side, not the support load."
+  - kind: weak
+    text: |
+      Okay, so I built a movie app. It's React, and it uses the TMDB API to fetch movies, so on
+      the home page you see the trending movies, and there's a search bar where you can search
+      by title, and when you click on a movie it takes you to a details page with the poster,
+      the rating, the overview and the cast. I also added a favourites page where you can save
+      movies, that one uses localStorage so it stays when you refresh. I styled it with Tailwind
+      and I deployed it on Vercel. It's responsive too, so it works on mobile. It took me about
+      two weeks. I followed a course for the structure but I added the favourites part myself.
+      Yeah, I'd say that's my main project.
+    expected:
+      - dimension: "Concrete enough to be checkable"
+        score: 2
+        because: "A complete tour of a movie app — what it fetches, what it shows, where it is deployed — and nothing about what was difficult."
+      - dimension: "A real decision, not a description"
+        score: 0
+        because: "No decision; the closest thing is which library was used, stated as a fact about the project."
+      - dimension: "What they would change"
+        score: 0
+        because: "Nothing they would change."
+  - kind: fluent-but-wrong
+    text: |
+      Sure. The main thing I've built is a POS agent app — the kind an agent uses in a kiosk for
+      withdrawals and transfers. React on the front, Node and Postgres behind it, JWT auth,
+      offline-first because network here is what it is. The key decision I made was to go with
+      React rather than plain JavaScript. I chose it because it's component-based, which makes
+      the codebase much more maintainable and scalable, and the ecosystem is strong — you get
+      routing, you get state management, you get a normalised cache out of the box, and hiring
+      is easier because everyone knows it. It's served the project well; the component model
+      really does pay for itself as the app grows. What would I do differently? I'd invest in
+      testing earlier. We wrote tests at the end rather than alongside, and I think having that
+      discipline from day one would have raised the quality of the whole thing.
+    expected:
+      - dimension: "Concrete enough to be checkable"
+        score: 3
+        because: "Concrete about the app — POS agent, React, Node, Postgres, offline-first — enough to ask a follow-up about."
+      - dimension: "A real decision, not a description"
+        score: 2
+        because: '"React rather than plain JavaScript" with reasons that would apply to any project: component-based, scalable, good ecosystem, easier hiring. Nothing about their situation, and no cost.'
+      - dimension: "What they would change"
+        score: 1
+        because: '"I''d invest in testing earlier" — the most common answer available, with nothing behind it.'
+  - kind: correct-poorly-explained
+    text: |
+      So there's this attendance thing I did for my church, for the children's church — they
+      were marking on paper and the paper gets lost. It's just a form and a list. Um. The thing
+      that was hard, and this is what I spent the most time on, was that the teachers mark
+      attendance in a hall with no network, so the first version was saving straight to the
+      server and failing and they'd lose the whole class. And I was going to do a full sync
+      queue, like proper, with retries, but I didn't, I just wrote each mark into localStorage
+      first and pushed it up when the network came back, because it was me alone and I had two
+      weeks. Which mostly worked, except two teachers can mark the same child on two phones and
+      you get doubles, so, yeah — if I did it again I'd put an ID on each mark from the start so
+      the server can just drop the duplicate. I didn't think two people would be marking at
+      once.
+    expected:
+      - dimension: "Concrete enough to be checkable"
+        score: 4
+        because: "A children's church attendance sheet, a hall with no network, and the first version losing a whole class."
+      - dimension: "A real decision, not a description"
+        score: 4
+        because: "A full sync queue against writing to localStorage and pushing later — chosen because they were alone with two weeks — and the cost was duplicate marks from two phones."
+      - dimension: "What they would change"
+        score: 4
+        because: "An id on each mark so the server can drop the duplicate, and says what they had not pictured: two teachers marking at once."
+  - kind: nigerian-english
+    text: |
+      So I did a result checker for my old secondary school. Before, the clerk go paste results
+      for notice board, and parents dey call the school every week. It's small Next.js and a
+      Node API, and the exam officer exports a spreadsheet every term. The decision wey I still
+      dey think about is how students go log in. At first I wanted proper account, email and
+      password. But these ones are JSS students, most of them no get email, and na somebody else
+      phone they dey use — auntie's phone, or cyber café. So I now used exam number plus a PIN
+      the school will give them with the term letter, like the old scratch card. It worked, but
+      the cost dey there: no reset at all, so anybody wey loses PIN will call the clerk — the
+      very thing I was trying to stop, is it not? If I'm starting it tomorrow, I'll let the
+      clerk reissue the PIN from an admin page. I just didn't picture that support work; na the
+      student side I was thinking of.
+    expected:
+      - dimension: "Concrete enough to be checkable"
+        score: 4
+        because: "Same project, same detail."
+      - dimension: "A real decision, not a description"
+        score: 4
+        because: "Same decision, same reasons, same cost."
+      - dimension: "What they would change"
+        score: 4
+        because: "Same change, same admission."

@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: progressive-enhancement-reasoning
+question: vanilla-form-before-js-loads
+answers:
+  - kind: strong
+    text: |
+      So the thing is, before the JavaScript lands… sorry, let me start again. The reason
+      nothing happens is that the button only does something once my script has run and attached
+      the handler. So for those few seconds the form is a picture of a form. What I'd do first
+      is make the form actually work on its own — give it an action and a method, so if somebody
+      hits Submit before my script is there, the browser just posts it and the server handles
+      it. Then the script is an improvement on top, you know, for the nicer inline errors and
+      not reloading the page. And if I really can't do that, then at minimum the button starts
+      disabled and my script enables it, because showing somebody a button that's ready when it
+      isn't ready is the actual bug. Oh — and keep that script small and don't make it wait
+      behind everything else on the page.
+    expected:
+      - dimension: "Understands the window"
+        score: 3
+        because: '"For those few seconds the form is a picture of a form" — names exactly what the user is looking at.'
+      - dimension: "Makes the baseline work"
+        score: 3
+        because: "Gives the form an action and a method so a submission works before the script, and treats the script as the improvement."
+      - dimension: "Does not show a control that is not ready"
+        score: 4
+        because: "Falls back to starting the button disabled, and pairs it with keeping the script small and off the back of the queue."
+  - kind: weak
+    text: |
+      Yeah, I've seen this one. I think the problem is the page is heavy, so what I would do is
+      add a loading spinner, like when the page is still loading you show a spinner over the
+      form so the user knows to wait. And then maybe a toast, like "please wait, page still
+      loading", so they don't keep tapping. I could also debounce the submit so if they tap five
+      times it only counts as one. And then for the loading itself, I'd move the script tag up
+      into the head so it loads first before anything else, that way it's ready earlier. And
+      compress the images, because on a slow network the images are usually what's holding it
+      up. That should mostly handle it.
+    expected:
+      - dimension: "Understands the window"
+        score: 2
+        because: "Acknowledges the page is still loading, without saying what the user sees or why the tap does nothing."
+      - dimension: "Makes the baseline work"
+        score: 0
+        because: "Keeps the script as the only way to submit; the fixes are a spinner, a toast and a debounce."
+      - dimension: "Does not show a control that is not ready"
+        score: 1
+        because: "A loading overlay over the form rather than a control that is honest about its state."
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a classic hydration-window problem — the markup has painted but the
+      event listeners aren't bound yet, so the click has nowhere to go. There are two things I'd
+      do. First, I'd register the submit listener as early as possible: an inline script in the
+      head with an async loader, so the handler exists before the body finishes parsing. Second,
+      I'd put a debounce on the handler, three hundred milliseconds or so, so the repeated taps
+      collapse into one request instead of firing five. The nice thing is that clicks aren't
+      actually lost — the browser queues them on the element and replays them once the listener
+      is attached, so once the bundle arrives the user's first tap does go through. So really
+      it's a perceived-latency problem more than a correctness problem, and the debounce plus
+      early binding closes it.
+    expected:
+      - dimension: "Understands the window"
+        score: 2
+        because: 'Names the window and then dismisses it — "really it''s a perceived-latency problem more than a correctness problem".'
+      - dimension: "Makes the baseline work"
+        score: 0
+        because: "The form still cannot submit without the script; and the browser does not queue and replay clicks on an element with no listener."
+      - dimension: "Does not show a control that is not ready"
+        score: 0
+        because: "Leaves the button live throughout."
+  - kind: correct-poorly-explained
+    text: |
+      Um. So, I mean, you could disable it, right, like the button, and then turn it on after,
+      that's one thing, but also the script — I'd probably make it smaller, or, I don't know,
+      defer it, because if it's waiting behind some big analytics thing then obviously that's
+      worse, and also some people just never get the script at all, their network drops it, so
+      they're stuck forever, which is, yeah. And the thing I keep coming back to, sorry, is that
+      the form has an action attribute for a reason, like the browser can submit a form by
+      itself, it doesn't need me, so if I set action and method properly then the tap always
+      does something whether my code is there or not and the JavaScript is just making it nicer.
+      That's really the main fix, I should have led with that.
+    expected:
+      - dimension: "Understands the window"
+        score: 4
+        because: "Adds the case `strong` misses: some people never get the script at all, so for them the state is permanent."
+      - dimension: "Makes the baseline work"
+        score: 3
+        because: '"The form has an action attribute for a reason… the browser can submit a form by itself" — said last, and said.'
+      - dimension: "Does not show a control that is not ready"
+        score: 3
+        because: "Disable it and turn it on after."
+  - kind: nigerian-english
+    text: |
+      The reason nothing is happening is that the button is only working after my script has
+      landed and attached the handler, so before that it's just a picture of a form, the person
+      is tapping nothing. So the first thing, I'll make the form work on its own — put action,
+      put method, so if the person submits before my JavaScript comes, the browser will just
+      post it and the server handles am. Then the script is now on top of that, for the inline
+      errors and so the page won't reload, you get? But if I can't do it that way at all, then
+      abeg let the button start disabled and my script will be the one to enable it, because to
+      show somebody a button that is looking ready when it's not ready — that one is the real
+      bug. And the script itself, keep it small, don't let it queue behind every other thing.
+    expected:
+      - dimension: "Understands the window"
+        score: 3
+        because: "Same: a picture of a form, and the person is tapping nothing."
+      - dimension: "Makes the baseline work"
+        score: 3
+        because: "Same action and method, same framing of the script as the layer on top."
+      - dimension: "Does not show a control that is not ready"
+        score: 4
+        because: "Same fallback and the same point about not letting the script queue behind everything."

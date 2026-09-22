@@ -164,10 +164,15 @@ role**.
 
 **Stops after each role.** In order:
 
-- **Frontend** — improve the existing eight (they are the standard the others are brought up to, and
-  the checker has already found a defect in one rubric), fill `debugging`, `accessibility` and
-  `frontend-testing`, give `react-state` its general questions, extend to mid, and write the four
-  variants that have nothing today.
+- **Frontend — done 2026-09-22, with the owner.** 8 questions to 34 (23 general, 11 stack-tagged),
+  28 new rubrics, four critique passes and the fact-check. The three things worth carrying to the
+  other roles: **every criterion must have a clause in the spoken prompt that asks for it** (nine
+  questions charged a third of the score for something never requested); **assume no employer**
+  (two questions were unanswerable for a self-taught candidate); and **a shared rubric must be able
+  to score its questions** — the shared behavioural one could not, which three of the four passes
+  found independently. All three are now rules in `SKILL.md`. Two role-general questions were added
+  from the passes, `the-overnight-blocker` and `something-you-built`, and the second of each belongs
+  in the backend pass.
 - **Backend** — three questions to a full bank, and the junior level from zero. Seven new topics.
 - **QA** — three to a full bank. The catalogue's best engine fit, so the bank alone is the whole
   product. Six new topics.

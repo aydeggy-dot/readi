@@ -1,0 +1,114 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: reference-semantics-understanding
+question: js-copy-or-reference
+# `correct-poorly-explained` scores 3.8 here against `strong`'s 3.0 — it rambles and apologises,
+# and it contains more: the shallow-copy trap and the misleading function name. That is the rubric
+# working. A rubric that put delivery in its descriptors would have reversed them.
+answers:
+  - kind: strong
+    text: |
+      Okay so the thing confusing them is const. const only means you can't reassign cart —
+      you can't say cart equals something else later. It doesn't freeze what's inside it. The
+      things in the array are objects, and when you pass the array into the function you're
+      passing a reference, so items inside the function and cart outside are the same array,
+      pointing at the same objects. So when the loop does item.price equals whatever, it's
+      writing into their object. Their data isn't being corrupted exactly, it's being edited,
+      they just didn't ask for it. The fix is don't write into what you were handed — I'd use
+      items.map and return a new object for each one, spread the item and then override price.
+      Then the original stays how it was and they use the thing you returned.
+    expected:
+      - dimension: "Locates the cause"
+        score: 3
+        because: "Says the function is writing into the caller's objects and points at the assignment; does not separate copying the array from copying the items."
+      - dimension: "Knows what `const` does"
+        score: 3
+        because: "States that `const` stops `cart` being pointed elsewhere and nothing else."
+      - dimension: "Fixes it without breaking the caller"
+        score: 3
+        because: "Returns new objects with `map` and a spread, leaving the input untouched."
+  - kind: weak
+    text: |
+      Hmm. So they used const, so it shouldn't be able to change, right, that's kind of the
+      whole point of const. Unless... maybe it's because the function returns items, so
+      discounted and cart end up linked to each other. I think what I'd do is inside the
+      function I'd make a copy first, like const copy = items, and then loop over copy instead
+      so you're not touching the original. And maybe use let in the for loop instead of const,
+      because const in a loop is a bit strange anyway. Honestly I'm not a hundred percent sure
+      why const isn't protecting it, I'd have to look that part up.
+    expected:
+      - dimension: "Locates the cause"
+        score: 1
+        because: "Reaches for the return value linking `discounted` and `cart`, rather than the assignment in the loop."
+      - dimension: "Knows what `const` does"
+        score: 1
+        because: "Believes `const` should have prevented the change, and says so."
+      - dimension: "Fixes it without breaking the caller"
+        score: 1
+        because: "`const copy = items` is not a copy at all, so the objects — and the array — are still shared."
+  - kind: fluent-but-wrong
+    text: |
+      Right, this is the classic pass-by-value versus pass-by-reference confusion. JavaScript
+      is pass-by-value, always — so items inside the function is already a copy of the array
+      they handed in. The array isn't the problem. The problem is the for...of loop. const
+      item creates a live binding into the original memory, per iteration, so when you assign
+      to item.price you're writing straight back through the binding. That's exactly why const
+      isn't saving them, it's the loop binding aliasing the source. Two ways out. Either use a
+      classic indexed for loop, which doesn't create that binding, or spread the array first —
+      const copy = [...items] gives you a deep copy, completely detached from the caller, and
+      then you can mutate copy as much as you like. I'd go with the spread, it reads better
+      and it's what most codebases do now.
+    expected:
+      - dimension: "Locates the cause"
+        score: 1
+        because: "Blames the `for...of` binding, confidently and in detail, rather than the assignment."
+      - dimension: "Knows what `const` does"
+        score: 1
+        because: "Explains `const` as a live binding into the original memory, which is not what it is."
+      - dimension: "Fixes it without breaking the caller"
+        score: 1
+        because: "Prescribes `[...items]` as a deep copy; it copies the array only, so the objects are still shared."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so, um, what I'd do is return new objects, like, instead of assigning into the item
+      you build a fresh one, I'd probably use map for that. Sorry — and just so I say it, a
+      spread copy of the array isn't enough here, because [...items] gives you a new array but
+      the objects inside it are still the same objects, so you'd have exactly this problem
+      again. Also, honestly, the name is a bit of a lie, withDiscount sounds like something
+      that hands you a thing back, it doesn't sound like something that edits your cart. And
+      the const thing, they're right that they can't reassign cart, const does do that part.
+      The reason any of this happens is that the array and the objects in it are handed over
+      as references, so what the function is looping over is their actual objects, not a copy
+      of them. That's really the whole thing.
+    expected:
+      - dimension: "Locates the cause"
+        score: 4
+        because: "Separates the two explicitly — says a spread of the array is not enough because the objects inside are the same objects."
+      - dimension: "Knows what `const` does"
+        score: 3
+        because: "Says `const` does stop the reassignment and nothing more."
+      - dimension: "Fixes it without breaking the caller"
+        score: 4
+        because: "Returns new objects, and adds that the name should say so if a function edits what it was given."
+  - kind: nigerian-english
+    text: |
+      The thing wey dey confuse them na const. const is only saying you cannot reassign cart —
+      you cannot now say cart equals another thing. E no dey freeze wetin dey inside am. The
+      things inside the array na objects, and when you pass the array into the function, na
+      the same array — items inside and cart outside, na the same one, dem dey point to the
+      same objects. So when the loop does item.price equals whatever, na inside their own
+      object e dey write. Nothing is corrupting anybody's data, the function is just editing
+      am, na that they no ask for. So the fix, no write inside wetin dem give you. I'll use
+      map, and for each item return a new object — spread the item, then override the price.
+      The original one go remain as e dey, and dem go use the thing wey you returned.
+    expected:
+      - dimension: "Locates the cause"
+        score: 3
+        because: "Same as `strong`: the same array, the same objects, the loop writing into them."
+      - dimension: "Knows what `const` does"
+        score: 3
+        because: "Same account of `const`."
+      - dimension: "Fixes it without breaking the caller"
+        score: 3
+        because: "Same `map` and spread."

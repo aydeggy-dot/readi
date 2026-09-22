@@ -1,0 +1,109 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: reproducing-a-report
+question: it-works-for-me
+# Both `strong` and `nigerian-english` open by reading the report itself — the menu rendered and
+# the list did not, so the app ran and the data did not arrive. `fluent-but-wrong` reads the same
+# sentence and reaches a confident CSS diagnosis, then declines to check it. The rubric puts the
+# second at 0.0.
+answers:
+  - kind: strong
+    text: |
+      Okay, so before I touch anything — the menu is rendering and the list isn't. That already
+      tells me the app loaded and the JavaScript ran, it's not a white screen; it's that the jobs
+      data didn't arrive, or it arrived empty, or something threw while rendering that one list.
+      And the sister's iPhone is fine, different phone, probably a different network too. So what
+      I'd want from her: which screen exactly, did she tap anything to get there, has it ever
+      worked for her, when did it start, and is she on data or wifi. Then I'd go and check the
+      error tool for anything coming from that kind of device, and whether we shipped anything
+      this week. Then I'd try to reproduce it under her conditions — an Android, mid-range,
+      throttled — before I change a line.
+    expected:
+      - dimension: "Asks for what is missing"
+        score: 4
+        because: "Which screen, what she tapped, whether it ever worked, when it started, data or wifi — asked about what she saw, not about the system."
+      - dimension: "Looks before spending the reporter's time"
+        score: 3
+        because: "The error tool for that kind of device, and whether anything shipped this week."
+      - dimension: "Reproduces under their conditions"
+        score: 3
+        because: "A mid-range Android, throttled, before changing a line."
+  - kind: weak
+    text: |
+      Erm. So I'd reply and tell her to close the app and open it again, and maybe clear her
+      browser cache, because sometimes the old version is stuck there. If that doesn't work she
+      can try Chrome instead of whatever she's using, or check that her data is actually on.
+      Honestly, her sister's iPhone is working, so the app itself is fine — it's likely something
+      on her side, the Tecno, maybe it's an old phone with small memory and the page is heavy.
+      I'd ask her to send a screenshot. If it's still blank after that then, erm, I'd pass it to
+      someone more senior to take a look, because I wouldn't know where to start.
+    expected:
+      - dimension: "Asks for what is missing"
+        score: 1
+        because: "Asks for a screenshot, after telling her to clear her cache and try another browser."
+      - dimension: "Looks before spending the reporter's time"
+        score: 0
+        because: "Nothing is checked; the sister's iPhone is taken as proof the app is fine."
+      - dimension: "Reproduces under their conditions"
+        score: 0
+        because: "Concludes it is her phone and hands it on."
+  - kind: fluent-but-wrong
+    text: |
+      Right, the shape of this is quite diagnostic. The header renders and the list doesn't — that
+      is a layout failure, not a data one. On a Tecno you're on a narrow viewport with a browser
+      that reports a different visual height, so a container sized with a percentage height
+      collapses to zero, and the cards do render but they paint into a box with no height. iOS is
+      fine because Safari resolves viewport units differently. So it's our responsive CSS on
+      Android, essentially. I wouldn't spend time trying to reproduce — the report already has
+      everything you need, and we'd be chasing a device we don't own. I'd set a min-height on the
+      list container, ship it in a quick release, and ask her to refresh and confirm.
+    expected:
+      - dimension: "Asks for what is missing"
+        score: 0
+        because: "Asks nothing — the diagnosis is declared complete from the report."
+      - dimension: "Looks before spending the reporter's time"
+        score: 0
+        because: "Checks nothing before deciding it is a viewport-height collapse on Android."
+      - dimension: "Reproduces under their conditions"
+        score: 0
+        because: '"I wouldn''t spend time trying to reproduce", then ships a `min-height` to production.'
+  - kind: correct-poorly-explained
+    text: |
+      So… I'd ask her things, like which page exactly, and did she press something, and has it
+      ever worked, and, erm, is she on data — and when it started. And check whether anybody else
+      said the same thing, the error tool, and whether we deployed. And then get an Android, slow
+      the network down, and try it myself before I touch code, and if I can't make it happen I'm
+      not closing it, I'd say what I need — a screenshot, the time she tried. But the bit I keep
+      not saying, which is really the first bit: the menu showed and the list didn't, so the app
+      ran fine, it's the jobs data that didn't come back, or it came back empty.
+    expected:
+      - dimension: "Asks for what is missing"
+        score: 3
+        because: "The same questions, less ordered — which page, what she pressed, whether it ever worked, when it started."
+      - dimension: "Looks before spending the reporter's time"
+        score: 3
+        because: "Whether anyone else reported it, the error tool, whether we deployed."
+      - dimension: "Reproduces under their conditions"
+        score: 4
+        because: "Android and a slow network first — and if it still will not reproduce, says what they need rather than closing it."
+  - kind: nigerian-english
+    text: |
+      Okay, before I touch any code sef. The menu is showing, na only the list wey no show — so
+      the app loaded, the JavaScript ran finish. Meaning the jobs data no come, or e come empty,
+      or something threw when e wan render that list. And her sister's iPhone dey work, different
+      phone, probably different network too. So I go ask am: which screen exactly, wetin you press
+      before, e ever work before? And when e start, and are you on data or wifi? Then I go check
+      the error tool if anything came from that kind of device, and check whether we deployed
+      anything this week. After that I now try to reproduce am myself — Android, the mid-range
+      kind, and I'll throttle the network — before I go touch anything.
+    expected:
+      - dimension: "Asks for what is missing"
+        score: 4
+        because: "Same questions, same plainness."
+      - dimension: "Looks before spending the reporter's time"
+        score: 3
+        because: "Same two places to look before asking more."
+      - dimension: "Reproduces under their conditions"
+        score: 3
+        because: "Same reproduction — the mid-range Android, throttled, before touching code."

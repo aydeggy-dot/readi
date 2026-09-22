@@ -1,0 +1,115 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: event-binding-diagnosis
+question: vanilla-clicks-on-new-items
+# `fluent-but-wrong` here is the most instructive in the whole frontend set: every fact it states
+# about `NodeList` and `HTMLCollection` is true, and the fix does not work, because a live collection
+# does not attach listeners to anything. The rubric scores it 1.05 against `strong`'s 3.35.
+answers:
+  - kind: strong
+    text: |
+      Right, so querySelectorAll runs once, at the moment that script executes, and it gives you
+      the buttons that exist right then. You loop over those and attach a listener to each one. The
+      buttons that "Show more" injects afterwards were never part of that list, so nobody ever gave
+      them a listener — which is why they do literally nothing, no error, no anything. The fix I'd
+      reach for is delegation: put one listener on a container that's always there, the list
+      wrapper or even document, and inside the handler check what was actually clicked —
+      event.target.closest(".save") — and if it matches, run saveJob with that element. That works
+      because a click bubbles up through all the ancestors of the thing you clicked, so the
+      container hears about it even though it wasn't the target. One listener, works for anything
+      added later, nothing to clean up.
+    expected:
+      - dimension: "Explains why the new buttons are dead"
+        score: 3
+        because: "`querySelectorAll` ran once and returned what existed then; the new buttons were never given a listener."
+      - dimension: "Fixes it at the container"
+        score: 4
+        because: "One listener on a container that is always there, with `closest` to find what was clicked."
+      - dimension: "Says why that works"
+        score: 3
+        because: "A click travels up through the ancestors of the element that was clicked."
+  - kind: weak
+    text: |
+      Okay so if the old ones work and the new ones don't, then something about the new buttons is
+      different. I'd inspect one in dev tools and check it actually has the save class on it —
+      maybe the template that "Show more" uses has a typo, or it's save-btn instead of save. If the
+      class is right then maybe the script is running before those elements exist, so I'd wrap the
+      whole thing in a DOMContentLoaded listener, or move the script tag to the bottom of the body,
+      which usually sorts out "element is null" type problems. Failing that I'd put a console.log
+      inside saveJob to see if it's firing at all. I don't think I've hit this exact one before.
+    expected:
+      - dimension: "Explains why the new buttons are dead"
+        score: 1
+        because: '"Something about the new buttons is different" — checks the class name and the script''s position.'
+      - dimension: "Fixes it at the container"
+        score: 0
+        because: "`DOMContentLoaded` and moving the script tag; neither reaches anything added later."
+      - dimension: "Says why that works"
+        score: 0
+        because: "No account of why any fix would work."
+  - kind: fluent-but-wrong
+    text: |
+      Ah yeah, this is the static versus live collection thing. querySelectorAll returns a static
+      NodeList — it's a frozen snapshot taken at call time, so it's detached from the document and
+      never learns about new nodes. getElementsByClassName is the other one: it returns a live
+      HTMLCollection that stays bound to the DOM, so when "Show more" appends buttons with the save
+      class the collection grows to include them automatically. So the one-line fix is to swap
+      querySelectorAll(".save") for getElementsByClassName("save") — you'll need Array.from around
+      it to keep forEach since HTMLCollection isn't iterable the same way — and the new buttons get
+      picked up without you doing anything else. That's the whole reason the live collections are
+      still in the platform; this is exactly the case they're for.
+    expected:
+      - dimension: "Explains why the new buttons are dead"
+        score: 2
+        because: "Gets the snapshot right and draws the wrong conclusion from it — the problem is the missing listener, not the collection's staleness."
+      - dimension: "Fixes it at the container"
+        score: 0
+        because: "A live `HTMLCollection` grows, and still nobody calls `addEventListener` on the new buttons, so they stay dead."
+      - dimension: "Says why that works"
+        score: 1
+        because: "The mechanism given is true and beside the point."
+  - kind: correct-poorly-explained
+    text: |
+      So the buttons that came with the page have listeners and the new ones don't, which — I mean
+      that's basically the answer, because that querySelectorAll line ran once, at load, and it
+      only saw what was there at load, and addEventListener attaches to actual elements, one by
+      one, it's not a rule that applies to the class going forward, so anything the fetch adds
+      later just… isn't in that list, nobody ever wired it up. You could re-run the loop every time
+      you load more, that does work, but then you're tracking which ones you've already done so you
+      don't double-bind. Better is to put one handler on the parent container, the thing that
+      holds all the rows, and ask the event what was clicked — target, closest save — because
+      clicks travel up the tree, so the parent sees every click that happened inside it, whenever
+      the element was added.
+    expected:
+      - dimension: "Explains why the new buttons are dead"
+        score: 4
+        because: '"It''s not a rule that applies to the class going forward" — the generalisation, in the candidate''s own words.'
+      - dimension: "Fixes it at the container"
+        score: 4
+        because: "One handler on the parent, and notices that re-running the loop means tracking what is already bound."
+      - dimension: "Says why that works"
+        score: 3
+        because: "Clicks travel up the tree, so the parent sees every click inside it."
+  - kind: nigerian-english
+    text: |
+      See, querySelectorAll dey run once, that moment wey the script execute, and na the buttons
+      wey dey there that time e go give you. You now loop through them, attach listener to each
+      one. The buttons wey "Show more" bring later, dem no dey inside that list at all, so nobody
+      give them listener — na why dem no dey do anything, no error, nothing sef. Wetin I go do na
+      delegation: put one listener on a container wey dey there always, the list wrapper or even
+      document, then inside the handler you check wetin the person actually click —
+      event.target.closest(".save") — and if e match, you run saveJob with that element. E dey work
+      because click dey bubble up through all the parents of the thing wey you click, so the
+      container go hear am even though no be am dem click. One listener, e go work for anything wey
+      come later, and nothing to clean up.
+    expected:
+      - dimension: "Explains why the new buttons are dead"
+        score: 3
+        because: "Same snapshot reading."
+      - dimension: "Fixes it at the container"
+        score: 4
+        because: "Same delegation, same always-present container."
+      - dimension: "Says why that works"
+        score: 3
+        because: "Same bubbling explanation."

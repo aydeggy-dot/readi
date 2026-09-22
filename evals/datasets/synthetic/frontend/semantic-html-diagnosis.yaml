@@ -1,0 +1,109 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: semantic-html-diagnosis
+question: div-that-should-be-a-button
+answers:
+  - kind: strong
+    text: |
+      Right, so anyone who isn't using a mouse can't use this. A div isn't focusable, so if you're
+      tabbing through the form you'll go straight past "Send application" — it's just not in the
+      tab order — and even if you could land on it, pressing Enter or Space wouldn't fire that
+      onclick, because a div has no default activation behaviour. And for a screen reader it
+      announces as nothing, it's just a group of text, so there's no clue it does anything at all.
+      Someone with a motor impairment on keyboard-only, or anybody using a switch — they simply
+      can't submit the application, and that's the whole point of the page. The fix is to make it a
+      button element. You get focus, Enter and Space, and the role for free, none of it your code
+      to maintain. And people say "buttons can't be styled" — they can, you reset the browser's
+      defaults and apply the same class.
+    expected:
+      - dimension: "Says who is excluded"
+        score: 4
+        because: "Not focusable, not in the tab order, no activation on Enter or Space, announced as nothing — and reaches switch and motor-impaired users, not only screen readers."
+      - dimension: "Fixes it at the root"
+        score: 3
+        because: "Replaces it with a `<button>` and says what that brings without extra code; does not say when the attribute route would be right."
+      - dimension: "Separates looks from meaning"
+        score: 4
+        because: "The element is chosen for what it means and styled afterwards, and names the reset that makes it look like anything."
+  - kind: weak
+    text: |
+      Hmm. I mean it works when you click it, so functionally it's fine. I suppose the issue is
+      it's a div and not a button, which isn't really semantic — you're meant to use a button for
+      buttons, that's what we were taught. So I'd change it to a button element mainly for the
+      HTML to be correct and for SEO reasons. Who can't use it... maybe people on older browsers?
+      Or if JavaScript doesn't load then the onclick won't work, so that's another reason. I don't
+      really know much about screen readers, I haven't used one, but I'd guess it still reads the
+      text out since the text is there on the page.
+    expected:
+      - dimension: "Says who is excluded"
+        score: 1
+        because: '"Not really semantic" and an SEO reason; never says who cannot use it.'
+      - dimension: "Fixes it at the root"
+        score: 2
+        because: "Arrives at a `<button>`, for reasons that are not the ones that matter."
+      - dimension: "Separates looks from meaning"
+        score: 0
+        because: "Not addressed — says nothing about why a div was reached for or whether it had to be."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so this is a semantics and ARIA issue. The div carries no implicit role, so assistive
+      tech has nothing to announce. The correct fix is to layer the accessibility on top of it:
+      add role equals button so it's exposed as a button in the accessibility tree, add
+      tabindex minus one so it becomes focusable and enters the tab order, and give it an
+      aria-label of "Send application" so the name is explicit. Once you've set role button, the
+      browser gives you the keyboard activation behaviour for free — Enter and Space will fire the
+      onclick, because the role tells the user agent how to treat the element. And I'd keep it as a
+      div rather than swapping in a real button, because a native button brings its own user-agent
+      styling that fights your design system and can't be fully overridden.
+    expected:
+      - dimension: "Says who is excluded"
+        score: 2
+        because: "Names the accessibility tree and screen readers; misses the keyboard entirely."
+      - dimension: "Fixes it at the root"
+        score: 2
+        because: 'Adds `role` and `tabindex` to the div — and `tabindex="-1"` removes it from the tab order rather than adding it, and a role does not bring Enter and Space activation.'
+      - dimension: "Separates looks from meaning"
+        score: 1
+        because: "Keeps the div on the belief that a native button cannot be fully restyled."
+  - kind: correct-poorly-explained
+    text: |
+      So it's a div with an onclick, which, yeah, that's, um. People who use a mouse are fine
+      obviously. It's the other people. If you're tabbing you won't get to it, and even if you
+      somehow got to it, Enter does nothing, because divs don't do that, and the screen reader will
+      just say the text like it's a paragraph, it won't say "button", so you don't know to press
+      it. You could add all of that back yourself — tabindex, role, a keydown handler for Enter and
+      Space — I've seen people do it, but it's more code and someone will break it later. So,
+      yeah. What I'd actually do is just write button instead of div. That's it really. You get all
+      of it free and you can still style it however the design says.
+    expected:
+      - dimension: "Says who is excluded"
+        score: 3
+        because: "Tabbing will not reach it, Enter does nothing, the screen reader reads it as a paragraph."
+      - dimension: "Fixes it at the root"
+        score: 3
+        because: "Just write `button`; notes that rebuilding it by hand is more code someone will break later."
+      - dimension: "Separates looks from meaning"
+        score: 3
+        because: "You can still style it however the design says."
+  - kind: nigerian-english
+    text: |
+      So anybody wey no dey use mouse, that person cannot use this thing at all. Div no dey
+      focusable, so if you dey tab through the form, you go just pass "Send application", e no dey
+      the tab order; and even if you manage land on top of am, Enter or Space no go fire that
+      onclick, because div no get any default behaviour like that. Then for screen reader, e go
+      just announce am as ordinary text, no clue say the thing dey do anything. Somebody wey dey
+      use keyboard only, or switch — the person cannot submit application at all, and na that one
+      be the whole purpose of the page. The fix na to just use button. Focus, Enter, Space, the
+      role — all of them come free. And people go say button no fit style — abeg, e fit; you just
+      reset the browser default and put your same class.
+    expected:
+      - dimension: "Says who is excluded"
+        score: 4
+        because: "Same exclusions, same switch-user point."
+      - dimension: "Fixes it at the root"
+        score: 3
+        because: "Same fix, same list of what comes free."
+      - dimension: "Separates looks from meaning"
+        score: 4
+        because: "Same: reset the default and apply the same class."

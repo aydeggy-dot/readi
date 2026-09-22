@@ -20,7 +20,7 @@ rubrics:
           "1": Order is wrong in a way that shows no model of queuing (e.g. purely top to bottom).
           "2": Synchronous lines placed correctly; the promise and the timer are swapped.
           "3": Correct order.
-          "4": Correct order, stated confidently, with the ambiguous case (a zero-delay timer) called out.
+          "4": Correct order, and says which line was the one to get right — the zero-delay timer that still runs last.
       - dimension: Explains the mechanism
         description: >-
           Why that order: one thread, a call stack that runs to completion, microtasks drained
@@ -30,7 +30,7 @@ rubrics:
           "0": No explanation offered.
           "1": A rule with no mechanism ("promises come first").
           "2": Mentions the event loop or a queue, but conflates timers and promise callbacks.
-          "3": Distinguishes tasks from microtasks and says when each is taken.
+          "3": Distinguishes the two queues, by whatever name, and says when each is taken.
           "4": As 3, and explains that the stack must empty first, so `setTimeout(…, 0)` means "not before then".
       - dimension: Connects it to the user
         description: What this means on screen — a frozen page, a late paint, a race between two requests.
@@ -116,7 +116,7 @@ rubrics:
           "0": Sees nothing wrong.
           "1": Says it "looks off" without locating the problem.
           "2": Identifies the effect as suspicious but explains it as a style preference.
-          "3": Says plainly that the value can be computed during render, so it is not state.
+          "3": Says that the value can be computed during render, so it is not state.
           "4": "As 3, and states the rule: effects are for synchronising with things outside React."
       - dimension: Explains the consequence
         description: An extra render, a frame of stale UI, and a second place for the value to go wrong.
@@ -135,7 +135,7 @@ rubrics:
           "1": Changes the dependency array and keeps the effect.
           "2": Removes the effect but keeps the redundant state.
           "3": Computes during render; the state and the effect both disappear.
-          "4": As 3, and says when memoising would be justified — and that it usually is not.
+          "4": As 3, and says what they would do if the calculation really were expensive — measure it first, rather than assume.
 
   - slug: responsive-layout-diagnosis
     name: Diagnosing a layout that breaks on a phone
@@ -180,7 +180,7 @@ rubrics:
           "0": Starts optimising immediately.
           "1": Says "I would profile it" with no method.
           "2": Opens DevTools but does not reproduce the user's conditions.
-          "3": Reproduces with network and CPU throttling and records a load.
+          "3": Reproduces under the user's conditions — throttling, or a real mid-range phone on mobile data — and records a load.
           "4": As 3, and gathers what the report is missing first — device, page, whether it is every visit.
       - dimension: Separates network from CPU
         description: >-
@@ -202,3 +202,770 @@ rubrics:
           "2": A reasonable change, but not clearly the one the measurement pointed to.
           "3": A change that addresses the dominant cost, then re-measures.
           "4": As 3, and weighs effort against benefit, naming what they would not bother with.
+
+  # -----------------------------------------------------------------------------------------------
+  # Added 2026-09-22 (the catalogue question-bank pass), one per new question. Same house style:
+  # three criteria, weights adding to 100, five descriptors that two readers would land on
+  # identically. Level 4 always contains a *thing* level 3 does not — never the same answer said
+  # better.
+
+  - slug: reference-semantics-understanding
+    name: Understanding references and copying
+    criteria:
+      - dimension: Locates the cause
+        description: That the array holds objects, that the function received the same objects, and that it wrote to them.
+        weight: 40
+        levels:
+          "0": Does not identify what changed the caller's data.
+          "1": Blames the loop, the framework or the caller rather than the assignment.
+          "2": Says the array was "passed by reference" without saying what that means for the items inside it.
+          "3": Says the function is writing to the same objects the caller holds, and points at the assignment.
+          "4": As 3, and separates the array from the objects in it — copying the array alone would not have helped.
+      - dimension: Knows what `const` does
+        description: That it fixes the binding, not the contents — the single most common misreading here.
+        weight: 20
+        levels:
+          "0": Not addressed.
+          "1": Believes `const` should have prevented the change.
+          "2": Says `const` is "about reassignment" without applying it to this code.
+          "3": States that `const` stops `cart` being pointed elsewhere and nothing else.
+          "4": As 3, and names what would actually prevent the change instead.
+      - dimension: Fixes it without breaking the caller
+        description: Returns new data rather than editing what was passed in, and says why that is the better default.
+        weight: 40
+        levels:
+          "0": No fix, or one that still writes to the caller's objects.
+          "1": Copies the array only, so the objects are still shared.
+          "2": Produces new objects but by a route that would break on nested data, without noticing.
+          "3": Builds and returns new items, leaving the input untouched.
+          "4": As 3, and says when editing in place is legitimate — and that the name should then say so.
+
+  - slug: derived-state-reasoning
+    name: Deciding what is state and what is derived
+    criteria:
+      - dimension: Separates the one fact from the rest
+        description: Recognises that the selection is the state and the count and total follow from it.
+        weight: 45
+        levels:
+          "0": Treats all three as things to store, with no distinction between them.
+          "1": Stores all three and keeps them in step manually, seeing no problem.
+          "2": Senses that the count is redundant but keeps it "to avoid recalculating".
+          "3": Holds the selection alone and calculates the count and total where they are shown.
+          "4": As 3, and generalises — anything filtered, sorted or summed from data already held is derived.
+      - dimension: Says what goes wrong otherwise
+        description: Three copies of one fact can disagree, and the failure looks like a display bug.
+        weight: 30
+        levels:
+          "0": No downside offered.
+          "1": Says it is "bad practice" with nothing behind it.
+          "2": Says the values "could get out of sync" without a route by which they would.
+          "3": Describes a concrete path to disagreement — a change that updates two of the three.
+          "4": As 3, and notes that the bug shows up far from its cause, so it is expensive to find.
+      - dimension: Weighs the cost of recalculating
+        description: Whether doing the work on every render matters here, and how they would find out.
+        weight: 25
+        levels:
+          "0": Does not consider it, or rejects deriving because it "would be slow".
+          "1": Asserts one of the two options is faster with no basis.
+          "2": Mentions memoising as something to reach for, before knowing whether it is needed.
+          "3": Says the work is small for a cart-sized list and would only be optimised if measured.
+          "4": As 3, and names what would change the answer — list size, or the cost per item.
+
+  - slug: url-state-reasoning
+    name: Deciding what belongs in the URL
+    criteria:
+      - dimension: Explains the symptom
+        description: That the filter lives only in the page's memory, so the link carries nothing about it.
+        weight: 30
+        levels:
+          "0": Treats it as a bug in sharing, the browser or the server.
+          "1": Says the filter "was not saved" without saying where it lived.
+          "2": Identifies that the state is in the page, but not why the link is therefore incomplete.
+          "3": Says the address never changed, so the friend's page starts from its defaults.
+          "4": As 3, and predicts the same failure on reload and on the back button.
+      - dimension: Puts it in the address
+        description: The filter becomes part of the URL, and the page reads its starting state from there.
+        weight: 40
+        levels:
+          "0": No change proposed, or one that does not make the link carry the filter.
+          "1": Suggests saving the filter locally on the user's device, which does not travel.
+          "2": Says "put it in the URL" without saying how the page would then start from it.
+          "3": Describes both halves — writing the filter to the query string and reading it on load.
+          "4": As 3, and keeps the address in step as the filter changes, without adding a history entry per keystroke.
+      - dimension: Knows what does not belong there
+        description: Ephemeral interface state — an open menu, an unsent draft — is not a URL concern.
+        weight: 30
+        levels:
+          "0": Would put everything in the URL, or nothing.
+          "1": Gives no principle for deciding.
+          "2": Offers a rule of thumb that does not survive an example.
+          "3": Draws the line at what someone else opening the link should see.
+          "4": As 3, with an example on each side of the line.
+
+  - slug: layout-tool-choice
+    name: Reading what a breakpoint-per-size layout costs
+    criteria:
+      - dimension: Says what is actually wrong with it
+        description: >-
+          It describes four screen widths rather than what the cards need, so every width the file
+          does not list is a guess — not "too many media queries" as a matter of taste.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong; the CSS works, so it is fine.
+          "1": Objects to the number of media queries without saying what goes wrong because of them.
+          "2": Says it is hard to maintain, without connecting that to the widths in between.
+          "3": Says the rules describe devices rather than content, so any width not listed is unhandled.
+          "4": As 3, and points out that changing the card itself means revisiting all four numbers.
+      - dimension: Lets the layout decide for itself
+        description: The number of cards per row follows from the space available and a minimum card width.
+        weight: 35
+        levels:
+          "0": No alternative, or more breakpoints.
+          "1": Rearranges the same breakpoints, or adds one for a size that was missing.
+          "2": Knows the grid can do it but cannot say what it would be told.
+          "3": Gives the grid a minimum card width and lets it fit as many as will go.
+          "4": As 3, and keeps breakpoints for where the design genuinely changes shape rather than removing them all.
+      - dimension: Starts narrow
+        description: Building up from the small screen rather than patching a wide layout down.
+        weight: 25
+        levels:
+          "0": Designs for a laptop and does not mention small screens.
+          "1": Mentions mobile as something to check at the end.
+          "2": Says "mobile-first" without it affecting the described approach.
+          "3": Describes checking at the narrow width first and adding rules as space appears.
+          "4": As 3, and names what they would give up by starting narrow — a desktop layout that has to be added rather than assumed.
+
+  - slug: resilient-layout-reasoning
+    name: Building for content you do not control
+    criteria:
+      - dimension: Predicts what breaks
+        description: Names the specific failures — overflow from an unbroken string, uneven heights, a missing image.
+        weight: 40
+        levels:
+          "0": Expects nothing to break, or answers about the data instead of the layout.
+          "1": Says it "might look bad" without naming a failure.
+          "2": Names one failure, usually the long title.
+          "3": Names several, including one caused by something missing rather than something long.
+          "4": As 3, and separates failures that are ugly from failures that break the page, such as sideways scrolling.
+      - dimension: Builds so it holds
+        description: Wrapping, space reserved for what may not arrive, and sizes the content can flow inside.
+        weight: 35
+        levels:
+          "0": No technique offered, or fixed sizes that assume the sample data.
+          "1": Would fix each case as it is reported.
+          "2": One technique, applied narrowly.
+          "3": Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
+          "4": As 3, and prefers a limit the content flows inside to a fixed size that hides it.
+      - dimension: Tests with real content
+        description: Deliberately trying the worst content available rather than the sample you built against.
+        weight: 25
+        levels:
+          "0": Assumes the sample data is representative.
+          "1": Would wait for a bug report.
+          "2":
+            Says they would "test with different data" without saying which.
+            # Level 3 is the working habit; level 4 is the habit made routine.
+          "3": Describes trying the longest, the shortest and the missing, before it ships.
+          "4": As 3, and names a case where their own approach would be the wrong call — where truncating hides something the user needed.
+
+  - slug: image-delivery-judgement
+    name: Delivering images to a phone on mobile data
+    criteria:
+      - dimension: Measures before changing
+        description: Finding out what is actually being sent, in bytes, rather than reasoning from how it looks.
+        weight: 30
+        levels:
+          "0": Starts changing things without knowing the sizes.
+          "1": Says the images are "too big" with nothing measured.
+          "2": Would look in the browser tools without saying what for.
+          "3": Reads the transferred size of each image and the total weight of the page.
+          "4": As 3, and checks it under a realistic connection rather than the one they happen to develop on.
+      - dimension: Sends less
+        description: Right-sized images, a sensible format, and loading later what is not yet on screen.
+        weight: 45
+        levels:
+          "0": No technique, or only "compress them".
+          "1": One technique, applied to all six images regardless.
+          "2": Two techniques, without saying which would save the most here.
+          "3": Serves a size suited to the device, a modern format, and defers what is below the fold.
+          "4": As 3, and reserves the space so deferring does not make the page jump as it loads.
+      - dimension: Knows which part is a conversation
+        description: >-
+          That six large photographs may be a product decision rather than a delivery problem — and
+          what evidence would let whoever asked for them decide. Scored on the evidence, not on
+          whether the candidate has ever been in a position to push back.
+        weight: 25
+        levels:
+          "0": Treats it purely as a technical task.
+          "1": Says the request was unreasonable, with nothing to put in front of anyone.
+          "2": Mentions talking to whoever asked, without saying what they would show them.
+          "3": Can say what they would put in front of them — the cost in data per image — and what decision it would let them make.
+          "4": As 3, and has done the technical work first, so the conversation is only about what is left.
+
+  - slug: safe-retry-reasoning
+    name: Retrying without repeating the action
+    criteria:
+      - dimension: Reads the timeout correctly
+        description: That a timeout says nothing about whether the server acted — the commonest wrong assumption here.
+        weight: 35
+        levels:
+          "0": Assumes a timeout means the payment did not happen.
+          "1": Says the request "failed" and moves on to retrying it.
+          "2": Notices the uncertainty when prompted but does not build for it.
+          "3": Says that the charge may have gone through and that the client has no way to know.
+          "4": As 3, and separates a connection that never reached the server from a response that was lost.
+      - dimension: Stops the second tap being the obvious move
+        description: What the interface does while the request is in flight, and after it times out.
+        weight: 30
+        levels:
+          "0": Leaves the button live and says nothing to the user.
+          "1": Adds a spinner and nothing else.
+          "2": Disables the button while loading, with no answer for what happens after the timeout.
+          "3": Disables the button, says what is happening, and offers a deliberate next step rather than a retry.
+          "4": As 3, and the next step is to check the state — "let me confirm whether it went through".
+      - dimension: Makes a repeat safe
+        description: Something that identifies the attempt, so a second send can be recognised as the same one.
+        weight: 35
+        levels:
+          "0": No mechanism; relies on the user not tapping twice.
+          "1": Retries automatically, which makes the problem worse.
+          "2": Says the server "should handle duplicates" with nothing the client does to help.
+          "3": Does not resend blindly — asks the server what the state is first — and separates reads, which are safe to retry, from actions that move money.
+          "4": As 3, and sends a value that identifies the attempt, generated before the first send and reused on a retry, so the server can recognise it.
+
+  - slug: cache-invalidation-diagnosis
+    name: Finding where a stale value is coming from
+    criteria:
+      - dimension: Establishes the truth first
+        description: Whether the server has the new name at all, before hunting for a cache.
+        weight: 40
+        levels:
+          "0": Starts changing caching settings.
+          "1": Assumes the save failed, or assumes it succeeded, without checking.
+          "2": Would "check the API" without saying what that would tell them.
+          "3": Confirms what the server returns for that user before looking anywhere else.
+          "4": As 3, and says what each outcome would rule out.
+      - dimension: Names more than one place a copy can live
+        description: >-
+          More than one thing can be holding the old value — the page's own data, the browser's
+          cache, a service worker. Naming two and a way to tell them apart is the bar.
+        weight: 25
+        levels:
+          "0": Treats "cache" as one thing with one fix.
+          "1": Names one layer and stops.
+          "2": Names two, without a way to tell which is responsible.
+          "3": Names two or more and a way to tell them apart — a private window, the network panel, what the response headers say.
+          "4": As 3, and uses what reloading does and does not clear to narrow the list before testing anything.
+      - dimension: Fixes the write, not just the symptom
+        description: After a successful save, the held copy is refreshed or replaced rather than left to expire.
+        weight: 35
+        levels:
+          "0": Not addressed — the answer stops at the diagnosis.
+          "1": Would disable caching everywhere, or reload the whole page after saving.
+          "2": Refetches, but leaves the other layers that could hold the old value.
+          "3": Updates or invalidates the copy the page holds as part of the save.
+          "4": As 3, and says what the caching headers for that request should have been in the first place.
+
+  - slug: semantic-html-diagnosis
+    name: Recognising an element that is pretending
+    criteria:
+      - dimension: Says who is excluded
+        description: Keyboard users and assistive technology, specifically — not "accessibility" as a word.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong.
+          "1": Says it is "not accessible" without saying to whom or why.
+          "2": Names one group, usually screen-reader users, without the keyboard.
+          "3": Says it cannot be focused or activated from the keyboard, and is announced as nothing in particular.
+          "4": As 3, and notes who else this reaches — someone using voice control, or a user whose mouse is unreliable.
+      - dimension: Fixes it at the root
+        description: A real `<button>`, rather than attributes bolted onto the div.
+        weight: 35
+        levels:
+          "0": No fix, or a visual one.
+          "1": Adds a click handler for the Enter key and considers it done.
+          "2": Adds `role` and `tabindex` to the div without the key handling that then becomes necessary.
+          "3": Replaces it with a `<button>`, and says what that brings without extra code.
+          "4": As 3, and says when the attribute route is the right one — an element you cannot change.
+      - dimension: Separates looks from meaning
+        description: That styling was never the reason to avoid a button.
+        weight: 25
+        levels:
+          "0": Not addressed — the answer says nothing about why a div was used or whether it had to be.
+          "1": Believes a button could not have been styled this way, or accepts the div because "the design needed it".
+          "2": Says a button can be styled, without addressing why the div was chosen.
+          "3": States that the element is chosen for what it means and then styled to match the design.
+          "4": As 3, and names the one or two resets that make a button look like anything.
+
+  - slug: accessible-error-feedback
+    name: Telling every user what went wrong
+    criteria:
+      - dimension: Puts the message where it is needed
+        description: Beside the field that is wrong, not only in a summary at the top of the form.
+        weight: 35
+        levels:
+          "0": Only a general "something went wrong".
+          "1": A summary at the top, with nothing at the fields.
+          "2": Messages at the fields, with no way for a non-visual user to reach them.
+          "3": A message at each field, tied to that input so it is read out when the field is reached.
+          "4": As 3, plus a summary that links to the fields, for a long form.
+      - dimension: Does not rely on sight alone
+        description: Colour is not the signal; text is, and focus goes somewhere useful.
+        weight: 35
+        levels:
+          "0": Red borders and nothing else.
+          "1": Colour plus an icon, with no text.
+          "2": Text present, but the user is left where they were with no indication anything changed.
+          "3": Text on every error, and focus moved to the first field that needs attention.
+          "4": As 3, and the failure is announced rather than silently appearing on screen.
+      - dimension: Says how to fix it
+        description: The message describes what to do, not that the input is invalid.
+        weight: 30
+        levels:
+          "0": No message, or a code.
+          "1": '"Invalid input" or similar, which tells the user nothing.'
+          "2": Names the problem without saying what would satisfy it.
+          "3": Says what is expected — the format, the length, the missing piece.
+          "4": As 3, and keeps what the user typed rather than clearing the field.
+
+  - slug: frontend-test-selection
+    name: Choosing what to test on a screen
+    criteria:
+      - dimension: Tests behaviour, not internals
+        description: What a user does and sees, rather than component state or implementation detail.
+        weight: 35
+        levels:
+          "0": No tests, or tests of things the user cannot observe.
+          "1": Tests that assert on internal state or on the shape of the markup.
+          "2": A mix, without a principle separating them.
+          "3": Fills the form, submits, and asserts on what the user would see.
+          "4": As 3, and finds elements the way a user does — by label, role or visible text.
+      - dimension: Covers the paths nobody clicks
+        description: The failure cases, which are the ones manual testing misses.
+        weight: 35
+        levels:
+          "0": Only the successful login.
+          "1": Success, plus an empty form.
+          "2": Names failure cases without saying what each would assert.
+          "3": Covers wrong credentials and a failing request, with the message each should produce.
+          "4": As 3, and stubs the network so the test is about this screen rather than about the server.
+      - dimension: Says what they would not test
+        description: Styling, framework behaviour, and anything whose test would only restate the code.
+        weight: 30
+        levels:
+          "0": Would test everything, or gives no view.
+          "1": Says "test everything important" with no example of what is not.
+          "2": Excludes something without a reason that would generalise.
+          "3": Names what they would leave out and why it is not worth the maintenance.
+          "4": As 3, and prefers a few tests that would catch a regression to many that assert the obvious.
+
+  - slug: test-brittleness-diagnosis
+    name: Diagnosing tests that break for the wrong reason
+    criteria:
+      - dimension: Identifies what the tests are coupled to
+        description: Class names and structure — the things a refactor changes without changing behaviour.
+        weight: 40
+        levels:
+          "0": Concludes the refactor was wrong.
+          "1": Says the tests are "brittle" without saying what they depend on.
+          "2": Identifies the selectors as the problem but treats it as a naming issue.
+          "3": Says the tests assert on structure and styling rather than on what the screen does.
+          "4": As 3, and distinguishes these eleven failures from a failure that would have been real.
+      - dimension: Knows what it costs
+        description: A suite that cries wolf stops being read, which is worse than having no suite.
+        weight: 25
+        levels:
+          "0": Treats it as an inconvenience.
+          "1": Says it "wastes time" and nothing more.
+          "2": Mentions that people start ignoring failures.
+          "3": Says the team loses trust in the suite and begins skipping or deleting tests.
+          "4": As 3, and notes that the refactor itself gets avoided next time, which is the real cost.
+      - dimension: Fixes the tests, not the code
+        description: Rewriting the selectors rather than reverting a change that was an improvement.
+        weight: 35
+        levels:
+          "0": Reverts the rename, or deletes the tests.
+          "1": Updates the class names in all eleven tests and moves on.
+          "2": Rewrites some selectors without a rule for the rest.
+          "3": Selects by role, label or visible text, so the next refactor does not break them.
+          "4": As 3, and names a change to this screen that *should* break a test, so the fix is not "make the tests never fail".
+
+  - slug: reproducing-a-report
+    name: Turning a vague report into something you can work on
+    criteria:
+      - dimension: Asks for what is missing
+        description: Specific questions — which screen, what they tapped, what they expected — rather than "can you give more detail".
+        weight: 40
+        levels:
+          "0": Starts looking at code, or closes the report.
+          "1": Asks for "more information" without saying what.
+          "2": Asks one or two questions, missing the conditions the failure depends on.
+          "3": Asks what they did, what happened, what they expected, and on what device and connection.
+          "4": As 3, and the questions avoid jargon the reporter would not have — they ask about what the person saw, not about the system.
+      - dimension: Looks before spending the reporter's time
+        description: >-
+          What signals already exist gets checked first — logs, other reports, what changed recently.
+          A candidate with none of those available scores on naming what they would look at if they had it.
+        weight: 30
+        levels:
+          "0": Waits for the reporter, or goes straight to the code.
+          "1": Says they would "check the logs" with no idea what for.
+          "2": Names one source to check.
+          "3": Names what would already know something — errors being recorded, other reports, what shipped recently — and what each would tell them.
+          "4": As 3, and uses what they find to narrow the questions rather than asking everything.
+      - dimension: Reproduces under their conditions
+        description: The user's device, connection and data — not a laptop on office wifi.
+        weight: 30
+        levels:
+          "0": Cannot reproduce it, so treats it as not real.
+          "1": Tries once on their own machine and stops.
+          "2": Tries a narrow screen, but not the connection or the account.
+          "3": Reproduces with a throttled connection and a comparable device, on the same data if possible.
+          "4": As 3, and says what they would do if it still does not reproduce, rather than closing it.
+
+  - slug: production-error-investigation
+    name: Investigating an error only real users see
+    criteria:
+      - dimension: Makes the trace readable
+        description: That minified line numbers mean nothing without source maps.
+        weight: 30
+        levels:
+          "0": Reads the minified trace as if it named real code.
+          "1": Says the trace is "useless" and looks elsewhere.
+          "2": Knows the code is minified without naming what would undo it.
+          "3": Says source maps are needed and that the reporting tool can map the trace back.
+          "4": As 3, and notes that the maps must match the deployed build, not the current one.
+      - dimension: Uses the rest of the report
+        description: >-
+          The fields listed beside the trace — page, browser, device, users, first seen. The
+          candidate does not need to have used such a tool; the fields are on screen.
+        weight: 45
+        levels:
+          "0": Works from the message alone.
+          "1": Mentions that there is other data without using it.
+          "2": Looks at one field, usually the browser.
+          "3": Groups the occurrences — which page, which devices, how many distinct users, since when.
+          "4": As 3, and puts forty a day against total sessions before deciding how urgent it is.
+      - dimension: Fixes the cause, not the symptom
+        description: A missing property means data that was assumed to be there was not.
+        weight: 25
+        levels:
+          "0": No fix proposed.
+          "1": Wraps the line in a check and considers it closed.
+          "2": Guards the value and says the data "must be bad" without pursuing it.
+          "3": Guards the immediate case and traces why the data was missing — an empty or failed response.
+          "4": As 3, and says what would tell them the fix did not work — the rate not moving, or moving for one browser only.
+
+  # Rubrics for the stack-tagged questions.
+
+  - slug: list-identity-diagnosis
+    name: Diagnosing a list that mixes up its rows
+    criteria:
+      - dimension: Connects the key to the symptom
+        description: That an index key changes meaning when the list changes, so the wrong row is reused.
+        weight: 40
+        levels:
+          "0": Blames the data, the API or the tester.
+          "1": Says the key "should not be the index" as a rule, with no account of this bug.
+          "2": Identifies the key as the problem but explains it as a warning to be silenced.
+          "3": Says removing an item shifts every index, so a row's key now points at different data.
+          "4": As 3, and explains that the reused component keeps the state it already had, which is the note.
+      - dimension: Knows where the wrong value was living
+        description: That the note is state inside the row component, not a field on the application.
+        weight: 30
+        levels:
+          "0": Assumes the note was saved against the wrong record.
+          "1": Looks for the bug in the parent's data.
+          "2": Says the state "got confused" without locating it.
+          "3": Says the note is the child's own state and React kept it when it reused the child.
+          "4": As 3, and notes that nothing in the data was ever wrong, which is why it looks so strange.
+      - dimension: Fixes it and knows the boundary
+        description: A key from the item itself, and an honest account of when an index is acceptable.
+        weight: 30
+        levels:
+          "0": No fix, or one that does not change the key.
+          "1": Adds a unique value generated during render, which changes every time.
+          "2": Uses the id, with no sense of why the index ever worked.
+          "3": Uses the application's id, and says it must be stable and unique among siblings.
+          "4": As 3, and says an index is only safe for a list that never reorders, filters or removes.
+
+  - slug: client-boundary-reasoning
+    name: Deciding what has to run in the browser
+    criteria:
+      - dimension: Knows what the directive does
+        description: That it applies to everything beneath it, not only to the file it is written in.
+        weight: 35
+        levels:
+          "0": Treats it as a per-component setting with no wider effect.
+          "1": Says it "makes the page interactive" without a cost.
+          "2": Knows it affects children but describes the effect vaguely.
+          "3": Says everything imported below becomes client code and ships to the browser.
+          "4": As 3, and separates what is rendered on the server once from what must be sent to run again.
+      - dimension: Names the cost
+        description: More JavaScript on a phone, and server rendering given up for the whole page.
+        weight: 35
+        levels:
+          "0": Sees no cost.
+          "1": Says it is "less efficient" with nothing behind it.
+          "2": Names bundle size alone.
+          "3": Names the extra JavaScript and the loss of server rendering for the list.
+          "4": As 3, and ties it to this audience — a mid-range phone parsing a larger bundle on mobile data.
+      - dimension: Moves the boundary rather than the page
+        description: Only the interactive part becomes a client component; the page stays on the server.
+        weight: 30
+        levels:
+          "0": Keeps the directive on the page, or removes the button.
+          "1": Suggests splitting the file without saying where the line goes.
+          "2": Moves some code but leaves the data fetching in the browser.
+          "3": Makes the filter panel the client component and leaves the page and its data on the server.
+          "4": As 3, and says how far down the tree the boundary should go as a general habit.
+
+  - slug: secret-exposure-diagnosis
+    name: Recognising a secret that ships to the browser
+    criteria:
+      - dimension: Sees that the key is public
+        description: The prefix puts the value in the bundle, and the client request carries it in a header.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong.
+          "1": Says environment variables are "safe because they are on the server".
+          "2": Knows the prefix means something without saying what.
+          "3": Says the prefix inlines the value into the browser bundle, so the key is public.
+          "4": As 3, and adds that the request itself exposes it in the network tab regardless of the bundle.
+      - dimension: Moves the call
+        description: The request belongs on the server, with the key kept out of anything the browser receives.
+        weight: 30
+        levels:
+          "0": No change, or only renaming the variable.
+          "1": Removes the prefix and leaves the call in the client component, which then has no value.
+          "2": Says "call it from the server" without saying what the browser then talks to.
+          "3": Puts the call in a server component or a route handler and has the client call that.
+          "4": As 3, and keeps the response shape the client needs, rather than proxying the provider wholesale.
+      - dimension: Treats a leaked key as leaked
+        description: Rotating it, and finding out whether it was used, rather than quietly removing it.
+        weight: 30
+        levels:
+          "0": Does not consider that the key is already out.
+          "1": Removes it from the code and considers the matter closed.
+          "2": Says it "should probably be rotated" with no follow-through.
+          "3": Rotates the key, and checks the provider's usage for calls that were not ours.
+          "4": As 3, and checks the deployed bundles and the history for how long it was exposed.
+
+  - slug: vue-reactivity-diagnosis
+    name: Diagnosing a value that stopped being reactive
+    criteria:
+      - dimension: Locates the break
+        description: That destructuring copied the number out of the reactive object.
+        weight: 45
+        levels:
+          "0": Blames the click handler or the template syntax.
+          "1": Says reactivity is "not working" with no mechanism.
+          "2": Suspects the destructuring but describes it as a style problem.
+          "3": Says the destructured value is a plain number, so nothing links it to later changes.
+          "4": As 3, and confirms the object is still updating — only the template's copy is stale.
+      - dimension: Fixes it
+        description: Keep the reference, or convert the properties so they stay connected.
+        weight: 30
+        levels:
+          "0": No fix, or one that would not restore reactivity.
+          "1": Forces a re-render by hand.
+          "2": Removes the destructuring without being able to say why that works.
+          "3": Uses the object in the template, or converts its properties to refs before destructuring.
+          "4": As 3, and says which they would choose here and why.
+      - dimension: Generalises the rule
+        description: Reactivity belongs to the container, not to the value taken out of it.
+        weight: 25
+        levels:
+          "0": Treats it as a one-off quirk.
+          "1": States a rule that is really a restatement of the fix.
+          "2": Gives a rule that covers this case but not a ref.
+          "3": States that copying a value out of any reactive container loses the connection.
+          "4": As 3, and applies it to a second case — a prop, or a value passed into a function.
+
+  - slug: derived-list-diagnosis
+    name: Diagnosing a stored list that drifts from its source
+    criteria:
+      - dimension: Finds why it goes stale
+        description: The visible list is only rebuilt when the term changes, so a reload leaves it behind.
+        weight: 40
+        levels:
+          "0": Blames the filter logic, the API or the user.
+          "1": Says the list is "not reactive" without saying what it fails to react to.
+          "2": Identifies the watcher as involved but not what it fails to watch.
+          "3": Says the list is rebuilt only on a change of term, so new jobs do not reach it until the next keystroke.
+          "4": As 3, and says the symptom itself points there — typing another letter is what fixes it.
+      - dimension: Recognises it as derived
+        description: The filtered list follows from the jobs and the term, so it should not be stored at all.
+        weight: 35
+        levels:
+          "0": Keeps the stored list and adds a second watcher for the jobs.
+          "1": Adds the jobs to the existing watcher and considers it solved.
+          "2": Says it "could be computed" without saying what that changes.
+          "3": Makes it a computed value that depends on both, so there is one list rather than two.
+          "4": As 3, and says why that removes the whole class of bug rather than this instance of it.
+      - dimension: Knows what a watcher is still for
+        description: Something that has to happen when a value changes, as opposed to a value that follows from one.
+        weight: 25
+        levels:
+          "0": Concludes watchers should not be used.
+          "1": States a rule that is a restatement of the fix.
+          "2": Says watchers are for side effects without an example.
+          "3": Gives an example that has to happen rather than be shown — analytics, saving a draft, a request.
+          "4": As 3, and separates it from the filtered list by asking whether anything outside the component has to change.
+
+  - slug: subscription-lifetime-diagnosis
+    name: Diagnosing work that outlives its component
+    criteria:
+      - dimension: Connects the leak to both symptoms
+        description: Growing memory and stale results are the same cause — subscriptions that never ended.
+        weight: 40
+        levels:
+          "0": Treats the slowdown and the wrong results as unrelated.
+          "1": Blames the service or the server.
+          "2": Identifies the subscription as suspicious without explaining either symptom.
+          "3": Says each visit adds a subscription that is never ended, and all of them still respond.
+          "4": As 3, and explains why the component cannot be collected while something holds it.
+      - dimension: Ends the work with the component
+        description: Any fix that ties the subscription's lifetime to the component's.
+        weight: 35
+        levels:
+          "0": No fix, or a manual cleanup that runs at the wrong time.
+          "1": Suggests a page reload or a cache clear.
+          "2": Says it should be unsubscribed without saying when.
+          "3": Ties it to the component's destruction, or lets the template own the subscription instead.
+          "4": As 3, and prefers the approach that cannot be forgotten on the next component someone writes.
+      - dimension: Generalises
+        description: Anything started in a component — subscription, timer, listener — is ended with it.
+        weight: 25
+        levels:
+          "0": Treats it as specific to this service.
+          "1": States a rule about this one pattern.
+          "2": Generalises to subscriptions only.
+          "3": Names timers and listeners as the same class of problem.
+          "4": As 3, and says how they would catch it in review rather than in production.
+
+  - slug: change-detection-diagnosis
+    name: Diagnosing a view that did not re-render
+    criteria:
+      - dimension: Checks the premise first
+        description: That the property on the component really changed, rather than trusting a console line.
+        weight: 25
+        levels:
+          "0": Starts changing configuration.
+          "1": Assumes the data is fine because the console shows it.
+          "2": Would "add a log" without saying where.
+          "3": Confirms the bound property itself holds the new value at the time of the render.
+          "4": As 3, and says what each outcome rules out before going further.
+      - dimension: Knows why a change can go unnoticed
+        description: >-
+          Angular re-renders on a short list of notifications; an assignment to a plain field is not
+          on it, and neither is an object changed in place, whose reference never differs.
+        weight: 45
+        levels:
+          "0": Treats re-rendering as automatic and unconditional.
+          "1": Says "change detection did not run" with no cause.
+          "2": Names a cause that does not fit this code, and presents it as the only one.
+          "3": Names the shape that applies here — the array was changed in place, so the reference a child compares against never differed.
+          "4": As 3, and separates it from the other way a change goes unnoticed — nothing told Angular that anything had happened at all.
+      - dimension: Fixes it without papering over it
+        description: Replace the value rather than editing it, and treat a forced refresh as a smell.
+        weight: 30
+        levels:
+          "0": Forces a refresh and stops.
+          "1": Forces a refresh and says it is not ideal, with no alternative.
+          "2": Replaces the value in this case without a general rule.
+          "3": Assigns a new value so the change is visible, and explains why that is enough.
+          "4": As 3, and says that needing to force a check usually means the real cause is still there.
+
+  - slug: event-binding-diagnosis
+    name: Diagnosing handlers that missed the new elements
+    criteria:
+      - dimension: Explains why the new buttons are dead
+        description: The handlers were attached once, to the elements present at that moment.
+        weight: 40
+        levels:
+          "0": Blames the loading code or the markup of the new rows.
+          "1": Says the listeners "did not apply" without saying why.
+          "2": Identifies that the code ran once, without connecting it to the missing handlers.
+          "3": Says the selector matched only the buttons that existed then, so later ones were never given a listener.
+          "4": As 3, and predicts the same failure for anything else added to the page after load.
+      - dimension: Fixes it at the container
+        description: One listener on an ancestor that is always present, acting on what was clicked.
+        weight: 35
+        levels:
+          "0": No fix, or one that would not cover future items.
+          "1": Re-runs the same loop after each load, and does not notice the duplicate listeners that follow.
+          "2": Describes delegation without saying how the clicked button is identified.
+          "3": Listens on a container and checks what was clicked before acting.
+          "4": As 3, and says the container must exist for the life of the page for this to hold.
+      - dimension: Says why that works
+        description: That a click travels up through the ancestors, so a parent can hear it.
+        weight: 25
+        levels:
+          "0": Cannot say why.
+          "1": Says "that is just how it is done".
+          "2": Uses the word bubbling with no description of it.
+          "3": Describes the event travelling up from the element that was clicked.
+          "4": As 3, and names a case where it does not help — an event that does not travel that way.
+
+  - slug: progressive-enhancement-reasoning
+    name: Building for the seconds before the script arrives
+    criteria:
+      - dimension: Understands the window
+        description: That there is a period where the page is visible and its script is not there yet.
+        weight: 35
+        levels:
+          "0": Treats the report as a bug in the handler.
+          "1": Says the connection is "just slow" with nothing to do about it.
+          "2": Acknowledges the gap without saying what the user sees during it.
+          "3": Says the form is on screen and looks ready while nothing is listening to it.
+          "4": As 3, and adds that the same state is permanent for a user whose script fails to load.
+      - dimension: Makes the baseline work
+        description: The form submits on its own, and the script improves it rather than enabling it.
+        weight: 40
+        levels:
+          "0": Keeps the script as the only way to submit.
+          "1": Adds a spinner or a message and leaves the behaviour unchanged.
+          "2": Says the form "should work without JavaScript" without saying what that requires.
+          "3": Gives the form a real action so a submission works before the script arrives, then enhances it.
+          "4": As 3, and keeps the two paths consistent, so the enhanced version does not behave differently.
+      - dimension: Does not show a control that is not ready
+        description: If the button cannot work yet, it does not look as though it can.
+        weight: 25
+        levels:
+          "0": Leaves the button live and unexplained.
+          "1": Would add a global loading overlay over everything.
+          "2": Disables the button with no plan for enabling it.
+          "3": Starts the control disabled and enables it when the code that handles it is present.
+          "4": As 3, and pairs it with getting that code to the browser sooner rather than later.
+
+  - slug: dom-as-state-diagnosis
+    name: Recognising the page being used as the data
+    criteria:
+      - dimension: Says what breaks first
+        description: That rebuilding the markup throws away everything in it, and the data only exists as text.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong; the code works.
+          "1": Says it is "not scalable" without naming a failure.
+          "2": Objects to `innerHTML` on style grounds without saying what it destroys.
+          "3": Says rewriting `innerHTML` rebuilds every row, so anything the user had in one is lost.
+          "4": As 3, and adds what else goes with it — listeners, focus, scroll position.
+      - dimension: Recognises the page as the store
+        description: The cart's contents exist only as list items, and the total is gathered back off the screen.
+        weight: 35
+        levels:
+          "0": Treats the DOM as a reasonable place to keep the data.
+          "1": Says the code is "messy" without locating where the data lives.
+          "2": Notices the total is read from the page, without generalising.
+          "3": Says the page is being used as the store, and that reading numbers back out of text is the symptom.
+          "4": As 3, and notes that formatting and arithmetic are now entangled — a currency symbol would break the sum.
+      - dimension: Restructures it
+        description: Hold the items, draw the page from them, derive the total.
+        weight: 25
+        levels:
+          "0": No alternative, or the same approach written more carefully.
+          "1": Keeps the DOM as the store and adds a variable for the total alongside it.
+          "2": Keeps an array but still reads the total off the page.
+          "3": Keeps the items in an array, redraws from it, and derives the total from the array.
+          "4": As 3, and redraws only what changed rather than the whole list, without reaching for a framework to do it.

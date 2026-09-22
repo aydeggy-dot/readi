@@ -1,6 +1,21 @@
 # Rubrics used by more than one role. A behavioural answer is judged the same way whether the
 # candidate is a frontend, backend or QA engineer, so there is one rubric rather than three copies
 # that would drift apart.
+#
+# Reworked 2026-09-22 after the four critique passes, which converged on this file from three
+# directions. Two things were wrong with it:
+#
+# 1. **It scored delivery.** Every criterion's top band turned on "clear", one asked for an account
+#    "in their own words", and one required detail enough "to be believable" — none of which an
+#    evaluator reading a transcript of spoken Nigerian English can separate from fluency. Level 0 of
+#    the heaviest criterion was awarded for saying "we", which is the polite register in much of this
+#    audience's working culture and says nothing about what the candidate did.
+# 2. **It could not score the questions that used it.** `stuck-and-asked-for-help` is about judgement
+#    on when to ask; `feedback-on-your-code` is about handling a comment you did not agree with.
+#    Neither had anywhere to be scored, so both questions rewarded storytelling form instead — which
+#    is coachable in an afternoon. Those two now have their own rubrics below, keeping the first two
+#    criteria in common and differing where the question differs. That is a deliberate duplication:
+#    the alternative was a fourth criterion that meant something different per question.
 version: 1
 author: ai_draft
 status: draft
@@ -11,35 +26,171 @@ rubrics:
     criteria:
       - dimension: A specific, real situation
         description: >-
-          The answer is about one thing that actually happened, with enough detail — what the task
-          was, who else was involved, when — to be believable, rather than a general description of
-          how the candidate likes to work.
+          The answer is about one thing that actually happened, with concrete detail — the task, the
+          system, when, who else if anyone — rather than a general description of how the candidate
+          likes to work.
         weight: 30
         levels:
           "0": No situation given; answers in generalities ("I always communicate early").
-          "1": Names a situation but with no detail that fixes it in time or place.
-          "2": One situation with some context, but key details are missing or vague.
-          "3": One clear situation with the context an outsider needs to follow it.
-          "4": One clear situation, concrete and specific, including what made it hard.
+          "1": Names a situation with no detail that fixes it in time or place.
+          "2": One situation with some context; the task or the timeframe is missing.
+          "3": One situation, with the context an outsider needs in order to follow it.
+          "4": As 3, and says what made it hard — the constraint, the deadline, the thing that was unknown.
       - dimension: Their own actions
         description: >-
-          What the candidate personally did, in enough detail to judge, rather than what the team
-          did or what should have been done in principle.
+          What the candidate personally did, in enough detail to judge. Collective phrasing is not a
+          fault; an answer with no recoverable action is.
         weight: 40
         levels:
-          "0": No actions described, or entirely "we" with no visible role for the candidate.
+          "0": No action is attributable to the candidate, even after the interviewer asks which part was theirs.
           "1": Actions are generic ("I fixed it") and could describe anyone.
-          "2": Some of their own actions, but the sequence or reasoning is unclear.
-          "3": A clear account of what they did and why, in their own words.
-          "4": A clear account, including a decision they weighed and the trade-off they took.
+          "2": Some of their own actions, but the sequence or the reasoning is missing.
+          "3": What they did and why it is recoverable from the answer.
+          "4": As 3, including a decision they weighed and what they gave up by taking it.
       - dimension: Outcome and what they took from it
         description: >-
-          How it ended, honestly — including if it went badly — and something specific they do
-          differently now as a result.
+          How it ended, including if it went badly, and something specific they do differently now as
+          a result.
         weight: 30
         levels:
           "0": No outcome, or an outcome that does not follow from the actions described.
           "1": States that it worked out, with nothing to show for it.
           "2": An outcome, but the lesson is a platitude ("communication is important").
-          "3": A clear outcome and one specific thing they changed afterwards.
-          "4": A clear outcome, honest about what went wrong, and a change they can point to since.
+          "3": The outcome and one specific thing they changed afterwards are both stated.
+          "4": As 3, and the change is one an interviewer could check against how they now work.
+
+  - slug: help-seeking-judgement
+    name: Judgement about when to ask for help
+    criteria:
+      - dimension: A specific, real situation
+        description: One occasion that actually happened, with the concrete detail an outsider needs to follow it.
+        weight: 25
+        levels:
+          "0": No situation given; answers in generalities.
+          "1": Names a situation with no detail that fixes it in time or place.
+          "2": One situation with some context; the task or the timeframe is missing.
+          "3": One situation, with the context an outsider needs in order to follow it.
+          "4": As 3, and says what made it hard rather than only what it was.
+      - dimension: What they tried before asking
+        description: Evidence of a real attempt — what they read, what they ruled out — rather than a search and a shrug.
+        weight: 35
+        levels:
+          "0": No attempt described.
+          "1": '"I looked it up", with nothing they learned from doing so.'
+          "2": One thing tried, with no account of what it told them.
+          "3": Several things tried, and what each one ruled out.
+          "4": As 3, and the attempt narrowed the problem enough that the question they finally asked was a small one.
+      - dimension: Judgement about when to ask
+        description: >-
+          Why they asked when they did. The decision can show in the story rather than be stated.
+          Scored on the judgement, never on the hours — a team that treats asking as weakness is a
+          fact about the workplace, not a fault in the candidate.
+        weight: 40
+        levels:
+          "0": No sense that asking was a decision at all.
+          "1": A rule with nothing behind it ("I always try for an hour first").
+          "2": Says they waited or asked, with no reason tied to what was at stake or what they had ruled out.
+          "3": The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why.
+          "4": As 3, and says what made asking easy or hard where they were, and how they worked with or around that.
+
+  - slug: handling-review-feedback
+    name: Handling feedback on your own work
+    criteria:
+      - dimension: A specific, real situation
+        description: One piece of work and the feedback it actually got, from whoever gave it.
+        weight: 25
+        levels:
+          "0": No situation given; answers in generalities about being open to feedback.
+          "1": Names a situation with no detail about what the feedback said.
+          "2": One situation, with the feedback described only as "a lot of comments".
+          "3": One situation, with at least one comment described specifically enough to discuss.
+          "4": As 3, and the comment described is one that changed something, not the easiest one.
+      - dimension: What they did with it
+        description: The changes they made, and how the work ended up different.
+        weight: 35
+        levels:
+          "0": No actions described.
+          "1": '"I made the changes", with nothing about what they were.'
+          "2": Some changes described, without saying what problem each addressed.
+          "3": What they changed and why it was an improvement is recoverable from the answer.
+          "4": As 3, and something they now do earlier so that comment would not arise again.
+      - dimension: A comment they did not agree with, or did not understand
+        description: >-
+          How they got to the bottom of it. Pushing back is one route and is not available in every
+          workplace; asking until it made sense is another and counts the same.
+        weight: 40
+        levels:
+          "0": No such comment; the answer is about accepting feedback gracefully.
+          "1": Mentions disagreeing, with no account of what happened next.
+          "2": Complied without understanding, and still cannot say what the reviewer was worried about.
+          "3": Describes finding out what the comment was really about — by asking, reading, or trying it — and where that left them.
+          "4": As 3, and can say which of them turned out to be right, including when it was not them.
+
+  # The two questions added from the critique passes are asked of every wave-1 role, so their
+  # rubrics live here rather than in one role's file.
+
+  - slug: async-unblocking
+    name: Getting unblocked without anyone there
+    criteria:
+      - dimension: Writes enough for someone to answer while they sleep
+        description: >-
+          What they were doing, what they tried, what happened, and what they think is going on —
+          enough that the reply can be an answer rather than a request for more detail.
+        weight: 40
+        levels:
+          "0": Waits to explain it live, or sends "are you around?".
+          "1": Describes the symptom only, with no account of what they tried.
+          "2": Describes the problem and the attempts, but leaves out what they expected to happen.
+          "3": Covers the goal, the attempts, the result and their current theory.
+          "4": As 3, and the message can be acted on without a follow-up question — links, versions, the exact error.
+      - dimension: Asks something specific, and says what it holds up
+        description: One answerable question, and what is blocked and by when.
+        weight: 30
+        levels:
+          "0": No question; a statement that they are stuck.
+          "1": Asks for help in general terms.
+          "2": Asks a question, but so broad that the reply will be another question.
+          "3": Asks one specific question and says what it is blocking.
+          "4": As 3, and says by when the answer matters, so the reader can judge it against their own work.
+      - dimension: Does not stop
+        description: What they do with the six hours.
+        weight: 30
+        levels:
+          "0": Waits.
+          "1": Says they would "keep trying" with no plan.
+          "2": Moves to other work without narrowing the problem at all.
+          "3": Picks up something not blocked, and keeps narrowing the problem in the background.
+          "4": As 3, and if they solve it first, says they would post the answer so the thread closes itself.
+
+  - slug: talking-about-your-own-work
+    name: Talking about something you built
+    criteria:
+      - dimension: Concrete enough to be checkable
+        description: >-
+          What the thing did, what it was built with, what was hard — detail an interviewer could
+          ask a follow-up about. Scale is not the point; specificity is.
+        weight: 30
+        levels:
+          "0": Cannot describe anything they built.
+          "1": Names a project in terms that would fit any project ("a web app with login").
+          "2": Describes what it did, but nothing about how it was built or what was difficult.
+          "3": Describes what it did, how it was built and the part that took the longest.
+          "4": As 3, and the detail is specific enough to invite a follow-up they can answer.
+      - dimension: A real decision, not a description
+        description: A point where there were at least two options, and why they took the one they did.
+        weight: 40
+        levels:
+          "0": No decision; a tour of the finished thing.
+          "1": A choice presented as the only possibility ("I used React").
+          "2": A choice with a general reason that is not about their situation ("it is popular").
+          "3": A choice with an alternative named, and a reason grounded in what they were building.
+          "4": As 3, and says what the choice cost them — the thing that got harder because of it.
+      - dimension: What they would change
+        description: Something specific they would do differently, and why they did not know it then.
+        weight: 30
+        levels:
+          "0": Nothing they would change.
+          "1": '"I would write cleaner code" or similar.'
+          "2": Names a change with no reason behind it.
+          "3": Names a specific change and what went wrong that taught them it.
+          "4": As 3, and separates what they could reasonably have known at the time from what only experience gives.

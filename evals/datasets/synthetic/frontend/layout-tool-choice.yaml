@@ -1,0 +1,114 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: layout-tool-choice
+question: layout-tools-for-a-screen
+# The question this rubric scores was rewritten after the critique passes, from "which layout tool
+# would you use" to "here is the breakpoint-per-size version, what does it cost". `fluent-but-wrong`
+# shows why the rewrite was worth it: it has somewhere to go wrong now.
+answers:
+  - kind: strong
+    text: |
+      So what this is doing is describing four screen sizes instead of describing the cards.
+      It says at 480 there are two, at 768 there are three, but nothing in there says how wide
+      a card actually wants to be. So at, say, 700 pixels you've got two cards that are each
+      about 350 wide, and I doubt anyone's ever looked at that, because 700 isn't one of the
+      four numbers in the file. Then the cost going forward is that every change comes back
+      here — a new size, someone puts a longer title in a card, the card needs more room — and
+      it's another breakpoint each time. What I'd write instead is one line, grid-template-
+      columns repeat auto-fit minmax 260px 1fr. You say what a card needs and the grid works
+      out how many fit, at every width, including all the ones nobody listed. And I'd check it
+      at 360, that's where most of our users are.
+    expected:
+      - dimension: "Says what is actually wrong with it"
+        score: 4
+        because: "Says it describes four screen sizes rather than the cards, names the 700px gap nobody has looked at, and that changing the card means revisiting all four numbers."
+      - dimension: "Lets the layout decide for itself"
+        score: 3
+        because: "`auto-fit` with a `minmax`, so the grid works out how many fit; does not say where breakpoints would still belong."
+      - dimension: "Starts narrow"
+        score: 3
+        because: "Would check it at 360, where most of this audience is."
+  - kind: weak
+    text: |
+      I mean, it works, like you said. The cost is... I guess it's a lot of media queries, so
+      the stylesheet gets long and you have to scroll a lot. I'd probably use flexbox instead,
+      display flex with flex-wrap, and then give the cards a width like 25% so four fit on a
+      row, and keep media queries to change the percentage on the smaller screens. Or
+      honestly, if the project allows it, I'd just use Bootstrap, because then you put col-12
+      col-md-6 col-lg-3 on the card and it handles all of that for you and you're not writing
+      the media queries yourself at all.
+    expected:
+      - dimension: "Says what is actually wrong with it"
+        score: 1
+        because: "Objects to the length of the stylesheet, not to what the rules fail to cover."
+      - dimension: "Lets the layout decide for itself"
+        score: 1
+        because: "Swaps grid for flex with percentage widths, or reaches for Bootstrap — the same breakpoint-per-count model."
+      - dimension: "Starts narrow"
+        score: 1
+        because: "Mentions smaller screens as something to change the percentage for."
+  - kind: fluent-but-wrong
+    text: |
+      Sure. The cost here is twofold, maintenance and performance. On maintenance, those
+      breakpoint values are hard-coded in four separate places, so they're magic numbers
+      scattered through the stylesheet and they'll drift from whatever the design system says.
+      On performance, each of those media queries is a condition the browser has to evaluate
+      on every resize, and each one that flips triggers a fresh layout pass — on a low-end
+      Android that's real jank when someone rotates the phone. So what I'd write instead is
+      the same four tiers, but with the breakpoints pulled out into custom properties, or a
+      Sass mixin if we have one, so the values live in exactly one place, and converted from
+      px to em so they respect the user's font size instead of fighting it. Same behaviour,
+      one source of truth, and it scales with zoom. That's the version I'd put up for review.
+    expected:
+      - dimension: "Says what is actually wrong with it"
+        score: 2
+        because: "Calls them magic numbers that will drift — true, and the performance claim underneath it (media queries re-evaluated on resize causing layout passes) is invented."
+      - dimension: "Lets the layout decide for itself"
+        score: 1
+        because: "Hoists the same four breakpoints into variables and em units; the model is untouched."
+      - dimension: "Starts narrow"
+        score: 0
+        because: "Never reaches the narrow end; the concern is zoom and the design system."
+  - kind: correct-poorly-explained
+    text: |
+      Hmm, so, it's not wrong exactly, it does work, and to be fair you do still want
+      breakpoints for the places where the design genuinely becomes a different layout, like a
+      sidebar that turns into a drawer, that's a real one. But this isn't that, this is just
+      counting cards. And the maintenance thing is, the designer comes back and says the cards
+      need to be bigger, and now all four of those lines are wrong and you're redoing every
+      one of them by hand. There's also a gap between 480 and 768 where you've got two cards
+      at nearly 380 each and I'd bet nobody has opened that. So what I'd actually write is
+      auto-fit with a minmax, where you give it the smallest a card is allowed to be and it
+      works the rest out by itself, at every width, not only at the four in that file.
+    expected:
+      - dimension: "Says what is actually wrong with it"
+        score: 4
+        because: "The designer changing the card size breaks all four lines, and there is a gap between 480 and 768 nobody has opened."
+      - dimension: "Lets the layout decide for itself"
+        score: 4
+        because: "`auto-fit` with a `minmax`, and keeps breakpoints for where the design genuinely becomes a different layout."
+      - dimension: "Starts narrow"
+        score: 0
+        because: "Never mentions the narrow width or checking at 360."
+  - kind: nigerian-english
+    text: |
+      Wetin this CSS dey do, e dey describe four screen sizes, e no dey describe the card at
+      all. E talk say at 480 make e be two, at 768 make e be three, but nothing there is
+      saying how wide one card actually wan be. So at like 700 pixels, you go get two cards
+      wey each one na 350 wide — that one don too wide now, and nobody don ever check am,
+      because 700 no dey among the four numbers wey dem write. Then going forward, any small
+      change — new screen size, or the card need more room — na another breakpoint you go add
+      again. So wetin I go write na one line: repeat auto-fit, minmax 260px and 1fr. You just
+      tell am the smallest wey a card fit be, the grid go arrange am by itself, for every
+      width. And I go check am at 360, na there most of our users dey.
+    expected:
+      - dimension: "Says what is actually wrong with it"
+        score: 4
+        because: "Same reading, same 700px example, same point about the card changing."
+      - dimension: "Lets the layout decide for itself"
+        score: 3
+        because: "Same one line, same omission about where breakpoints still belong."
+      - dimension: "Starts narrow"
+        score: 3
+        because: "Same: check it at 360, that is where the users are."

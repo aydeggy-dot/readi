@@ -1,0 +1,115 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: dom-as-state-diagnosis
+question: vanilla-dom-as-the-source-of-truth
+answers:
+  - kind: strong
+    text: |
+      Okay so, what I notice first is there's no actual cart anywhere. The cart is the list on
+      the screen — the data only exists as HTML, so the page is doing the job of the store. And
+      the line that breaks first for me is the `innerHTML +=`. That's not appending, it reads
+      the whole list out as a string, sticks the new item on the end and re-parses all of it. So
+      every existing row gets thrown away and rebuilt. The moment those rows have anything in
+      them — a quantity input, a remove button somebody was focused on — that's gone on the next
+      add. And then updateTotal reads the prices off the DOM, so the numbers live in an
+      attribute as text. What I'd do is keep an array of items in JavaScript, that's the truth,
+      and have one render function that draws the list from that array whenever it changes. The
+      total is then just a reduce over the array — I never go to the screen to ask what's in the
+      cart.
+    expected:
+      - dimension: "Says what breaks first"
+        score: 4
+        because: "`innerHTML +=` reads the list out as a string and re-parses all of it, so every row is destroyed — and names what goes with them, a quantity input or the button somebody was focused on."
+      - dimension: "Recognises the page as the store"
+        score: 3
+        because: "The cart exists only as HTML and the total is read back out of attributes as text; does not take it as far as a currency symbol breaking the sum."
+      - dimension: "Restructures it"
+        score: 3
+        because: "An array as the truth, one render function, and the total reduced from the array."
+  - kind: weak
+    text: |
+      Hmm, okay. So the total is a number and prices can have kobo, so I think the first thing
+      that breaks is the total being wrong — `Number` on something like 1500.50 can give you
+      those long decimals, so I'd use `toFixed(2)` on the total when I display it. Then, also,
+      if the user refreshes the page the cart is empty, so I'd save it into localStorage so it
+      persists. And I'd give each `li` an `id` so I can find it later when they want to remove
+      an item, because right now there's no way to remove anything. Maybe also `parseFloat`
+      instead of `Number`, and I'd move those two functions into a separate file so it's
+      cleaner. That's what I'd restructure.
+    expected:
+      - dimension: "Says what breaks first"
+        score: 1
+        because: "Names a failure — float formatting — that is not what breaks first and does not come from the structure."
+      - dimension: "Recognises the page as the store"
+        score: 0
+        because: "Treats the list as a reasonable place for the cart to live; the additions are persistence and ids."
+      - dimension: "Restructures it"
+        score: 1
+        because: "Keeps the DOM as the store and puts the cart in localStorage beside it."
+  - kind: fluent-but-wrong
+    text: |
+      Right — so what breaks first here is performance, and it breaks quietly. Assigning to
+      `innerHTML` forces a full reflow and repaint of the container, and because `updateTotal`
+      then walks every `li` with `querySelectorAll`, you've got an O(n) pass on every single
+      add. Ten items is fine, two hundred and the cart visibly stutters on a mid-range Android.
+      So the restructure I'd do is three things. Build the new row with `document.createElement`
+      into a `DocumentFragment` and append that, so you touch the DOM once. Use event delegation
+      on the container instead of per-row listeners, so the node count doesn't cost you. And
+      stop recomputing the total from scratch — keep the running total in a `data-total`
+      attribute on the container and just add the new price to it. That way adding an item is
+      constant time instead of linear, and the DOM stays the single place the cart lives, which
+      keeps it simple.
+    expected:
+      - dimension: "Says what breaks first"
+        score: 2
+        because: "Objects to `innerHTML` on performance grounds — reflow, an O(n) pass per add — and never says what it destroys."
+      - dimension: "Recognises the page as the store"
+        score: 0
+        because: 'Argues *for* the arrangement: "the DOM stays the single place the cart lives, which keeps it simple".'
+      - dimension: "Restructures it"
+        score: 1
+        because: "Keeps the DOM as the store and caches the running total in a `data-total` attribute on the container."
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so, `innerHTML +=` is, um, it's not really adding one thing, it's more like it takes
+      everything that's there, makes it a string, and does the whole list again — so all the old
+      rows are new rows now, which, if there was a quantity box or something, that's wiped. And
+      the total, it's going around the page counting, and the price is a string in an attribute
+      so you're doing `Number` on text, which, you know, is formatting mixed into your maths. So
+      I'd probably make a render function, and only that function touches the list. And honestly
+      the reason all of this is happening, which I should have said at the start, is there's no
+      cart object — the `<ul>` *is* the cart. Once you keep an array of items and draw the page
+      from it, the total is just adding up the array and none of this comes up.
+    expected:
+      - dimension: "Says what breaks first"
+        score: 4
+        because: 'Same destruction, same example — "if there was a quantity box or something, that''s wiped".'
+      - dimension: "Recognises the page as the store"
+        score: 4
+        because: '"There''s no cart object — the `<ul>` *is* the cart", and formatting mixed into the arithmetic.'
+      - dimension: "Restructures it"
+        score: 3
+        because: "A render function that alone touches the list, drawing from an array."
+  - kind: nigerian-english
+    text: |
+      The first thing I'm seeing is that there's no cart anywhere. The cart na the list on the
+      screen — the data is only existing as HTML, so the page is doing the work of the store.
+      And the line that will break first na that `innerHTML +=`. It's not appending o, it will
+      read the whole list as a string, add the new item behind and parse it all again. So every
+      row that was there before, e go scatter and rebuild. So the day those rows carry something
+      — a quantity input, a remove button somebody's cursor is inside — all of it is gone. Then
+      updateTotal sef will go back to the DOM to read price, so your number is living inside an
+      attribute as text. What I'll do is keep an array of the items for JavaScript side — that
+      one is the truth — then one render function will draw the list from it anytime it changes.
+      The total is now just reduce on the array.
+    expected:
+      - dimension: "Says what breaks first"
+        score: 4
+        because: "Same reading of `innerHTML +=`, same list of what is lost."
+      - dimension: "Recognises the page as the store"
+        score: 3
+        because: "Same: the page doing the work of the store, the price living in an attribute as text."
+      - dimension: "Restructures it"
+        score: 3
+        because: "Same array, same single render function, same reduce."

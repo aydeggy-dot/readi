@@ -1,0 +1,110 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: vue-reactivity-diagnosis
+question: vue-reactivity-lost
+answers:
+  - kind: strong
+    text: |
+      So the click is definitely running, they said that, so it's not the handler — it's what the
+      template is rendering. The const { count } = state line is the problem. When you destructure
+      a reactive object you pull the plain number out of it, so count in the template is just zero,
+      a normal number, it's got no connection back to the proxy any more. The object itself is
+      updating fine, state.count really does become one, two, three — it's just that nothing is
+      watching the copy. So either render state.count directly in the template, or use toRefs so
+      you get refs out instead of values and then destructuring is safe. The way I hold it in my
+      head is that the reactivity lives in the container, not in the value you take out of it. Same
+      thing would happen with a ref if you copied .value into a variable.
+    expected:
+      - dimension: "Locates the break"
+        score: 4
+        because: "The destructured value is a plain number, and confirms the object itself is still updating — only the template's copy is stale."
+      - dimension: "Fixes it"
+        score: 3
+        because: "Use `state.count`, or `toRefs` before destructuring; does not say which they would pick."
+      - dimension: "Generalises the rule"
+        score: 4
+        because: "Reactivity belongs to the container, and applies it to a second case — a `ref` whose `.value` is copied out."
+  - kind: weak
+    text: |
+      Okay so… I think the issue is reactive. From what I remember, reactive is for objects and ref
+      is for numbers and strings, and count is a number, so it should be a ref. So I'd change it to
+      const count = ref(0), and then in add you do count.value += 1. Also I'm not sure the button
+      should be showing the count inside it — maybe put it in a span so it re-renders separately?
+      And maybe the function needs to be returned, although with script setup I think it's exposed
+      automatically. Honestly I mostly use the Options API, with data() and methods, and there this
+      would just be this.count and it works, so I'm not fully sure what script setup is doing
+      differently here.
+    expected:
+      - dimension: "Locates the break"
+        score: 1
+        because: '"reactive is for objects and ref is for numbers" — a rule, and not the mechanism at work here.'
+      - dimension: "Fixes it"
+        score: 1
+        because: "Switches to `ref`, which leaves the destructuring untouched, so the same copy is still rendered."
+      - dimension: "Generalises the rule"
+        score: 1
+        because: "The rule offered is a restatement of the fix."
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, this is a classic reactive() limitation. reactive only works on objects, and what it
+      gives you is a Proxy whose property values are still primitives underneath — so when you do
+      state.count += 1 you're replacing a primitive on the proxy, and Vue's tracker can't diff a
+      primitive reassignment, it only picks up structural changes to the object. That's exactly why
+      the docs steer you to ref for primitives: ref boxes the value so the setter can fire the
+      trigger. So I'd write const count = ref(0), destructure or not, doesn't matter, and then
+      count.value += 1 in add. The template auto-unwraps refs at the top level so {{ count }} keeps
+      working unchanged. Rule of thumb I use: reactive for state shapes, ref for anything that is a
+      single value — this snippet has them the wrong way round.
+    expected:
+      - dimension: "Locates the break"
+        score: 1
+        because: 'A detailed mechanism — "Vue''s tracker can''t diff a primitive reassignment" — that is not what happens, and it explicitly says the destructuring does not matter.'
+      - dimension: "Fixes it"
+        score: 1
+        because: '`ref` plus "destructure or not, doesn''t matter": the copied-value bug survives the fix intact.'
+      - dimension: "Generalises the rule"
+        score: 1
+        because: '"reactive for state shapes, ref for single values" sounds like a rule and does not cover this case at all.'
+  - kind: correct-poorly-explained
+    text: |
+      Okay so it's, um, it's not the function, the function is fine, state.count is going up, you
+      could console log it and see it going up, I'm fairly sure, and — hold on — the template, the
+      template has count, not state.count, and count came from that line where they pull it out of
+      state, and once you pull it out it's, like, it's just a number at that point, it's frozen at
+      whatever it was, so the template renders zero forever even though the object behind it is
+      moving. So you'd either not do that line and just use state.count in the template, or you'd
+      run toRefs on it first so what you're destructuring is refs and not numbers, and then it
+      tracks. Which is, I suppose, the actual point — the reactivity is attached to the object, not
+      to the value that used to be inside it.
+    expected:
+      - dimension: "Locates the break"
+        score: 4
+        because: "Reaches the same place — the template renders a frozen number while the object behind it moves."
+      - dimension: "Fixes it"
+        score: 3
+        because: "Same two options, same absence of a choice between them."
+      - dimension: "Generalises the rule"
+        score: 3
+        because: "States the general rule; does not carry it to a second case."
+  - kind: nigerian-english
+    text: |
+      The function is working, no doubt — the click is running, so the problem no be the handler at
+      all. Na that destructuring line. Once you do const { count } = state, you have pulled the
+      value comot from the reactive object, so wetin the template dey render na ordinary number, e
+      no get any connection to the proxy again. The object sef is still updating well well,
+      state.count is going one, two, three — na just say nothing is watching the copy wey the
+      template rendered. So either you use state.count directly for the template, or you pass am
+      through toRefs so wetin you dey destructure na refs, not plain values. The way I dey
+      remember am, na the container get the reactivity, no be the value wey you carry comot. If
+      you do the same thing with a ref, copy .value into another variable, e go break the same way.
+    expected:
+      - dimension: "Locates the break"
+        score: 4
+        because: "Same, including confirming the object is still updating."
+      - dimension: "Fixes it"
+        score: 3
+        because: "Same two options."
+      - dimension: "Generalises the rule"
+        score: 4
+        because: "Same rule, and the same `ref` example."

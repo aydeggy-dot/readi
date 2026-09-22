@@ -1,0 +1,113 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: url-state-reasoning
+question: url-as-state
+answers:
+  - kind: strong
+    text: |
+      So the filter is only living in the page's memory, in state, and the URL never changed
+      when she picked Lagos. So the link she copied is just the plain jobs page, and when her
+      friend opens it the page starts from its default, which is everything in the country.
+      What I'd change is put the filter in the URL as a query string, something like question
+      mark location equals lagos, and update that whenever the filter changes. And then the
+      other half, which is the half people forget — on load, the page reads its filter out of
+      the URL instead of using the default. It also fixes reload, because right now if she
+      refreshed it herself she'd lose the filter too. What I'd keep out of the link is
+      anything temporary. Whether a dropdown is open, a form she's half typed into. You
+      wouldn't want to send that to somebody.
+    expected:
+      - dimension: "Explains the symptom"
+        score: 3
+        because: "The filter lives in the page's memory and the address never changed, so the link carries nothing."
+      - dimension: "Puts it in the address"
+        score: 3
+        because: "Both halves — write the filter to the query string, and read it on load instead of using the default."
+      - dimension: "Knows what does not belong there"
+        score: 3
+        because: "Draws the line at what someone else opening the link should see; the examples are all on one side of it."
+  - kind: weak
+    text: |
+      Oh — I think maybe the friend isn't logged in? Like if the filter is saved against her
+      account and he has a different account, or no account, he'd just see the default. Or it
+      could be that the page loads all the jobs first and then applies the filter after, so he
+      saw it before it finished filtering. I'd probably add a share button that copies a
+      proper link for you. Or save the filter in localStorage so the page remembers it, that
+      way when you come back it's still the way you left it. Anything I'd keep out of the link
+      — maybe passwords, or anything private like that.
+    expected:
+      - dimension: "Explains the symptom"
+        score: 1
+        because: "Guesses at accounts and login state; never says where the filter was living."
+      - dimension: "Puts it in the address"
+        score: 1
+        because: "localStorage and a share button — neither travels to the friend."
+      - dimension: "Knows what does not belong there"
+        score: 1
+        because: '"Maybe passwords" — no principle that would decide the next case.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a caching and persistence problem. What's almost certainly happening
+      is that the friend is being served the cached copy of that route — his browser, or more
+      likely the CDN, hands back a version that was generated with no filter applied, so of
+      course he sees everything. Two things I'd do. First, cache headers on that route, no-
+      store or at least a vary header so a filtered response isn't treated as the same
+      document. Second, persist the filter properly — write it to localStorage when it changes
+      and read it on mount, so the selection survives a reload and the page comes back up the
+      way the user left it. And what would I keep out of the link? Honestly I'd keep
+      everything out of the link. Long query strings are hard to read and they leak what the
+      user was looking at.
+    expected:
+      - dimension: "Explains the symptom"
+        score: 0
+        because: "Diagnoses a CDN or browser cache serving a stale document — a bug in the infrastructure rather than in where the state lives."
+      - dimension: "Puts it in the address"
+        score: 1
+        because: "Persists to localStorage, which does not travel, and adds cache headers that change nothing about the link."
+      - dimension: "Knows what does not belong there"
+        score: 0
+        because: '"I''d keep everything out of the link", which is the opposite of the rule and given as a general principle.'
+  - kind: correct-poorly-explained
+    text: |
+      Um. So, the things I wouldn't put in there — a dropdown that happens to be open, or if
+      she's typed half of something into a search box and hasn't finished, you don't want that
+      in the address and you don't want to send it to someone. Sorry, that's the last part of
+      the question. The reason it happened is, when she clicked Lagos the page changed what it
+      was showing but the address bar stayed the same, so there's nothing in what she copied
+      that says Lagos. Her friend's browser has no way of knowing. And the same thing means if
+      she refreshed it herself it would go back to everything too, which is probably annoying
+      her. So what you want is the filter to be part of the address, a query parameter, and
+      then when the page starts up it doesn't use its default, it looks at the address first
+      and takes the filter from there.
+    expected:
+      - dimension: "Explains the symptom"
+        score: 4
+        because: "Says the address stayed the same, and predicts the same failure on reload."
+      - dimension: "Puts it in the address"
+        score: 3
+        because: "Query parameter, and the page reads the address before falling back to its default."
+      - dimension: "Knows what does not belong there"
+        score: 3
+        because: "An open dropdown and a half-typed search, with the reason: you would not send that to someone."
+  - kind: nigerian-english
+    text: |
+      The filter dey inside the page memory only, inside state. When she clicked Lagos, the
+      address bar no change at all. So the link wey she copied na just the plain jobs page,
+      and when her friend open am, e go load the default, wey be every job for the country. So
+      wetin I go change: put the filter inside the URL as a query string, like question mark
+      location equals lagos, and update am anytime the filter changes. Then the other half —
+      when the page is loading, e go read the filter from the URL instead of using the
+      default. Na that second one people dey forget. E go fix reload too, because as e dey
+      now, if she just refresh am herself, the filter go clear. Wetin I go keep out? Anything
+      wey be temporary — dropdown wey open, or form wey she never finish typing. You no wan
+      send that kind thing to person.
+    expected:
+      - dimension: "Explains the symptom"
+        score: 3
+        because: "Same diagnosis, same words about the address bar."
+      - dimension: "Puts it in the address"
+        score: 3
+        because: "Same two halves, and the same note that people forget the second."
+      - dimension: "Knows what does not belong there"
+        score: 3
+        because: "Same line, same examples."

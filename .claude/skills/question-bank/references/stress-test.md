@@ -79,6 +79,22 @@ answers:
 `expected` carries one entry per criterion, **in the rubric's order**, with the dimension repeated
 so the file reads on its own and breaks loudly if the rubric is reordered.
 
+## The check
+
+```bash
+node .claude/skills/question-bank/scripts/check-stress.mjs [--role frontend]
+```
+
+It computes each answer's weighted score from the rubric's own criterion weights and enforces the
+rule above mechanically: `fluent-but-wrong` must fall at least 0.8 of a point below `strong`,
+`correct-poorly-explained` at least 0.8 above `weak`, and `nigerian-english` must stay within one
+point of `strong` on **every** criterion. It also checks each file's dimensions against the rubric
+it names, in order, so a renamed or reordered criterion fails loudly instead of silently scoring the
+wrong thing.
+
+Its output is a table sorted by the narrowest separation first — which is the list of rubrics to
+look at again when the bank next changes.
+
 ## What these are, and are not
 
 `evals/datasets/synthetic/README.md` must say, on its face:

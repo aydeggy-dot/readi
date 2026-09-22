@@ -21,8 +21,17 @@ track:
     - { topic: web-networking, core: true }
     - { topic: debugging, core: true }
     - { topic: collaboration, core: true }
-    - { topic: accessibility, core: false }
-    - { topic: frontend-testing, core: false }
+    # Core as of 2026-09-22 (owner): both are asked in real interviews here, both are cheap to
+    # examine in conversation, and a role page that treats them as optional teaches the wrong
+    # thing. `core` feeds readiness coverage (spec §7), so this changes what a candidate is
+    # measured against, not only what they are offered.
+    - { topic: accessibility, core: true }
+    - { topic: frontend-testing, core: true }
+    # Two topics the bank gained on 2026-09-22 and this programme has no lessons for yet, so they
+    # are listed but not core: a candidate should not be measured on coverage of something we do
+    # not teach. They become core when the lessons exist (M6 reads `core` for readiness, spec §7).
+    - { topic: written-communication, core: false }
+    - { topic: own-work, core: false }
 
   modules:
     - slug: javascript-in-the-browser

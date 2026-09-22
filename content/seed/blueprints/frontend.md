@@ -1,6 +1,7 @@
 # Frontend engineer — question bank blueprint
 
-**Wave 1. Status: blueprint drafted 2026-09-22; the bank is 8 questions and is being extended.**
+**Wave 1. Status: drafted and critiqued 2026-09-22. The bank is 34 questions — 23 general and 11
+stack-tagged — and is with the owner before it goes to a human expert.**
 Derived from `docs/role-catalogue.md` § Frontend Engineer.
 
 ## What the role is
@@ -109,6 +110,8 @@ general_by_topic:
   frontend-testing: { intern-junior: 2, mid: 2 }
   debugging: { intern-junior: 2, mid: 2 }
   collaboration: { intern-junior: 2, mid: 2 }
+  written-communication: { intern-junior: 2, mid: 2 }
+  own-work: { intern-junior: 2, mid: 2 }
 by_stack:
   react-typescript: 3
   nextjs: 3
@@ -118,12 +121,19 @@ by_stack:
 complete: false
 ```
 
-|          | General | Stack-tagged | Total   | Today |
-| -------- | ------- | ------------ | ------- | ----- |
-| Frontend | ~20     | ~11          | **~31** | 8     |
+|          | General | Stack-tagged | Total  | Was |
+| -------- | ------- | ------------ | ------ | --- |
+| Frontend | 23      | 11           | **34** | 8   |
 
-About 23 new rubrics: one per new technical and scenario question, none for the behavioural ones,
-which share `behavioural-answer-quality`.
+Twenty-eight new rubrics: one per new technical and scenario question, plus four in
+`rubrics.shared.yaml` — two that replaced the shared behavioural rubric on the questions it could
+not score, and two for the questions the critique passes added.
+
+**Two topics were added after the critique passes** and are deliberately below the floor here:
+`written-communication` and `own-work` have one question each rather than two. Both questions carry
+all four wave-1 roles, so the second of each belongs in the backend pass rather than in a second
+frontend question that would ask the same thing about a browser. `check-bank.mjs` reports the
+shortfall every run, which is the point.
 
 ## The existing eight
 
@@ -155,23 +165,137 @@ react-node`. The tags are right; what is missing is their general counterparts (
 
 ## Appendix A — fact-check log
 
-_Filled as the bank is drafted._
+Every version-sensitive claim in the bank, checked against the vendor's own current documentation
+on **2026-09-22**. Three of the four things checked had moved since the drafter's knowledge of them.
 
-| Question | Claim | Checked against | Date | Outcome |
-| -------- | ----- | --------------- | ---- | ------- |
+| Question                      | Claim                                                                      | Checked against                                         | Outcome                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `angular-view-did-not-update` | Change detection runs when the zone tells Angular something happened       | angular.dev/guide/zoneless, angular.dev/roadmap         | **Moved.** Zoneless is the default from **v21**, and Angular's notifications are a short explicit list — a signal read in a template, `markForCheck` (which `AsyncPipe` calls), `ComponentRef.setInput`, template listeners. The question was rewritten around a mutated array, which behaves the same in zone-based, `OnPush` and signal applications                                                                 |
+| `angular-view-did-not-update` | `OnPush` is an opt-in strategy                                             | angular.dev/guide/zoneless vs angular.dev/roadmap       | **Unresolved, and the docs disagree with themselves.** The roadmap lists "we set the default change detection strategy to `OnPush`… renamed `ChangeDetectionStrategy.Default` to `Eager`" as done; the zoneless guide still says `OnPush` is "not required, but recommended". The snippet sets it explicitly so the question does not depend on which is true. **Flagged in `reviewer_notes` for an Angular reviewer** |
+| `angular-subscription-leak`   | A subscription that outlives its component leaks                           | angular.dev                                             | Holds, and the idiomatic fix has moved several times (`takeUntil`, the async pipe, `takeUntilDestroyed`, signals). The rubric scores tying the subscription to the component's lifetime **by any mechanism**, deliberately. Added an ideal point: on a zoneless Angular the same snippet also fails to render, which a current candidate may well notice                                                               |
+| `vue-reactivity-lost`         | Destructuring a `reactive()` object breaks the connection                  | vuejs.org/guide/essentials/reactivity-fundamentals      | Holds. **But Vue 3.5 stabilised reactive props destructure**, so destructuring `defineProps` _is_ reactive — the compiler rewrites it. Added to the answer key, because a candidate who learned on 3.5 may reasonably expect the `reactive()` case to work too, and knowing why props are the exception is the best answer available                                                                                   |
+| `nextjs-server-or-client`     | `"use client"` applies to everything imported below it                     | nextjs.org/docs/app/api-reference/directives/use-client | Holds. Added the nuance the docs make explicit: a server component passed as a **child or a prop** is not in the client module graph — it is rendered output. That is now the level-4 answer                                                                                                                                                                                                                           |
+| `nextjs-key-in-the-browser`   | `NEXT_PUBLIC_` values are inlined into the browser bundle                  | nextjs.org                                              | Holds, and the docs add that a variable _without_ the prefix is replaced with an empty string in client code — which is why "just remove the prefix" is level 1 in the rubric rather than a fix                                                                                                                                                                                                                        |
+| `react-list-key-mixup`        | An index key leaves component state against the wrong item after a removal | react.dev/learn/preserving-and-resetting-state          | Holds — this is the docs' own "fix misplaced state in the list" example. State is kept against the **position**, which is precisely why it ends up beside different data                                                                                                                                                                                                                                               |
+
+Nothing in the bank names a model, a price, a benchmark or a version number, so nothing else in it
+can go stale silently. The four stack-tagged families are where to look first next time.
 
 ## Appendix B — what the critique passes changed
 
-_Filled after the four passes in `.claude/skills/question-bank/references/critique.md`._
+Four passes, run separately, each given the bank and its own brief and nothing about the others
+(`.claude/skills/question-bank/references/critique.md`). Counts are of distinct findings.
 
-| Pass                         | Findings | Applied | To `reviewer_notes` |
-| ---------------------------- | -------- | ------- | ------------------- |
-| Senior interviewer (Nigeria) |          |         |                     |
-| Hiring manager (remote)      |          |         |                     |
-| Nervous junior               |          |         |                     |
-| Fairness                     |          |         |                     |
+| Pass                        | Raised | Applied as edits | Left in `reviewer_notes` |
+| --------------------------- | ------ | ---------------- | ------------------------ |
+| Senior interviewer, Nigeria | ~21    | 11               | 6                        |
+| Hiring manager, remote      | ~34    | 9                | 7                        |
+| Nervous junior candidate    | ~26    | 18               | 3                        |
+| Fairness reviewer           | ~28    | 16               | 9                        |
+
+**Three passes independently named the same worst problem**, from three directions: the shared
+behavioural rubric. It could not score what its two questions asked — `stuck-and-asked-for-help` is
+about judgement on when to ask, `feedback-on-your-code` about handling a comment you did not agree
+with, and the rubric scored situation, actions and outcome — so both questions rewarded storytelling
+form, which is coachable in an afternoon. And its wording scored delivery: "clear" gated the top of
+all three criteria, one asked for an account "in their own words", one wanted detail enough "to be
+believable", and level 0 of the heaviest criterion was awarded for saying "we" — the polite register
+in much of this audience's working culture. Those two questions now have their own rubrics, and
+`behavioural-answer-quality` was rewritten and kept for the backend and QA behaviourals.
+
+The other findings worth recording:
+
+- **A systemic defect the junior pass found and named as a rule: every criterion must have a clause
+  in the spoken prompt that asks for it.** Nine questions charged 25–35% for something the prompt
+  never requested — `stale-after-saving` and `css-overflow-at-360` asked for a diagnosis and scored
+  a fix; `js-copy-or-reference` put 20% on `const`, a word the prompt never said; `js-async-ordering`
+  scored "connects it to the user" without asking. All nine prompts gained the missing clause, and
+  the rule is now in `SKILL.md`.
+- **Two questions were unanswerable without an employer.** `feedback-on-your-code` required someone
+  who had had their code reviewed — the only hard experience prerequisite in the bank — and now names
+  a mentor, a maintainer or a tutor as well. `error-only-in-production` put 45% on reading an
+  error-reporting dashboard, and now lists the fields on screen so the candidate reasons about data
+  rather than recalls a product they have never had.
+- **Four questions were rewritten rather than cut.** `layout-tools-for-a-screen` ("flex for the row,
+  grid for the cards" — the sentence in every tutorial) became the inverse: here is the
+  breakpoint-per-size version, what does it cost. `it-works-for-me` gained a real bug report, so the
+  answer must contain a hypothesis and not a recitable list of questions. `vue-computed-or-watch`
+  became `vue-list-drifts-from-its-source`, a bug rather than a definition. `angular-view-did-not-update`
+  gained a snippet, which also fixed the fact-check problem above.
+- **Two questions were added, both role-general.** `the-overnight-blocker` — nothing in the bank was
+  answered in writing to someone who is not there, which is the condition remote work creates and
+  half of what this product is for. `something-you-built` — every other question hands the candidate
+  a supplied scenario, so all 31 could be prepared for without ever describing their own code, and
+  an interviewer here called that the highest-yield fifteen minutes they have.
+- **Four level-4 descriptors rewarded a claimed habit** ("would keep a sample of awkward content
+  around", "checks the error rate afterwards") that costs nothing to say. Each now requires a
+  distinction or a trade-off that cannot be bluffed.
+- **`retry-and-the-double-charge` capped a correct junior answer at level 2**, because level 3 asked
+  for an idempotency key — a backend-shaped answer. Confirming state with the server is now level 3;
+  the key is level 4.
+- **`css-overflow-at-360` rewarded a cause that cannot be true**: `100vw` beside a scrollbar, on a
+  phone, where scrollbars are overlaid. Removed from the answer key.
+
+## Appendix B2 — what the rubric stress test changed
+
+Five answers per rubric — 34 rubrics, 170 answers — written from the prompts alone by subagents that
+never saw a rubric, then scored against the criteria. `check-stress.mjs` enforces the two
+separations mechanically. **Every rubric passes**: `fluent-but-wrong` falls between 1.3 and 3.65
+points below `strong`, `correct-poorly-explained` sits 1.5 to 3.4 above `weak`, and
+`nigerian-english` is within one point of `strong` on every criterion of every rubric.
+
+Three rubrics changed because the exercise broke them:
+
+| Rubric                         | What the answers exposed                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `help-seeking-judgement`       | Criterion 3 (40%) asked whether asking was easy or hard on the candidate's team — which the prompt no longer requests, since "how long did you spend" was removed from it. The `strong` answer scored 2 for answering the question as asked. It now scores the judgement visible in the story, and keeps the workplace-norm point at level 4. |
+| `cache-invalidation-diagnosis` | Criterion 3 had no descriptor for saying nothing. `correct-poorly-explained` diagnoses better than `strong` and never proposes a change, and the only level that fitted was "would disable caching everywhere", which is a different failure. Level 0 is now "not addressed — the answer stops at the diagnosis".                             |
+| `change-detection-diagnosis`   | Criterion 2 (45%) required **both** ways a change goes unnoticed, but the snippet only exhibits one — so a precise answer was capped below a vague one that listed both. Level 3 now asks for the shape that applies, level 4 for the separation.                                                                                             |
+
+Two findings that did not change a rubric and should:
+
+- **No rubric has a descriptor that fits a confident, specific, wrong answer.** The scores come out
+  right — `fluent-but-wrong` lands on level 1 or 2 everywhere — but the descriptors it lands on were
+  written for vagueness ("a rule with no mechanism", "with nothing behind it"), and this is the
+  opposite of vague. The score will be right and the evidence the evaluator quotes will not match the
+  answer. It is a house-style change across every rubric in the product, not a frontend one, so it is
+  flagged here rather than applied. `SKILL.md` carries it as a rule for the next bank.
+- **The three narrowest separations are the three to watch**: `async-ordering-understanding` (+1.30),
+  `network-failure-handling` (+1.50) and `change-detection-diagnosis` (+1.60). In each, a fluent
+  wrong answer reaches level 2 on a criterion because it genuinely does part of what is asked. The
+  ranking is the checker's output, sorted narrowest first.
+
+Two rubrics were reached by `correct-poorly-explained` scoring **above** `strong` —
+`reference-semantics-understanding` (3.80 against 3.00) and `event-binding-diagnosis` (3.75 against
+3.35). That is the rubrics working: both rambling answers contain more than the fluent ones do (the
+shallow-copy trap; the generalisation about attaching listeners). A rubric with delivery in its
+descriptors would have reversed them.
 
 ## Appendix C — coverage after drafting
 
-_Filled at the end of the role's pass: the bank against this blueprint, and against what a real
-junior and mid frontend interview covers here._
+**34 questions, 23 general and 11 stack-tagged**, against a blueprint that asked for about 31. A
+frontend candidate is offered 35, because the backend bank's `incident-you-contributed-to` carries
+this role as well. Every
+core topic meets its floor at both levels, and two deliberately do not:
+
+- `written-communication` and `own-work` have **one question each rather than two**. Both carry all
+  four wave-1 roles, so the second of each belongs in the backend pass rather than in a second
+  frontend question asking the same thing about a browser. The checker reports it every run.
+
+What this bank still does not prepare a candidate for, in order of how much it matters:
+
+1. **A live coding round.** Out of scope by the engine, stated on the role's page, and the single
+   largest gap between this and a real interview here.
+2. **Entering an unfamiliar codebase.** Every snippet is complete and small; every scenario is a
+   screen the candidate owns. A remote reviewer called this the thing that actually predicts month
+   six, and the bank measures knowledge in hand instead. It needs a question shaped like "you join a
+   team and pick up a bug in a repo you have never seen" — role-general, and best written in the
+   backend pass alongside the second `written-communication` question.
+3. **A slipping estimate.** "You said Friday, it is Wednesday and it will not be Friday" — escalating
+   before the deadline rather than at it. Also role-general, also for the backend pass.
+4. **A `mid` track.** Questions without lessons; named in _Out of scope_ above.
+
+The behavioural share is **4 of 34**, up from 2 of 8. A remote reviewer argued for closer to 40% of
+the bank; an interviewer here put the ratio at about one behavioural question in four of an hour.
+Four in thirty-five is below both, and the two additions above would take it to six. Worth your view
+before the backend pass writes them.

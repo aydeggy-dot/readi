@@ -155,33 +155,33 @@ Build, environment, device, time, and an attachment that shows it.
 
 **A specific, real situation — 30%**
 
-The answer is about one thing that actually happened, with enough detail — what the task was, who else was involved, when — to be believable, rather than a general description of how the candidate likes to work.
+The answer is about one thing that actually happened, with concrete detail — the task, the system, when, who else if anyone — rather than a general description of how the candidate likes to work.
 
 - **0 (absent):** No situation given; answers in generalities ("I always communicate early").
-- **1 (weak):** Names a situation but with no detail that fixes it in time or place.
-- **2 (partial):** One situation with some context, but key details are missing or vague.
-- **3 (solid):** One clear situation with the context an outsider needs to follow it.
-- **4 (excellent):** One clear situation, concrete and specific, including what made it hard.
+- **1 (weak):** Names a situation with no detail that fixes it in time or place.
+- **2 (partial):** One situation with some context; the task or the timeframe is missing.
+- **3 (solid):** One situation, with the context an outsider needs in order to follow it.
+- **4 (excellent):** As 3, and says what made it hard — the constraint, the deadline, the thing that was unknown.
 
 **Their own actions — 40%**
 
-What the candidate personally did, in enough detail to judge, rather than what the team did or what should have been done in principle.
+What the candidate personally did, in enough detail to judge. Collective phrasing is not a fault; an answer with no recoverable action is.
 
-- **0 (absent):** No actions described, or entirely "we" with no visible role for the candidate.
+- **0 (absent):** No action is attributable to the candidate, even after the interviewer asks which part was theirs.
 - **1 (weak):** Actions are generic ("I fixed it") and could describe anyone.
-- **2 (partial):** Some of their own actions, but the sequence or reasoning is unclear.
-- **3 (solid):** A clear account of what they did and why, in their own words.
-- **4 (excellent):** A clear account, including a decision they weighed and the trade-off they took.
+- **2 (partial):** Some of their own actions, but the sequence or the reasoning is missing.
+- **3 (solid):** What they did and why it is recoverable from the answer.
+- **4 (excellent):** As 3, including a decision they weighed and what they gave up by taking it.
 
 **Outcome and what they took from it — 30%**
 
-How it ended, honestly — including if it went badly — and something specific they do differently now as a result.
+How it ended, including if it went badly, and something specific they do differently now as a result.
 
 - **0 (absent):** No outcome, or an outcome that does not follow from the actions described.
 - **1 (weak):** States that it worked out, with nothing to show for it.
 - **2 (partial):** An outcome, but the lesson is a platitude ("communication is important").
-- **3 (solid):** A clear outcome and one specific thing they changed afterwards.
-- **4 (excellent):** A clear outcome, honest about what went wrong, and a change they can point to since.
+- **3 (solid):** The outcome and one specific thing they changed afterwards are both stated.
+- **4 (excellent):** As 3, and the change is one an interviewer could check against how they now work.
 
 > **The drafter is unsure about:** This is the question I am least sure about. It can reward people who are comfortable being difficult, and penalise people from workplaces where disagreeing upwards is not done. Keep, reword, or cut?
 

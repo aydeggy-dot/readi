@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: async-ordering-understanding
+question: js-async-ordering
+# The pairing this rubric had to survive: `fluent-but-wrong` gives 1,2,4,3 confidently and
+# inverts microtasks and macrotasks. It lands on 2/2/2 against `strong`'s 4/3/3, so the rubric
+# separates fluency from correctness here.
+answers:
+  - kind: strong
+    text: |
+      Okay so it prints 1, then 2, then 3, then 4. The two console.logs are just normal
+      synchronous lines, so they run straight down, top to bottom — that's your 1 and 2. The
+      setTimeout callback and the promise .then both get deferred, but they don't go into the
+      same queue. The promise one is a microtask, and microtasks get drained as soon as the
+      current chunk of code finishes, so 3 comes next. The setTimeout is a task, so even with
+      zero it has to wait for the next turn of the loop — zero doesn't mean now, it means as
+      soon as you're free. And why anyone should care, it's one thread, so if you do something
+      heavy in a loop the whole page just freezes, nothing paints, clicks do nothing.
+    expected:
+      - dimension: "Gets the order right"
+        score: 4
+        because: "Correct order, and calls out the zero-delay timer as the line that decides it."
+      - dimension: "Explains the mechanism"
+        score: 3
+        because: "Distinguishes the two queues and says when each is taken; does not say the stack must empty first."
+      - dimension: "Connects it to the user"
+        score: 3
+        because: "One thread that also paints, so a heavy loop freezes the page — concrete, no remedy offered."
+  - kind: weak
+    text: |
+      Hmm. Honestly I think setTimeout with zero fires immediately, so maybe 1, 4, 2, 3? No,
+      wait. I know the two logs at the top run first because, well, they're at the top. And
+      promises are asynchronous so they come later, but setTimeout is also asynchronous, so
+      I'm not sure which of those two wins. I'd probably just paste it in the console and see,
+      to be honest. The reason it happens is JavaScript is asynchronous, it doesn't wait for
+      things to finish. Why care — I guess so your code runs in the order you expect it to? I
+      haven't really had to think about ordering like this, I mostly just await things and it
+      works out.
+    expected:
+      - dimension: "Gets the order right"
+        score: 1
+        because: "Offers 1, 4, 2, 3, then retracts it; no model of queuing behind either attempt."
+      - dimension: "Explains the mechanism"
+        score: 1
+        because: '"JavaScript is asynchronous, it doesn''t wait" — a rule with no mechanism.'
+      - dimension: "Connects it to the user"
+        score: 1
+        because: '"So your code runs in the order you expect" — no consequence a user would see.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is the event loop. The output is 1, 2, 4, 3. Synchronous lines first,
+      obviously, that's 1 and 2. Then the queue drains in registration order, and the
+      setTimeout was registered before the promise, so 4 goes first. The other piece is that
+      promise callbacks are macrotasks — they're scheduled onto the next full turn of the
+      event loop — whereas a zero-delay setTimeout is effectively a microtask, it's the
+      browser's way of saying run this at the end of the current tick. So the timer wins. That
+      is exactly why people reach for setTimeout zero when they need something to happen
+      before a promise chain settles. It matters because if you're ordering side effects you
+      need to know which queue you've put yourself in.
+    expected:
+      - dimension: "Gets the order right"
+        score: 2
+        because: "Synchronous lines placed correctly; the promise and the timer are swapped."
+      - dimension: "Explains the mechanism"
+        score: 2
+        because: "Names the event loop and both queues, and inverts them — microtask and macrotask are the wrong way round."
+      - dimension: "Connects it to the user"
+        score: 2
+        because: '"If you''re ordering side effects you need to know which queue" — a consequence in general terms.'
+  - kind: correct-poorly-explained
+    text: |
+      So there's four numbers, and the timeout is zero which you'd think means first but it
+      isn't, it's actually last, and the promise one is before it but after the two plain
+      logs, sorry — I mean the plain ones are obviously first because they just, they just
+      run, so 1 and 2, then the promise, then the timer, and the reason is there's like a
+      separate queue for promises that gets emptied before the timer one even gets looked at,
+      they're not the same queue even though both of them are async, and I suppose the thing
+      to actually care about, which I should have said at the start, is there's only the one
+      thread doing all of it including the drawing, so anything slow you write blocks the page
+      from painting or responding to a tap.
+    expected:
+      - dimension: "Gets the order right"
+        score: 3
+        because: "Correct order, arrived at backwards, with no commentary on which line was the trap."
+      - dimension: "Explains the mechanism"
+        score: 3
+        because: "Describes a separate queue for promises drained before the timer queue is looked at."
+      - dimension: "Connects it to the user"
+        score: 3
+        because: "One thread including the drawing, so slow work blocks painting and taps."
+  - kind: nigerian-english
+    text: |
+      It will print 1, then 2, then 3, then 4. The two normal console.logs, they will just run
+      one after the other because they are ordinary lines, nothing is waiting for them — that
+      one is your 1 and 2. Then the promise and the setTimeout, both of them are waiting, but
+      they are not on the same queue o. The promise one is microtask, so the moment the main
+      code finish, JavaScript will clear that one first — that's your 3. The setTimeout, even
+      the zero you put there, it's still a task, so it must wait for the next round. Zero does
+      not mean now, it means when you are free. And why it matters — na one thread, and the
+      same thread is painting. So if you run one long loop there, the page will just hang, the
+      person is clicking and nothing is answering.
+    expected:
+      - dimension: "Gets the order right"
+        score: 4
+        because: 'Same as `strong`: correct order, and "zero does not mean now, it means when you are free".'
+      - dimension: "Explains the mechanism"
+        score: 3
+        because: "Same mechanism, same omission — the stack emptying is implied rather than said."
+      - dimension: "Connects it to the user"
+        score: 3
+        because: "Same consequence, stated concretely: the page hangs and clicks are not answered."

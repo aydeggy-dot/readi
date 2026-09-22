@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: derived-state-reasoning
+question: state-that-can-disagree
+answers:
+  - kind: strong
+    text: |
+      So what I'd expect to find is three separate pieces of state — the selection, and a
+      count, and a total — and every place that changes the selection has to remember to
+      update the other two. And somewhere, probably in the remove handler, one of them got
+      missed. So the badge isn't broken, it's telling you exactly what it was told, it was
+      just told the wrong thing. What I'd actually store is only the selection, like a set of
+      the selected ids. The count is just selection.length, and the total you work out by
+      looping the selected ones when you render. Then there's one fact in one place and
+      nothing can disagree with anything. And no, recalculating doesn't worry me. It's a list
+      on a page, a few dozen items, that's nothing. If it ever got slow I'd measure it first
+      and then maybe memoise, but I wouldn't start there.
+    expected:
+      - dimension: "Separates the one fact from the rest"
+        score: 3
+        because: "Holds the selection alone and calculates the rest; does not generalise beyond this screen."
+      - dimension: "Says what goes wrong otherwise"
+        score: 4
+        because: '"The badge isn''t broken, it''s telling you exactly what it was told" — names the concrete path and why it looks like a display bug.'
+      - dimension: "Weighs the cost of recalculating"
+        score: 3
+        because: "A few dozen items is nothing; would measure before memoising rather than start there."
+  - kind: weak
+    text: |
+      I think that sounds like a re-render problem. Like the badge component didn't re-render
+      when the item was removed, so it's still showing the old number. What I'd probably do is
+      add a useEffect that watches the items array, and inside it set the count again, so any
+      time the list changes the count gets refreshed. Or if that still doesn't work you can
+      change the key on the component to force it to remount, that usually clears it. And on
+      the recalculating — yeah, that would worry me a bit, I'd wrap things in useMemo just to
+      be safe, because you don't really want that running on every single render.
+    expected:
+      - dimension: "Separates the one fact from the rest"
+        score: 1
+        because: "Keeps all three and adds an effect to re-sync the count, seeing no problem with the arrangement."
+      - dimension: "Says what goes wrong otherwise"
+        score: 0
+        because: "No downside offered; the diagnosis is a missing re-render."
+      - dimension: "Weighs the cost of recalculating"
+        score: 2
+        because: 'Would reach for `useMemo` "just to be safe", before knowing whether it is needed.'
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, I've hit this exact bug. It's a stale closure. The remove handler was created on
+      an earlier render, so it's closing over the old value of count, and because setState is
+      asynchronous and React batches updates within the same event, by the time the badge
+      reads it you're reading a value from before the removal landed. Classic off-by-one from
+      batching. The fix is the functional form — setCount(c => c - 1) instead of
+      setCount(count - 1), so you're always deriving from the latest value rather than a
+      captured one, and the same for the total. Then I'd wrap the total in useMemo with the
+      selection in the dependency array so it only recomputes when it genuinely has to. And
+      no, recalculating doesn't worry me at all, as long as it's memoised properly you're only
+      paying for it when something actually changed.
+    expected:
+      - dimension: "Separates the one fact from the rest"
+        score: 1
+        because: "A stale closure and batching, argued in detail — and all three pieces of state survive the fix."
+      - dimension: "Says what goes wrong otherwise"
+        score: 0
+        because: "Never identifies the duplication, so never says what it costs."
+      - dimension: "Weighs the cost of recalculating"
+        score: 2
+        because: '"As long as it''s memoised properly" — memoising as a default rather than a response to a measurement.'
+  - kind: correct-poorly-explained
+    text: |
+      So, the recalculating part — no, that wouldn't worry me, you're looping maybe twenty
+      items, that's nothing next to actually painting the page, and you'd measure before doing
+      anything about it anyway. What I'd expect to find is, um, okay, there'll be a count
+      sitting in state and a total sitting in state and the selection also in state, and the
+      remove path only updated some of them. And you can't really catch that, because nothing
+      throws, it just shows a wrong number and it looks like a display bug, so people go and
+      stare at the badge. The person who wrote the remove handler just forgot a line. So the
+      answer is you don't keep the count or the total at all. You keep the selection, only the
+      selection, and everything else you work out from it while you're rendering, and then
+      there's one place the truth lives and it can't go out of step with itself.
+    expected:
+      - dimension: "Separates the one fact from the rest"
+        score: 3
+        because: "Arrives at holding only the selection, after starting with the performance aside."
+      - dimension: "Says what goes wrong otherwise"
+        score: 4
+        because: "Nothing throws, so it looks like a display bug and people stare at the badge — the cause is far from the symptom."
+      - dimension: "Weighs the cost of recalculating"
+        score: 3
+        because: "Twenty items against the cost of painting, and would measure first."
+  - kind: nigerian-english
+    text: |
+      Wetin I go expect to see na say dem keep three things inside state — the selection, then
+      a count, then a total. So anywhere wey you change the selection, you must remember to
+      update the other two, and somebody forgot one, probably inside the remove handler. So
+      the badge is not lying, na wrong thing dem tell am. What I'll store na only the
+      selection, just the ids of the ones wey dem select. The count na just selection.length,
+      and the total, you loop the selected ones when you're rendering. One fact, one place,
+      nothing fit disagree. And no, the recalculating no dey worry me at all — na small list,
+      twenty, thirty items, that one no be anything. If e ever come slow, I go measure am
+      first before I start to dey memoise.
+    expected:
+      - dimension: "Separates the one fact from the rest"
+        score: 3
+        because: "Same: store the selection, derive the count and the total."
+      - dimension: "Says what goes wrong otherwise"
+        score: 4
+        because: "Same point — the badge is not lying, it was told the wrong thing."
+      - dimension: "Weighs the cost of recalculating"
+        score: 3
+        because: "Same, including measuring before memoising."

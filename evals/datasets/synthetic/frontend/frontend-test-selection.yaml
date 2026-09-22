@@ -1,0 +1,107 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: frontend-test-selection
+question: what-to-test-on-a-login-screen
+answers:
+  - kind: strong
+    text: |
+      Right, so the first thing — I'd test what the user actually does on the screen. So: type
+      an email, type a password, click submit, and then check the thing that happens after, you
+      know, that we called login and the person got through. Then the wrong-password path,
+      because that's the one nobody clicks through by hand, so it's the one that rots quietly. I'd
+      stub the network to come back with a 401 and check the error message is really on the
+      screen. Same with the empty fields. And I'm stubbing the network in all of them, because
+      this test is about this screen, not about the server. What I'd leave out is the styling,
+      and, like, the framework's own behaviour — that typing in a box puts the letters in the
+      box. React already tests that. And I wouldn't assert on internal state.
+    expected:
+      - dimension: "Tests behaviour, not internals"
+        score: 3
+        because: "Types, submits and checks what happens after; does not say how elements would be found."
+      - dimension: "Covers the paths nobody clicks"
+        score: 4
+        because: "Wrong password and empty fields, with the network stubbed so the test is about this screen."
+      - dimension: "Says what they would not test"
+        score: 3
+        because: "Leaves out styling and the framework's own behaviour, with a reason that generalises."
+  - kind: weak
+    text: |
+      Erm, I'd try to get the coverage up, so, like, a test for every function in the file. I'd
+      check the email input is there, the password input is there, the button is there, and
+      maybe that the class names are right so the design doesn't break. A snapshot test for the
+      whole screen, that's quick. For the login itself I'd probably hit the real endpoint with a
+      test account so I know it really works. Leave untested — honestly I'd try not to leave
+      anything untested, if it's in the file it should have a test. Maybe the error message,
+      since that one is really the backend's own thing, not ours.
+    expected:
+      - dimension: "Tests behaviour, not internals"
+        score: 1
+        because: "Asserts the inputs exist and the class names are right, plus a snapshot of the whole screen."
+      - dimension: "Covers the paths nobody clicks"
+        score: 1
+        because: "The successful login against a real endpoint; the error message is excluded as the backend's business."
+      - dimension: "Says what they would not test"
+        score: 0
+        because: '"I''d try not to leave anything untested, if it''s in the file it should have a test."'
+  - kind: fluent-but-wrong
+    text: |
+      Sure. So my approach is to test the unit in isolation first, then integrate. I'd
+      shallow-render the component and assert on its internal state — that the email state
+      updates on change, that the submit handler flips isSubmitting to true, that the validation
+      function returns the right shape. That gives you fast, precise failures that point at the
+      exact line. For the login call itself I would not stub the network; a mocked fetch is a
+      fiction, and you want the test exercising the real auth endpoint so the contract is
+      genuinely covered. And I'd deliberately skip the wrong-credentials path — that's the
+      server's contract, it belongs in the backend suite, and duplicating it here is just double
+      bookkeeping that fails twice for one bug.
+    expected:
+      - dimension: "Tests behaviour, not internals"
+        score: 1
+        because: "Shallow-renders and asserts on internal state — that `isSubmitting` flips, that the validation function returns a shape."
+      - dimension: "Covers the paths nobody clicks"
+        score: 1
+        because: "Refuses to stub the network on principle, and deliberately skips the wrong-credentials path."
+      - dimension: "Says what they would not test"
+        score: 1
+        because: 'Excludes the failure path with a reason — "double bookkeeping" — that would exclude most integration testing.'
+  - kind: correct-poorly-explained
+    text: |
+      Okay so I would not test, like, the CSS, or that typing in a box puts the letters in the
+      box, because that's the library's job and not mine, and also not the server, and the
+      reason I say not the server is that I'd fake the network — sorry, mock it, the fetch — so
+      when I write the bad-password one I just make it return the error and then I look for the
+      message on the screen, and same for when it works, and the empty fields one too, and…
+      I suppose the point I should have started with is that all of them are me pretending to be
+      the person using it, typing and clicking, not reaching inside the component, and two of
+      those that would actually catch something beat twenty tiny ones that can't.
+    expected:
+      - dimension: "Tests behaviour, not internals"
+        score: 3
+        because: '"All of them are me pretending to be the person using it, typing and clicking, not reaching inside the component."'
+      - dimension: "Covers the paths nobody clicks"
+        score: 4
+        because: "Bad password, success and empty fields, all with the fetch mocked."
+      - dimension: "Says what they would not test"
+        score: 4
+        because: "Not the CSS, not the library's job, not the server — and two tests that catch something beat twenty that cannot."
+  - kind: nigerian-english
+    text: |
+      Okay so. The main thing I'll test na wetin the person will actually do on the screen — I'll
+      type the email, type the password, press submit, then I check say we called login and the
+      person enter. Then the wrong password own, because that one, nobody go click am by hand, so
+      na the one wey go spoil quietly. I'll fake the network make e return 401, then I check say
+      the error message dey show. Empty field own too. And all of them I'm stubbing the network,
+      because this test is about this screen, not about the server o. Wetin I no go test na the
+      styling, and I won't test that typing shows the letters — React don test that one already.
+      Is it not their own code?
+    expected:
+      - dimension: "Tests behaviour, not internals"
+        score: 3
+        because: "Same: type, submit, check what happened."
+      - dimension: "Covers the paths nobody clicks"
+        score: 4
+        because: "Same wrong-password and empty-field paths, network faked."
+      - dimension: "Says what they would not test"
+        score: 3
+        because: "Same exclusions, same reason — React has tested its own code."

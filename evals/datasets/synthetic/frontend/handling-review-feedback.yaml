@@ -1,0 +1,116 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: handling-review-feedback
+question: feedback-on-your-code
+# `fluent-but-wrong` is the sharpest test in this set: a polished, genuinely insightful story about
+# feedback that is not feedback on a piece of work. Under the old shared rubric it would have scored
+# well on all three criteria, because it is a specific situation with clear actions and an outcome.
+# The question-specific rubric puts it at 0.6 against `strong`'s 4.0.
+answers:
+  - kind: strong
+    text: |
+      Yeah — my first proper pull request at my internship. It was a job listing page and I
+      got, I want to say, fourteen comments on it. The big ones were that I had the same
+      fetch-and-set- loading block copied in three different components, that I was swallowing
+      errors in a catch that just console.logged, and my naming, I literally had data and
+      data2. The duplication and the naming I just agreed with and fixed. The one I didn't
+      understand was, he wrote "this filter runs on every render and you're building a new
+      object each time". I genuinely didn't know what that meant, so I asked him on a call,
+      and he opened the profiler and showed me the whole thing re-rendering on every keystroke
+      in the search box. He was right. So now I read my own diff before I send it, and I look
+      for repetition first, because half of those comments I could have caught myself.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 4
+        because: "Fourteen comments on a first pull request, and the one described is the one that changed something."
+      - dimension: "What they did with it"
+        score: 4
+        because: "Says what changed and what they now do earlier — reading their own diff for repetition first."
+      - dimension: "A comment they did not agree with, or did not understand"
+        score: 4
+        because: "Did not understand the re-render comment, asked, was shown the profiler, and says plainly that he was right."
+  - kind: weak
+    text: |
+      Um, yeah, I've had feedback. Mostly it's small things — spacing, or he'd say rename this
+      variable, or take out the commented-out code. I just do it, because he's senior and he's
+      seen more than me, so arguing doesn't really help anybody. Was there anything I didn't
+      agree with? Not really. I feel like if someone takes the time to review your code you
+      should just make the change and move on. And nothing I didn't understand either, the
+      comments were pretty clear. What do I do differently now... I try to make sure I don't
+      leave console.logs in before I push. And I check it runs.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 2
+        because: "Spacing, renaming, commented-out code — real but described only as small things."
+      - dimension: "What they did with it"
+        score: 2
+        because: '"I just do it", with no account of what problem any change addressed.'
+      - dimension: "A comment they did not agree with, or did not understand"
+        score: 0
+        because: "Explicitly nothing they disagreed with or did not understand; the answer is about accepting feedback gracefully."
+  - kind: fluent-but-wrong
+    text: |
+      Yes, definitely. The most useful feedback I've ever been given came from my team lead at
+      my last role, in a mid-year review. Her point was that I was too quiet in planning
+      sessions — I'd have a view on an estimate and I wouldn't say it in the room, I'd send it
+      to her afterwards in a DM. And she framed it really well, she said silence in planning
+      reads as agreement, so the whole sprint gets built on an agreement I never actually
+      gave. I took that seriously. I started writing my concerns down before the meeting so I
+      had them ready, and I made a rule for myself that I'd say at least one thing in every
+      planning session. By the end of the quarter she told me the difference was obvious. It
+      genuinely reset how I think about being given feedback.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 1
+        because: "A specific, well-told story — about a performance review on speaking up in planning. There is no piece of work in it."
+      - dimension: "What they did with it"
+        score: 1
+        because: "What changed is how they behave in meetings, not how any work ended up."
+      - dimension: "A comment they did not agree with, or did not understand"
+        score: 0
+        because: "No comment on their work to disagree with or misunderstand."
+  - kind: correct-poorly-explained
+    text: |
+      So there was one comment I kept thinking about — sorry, let me back up. It was a signup
+      form, and the reviewer was a maintainer on a small open source project I'd contributed
+      to, and he left a lot of comments, most of them fine. But there was one where he said
+      the validation shouldn't live in the component. And I didn't agree at the time, because
+      it was working, and I said so on the thread. And he explained that the same rules
+      already existed on the server and the two were drifting apart, and — this is the part I
+      didn't get at first — that the component was now a second place somebody would have to
+      edit for one rule. Which, okay. Yes. He was right. So that's what actually changed for
+      me: before I write a check now, I go and look for whether that rule already exists
+      somewhere else in the codebase.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 4
+        because: "An open-source maintainer, and the comment described is the one that mattered."
+      - dimension: "What they did with it"
+        score: 3
+        because: "The change is implied rather than described; the habit that followed is specific."
+      - dimension: "A comment they did not agree with, or did not understand"
+        score: 4
+        because: "Disagreed on the thread, was shown why the rule already existed on the server, and concedes he was right."
+  - kind: nigerian-english
+    text: |
+      My first real PR for that internship — ah, that one, he gave me like fourteen comments.
+      The main ones: the same fetch-and-loading code, I copied am inside three components. And
+      my catch block was just doing console.log, so the error will just disappear. And my
+      naming sef was bad, I had data and data2. Those ones I no argue at all, I just fixed
+      them. The one I didn't understand, he wrote say "this filter is running on every render
+      and you're building a new object each time". I no even know wetin that one mean. So I
+      asked him on a call, and he now opened the profiler and showed me — as I'm typing inside
+      the search box, the whole thing is re-rendering. He was correct. So now, before I send
+      any PR, I go read my own diff first, because half of those comments, I for catch them
+      myself.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 4
+        because: "Same review, same comment, same detail."
+      - dimension: "What they did with it"
+        score: 4
+        because: "Same habit: read your own diff before sending it."
+      - dimension: "A comment they did not agree with, or did not understand"
+        score: 4
+        because: "Same: did not understand it, asked, was shown the profiler, says he was correct."

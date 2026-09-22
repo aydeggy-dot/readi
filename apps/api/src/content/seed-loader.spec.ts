@@ -166,11 +166,25 @@ describe("the seed corpus we ship", () => {
     }
   });
 
-  it("has the eight frontend questions the milestone asks for, in a mix of types", () => {
-    const questions = findSeedFiles(join(SEED_ROOT, "frontend"))
-      .map((path) => loadSeedSource(path, readFileSync(path, "utf8")).data)
-      .flatMap((file) => file?.questions ?? []);
-    expect(questions).toHaveLength(8);
+  /*
+   * This used to assert the bank was exactly eight questions, which was M2's milestone target and
+   * went stale the first time the bank grew. What is worth asserting is the invariant rather than
+   * the size: a candidate practising this role meets every topic their own track calls core, in
+   * more than one shape of question. How many questions each topic earns is the blueprint's job
+   * (`content/seed/blueprints/frontend.md`), checked by `check-bank.mjs`.
+   */
+  it("gives the frontend bank a question on every topic its track calls core, in a mix of types", () => {
+    const files = findSeedFiles(join(SEED_ROOT, "frontend")).map(
+      (path) => loadSeedSource(path, readFileSync(path, "utf8")).data,
+    );
+    const questions = files.flatMap((file) => file?.questions ?? []);
+    const core = (files.find((file) => file?.track)?.track?.topics ?? [])
+      .filter((topic) => topic.core)
+      .map((topic) => topic.topic);
+    const covered = new Set(questions.map((question) => question.topic));
+
+    expect(core.length).toBeGreaterThan(0);
+    expect(core.filter((topic) => !covered.has(topic))).toEqual([]);
     expect(new Set(questions.map((question) => question.type))).toEqual(
       new Set(["technical", "scenario", "behavioral"]),
     );

@@ -1,0 +1,108 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: client-boundary-reasoning
+question: nextjs-server-or-client
+answers:
+  - kind: strong
+    text: |
+      So putting "use client" at the top of the page file doesn't just mark the button —
+      everything the page imports below it becomes part of the client bundle, including the list,
+      which does nothing interactive at all. So you're shipping the rendering code for a list of
+      jobs down to somebody's phone for no reason, and you've given up rendering that list on the
+      server, so the first paint is worse for them. And the data fetching has to move too — it
+      can't sit in the page talking to the database any more, it becomes a request the browser
+      makes after everything loads, which is another round trip on a bad connection. What I'd do
+      instead is leave the page as a server component, pull the filter button and its panel out
+      into their own small client component, and push that boundary as far down the tree as the
+      interaction actually needs.
+    expected:
+      - dimension: "Knows what the directive does"
+        score: 4
+        because: "Everything the page imports becomes client code, and separates what was rendered once on the server from what now has to be sent to run again."
+      - dimension: "Names the cost"
+        score: 4
+        because: "The bundle, the lost server rendering, and the extra round trip on a bad connection."
+      - dimension: "Moves the boundary rather than the page"
+        score: 4
+        because: "Leaves the page a server component, pulls out the filter panel, and pushes the boundary as far down as the interaction needs."
+  - kind: weak
+    text: |
+      Erm, "use client" just tells Next it's a client component, so, I mean, the button needs
+      onClick so you need it there. I don't think it costs much, Next optimises it either way. If
+      the page is slow I'd add getServerSideProps to fetch the jobs before it loads — actually,
+      can you use that with "use client"? I'd have to check that. Otherwise I'd fetch in a
+      useEffect with a loading spinner and that's usually fine. Maybe dynamic import the filter
+      panel so it comes later. Honestly for one button I'd probably leave it the way he has it and
+      come back to it if somebody complains.
+    expected:
+      - dimension: "Knows what the directive does"
+        score: 1
+        because: '"Next optimises it either way" — no wider effect and no cost.'
+      - dimension: "Names the cost"
+        score: 0
+        because: "Sees no cost; would leave it and come back if somebody complains."
+      - dimension: "Moves the boundary rather than the page"
+        score: 0
+        because: "Keeps the directive on the page and reaches for `useEffect`."
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, so the misconception here is that "use client" cascades. It doesn't — the directive is
+      file-scoped, it marks that one module as a client entry point, and the components it renders
+      are still resolved on the server and streamed in as rendered output. So the job list keeps
+      server-rendering and the bundle barely moves; the cost is basically the directive's own
+      overhead. The real cost is different: once the page is a client module you lose async page
+      functions, so you can't await the database in it. So my fix is to keep the directive where
+      it is, move the query into a route handler, and call that from useEffect with a loading
+      state. That's the intended App Router pattern, and it keeps the boundary in one obvious
+      place instead of scattering small client files around.
+    expected:
+      - dimension: "Knows what the directive does"
+        score: 0
+        because: '"The directive is file-scoped and doesn''t cascade" — the single fact the question turns on, asserted backwards.'
+      - dimension: "Names the cost"
+        score: 1
+        because: "Names losing async page functions as the real cost, which is a consequence rather than the cost, and asserts the bundle barely moves."
+      - dimension: "Moves the boundary rather than the page"
+        score: 0
+        because: "Keeps the directive where it is and moves the query into a route handler called from `useEffect`."
+  - kind: correct-poorly-explained
+    text: |
+      Erm, okay, so the button needs the click, fine, I get why he did it. But you'd take the
+      button and the panel and put them in their own file with the "use client" at the top of that
+      one instead, and leave the page alone — and, sorry, the reason is, when it's on the page
+      it's not just the page, it's everything the page imports, the list and all of it, so all
+      that code goes down to the phone, which on data here is, you know, not free. And you also
+      stop getting the list rendered on the server. And then the fetching, that's the other thing,
+      the fetching has to leave the server and become a call the browser makes.
+    expected:
+      - dimension: "Knows what the directive does"
+        score: 3
+        because: "It is not just the page, it is everything the page imports."
+      - dimension: "Names the cost"
+        score: 4
+        because: 'All that code going down to the phone, "which on data here is, you know, not free".'
+      - dimension: "Moves the boundary rather than the page"
+        score: 3
+        because: "Button and panel into their own client file, page left alone."
+  - kind: nigerian-english
+    text: |
+      See, putting "use client" for the top of the page file no just mark the button o —
+      everything wey the page dey import go join the client bundle, the list too, and the list no
+      dey do anything interactive. So you dey ship the code for rendering jobs go person phone for
+      nothing, and you don lose the server rendering for that list, so the first paint go slow for
+      am. Then the data fetching sef must move — e no fit stay for the page talk to the database
+      again, e go turn request wey the browser go make after everything load, another round trip
+      for bad network. So wetin I go do: leave the page as server component, carry the filter
+      button and the panel put for their own small client file, and push that boundary far down as
+      the interaction really need am.
+    expected:
+      - dimension: "Knows what the directive does"
+        score: 4
+        because: "Same: the imports come with it, and the server rendering is given up."
+      - dimension: "Names the cost"
+        score: 4
+        because: "Same three costs, including the round trip on a bad network."
+      - dimension: "Moves the boundary rather than the page"
+        score: 4
+        because: "Same fix, and the same habit of pushing the boundary down."

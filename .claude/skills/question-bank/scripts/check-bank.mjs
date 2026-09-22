@@ -317,6 +317,25 @@ for (const question of questions) {
       );
   }
 
+  /*
+   * The full-stack trap (blueprints/fullstack.md, and the last two rows of STACK_RULE): a question
+   * tagged only for another role's variants reaches nobody on this one, because a profile holds one
+   * `target_stack` and nothing infers `react-node` from `react-typescript`. The role tag then says
+   * something untrue, so this is an error rather than a warning.
+   */
+  if ((question.stacks ?? []).length) {
+    for (const role of listed) {
+      const offered = (role.stacks ?? []).map((link) => link.stack);
+      if (!offered.length) continue;
+      if (!(question.stacks ?? []).some((slug) => offered.includes(slug)))
+        error(
+          question.file,
+          at,
+          `carries role \`${role.slug}\` and is tagged [${(question.stacks ?? []).join(", ")}], none of which ${role.slug} offers — no ${role.slug} candidate can ever be asked it. Add one of ${offered.join(", ")}, or drop the role`,
+        );
+    }
+  }
+
   // A question tagged for every variant a role offers is a general question with a list attached.
   for (const role of listed) {
     const offered = (role.stacks ?? []).map((link) => link.stack);
@@ -349,6 +368,24 @@ for (const question of questions) {
   tooLong(question.reviewer_notes, LIMITS.reviewerNotesMaxLength, "reviewer_notes");
   for (const point of question.ideal_points ?? [])
     tooLong(point, LIMITS.idealPointMaxLength, "an ideal point");
+
+  /*
+   * A plain YAML scalar containing ": " becomes a mapping, so an ideal point silently turns into an
+   * object. The seed contract rejects the file for it; catching it here means the message can say
+   * what to do about it, before there is a database to reject anything.
+   */
+  for (const [index, point] of (question.ideal_points ?? []).entries())
+    if (typeof point !== "string")
+      error(
+        question.file,
+        at,
+        `ideal_points[${index}] is not text — a colon followed by a space makes YAML read the line as a mapping; quote it`,
+      );
+  for (const field of ["prompt", "context", "reviewer_notes"]) {
+    const value = question[field];
+    if (value !== null && value !== undefined && typeof value !== "string")
+      error(question.file, at, `${field} is not text — quote it, or use a block scalar`);
+  }
 
   if (!(question.ideal_points ?? []).length)
     error(

@@ -59,6 +59,11 @@ Each of these has a source, and none of them is a preference.
 - **Write for the audience**: mid-range Android phones, unreliable mobile data, and the teams
   hiring here (`content/seed/REVIEW.md`). A question that assumes a fast laptop and a stable
   connection is not neutral — it is wrong for the reader.
+- **Assume no employer.** A large part of this audience is self-taught and has never had a code
+  reviewer, an error-reporting dashboard, a staging environment, a designer or a test suite. A
+  question may describe those things; it may not require having had them. Where a scenario needs a
+  workplace, the prompt supplies it (a report on screen, the fields the tool shows) rather than
+  asking the candidate to recall one.
 
 ## House style
 
@@ -69,12 +74,28 @@ report) goes in `context`, never in the prompt. Prefer "here is a situation, wha
 `difficulty` against the level it is offered at, not against the field. `ideal_points` is the answer
 key: what a strong answer covers, each point checkable, three to six of them.
 
+**Every criterion must have a clause in the spoken prompt that asks for it.** This is the defect a
+critique pass found nine times in one bank: the prompt asks for a diagnosis and the rubric charges
+35% for a fix, or 20% for a keyword the prompt never says. The candidate answers the question they
+were asked, completely, and loses a third of the score. Read each criterion, find the words in the
+prompt that ask for it, and if there are none, add them or drop the criterion.
+
 **Rubrics.** Three criteria; five if the answer genuinely has five separable parts. Weights total
 exactly 100 and are a claim about what matters most. Each criterion carries five descriptors, 0
 (absent) to 4 (excellent), and the test is that **two readers scoring the same answer pick the same
 number**. If 2 and 3 differ only in tone, or 4 is "as 3, but more confident", the rubric is
-defective — sharpen it before the stress test finds it. A behavioural answer is judged the same way
-whatever the role, so it uses the shared rubric rather than a fourth copy.
+defective — sharpen it before the stress test finds it.
+
+**Level 4 must contain something that cannot be bluffed.** "Would keep a sample of awkward content
+around", "checks the error rate afterwards", "tests on a real device" — a claimed habit costs
+nothing to say, so the top band separates the coached from the good. Make level 4 a distinction, a
+trade-off, or a case where the candidate's own answer would be the wrong call.
+
+**A shared rubric must be able to score its questions.** A behavioural answer is judged the same way
+whatever the role, so the shared rubric is right — until a question is written about a _specific_
+judgement, at which point the shared criteria have nowhere to put it and the question quietly scores
+storytelling form instead. If a question's `ideal_points` name something no criterion touches, one of
+the two is wrong.
 
 **Prose.** Say the thing. No marketing, no "leverage", no em-dash-joined lists of adjectives. The
 reviewer is a working engineer whose time we are spending.
@@ -106,6 +127,7 @@ Stop after each role, not after each wave.
 ```bash
 node .claude/skills/question-bank/scripts/check-bank.mjs          # offline: no database, no network
 node .claude/skills/question-bank/scripts/check-bank.mjs --strict # blueprint shortfalls become errors
+node .claude/skills/question-bank/scripts/check-stress.mjs        # the rubric stress tests, and the two separations
 pnpm db:seed -- --dry-run                                         # the contract, against the database
 pnpm --filter @readi/api content:review-doc                       # regenerate the reviewer's pages
 pnpm format                                                       # the generator does not emit Prettier's markdown
