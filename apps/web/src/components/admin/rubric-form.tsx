@@ -11,6 +11,7 @@ import { ErrorAlert } from "@/components/ui/error-alert";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
@@ -49,7 +50,14 @@ const emptyCriterion = () => ({
  * fine in a draft and are refused at publish (ADR-0014 decision 1), which is the point at which
  * the number has to be right.
  */
-export function RubricForm({ rubric }: { rubric: Rubric | null }) {
+export function RubricForm({
+  rubric,
+  readOnly = false,
+}: {
+  rubric: Rubric | null;
+  /** Published, and the reader is not an admin (ADR-0014 decision 7). */
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const [failure, setFailure] = useState<ApiFailure>();
   const [saved, setSaved] = useState(false);
@@ -124,182 +132,185 @@ export function RubricForm({ rubric }: { rubric: Rubric | null }) {
   });
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-6">
-      {failure && <ErrorAlert failure={failure} />}
+    <form onSubmit={(event) => void onSubmit(event)} noValidate>
+      {readOnly && <Note as="aside">{t("admin.content.actions.publishedReadOnly")}</Note>}
+      <fieldset disabled={readOnly} className="flex flex-col gap-6">
+        {failure && <ErrorAlert failure={failure} />}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="name" label={t("admin.content.rubric.name")} error={errors.name?.message}>
-          {(describedBy) => (
-            <Input
-              id="name"
-              maxLength={CONTENT_LIMITS.titleMaxLength}
-              aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.name)}
-              {...register("name", { validate: (value) => value.trim().length > 0 || required })}
-            />
-          )}
-        </Field>
-        <Field id="slug" label={t("admin.content.rubric.slug")} error={errors.slug?.message}>
-          {(describedBy) => (
-            <Input
-              id="slug"
-              maxLength={CONTENT_LIMITS.slugMaxLength}
-              aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.slug)}
-              {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
-            />
-          )}
-        </Field>
-      </div>
-
-      <section className="flex flex-col gap-4 border-t border-frame pt-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-xl leading-tight">{t("admin.content.rubric.criteria")}</h2>
-          <p className="text-base text-muted-foreground">
-            {t("admin.content.rubric.criteriaHint")}
-          </p>
-          <p
-            data-testid="weight-total"
-            className={cn(
-              "text-base font-bold",
-              total === RUBRIC_WEIGHT_TOTAL ? "text-success" : "text-muted-foreground",
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field id="name" label={t("admin.content.rubric.name")} error={errors.name?.message}>
+            {(describedBy) => (
+              <Input
+                id="name"
+                maxLength={CONTENT_LIMITS.titleMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.name)}
+                {...register("name", { validate: (value) => value.trim().length > 0 || required })}
+              />
             )}
-          >
-            {total === RUBRIC_WEIGHT_TOTAL
-              ? t("admin.content.rubric.weightOk")
-              : t("admin.content.rubric.weightTotal", { total })}
-          </p>
+          </Field>
+          <Field id="slug" label={t("admin.content.rubric.slug")} error={errors.slug?.message}>
+            {(describedBy) => (
+              <Input
+                id="slug"
+                maxLength={CONTENT_LIMITS.slugMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.slug)}
+                {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
+              />
+            )}
+          </Field>
         </div>
 
-        {criteria.fields.map((item, index) => (
-          <fieldset
-            key={item.id}
-            className="flex flex-col gap-4 rounded-md border border-border p-4"
-          >
-            <legend className="px-1 font-bold text-heading">
-              {t("admin.content.rubric.criterion", { number: index + 1 })}
-            </legend>
-            <div className="grid gap-4 sm:grid-cols-[1fr_7rem]">
-              <Field
-                id={`criterion-${index}-dimension`}
-                label={t("admin.content.rubric.dimension")}
-                error={errors.criteria?.[index]?.dimension?.message}
-              >
-                {(describedBy) => (
-                  <Input
-                    id={`criterion-${index}-dimension`}
-                    maxLength={CONTENT_LIMITS.dimensionMaxLength}
-                    aria-describedby={describedBy}
-                    aria-invalid={Boolean(errors.criteria?.[index]?.dimension)}
-                    {...register(`criteria.${index}.dimension`, {
-                      validate: (value) => value.trim().length > 0 || required,
-                    })}
-                  />
-                )}
-              </Field>
-              <Field
-                id={`criterion-${index}-weight`}
-                label={t("admin.content.rubric.weight")}
-                error={errors.criteria?.[index]?.weight?.message}
-              >
-                {(describedBy) => (
-                  <Input
-                    id={`criterion-${index}-weight`}
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={RUBRIC_WEIGHT_TOTAL}
-                    aria-describedby={describedBy}
-                    aria-invalid={Boolean(errors.criteria?.[index]?.weight)}
-                    {...register(`criteria.${index}.weight`, {
-                      validate: (value) => Number(value) > 0 || required,
-                    })}
-                  />
-                )}
-              </Field>
-            </div>
-            <Field
-              id={`criterion-${index}-description`}
-              label={t("admin.content.rubric.criterionDescription")}
-              error={errors.criteria?.[index]?.description?.message}
-            >
-              {(describedBy) => (
-                <Textarea
-                  id={`criterion-${index}-description`}
-                  rows={2}
-                  maxLength={CONTENT_LIMITS.criterionDescriptionMaxLength}
-                  aria-describedby={describedBy}
-                  aria-invalid={Boolean(errors.criteria?.[index]?.description)}
-                  {...register(`criteria.${index}.description`, {
-                    validate: (value) => value.trim().length > 0 || required,
-                  })}
-                />
+        <section className="flex flex-col gap-4 border-t border-frame pt-6">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl leading-tight">{t("admin.content.rubric.criteria")}</h2>
+            <p className="text-base text-muted-foreground">
+              {t("admin.content.rubric.criteriaHint")}
+            </p>
+            <p
+              data-testid="weight-total"
+              className={cn(
+                "text-base font-bold",
+                total === RUBRIC_WEIGHT_TOTAL ? "text-success" : "text-muted-foreground",
               )}
-            </Field>
-            <div className="flex flex-col gap-3">
-              <p className="font-bold text-heading">{t("admin.content.rubric.levels")}</p>
-              <p className="-mt-2 text-base text-muted-foreground">
-                {t("admin.content.rubric.levelsHint")}
-              </p>
-              {RUBRIC_LEVELS.map((level) => (
+            >
+              {total === RUBRIC_WEIGHT_TOTAL
+                ? t("admin.content.rubric.weightOk")
+                : t("admin.content.rubric.weightTotal", { total })}
+            </p>
+          </div>
+
+          {criteria.fields.map((item, index) => (
+            <fieldset
+              key={item.id}
+              className="flex flex-col gap-4 rounded-md border border-border p-4"
+            >
+              <legend className="px-1 font-bold text-heading">
+                {t("admin.content.rubric.criterion", { number: index + 1 })}
+              </legend>
+              <div className="grid gap-4 sm:grid-cols-[1fr_7rem]">
                 <Field
-                  key={level}
-                  id={`criterion-${index}-level-${level}`}
-                  label={t("admin.content.rubric.level", { level })}
-                  error={errors.criteria?.[index]?.levels?.[level]?.message}
+                  id={`criterion-${index}-dimension`}
+                  label={t("admin.content.rubric.dimension")}
+                  error={errors.criteria?.[index]?.dimension?.message}
                 >
                   {(describedBy) => (
-                    <Textarea
-                      id={`criterion-${index}-level-${level}`}
-                      rows={2}
-                      className="field-sizing-content min-h-0"
-                      maxLength={CONTENT_LIMITS.levelDescriptorMaxLength}
+                    <Input
+                      id={`criterion-${index}-dimension`}
+                      maxLength={CONTENT_LIMITS.dimensionMaxLength}
                       aria-describedby={describedBy}
-                      aria-invalid={Boolean(errors.criteria?.[index]?.levels?.[level])}
-                      {...register(`criteria.${index}.levels.${level}`, {
+                      aria-invalid={Boolean(errors.criteria?.[index]?.dimension)}
+                      {...register(`criteria.${index}.dimension`, {
                         validate: (value) => value.trim().length > 0 || required,
                       })}
                     />
                   )}
                 </Field>
-              ))}
-            </div>
-            {criteria.fields.length > CONTENT_LIMITS.rubricCriteria.min && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="self-start"
-                onClick={() => criteria.remove(index)}
+                <Field
+                  id={`criterion-${index}-weight`}
+                  label={t("admin.content.rubric.weight")}
+                  error={errors.criteria?.[index]?.weight?.message}
+                >
+                  {(describedBy) => (
+                    <Input
+                      id={`criterion-${index}-weight`}
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={RUBRIC_WEIGHT_TOTAL}
+                      aria-describedby={describedBy}
+                      aria-invalid={Boolean(errors.criteria?.[index]?.weight)}
+                      {...register(`criteria.${index}.weight`, {
+                        validate: (value) => Number(value) > 0 || required,
+                      })}
+                    />
+                  )}
+                </Field>
+              </div>
+              <Field
+                id={`criterion-${index}-description`}
+                label={t("admin.content.rubric.criterionDescription")}
+                error={errors.criteria?.[index]?.description?.message}
               >
-                {t("admin.content.rubric.removeCriterion", { number: index + 1 })}
-              </Button>
-            )}
-          </fieldset>
-        ))}
+                {(describedBy) => (
+                  <Textarea
+                    id={`criterion-${index}-description`}
+                    rows={2}
+                    maxLength={CONTENT_LIMITS.criterionDescriptionMaxLength}
+                    aria-describedby={describedBy}
+                    aria-invalid={Boolean(errors.criteria?.[index]?.description)}
+                    {...register(`criteria.${index}.description`, {
+                      validate: (value) => value.trim().length > 0 || required,
+                    })}
+                  />
+                )}
+              </Field>
+              <div className="flex flex-col gap-3">
+                <p className="font-bold text-heading">{t("admin.content.rubric.levels")}</p>
+                <p className="-mt-2 text-base text-muted-foreground">
+                  {t("admin.content.rubric.levelsHint")}
+                </p>
+                {RUBRIC_LEVELS.map((level) => (
+                  <Field
+                    key={level}
+                    id={`criterion-${index}-level-${level}`}
+                    label={t("admin.content.rubric.level", { level })}
+                    error={errors.criteria?.[index]?.levels?.[level]?.message}
+                  >
+                    {(describedBy) => (
+                      <Textarea
+                        id={`criterion-${index}-level-${level}`}
+                        rows={2}
+                        className="field-sizing-content min-h-0"
+                        maxLength={CONTENT_LIMITS.levelDescriptorMaxLength}
+                        aria-describedby={describedBy}
+                        aria-invalid={Boolean(errors.criteria?.[index]?.levels?.[level])}
+                        {...register(`criteria.${index}.levels.${level}`, {
+                          validate: (value) => value.trim().length > 0 || required,
+                        })}
+                      />
+                    )}
+                  </Field>
+                ))}
+              </div>
+              {criteria.fields.length > CONTENT_LIMITS.rubricCriteria.min && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => criteria.remove(index)}
+                >
+                  {t("admin.content.rubric.removeCriterion", { number: index + 1 })}
+                </Button>
+              )}
+            </fieldset>
+          ))}
 
-        {criteria.fields.length < CONTENT_LIMITS.rubricCriteria.max && (
-          <Button
-            type="button"
-            variant="outline"
-            className="self-start"
-            onClick={() => criteria.append(emptyCriterion())}
-          >
-            {t("admin.content.rubric.addCriterion")}
+          {criteria.fields.length < CONTENT_LIMITS.rubricCriteria.max && (
+            <Button
+              type="button"
+              variant="outline"
+              className="self-start"
+              onClick={() => criteria.append(emptyCriterion())}
+            >
+              {t("admin.content.rubric.addCriterion")}
+            </Button>
+          )}
+        </section>
+
+        <div className="flex flex-col gap-3">
+          <Button type="submit" disabled={isSubmitting} className="self-start">
+            {isSubmitting
+              ? t("common.saving")
+              : rubric
+                ? t("admin.content.actions.save")
+                : t("admin.content.actions.create")}
           </Button>
-        )}
-      </section>
-
-      <div className="flex flex-col gap-3">
-        <Button type="submit" disabled={isSubmitting} className="self-start">
-          {isSubmitting
-            ? t("common.saving")
-            : rubric
-              ? t("admin.content.actions.save")
-              : t("admin.content.actions.create")}
-        </Button>
-        {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
-      </div>
+          {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
+        </div>
+      </fieldset>
     </form>
   );
 }

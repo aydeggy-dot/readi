@@ -29,6 +29,7 @@ import { ErrorAlert } from "@/components/ui/error-alert";
 import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
@@ -66,10 +67,13 @@ export function QuestionForm({
   question,
   topics,
   rubrics,
+  readOnly = false,
 }: {
   question: Question | null;
   topics: Topic[];
   rubrics: RubricListItem[];
+  /** Published, and the reader is not an admin: the words are theirs to read, not to change. */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [failure, setFailure] = useState<ApiFailure>();
@@ -180,241 +184,246 @@ export function QuestionForm({
   });
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-6">
-      {failure && <ErrorAlert failure={failure} />}
+    <form onSubmit={(event) => void onSubmit(event)} noValidate>
+      {readOnly && <Note as="aside">{t("admin.content.actions.publishedReadOnly")}</Note>}
+      <fieldset disabled={readOnly} className="flex flex-col gap-6">
+        {failure && <ErrorAlert failure={failure} />}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          id="slug"
-          label={t("admin.content.question.slug")}
-          hint={t("admin.content.question.slugHint")}
-          error={errors.slug?.message}
-        >
-          {(describedBy) => (
-            <Input
-              id="slug"
-              maxLength={CONTENT_LIMITS.slugMaxLength}
-              aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.slug)}
-              {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
-            />
-          )}
-        </Field>
-        <Field id="type" label={t("admin.content.question.type")}>
-          {(describedBy) => (
-            <Select id="type" aria-describedby={describedBy} {...register("type")}>
-              {QUESTION_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {t(`admin.content.question.types.${type}`)}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-      </div>
-
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 font-bold text-heading">{t("admin.content.question.roles")}</legend>
-        <p className="-mt-1 mb-1 text-base text-muted-foreground">
-          {t("admin.content.question.rolesHint")}
-        </p>
-        <div className="flex flex-wrap gap-4">
-          {TARGET_ROLES.map((role) => (
-            <label key={role} className="flex items-center gap-2 text-base">
-              <input
-                type="checkbox"
-                value={role}
-                className="size-4 accent-primary"
-                {...register("roles", { validate: (value) => value.length > 0 || required })}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            id="slug"
+            label={t("admin.content.question.slug")}
+            hint={t("admin.content.question.slugHint")}
+            error={errors.slug?.message}
+          >
+            {(describedBy) => (
+              <Input
+                id="slug"
+                maxLength={CONTENT_LIMITS.slugMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.slug)}
+                {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
               />
-              {t(`targetRoles.${role}`)}
-            </label>
-          ))}
+            )}
+          </Field>
+          <Field id="type" label={t("admin.content.question.type")}>
+            {(describedBy) => (
+              <Select id="type" aria-describedby={describedBy} {...register("type")}>
+                {QUESTION_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {t(`admin.content.question.types.${type}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
         </div>
-        <FieldError message={errors.roles?.message} />
-      </fieldset>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 font-bold text-heading">
-          {t("admin.content.question.levels")}
-        </legend>
-        <div className="flex flex-wrap gap-4">
-          {EXPERIENCE_LEVELS.map((level) => (
-            <label key={level} className="flex items-center gap-2 text-base">
-              <input
-                type="checkbox"
-                value={level}
-                className="size-4 accent-primary"
-                {...register("levels", { validate: (value) => value.length > 0 || required })}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 font-bold text-heading">
+            {t("admin.content.question.roles")}
+          </legend>
+          <p className="-mt-1 mb-1 text-base text-muted-foreground">
+            {t("admin.content.question.rolesHint")}
+          </p>
+          <div className="flex flex-wrap gap-4">
+            {TARGET_ROLES.map((role) => (
+              <label key={role} className="flex items-center gap-2 text-base">
+                <input
+                  type="checkbox"
+                  value={role}
+                  className="size-4 accent-primary"
+                  {...register("roles", { validate: (value) => value.length > 0 || required })}
+                />
+                {t(`targetRoles.${role}`)}
+              </label>
+            ))}
+          </div>
+          <FieldError message={errors.roles?.message} />
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 font-bold text-heading">
+            {t("admin.content.question.levels")}
+          </legend>
+          <div className="flex flex-wrap gap-4">
+            {EXPERIENCE_LEVELS.map((level) => (
+              <label key={level} className="flex items-center gap-2 text-base">
+                <input
+                  type="checkbox"
+                  value={level}
+                  className="size-4 accent-primary"
+                  {...register("levels", { validate: (value) => value.length > 0 || required })}
+                />
+                {t(`levels.${level}`)}
+              </label>
+            ))}
+          </div>
+          <FieldError message={errors.levels?.message} />
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field
+            id="topic_id"
+            label={t("admin.content.question.topic")}
+            error={errors.topic_id?.message}
+          >
+            {(describedBy) => (
+              <Select
+                id="topic_id"
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.topic_id)}
+                {...register("topic_id", { required })}
+              >
+                <option value="">{t("common.notSet")}</option>
+                {topics.map((topic) => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field
+            id="subtopic"
+            label={t("admin.content.question.subtopic")}
+            hint={t("admin.content.question.subtopicHint")}
+          >
+            {(describedBy) => (
+              <Input
+                id="subtopic"
+                maxLength={CONTENT_LIMITS.subtopicMaxLength}
+                aria-describedby={describedBy}
+                {...register("subtopic")}
               />
-              {t(`levels.${level}`)}
-            </label>
-          ))}
+            )}
+          </Field>
+          <Field
+            id="difficulty"
+            label={t("admin.content.question.difficulty")}
+            hint={t("admin.content.question.difficultyHint")}
+          >
+            {(describedBy) => (
+              <Select id="difficulty" aria-describedby={describedBy} {...register("difficulty")}>
+                {DIFFICULTIES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
         </div>
-        <FieldError message={errors.levels?.message} />
-      </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+        <MarkdownField
+          id="prompt"
+          label={t("admin.content.question.prompt")}
+          hint={t("admin.content.question.promptHint")}
+          error={errors.prompt?.message}
+          value={prompt}
+          maxLength={CONTENT_LIMITS.questionPromptMaxLength}
+          textareaProps={register("prompt", {
+            validate: (value) => value.trim().length > 0 || required,
+          })}
+        />
+
+        <MarkdownField
+          id="context"
+          label={t("admin.content.question.context")}
+          hint={t("admin.content.question.contextHint")}
+          value={context}
+          rows={4}
+          maxLength={CONTENT_LIMITS.questionContextMaxLength}
+          textareaProps={register("context")}
+        />
+
         <Field
-          id="topic_id"
-          label={t("admin.content.question.topic")}
-          error={errors.topic_id?.message}
+          id="rubric_id"
+          label={t("admin.content.question.rubric")}
+          hint={t("admin.content.question.rubricHint")}
+          error={errors.rubric_id?.message}
         >
           {(describedBy) => (
             <Select
-              id="topic_id"
+              id="rubric_id"
               aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.topic_id)}
-              {...register("topic_id", { required })}
+              aria-invalid={Boolean(errors.rubric_id)}
+              {...register("rubric_id", { required })}
             >
               <option value="">{t("common.notSet")}</option>
-              {topics.map((topic) => (
-                <option key={topic.id} value={topic.id}>
-                  {topic.name}
+              {rubrics.map((rubric) => (
+                <option key={rubric.id} value={rubric.id}>
+                  {rubric.name} — {t(`admin.content.status.${rubric.status}`)}
                 </option>
               ))}
             </Select>
           )}
         </Field>
-        <Field
-          id="subtopic"
-          label={t("admin.content.question.subtopic")}
-          hint={t("admin.content.question.subtopicHint")}
-        >
-          {(describedBy) => (
-            <Input
-              id="subtopic"
-              maxLength={CONTENT_LIMITS.subtopicMaxLength}
-              aria-describedby={describedBy}
-              {...register("subtopic")}
-            />
+
+        <fieldset className="flex flex-col gap-3">
+          <legend className="font-bold text-heading">
+            {t("admin.content.question.idealPoints")}
+          </legend>
+          <p className="-mt-1 text-base text-muted-foreground">
+            {t("admin.content.question.idealPointsHint")}
+          </p>
+          {idealPoints.fields.map((item, index) => (
+            <div key={item.id} className="flex items-start gap-2">
+              <Input
+                aria-label={`${t("admin.content.question.idealPoints")} ${index + 1}`}
+                maxLength={CONTENT_LIMITS.idealPointMaxLength}
+                {...register(`ideal_points.${index}.value`)}
+              />
+              {idealPoints.fields.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-label={t("admin.content.question.removePoint", { number: index + 1 })}
+                  onClick={() => idealPoints.remove(index)}
+                >
+                  <span aria-hidden>×</span>
+                </Button>
+              )}
+            </div>
+          ))}
+          {idealPoints.fields.length < CONTENT_LIMITS.idealPoints && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onClick={() => idealPoints.append({ value: "" })}
+            >
+              {t("admin.content.question.addPoint")}
+            </Button>
           )}
-        </Field>
-        <Field
-          id="difficulty"
-          label={t("admin.content.question.difficulty")}
-          hint={t("admin.content.question.difficultyHint")}
-        >
-          {(describedBy) => (
-            <Select id="difficulty" aria-describedby={describedBy} {...register("difficulty")}>
-              {DIFFICULTIES.map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-      </div>
+        </fieldset>
 
-      <MarkdownField
-        id="prompt"
-        label={t("admin.content.question.prompt")}
-        hint={t("admin.content.question.promptHint")}
-        error={errors.prompt?.message}
-        value={prompt}
-        maxLength={CONTENT_LIMITS.questionPromptMaxLength}
-        textareaProps={register("prompt", {
-          validate: (value) => value.trim().length > 0 || required,
-        })}
-      />
-
-      <MarkdownField
-        id="context"
-        label={t("admin.content.question.context")}
-        hint={t("admin.content.question.contextHint")}
-        value={context}
-        rows={4}
-        maxLength={CONTENT_LIMITS.questionContextMaxLength}
-        textareaProps={register("context")}
-      />
-
-      <Field
-        id="rubric_id"
-        label={t("admin.content.question.rubric")}
-        hint={t("admin.content.question.rubricHint")}
-        error={errors.rubric_id?.message}
-      >
-        {(describedBy) => (
-          <Select
-            id="rubric_id"
-            aria-describedby={describedBy}
-            aria-invalid={Boolean(errors.rubric_id)}
-            {...register("rubric_id", { required })}
-          >
-            <option value="">{t("common.notSet")}</option>
-            {rubrics.map((rubric) => (
-              <option key={rubric.id} value={rubric.id}>
-                {rubric.name} — {t(`admin.content.status.${rubric.status}`)}
-              </option>
-            ))}
-          </Select>
-        )}
-      </Field>
-
-      <fieldset className="flex flex-col gap-3">
-        <legend className="font-bold text-heading">
-          {t("admin.content.question.idealPoints")}
-        </legend>
-        <p className="-mt-1 text-base text-muted-foreground">
-          {t("admin.content.question.idealPointsHint")}
-        </p>
-        {idealPoints.fields.map((item, index) => (
-          <div key={item.id} className="flex items-start gap-2">
-            <Input
-              aria-label={`${t("admin.content.question.idealPoints")} ${index + 1}`}
-              maxLength={CONTENT_LIMITS.idealPointMaxLength}
-              {...register(`ideal_points.${index}.value`)}
-            />
-            {idealPoints.fields.length > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                aria-label={t("admin.content.question.removePoint", { number: index + 1 })}
-                onClick={() => idealPoints.remove(index)}
-              >
-                <span aria-hidden>×</span>
-              </Button>
-            )}
+        <div className="flex flex-col gap-3 border-t border-frame pt-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? t("common.saving")
+                : question
+                  ? t("admin.content.actions.save")
+                  : t("admin.content.actions.create")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={checking || prompt.trim().length === 0}
+              onClick={() => void checkDuplicates()}
+            >
+              {checking ? t("common.loading") : t("admin.content.duplicates.check")}
+            </Button>
           </div>
-        ))}
-        {idealPoints.fields.length < CONTENT_LIMITS.idealPoints && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="self-start"
-            onClick={() => idealPoints.append({ value: "" })}
-          >
-            {t("admin.content.question.addPoint")}
-          </Button>
-        )}
-      </fieldset>
-
-      <div className="flex flex-col gap-3 border-t border-frame pt-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? t("common.saving")
-              : question
-                ? t("admin.content.actions.save")
-                : t("admin.content.actions.create")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={checking || prompt.trim().length === 0}
-            onClick={() => void checkDuplicates()}
-          >
-            {checking ? t("common.loading") : t("admin.content.duplicates.check")}
-          </Button>
+          {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
+          {duplicates?.length === 0 && (
+            <p className="text-base text-muted-foreground">{t("admin.content.duplicates.none")}</p>
+          )}
+          {duplicates && duplicates.length > 0 && <DuplicateWarnings matches={duplicates} />}
         </div>
-        {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
-        {duplicates?.length === 0 && (
-          <p className="text-base text-muted-foreground">{t("admin.content.duplicates.none")}</p>
-        )}
-        {duplicates && duplicates.length > 0 && <DuplicateWarnings matches={duplicates} />}
-      </div>
+      </fieldset>
     </form>
   );
 }

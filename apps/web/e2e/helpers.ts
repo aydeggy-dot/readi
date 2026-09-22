@@ -46,18 +46,26 @@ export function grantRole(email: string, role: "content_expert" | "admin"): void
 }
 
 /**
- * Imports `/content/seed` into the e2e database, so the CMS screens have real content to show.
- * Idempotent, like the importer itself (ADR-0014 decision 5), and used only by the screenshot run.
+ * Runs the seed importer against the e2e database. With no argument it imports `/content/seed`, so
+ * the CMS screens have real content to show; with a directory it imports that instead, which is
+ * how a test makes an item the importer has marked as an unreviewed AI draft (ADR-0014 decision 6)
+ * — nothing written through the CMS carries that mark, because a person wrote it.
+ *
+ * Idempotent, like the importer itself (ADR-0014 decision 5).
  */
-export function seedContent(): void {
-  execFileSync("node", ["dist-cli/src/cli/seed-content.js"], {
-    cwd: API_DIR,
-    env: {
-      ...process.env,
-      DATABASE_URL:
-        process.env.DATABASE_URL ?? "postgresql://readi:readi@127.0.0.1:15432/readi_e2e",
-      REDIS_URL: process.env.REDIS_URL ?? "redis://127.0.0.1:16379/2",
+export function seedContent(directory?: string): void {
+  execFileSync(
+    "node",
+    ["dist-cli/src/cli/seed-content.js", ...(directory ? ["--dir", directory] : [])],
+    {
+      cwd: API_DIR,
+      env: {
+        ...process.env,
+        DATABASE_URL:
+          process.env.DATABASE_URL ?? "postgresql://readi:readi@127.0.0.1:15432/readi_e2e",
+        REDIS_URL: process.env.REDIS_URL ?? "redis://127.0.0.1:16379/2",
+      },
+      stdio: "pipe",
     },
-    stdio: "pipe",
-  });
+  );
 }

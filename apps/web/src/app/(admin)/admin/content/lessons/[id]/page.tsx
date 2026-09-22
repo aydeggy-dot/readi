@@ -30,7 +30,11 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         seedManaged={lesson.data.seed_managed}
         aiDraftUnreviewed={lesson.data.ai_draft_unreviewed}
       />
-      <LessonForm lesson={lesson.data} topics={topics.data?.topics ?? []} />
+      <LessonForm
+        lesson={lesson.data}
+        topics={topics.data?.topics ?? []}
+        readOnly={lesson.data.status === "published" && me.role !== "admin"}
+      />
       <ReviewPanel
         entity="lessons"
         id={lesson.data.id}

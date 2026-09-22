@@ -27,7 +27,7 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
         seedManaged={data.seed_managed}
         aiDraftUnreviewed={data.ai_draft_unreviewed}
       />
-      <RubricForm rubric={data} />
+      <RubricForm rubric={data} readOnly={data.status === "published" && me.role !== "admin"} />
       <ReviewPanel
         entity="rubrics"
         id={data.id}

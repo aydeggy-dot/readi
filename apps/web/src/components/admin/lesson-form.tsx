@@ -12,6 +12,7 @@ import { ErrorAlert } from "@/components/ui/error-alert";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
@@ -34,11 +35,14 @@ export function LessonForm({
   lesson,
   moduleId,
   topics,
+  readOnly = false,
 }: {
   lesson: Lesson | null;
   /** Where a new lesson goes. Ignored when editing: a lesson does not move between modules here. */
   moduleId?: string;
   topics: Topic[];
+  /** Published, and the reader is not an admin (ADR-0014 decision 7). */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [failure, setFailure] = useState<ApiFailure>();
@@ -103,101 +107,104 @@ export function LessonForm({
   });
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-6">
-      {failure && <ErrorAlert failure={failure} />}
+    <form onSubmit={(event) => void onSubmit(event)} noValidate>
+      {readOnly && <Note as="aside">{t("admin.content.actions.publishedReadOnly")}</Note>}
+      <fieldset disabled={readOnly} className="flex flex-col gap-6">
+        {failure && <ErrorAlert failure={failure} />}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="title" label={t("admin.content.lesson.title")} error={errors.title?.message}>
-          {(describedBy) => (
-            <Input
-              id="title"
-              maxLength={CONTENT_LIMITS.titleMaxLength}
-              aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.title)}
-              {...register("title", { validate: (value) => value.trim().length > 0 || required })}
-            />
-          )}
-        </Field>
-        <Field id="slug" label={t("admin.content.lesson.slug")} error={errors.slug?.message}>
-          {(describedBy) => (
-            <Input
-              id="slug"
-              maxLength={CONTENT_LIMITS.slugMaxLength}
-              aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.slug)}
-              {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
-            />
-          )}
-        </Field>
-      </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field id="title" label={t("admin.content.lesson.title")} error={errors.title?.message}>
+            {(describedBy) => (
+              <Input
+                id="title"
+                maxLength={CONTENT_LIMITS.titleMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.title)}
+                {...register("title", { validate: (value) => value.trim().length > 0 || required })}
+              />
+            )}
+          </Field>
+          <Field id="slug" label={t("admin.content.lesson.slug")} error={errors.slug?.message}>
+            {(describedBy) => (
+              <Input
+                id="slug"
+                maxLength={CONTENT_LIMITS.slugMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.slug)}
+                {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
+              />
+            )}
+          </Field>
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field id="topic_id" label={t("admin.content.lesson.topic")}>
-          {(describedBy) => (
-            <Select id="topic_id" aria-describedby={describedBy} {...register("topic_id")}>
-              <option value="">{t("admin.content.lesson.noTopic")}</option>
-              {topics.map((topic) => (
-                <option key={topic.id} value={topic.id}>
-                  {topic.name}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-        <Field
-          id="position"
-          label={t("admin.content.lesson.position")}
-          hint={t("admin.content.lesson.positionHint")}
-        >
-          {(describedBy) => (
-            <Input
-              id="position"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={999}
-              aria-describedby={describedBy}
-              {...register("position")}
-            />
-          )}
-        </Field>
-        <Field id="estimated_minutes" label={t("admin.content.lesson.minutes")}>
-          {(describedBy) => (
-            <Input
-              id="estimated_minutes"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={CONTENT_LIMITS.lessonMinutesMax}
-              aria-describedby={describedBy}
-              {...register("estimated_minutes")}
-            />
-          )}
-        </Field>
-      </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field id="topic_id" label={t("admin.content.lesson.topic")}>
+            {(describedBy) => (
+              <Select id="topic_id" aria-describedby={describedBy} {...register("topic_id")}>
+                <option value="">{t("admin.content.lesson.noTopic")}</option>
+                {topics.map((topic) => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field
+            id="position"
+            label={t("admin.content.lesson.position")}
+            hint={t("admin.content.lesson.positionHint")}
+          >
+            {(describedBy) => (
+              <Input
+                id="position"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={999}
+                aria-describedby={describedBy}
+                {...register("position")}
+              />
+            )}
+          </Field>
+          <Field id="estimated_minutes" label={t("admin.content.lesson.minutes")}>
+            {(describedBy) => (
+              <Input
+                id="estimated_minutes"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={CONTENT_LIMITS.lessonMinutesMax}
+                aria-describedby={describedBy}
+                {...register("estimated_minutes")}
+              />
+            )}
+          </Field>
+        </div>
 
-      <MarkdownField
-        id="body"
-        label={t("admin.content.lesson.body")}
-        error={errors.body?.message}
-        value={body}
-        rows={14}
-        maxLength={CONTENT_LIMITS.lessonBodyMaxLength}
-        textareaProps={register("body", {
-          validate: (value) => value.trim().length > 0 || required,
-        })}
-      />
+        <MarkdownField
+          id="body"
+          label={t("admin.content.lesson.body")}
+          error={errors.body?.message}
+          value={body}
+          rows={14}
+          maxLength={CONTENT_LIMITS.lessonBodyMaxLength}
+          textareaProps={register("body", {
+            validate: (value) => value.trim().length > 0 || required,
+          })}
+        />
 
-      <div className="flex flex-col gap-3">
-        <Button type="submit" disabled={isSubmitting} className="self-start">
-          {isSubmitting
-            ? t("common.saving")
-            : lesson
-              ? t("admin.content.actions.save")
-              : t("admin.content.actions.create")}
-        </Button>
-        {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
-      </div>
+        <div className="flex flex-col gap-3">
+          <Button type="submit" disabled={isSubmitting} className="self-start">
+            {isSubmitting
+              ? t("common.saving")
+              : lesson
+                ? t("admin.content.actions.save")
+                : t("admin.content.actions.create")}
+          </Button>
+          {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
+        </div>
+      </fieldset>
     </form>
   );
 }

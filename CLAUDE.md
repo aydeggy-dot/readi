@@ -177,6 +177,13 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   `POST /api/admin/content/:entity/:id/reviewed` (content expert or admin, versioned and audited)
   or by a re-import from a file saying `author: human` — **never by saving an edit**, because a
   typo fix is not a review. A new publishable entity must carry these columns.
+- **Editing published content is an admin's call** (ADR-0014 decision 7). Changing the content of
+  a `published` track, lesson, rubric or question — or of a module under a published track —
+  requires the `admin` role (`content_edit_needs_admin`); everything not published is an expert's
+  as before, and a transition is not an edit. The CMS renders the editor disabled rather than
+  offering a Save that would be refused. **The seed importer never rewrites published content**
+  whatever role it holds: it names the row under "left alone — published" and `--force` is the way
+  through. Recording a review (`author: human`, or Mark as reviewed) is not an edit and still works.
 
 ### Prompts
 - Prompts live in versioned files: `apps/ai-worker/readi_worker/prompts/<name>.v<N>.md` (Jinja2 templates).

@@ -35,6 +35,7 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
         question={question.data}
         topics={topics.data?.topics ?? []}
         rubrics={rubrics.data?.items ?? []}
+        readOnly={question.data.status === "published" && me.role !== "admin"}
       />
       <ReviewPanel
         entity="questions"

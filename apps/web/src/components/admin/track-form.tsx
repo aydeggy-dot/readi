@@ -12,6 +12,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
@@ -33,7 +34,16 @@ interface Values {
  * it on the same page — they have no status or history of their own, so they ride on the track
  * (ADR-0014 decisions 1 and 2).
  */
-export function TrackForm({ track, topics }: { track: Track | null; topics: Topic[] }) {
+export function TrackForm({
+  track,
+  topics,
+  readOnly = false,
+}: {
+  track: Track | null;
+  topics: Topic[];
+  /** Published, and the reader is not an admin (ADR-0014 decision 7). */
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const [failure, setFailure] = useState<ApiFailure>();
   const [saved, setSaved] = useState(false);
@@ -93,117 +103,120 @@ export function TrackForm({ track, topics }: { track: Track | null; topics: Topi
   });
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} noValidate className="flex flex-col gap-6">
-      {failure && <ErrorAlert failure={failure} />}
+    <form onSubmit={(event) => void onSubmit(event)} noValidate>
+      {readOnly && <Note as="aside">{t("admin.content.actions.publishedReadOnly")}</Note>}
+      <fieldset disabled={readOnly} className="flex flex-col gap-6">
+        {failure && <ErrorAlert failure={failure} />}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="title" label={t("admin.content.track.title")} error={errors.title?.message}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field id="title" label={t("admin.content.track.title")} error={errors.title?.message}>
+            {(describedBy) => (
+              <Input
+                id="title"
+                maxLength={CONTENT_LIMITS.titleMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.title)}
+                {...register("title", { validate: (value) => value.trim().length > 0 || required })}
+              />
+            )}
+          </Field>
+          <Field id="slug" label={t("admin.content.track.slug")} error={errors.slug?.message}>
+            {(describedBy) => (
+              <Input
+                id="slug"
+                maxLength={CONTENT_LIMITS.slugMaxLength}
+                aria-describedby={describedBy}
+                aria-invalid={Boolean(errors.slug)}
+                {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
+              />
+            )}
+          </Field>
+        </div>
+
+        <Field id="summary" label={t("admin.content.track.summary")}>
           {(describedBy) => (
-            <Input
-              id="title"
-              maxLength={CONTENT_LIMITS.titleMaxLength}
+            <Textarea
+              id="summary"
+              rows={2}
+              maxLength={CONTENT_LIMITS.summaryMaxLength}
               aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.title)}
-              {...register("title", { validate: (value) => value.trim().length > 0 || required })}
+              {...register("summary")}
             />
           )}
         </Field>
-        <Field id="slug" label={t("admin.content.track.slug")} error={errors.slug?.message}>
-          {(describedBy) => (
-            <Input
-              id="slug"
-              maxLength={CONTENT_LIMITS.slugMaxLength}
-              aria-describedby={describedBy}
-              aria-invalid={Boolean(errors.slug)}
-              {...register("slug", { validate: (value) => value.trim().length > 0 || required })}
-            />
-          )}
-        </Field>
-      </div>
 
-      <Field id="summary" label={t("admin.content.track.summary")}>
-        {(describedBy) => (
-          <Textarea
-            id="summary"
-            rows={2}
-            maxLength={CONTENT_LIMITS.summaryMaxLength}
-            aria-describedby={describedBy}
-            {...register("summary")}
-          />
-        )}
-      </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            id="role"
+            label={t("admin.content.track.role")}
+            hint={t("admin.content.track.roleLevelHint")}
+          >
+            {(describedBy) => (
+              <Select id="role" aria-describedby={describedBy} {...register("role")}>
+                {TARGET_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {t(`targetRoles.${role}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          <Field id="level" label={t("admin.content.track.level")}>
+            {(describedBy) => (
+              <Select id="level" aria-describedby={describedBy} {...register("level")}>
+                {EXPERIENCE_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {t(`levels.${level}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          id="role"
-          label={t("admin.content.track.role")}
-          hint={t("admin.content.track.roleLevelHint")}
-        >
-          {(describedBy) => (
-            <Select id="role" aria-describedby={describedBy} {...register("role")}>
-              {TARGET_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {t(`targetRoles.${role}`)}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-        <Field id="level" label={t("admin.content.track.level")}>
-          {(describedBy) => (
-            <Select id="level" aria-describedby={describedBy} {...register("level")}>
-              {EXPERIENCE_LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {t(`levels.${level}`)}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-      </div>
+        <fieldset className="flex flex-col gap-3">
+          <legend className="font-bold text-heading">{t("admin.content.track.topics")}</legend>
+          <p className="-mt-1 text-base text-muted-foreground">
+            {t("admin.content.track.topicsHint")}
+          </p>
+          <ul className="divide-y divide-border">
+            {topics.map((topic) => (
+              <li key={topic.id} className="flex flex-wrap items-center gap-x-6 gap-y-1 py-2">
+                <label className="flex flex-1 items-center gap-2 text-base">
+                  <input
+                    type="checkbox"
+                    value={topic.id}
+                    className="size-4 accent-primary"
+                    {...register("topics")}
+                  />
+                  {topic.name}
+                </label>
+                <label className="flex items-center gap-2 text-base text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    value={topic.id}
+                    className="size-4 accent-primary"
+                    aria-label={`${t("admin.content.track.core")}: ${topic.name}`}
+                    {...register("core")}
+                  />
+                  {t("admin.content.track.core")}
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="font-bold text-heading">{t("admin.content.track.topics")}</legend>
-        <p className="-mt-1 text-base text-muted-foreground">
-          {t("admin.content.track.topicsHint")}
-        </p>
-        <ul className="divide-y divide-border">
-          {topics.map((topic) => (
-            <li key={topic.id} className="flex flex-wrap items-center gap-x-6 gap-y-1 py-2">
-              <label className="flex flex-1 items-center gap-2 text-base">
-                <input
-                  type="checkbox"
-                  value={topic.id}
-                  className="size-4 accent-primary"
-                  {...register("topics")}
-                />
-                {topic.name}
-              </label>
-              <label className="flex items-center gap-2 text-base text-muted-foreground">
-                <input
-                  type="checkbox"
-                  value={topic.id}
-                  className="size-4 accent-primary"
-                  aria-label={`${t("admin.content.track.core")}: ${topic.name}`}
-                  {...register("core")}
-                />
-                {t("admin.content.track.core")}
-              </label>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-3">
+          <Button type="submit" disabled={isSubmitting} className="self-start">
+            {isSubmitting
+              ? t("common.saving")
+              : track
+                ? t("admin.content.actions.save")
+                : t("admin.content.actions.create")}
+          </Button>
+          {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
+        </div>
       </fieldset>
-
-      <div className="flex flex-col gap-3">
-        <Button type="submit" disabled={isSubmitting} className="self-start">
-          {isSubmitting
-            ? t("common.saving")
-            : track
-              ? t("admin.content.actions.save")
-              : t("admin.content.actions.create")}
-        </Button>
-        {saved && <Alert variant="success">{t("admin.content.actions.saved")}</Alert>}
-      </div>
     </form>
   );
 }

@@ -54,6 +54,11 @@ questions[2].ideal_points: expected array`.
   edited it in the CMS since.
 - **Never publishes, and never embeds.** Embeddings are computed when a question is published
   (ADR-0006), which by then is a human's decision.
+- **Never rewrites published content**, whatever authority it holds (ADR-0014 decision 7).
+  Candidates are reading those words, and changing them is an admin's deliberate act — so the row
+  is left exactly as it is and **named** under "left alone — published, and candidates are reading
+  them". `--force` writes it anyway. Recording a review on a published row is not a rewrite and
+  still happens.
 - **Never overwrites a CMS edit.** Every row carries `seed_managed`, true while these files are
   still the source of its content and false from the first save in `/admin/content`. The importer
   creates what is missing, updates what is still `seed_managed`, and **names** everything else in

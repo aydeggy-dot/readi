@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { grantRole, uniqueEmail } from "./helpers";
+import { grantRole, seedContent, uniqueEmail } from "./helpers";
 
 const PASSWORD = "correct horse battery staple";
 
@@ -200,6 +203,145 @@ test("an expert writes and submits, an admin publishes, a candidate then sees it
     expect(raw).not.toContain("band 4");
   });
 
+  await expertContext.close();
+  await adminContext.close();
+  await candidateContext.close();
+});
+
+/**
+ * The expert-review flow the production publish guard turns on (ADR-0014 decision 6), through the
+ * CMS a person actually uses.
+ *
+ * The content is built fresh each run, and built **by the importer** rather than in the CMS: only
+ * a seed file can produce an unreviewed AI draft, because anything written in the CMS was written
+ * by a person. Slugs carry a random suffix and the file lives in a temporary directory, so the run
+ * owns everything it touches and leaves the shipped corpus alone.
+ */
+test("an unreviewed AI draft is marked reviewed, published, and only then seen", async ({
+  browser,
+}) => {
+  test.setTimeout(3 * 60 * 1000);
+
+  const mark = randomUUID().slice(0, 8);
+  const topicSlug = `e2e-review-topic-${mark}`;
+  const rubricSlug = `e2e-review-rubric-${mark}`;
+  const questionSlug = `e2e-review-question-${mark}`;
+  const idealPoint = `Names the index that makes it cheap ${mark}`;
+  const descriptor = `Band four for ${mark}`;
+
+  const directory = mkdtempSync(join(tmpdir(), "readi-e2e-seed-"));
+  writeFileSync(
+    join(directory, "seed.yaml"),
+    `
+version: 1
+author: ai_draft
+status: draft
+topics:
+  - slug: ${topicSlug}
+    name: Query performance ${mark}
+    description: null
+rubrics:
+  - slug: ${rubricSlug}
+    name: Query reasoning ${mark}
+    criteria:
+      - dimension: Diagnosis
+        description: Finds why the query is slow.
+        weight: 60
+        levels: { "0": Absent, "1": Vague, "2": Partial, "3": Clear, "4": ${descriptor} }
+      - dimension: Trade-offs
+        description: Weighs the cost of the fix.
+        weight: 40
+        levels: { "0": Absent, "1": Vague, "2": Partial, "3": Clear, "4": Excellent }
+questions:
+  - slug: ${questionSlug}
+    roles: [backend]
+    levels: [mid]
+    type: technical
+    topic: ${topicSlug}
+    subtopic: null
+    difficulty: 3
+    prompt: A report query got slow after a release ${mark}. How would you find out why?
+    context: null
+    rubric: ${rubricSlug}
+    ideal_points: [${idealPoint}]
+    reviewer_notes: Written by an end-to-end test; no expert needs to look at this.
+`,
+  );
+
+  const expertContext = await browser.newContext();
+  const expert = await expertContext.newPage();
+  const expertEmail = uniqueEmail();
+  const adminContext = await browser.newContext();
+  const admin = await adminContext.newPage();
+  const adminEmail = uniqueEmail();
+  const candidateContext = await browser.newContext();
+  const candidate = await candidateContext.newPage();
+
+  await test.step("a model's draft is imported", () => {
+    // Synchronous on purpose: the importer is a CLI, run through execFileSync.
+    seedContent(directory);
+  });
+
+  await test.step("a candidate who will be looking for it later", async () => {
+    await signUp(candidate, uniqueEmail());
+    await fillProfile(candidate, "Chidi Eze");
+  });
+
+  await test.step("the CMS says plainly that nobody has vouched for it", async () => {
+    await signUp(expert, expertEmail);
+    grantRole(expertEmail, "content_expert");
+    await expert.goto(`/admin/content/questions?q=${questionSlug}`);
+    const row = expert.locator("li", { hasText: questionSlug });
+    await expect(row.getByTestId("ai-draft-unreviewed")).toBeVisible();
+
+    await expert.getByRole("link", { name: questionSlug }).click();
+    await expect(expert.getByTestId("ai-draft-unreviewed").first()).toBeVisible();
+    await expect(expert.getByRole("heading", { name: "Expert review" })).toBeVisible();
+  });
+
+  await test.step("the expert reads it and says so", async () => {
+    await expert.getByRole("textbox", { name: "Note for the review" }).fill("Read it end to end.");
+    await expert.getByRole("button", { name: "Mark as reviewed" }).click();
+    // The second click is the confirmation, inside the alert it opens.
+    await expert.getByRole("button", { name: "Mark as reviewed" }).last().click();
+    await expect(expert.getByText("Marked reviewed.")).toBeVisible();
+    // The panel is gone, which is the confirmation that there is nothing left to review.
+    await expect(expert.getByRole("heading", { name: "Expert review" })).toBeHidden();
+    await expect(expert.getByTestId("ai-draft-unreviewed")).toBeHidden();
+  });
+
+  await test.step("an admin publishes the rubric, then the question", async () => {
+    await signUp(admin, adminEmail);
+    grantRole(adminEmail, "admin");
+
+    // A rubric's list row links by its name; a question has no title of its own, so it links by
+    // its slug. The rubric goes first — a question cannot be published before the rubric that
+    // scores it (ADR-0014 decision 1).
+    for (const [section, slug, link] of [
+      ["rubrics", rubricSlug, `Query reasoning ${mark}`],
+      ["questions", questionSlug, questionSlug],
+    ] as const) {
+      await admin.goto(`/admin/content/${section}?q=${slug}`);
+      await admin.getByRole("link", { name: link }).click();
+      await admin.getByRole("button", { name: "Submit for review" }).click();
+      await expect(admin.getByText("Now: In review.")).toBeVisible();
+      await admin.getByRole("button", { name: "Publish" }).click();
+      await admin.getByRole("button", { name: "Publish" }).last().click();
+      await expect(admin.getByText("Now: Published.")).toBeVisible();
+    }
+  });
+
+  await test.step("now the candidate sees it — and none of the answer key", async () => {
+    const response = await candidate.request.get("/api/content/practice");
+    const raw = await response.text();
+    const body = JSON.parse(raw) as { items: { slug: string }[] };
+    expect(body.items.map((item) => item.slug)).toContain(questionSlug);
+    expect(raw).not.toContain(idealPoint);
+    expect(raw).not.toContain(descriptor);
+    expect(raw).not.toContain("Diagnosis");
+  });
+
+  rmSync(directory, { recursive: true, force: true });
   await expertContext.close();
   await adminContext.close();
   await candidateContext.close();

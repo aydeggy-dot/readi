@@ -372,7 +372,8 @@
         "saved": "Saved.",
         "create": "Create",
         "back": "Back to the list",
-        "openTrack": "Open its track"
+        "openTrack": "Open its track",
+        "publishedReadOnly": "This is published — candidates are reading it now, so changing its words is an admin's call. Ask an admin, or have it retired first."
       },
       "errors": {
         "slugTaken": "That slug is already in use.",
@@ -384,7 +385,8 @@
         "transitionInvalid": "This item is not in a state that allows that move.",
         "notFound": "That item no longer exists.",
         "unreviewedAiDraft": "A model drafted this and nobody has marked it reviewed, so it cannot be published here. Have an expert review it, or publish it anyway if you are certain.",
-        "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft."
+        "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft.",
+        "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first."
       },
       "transition": {
         "legend": "Workflow",

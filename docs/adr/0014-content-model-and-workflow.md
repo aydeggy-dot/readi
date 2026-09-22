@@ -1,11 +1,13 @@
 # 0014 — Learning content: statuses, version history, the answer key, the source of truth after import, and expert review before production
 
-**Status:** Accepted · **Date:** 2026-09-21 · **Amended:** 2026-09-22 (decision 6)
+**Status:** Accepted · **Date:** 2026-09-21 · **Amended:** 2026-09-22 (decisions 6 and 7)
 
-> CLAUDE.md §7.4 says an accepted ADR is superseded, not edited. Decision 6 is an addition to
-> this one at the owner's request: it answers a question the first five left open rather than
-> changing any of their answers, and splitting it into its own ADR would put the six rules that
-> govern one table in two places. Nothing above it has been altered.
+> CLAUDE.md §7.4 says an accepted ADR is superseded, not edited. Decisions 6 and 7 are additions
+> made at the owner's request while this ADR is still unmerged: they answer questions the first
+> five left open rather than changing any of their answers, and splitting them out would put the
+> rules that govern one table in three places. **Once this is merged, a change becomes a new
+> ADR.** The one place an earlier decision needed reconciling — decision 5's aside about the
+> importer reaching published content — is marked in place rather than rewritten.
 
 ## Context
 M2 adds the material a mock interview is made of: tracks, modules, lessons, topics, questions and
@@ -90,9 +92,10 @@ plan without writing.
 Two things deliberately do **not** take a row away from the files:
 
 - **A status transition is not an edit.** An admin publishing or retiring seeded content has not
-  claimed authorship of its words, so a typo fix in the YAML still reaches it. (It reaches published
-  content too: the importer never changes a status, but it does change text, and a published
-  question whose wording changes is re-embedded like any other edit — ADR-0006.)
+  claimed authorship of its words, so a typo fix in the YAML still reaches it. (**Decision 7 later
+  narrowed this**: a typo fix from the files reaches a draft or a retired item, but no longer a
+  *published* one, which the importer now names and leaves alone. When `--force` does write one,
+  a published question whose wording changed is re-embedded like any other edit — ADR-0006.)
 - **Saving a form without changing anything.** The service compares content before it writes
   (decision 2), so an expert who opens a seeded question, reads it and saves takes nothing over.
 
@@ -172,13 +175,44 @@ vouched for what is exactly what the audit log is for. The importer reports it o
 The migration backfills every row `/content/seed` still owns as unreviewed, since `ai_draft` is the
 only author the shipped corpus uses.
 
+### 7. Editing published content is an admin's call, and the files do not do it at all
+Decisions 1 and 6 both guard *transitions*. Nothing guarded *edits* — and a published row was as
+easy to rewrite as a draft. A content expert could change a published question's prompt and
+candidates read the new wording on their next request: no transition, no admin, nothing in the
+audit log but `content.question.updated`. The whole point of `publish: { roles: ["admin"] }` is
+that an admin decides what candidates see, and editing in place went straight past it.
+
+Worse for decision 6: because an import changes no status, `pnpm db:seed` could rewrite a
+**published** question with freshly model-drafted text, re-mark it `ai_draft_unreviewed` — quite
+correctly — and never once pass `publishNeedsReview`. A model's words would be in front of
+candidates with the guard intact and unfired.
+
+So:
+
+- **In the CMS**, changing the content of a `published` track, lesson, rubric or question requires
+  the `admin` role (`content_edit_needs_admin`, 403). This covers modules too: a module is part of
+  a published track's shape and its title reaches a candidate reading that track. Everything that
+  is not published is unchanged — an expert writes and edits freely up to the moment it goes live,
+  and again the moment it is retired. A transition is not an edit, so submitting and returning to
+  draft are untouched.
+- **The web CMS does not offer what it cannot do**: the editor for a published item renders
+  disabled for a content expert, with a sentence saying why, rather than a Save that returns 403.
+- **The seed importer does not rewrite published content at all**, whatever role it holds. It
+  leaves the row exactly as it is and **names** it under "left alone — published, and candidates
+  are reading them", beside the CMS-owned list. `--force` writes it anyway; that is what `--force`
+  is for.
+
+The review mark is unaffected by either rule: `author: human` still clears it on a published row
+(decision 6), because recording that a person has vouched for words is not changing them.
+
 ## Consequences
 - The CMS is the only place where content is authored after review. `/content/seed` keeps its value
   as the checked-in, reviewable, diff-able draft of the bank, and as the way a fresh database
   (a new developer, CI, the e2e run) gets content.
 - A `pnpm db:seed` after expert edits is safe: it prints what it skipped instead of undoing work.
 - `seed_managed` must be written by every content write. It is set in `ContentService` alone, from
-  `Actor.source` (`SEED_ACTOR` for the importer), so the CLIs and the controllers cannot disagree.
+  `Actor.source` — the importer writes as `seedActor(<the file's author>)` — so the CLIs and the
+  controllers cannot disagree.
 - Anything that adds a content entity must decide three things with it: whether it has a status,
   whether it is versioned on its own or with its parent, and whether it carries `seed_managed`.
 - Candidate-facing content is a two-schema world for good. Adding a field to a candidate response
@@ -193,6 +227,14 @@ only author the shipped corpus uses.
   production with no expert having seen it.
 - The guard is only as good as the `author` in the seed files. A file that claims `human`
   falsely is trusted — the checked-in YAML and its review pages are where that is caught.
+- Publishing is now a one-way door for a content expert: to work on something live, they ask an
+  admin to retire it. That is the intended cost — it is the same door an admin walked through to
+  publish it.
+- A bank that is live can no longer be corrected in bulk from the YAML without `--force`. The
+  importer says so by name, every run, so nobody discovers it by finding stale content.
+- **Neither rule pins what a past interview was scored against.** Published content can still
+  change, by an admin or by `--force`, so from M3 a session must record the question and rubric
+  *versions* it used — noted in `tasks/todo.md`.
 
 ## Alternatives considered
 - **The files stay the source of truth; the CMS is a viewer.** Honest and simple, but it makes the
@@ -216,3 +258,8 @@ only author the shipped corpus uses.
   been turned off within a day of starting M3, which is worse than a guard with an audited door.
 - **A CLI that reports published rows whose seed file still says `ai_draft`.** No migration at
   all, and useful as a release check, but it reports after the fact rather than refusing.
+- **Published content read-only for everyone**, admins included, until it is retired. Cleanest
+  rule to state, but it takes content away from candidates to fix a typo.
+- **An edit to a published row sends it back to `in_review`** for an admin to re-publish. Safest
+  for quality, and the most disruptive: a one-word correction pulls the question out of
+  circulation until someone notices it is waiting.

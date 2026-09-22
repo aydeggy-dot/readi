@@ -31,8 +31,16 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         seedManaged={track.data.seed_managed}
         aiDraftUnreviewed={track.data.ai_draft_unreviewed}
       />
-      <TrackForm track={track.data} topics={topics.data?.topics ?? []} />
-      <ModulePanel track={track.data} topics={topics.data?.topics ?? []} />
+      <TrackForm
+        track={track.data}
+        topics={topics.data?.topics ?? []}
+        readOnly={track.data.status === "published" && me.role !== "admin"}
+      />
+      <ModulePanel
+        track={track.data}
+        topics={topics.data?.topics ?? []}
+        readOnly={track.data.status === "published" && me.role !== "admin"}
+      />
       <ReviewPanel
         entity="tracks"
         id={track.data.id}

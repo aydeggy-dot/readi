@@ -16,6 +16,7 @@ const MESSAGES: Record<string, () => string> = {
   content_transition_invalid: () => t("admin.content.errors.transitionInvalid"),
   content_unreviewed_ai_draft: () => t("admin.content.errors.unreviewedAiDraft"),
   content_not_unreviewed: () => t("admin.content.errors.notUnreviewed"),
+  content_edit_needs_admin: () => t("admin.content.errors.editNeedsAdmin"),
   track_not_found: () => t("admin.content.errors.notFound"),
   lesson_not_found: () => t("admin.content.errors.notFound"),
   question_not_found: () => t("admin.content.errors.notFound"),

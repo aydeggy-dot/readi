@@ -498,6 +498,57 @@ describe("admin content API", () => {
     });
   });
 
+  describe("editing published content (ADR-0014 decision 7)", () => {
+    /** A published rubric, which is the cheapest publishable thing to make here. */
+    const publishedRubric = async (): Promise<Rubric> => {
+      const rubric = await createRubric(expert);
+      await move(expert, "rubrics", rubric.id, "submit");
+      expect((await move(admin, "rubrics", rubric.id, "publish")).status).toBe(201);
+      return rubric;
+    };
+
+    const rename = (cookie: string, rubric: Rubric, name: string) =>
+      http()
+        .put(`/api/admin/content/rubrics/${rubric.id}`)
+        .set(as(cookie))
+        .send({
+          slug: rubric.slug,
+          name,
+          criteria: rubric.criteria.map(({ id: _id, ...criterion }) => criterion),
+        });
+
+    it("is refused to a content expert — the words candidates are reading are an admin's", async () => {
+      const rubric = await publishedRubric();
+      const refused = await rename(expert, rubric, "Rewritten behind the admin's back");
+      expect(refused.status).toBe(403);
+      expect(refused.body).toMatchObject({ code: "content_edit_needs_admin" });
+      expect((await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } })).name).toBe(
+        rubric.name,
+      );
+    });
+
+    it("is an admin's to make", async () => {
+      const rubric = await publishedRubric();
+      expect((await rename(admin, rubric, "Corrected in place")).status).toBe(200);
+      expect((await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } })).name).toBe(
+        "Corrected in place",
+      );
+    });
+
+    it("leaves an expert free on everything that is not published", async () => {
+      const draft = await createRubric(expert);
+      expect((await rename(expert, draft, "Still a draft")).status).toBe(200);
+
+      // And the way back: an admin retires it, and the expert can work on it again.
+      await move(expert, "rubrics", draft.id, "submit");
+      await move(admin, "rubrics", draft.id, "publish");
+      expect((await rename(expert, draft, "Blocked now")).status).toBe(403);
+      await move(admin, "rubrics", draft.id, "retire");
+      await move(admin, "rubrics", draft.id, "return_to_draft");
+      expect((await rename(expert, draft, "Working on it again")).status).toBe(200);
+    });
+  });
+
   describe("writing rules", () => {
     it("refuses a slug that is already taken", async () => {
       const first = await createRubric(expert);

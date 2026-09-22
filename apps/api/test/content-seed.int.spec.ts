@@ -238,7 +238,7 @@ questions:
      * Publishing seeded content is an admin's decision about its readiness, not a claim on its
      * words, so the files keep it (ADR-0014 decision 5).
      */
-    it("still updates an item an admin has published", async () => {
+    it("leaves published content alone and names it, unless forced", async () => {
       const rubric = await prisma.rubric.findUniqueOrThrow({ where: { slug: `${slug}-rubric` } });
       const admin = { id: randomUUID(), role: "admin" as const };
       await content.transition(expert, "rubrics", rubric.id, {
@@ -251,15 +251,30 @@ questions:
         note: null,
         acknowledge_unreviewed: false,
       });
+      // Still the files', in the `seed_managed` sense — that is not what stops the write.
       expect(
         (await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } })).seedManaged,
       ).toBe(true);
 
+      /*
+       * Candidates are reading these words now. Rewriting them from a file is the same act as an
+       * expert rewriting them in the CMS, which is an admin's call (ADR-0014 decision 7) — and it
+       * is how model-drafted text could reach candidates without the publish guard running, since
+       * an import changes no status.
+       */
       const report = await new SeedImporter(prisma, content).import(
         write("The file's wording.", "A renamed rubric"),
       );
+      expect(report.rubrics).toMatchObject({ updated: 0, published: [`${slug}-rubric`] });
+      expect((await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } })).name).not.toBe(
+        "A renamed rubric",
+      );
 
-      expect(report.rubrics).toMatchObject({ updated: 1, skipped: [] });
+      // `--force` is the deliberate way through, and says so in the history.
+      const forced = await new SeedImporter(prisma, content, { force: true }).import(
+        write("The file's wording.", "A renamed rubric"),
+      );
+      expect(forced.rubrics).toMatchObject({ updated: 1, published: [] });
       const after = await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } });
       expect(after.name).toBe("A renamed rubric");
       expect(after.status).toBe("published");

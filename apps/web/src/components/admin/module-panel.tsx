@@ -13,6 +13,7 @@ import { ErrorAlert } from "@/components/ui/error-alert";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
@@ -30,7 +31,20 @@ interface Values {
  * own and no history of its own — editing one versions its track (ADR-0014 decisions 1 and 2) —
  * so it is edited here rather than on a page of its own.
  */
-export function ModulePanel({ track, topics }: { track: Track; topics: Topic[] }) {
+export function ModulePanel({
+  track,
+  topics,
+  readOnly = false,
+}: {
+  track: Track;
+  topics: Topic[];
+  /**
+   * The track is published and the reader is not an admin (ADR-0014 decision 7). A module is part
+   * of a published track's shape, and its title reaches a candidate reading that track, so the
+   * ways in are simply not drawn rather than drawn and refused.
+   */
+  readOnly?: boolean;
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [addingLessonTo, setAddingLessonTo] = useState<string | null>(null);
   const [addingModule, setAddingModule] = useState(false);
@@ -86,26 +100,28 @@ export function ModulePanel({ track, topics }: { track: Track; topics: Topic[] }
                     </li>
                   ))}
                 </ul>
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditing(module.id)}
-                  >
-                    {t("admin.content.track.editModule")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setAddingLessonTo(addingLessonTo === module.id ? null : module.id)
-                    }
-                  >
-                    {t("admin.content.actions.newLesson")}
-                  </Button>
-                </div>
+                {!readOnly && (
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditing(module.id)}
+                    >
+                      {t("admin.content.track.editModule")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setAddingLessonTo(addingLessonTo === module.id ? null : module.id)
+                      }
+                    >
+                      {t("admin.content.actions.newLesson")}
+                    </Button>
+                  </div>
+                )}
                 {addingLessonTo === module.id && (
                   <div className="border-t border-border pt-4">
                     <LessonForm lesson={null} moduleId={module.id} topics={topics} />
@@ -117,7 +133,9 @@ export function ModulePanel({ track, topics }: { track: Track; topics: Topic[] }
         ))}
       </ul>
 
-      {addingModule ? (
+      {readOnly && <Note as="aside">{t("admin.content.actions.publishedReadOnly")}</Note>}
+
+      {readOnly ? null : addingModule ? (
         <div className="rounded-md border border-border p-4">
           <ModuleForm
             trackId={track.id}

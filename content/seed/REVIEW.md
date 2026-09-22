@@ -102,6 +102,12 @@ enforces it:
 > `/admin/content`, `pnpm db:seed` stops overwriting that item — it reports it as kept instead. The
 > YAML copy becomes a historical draft.
 
+One more rule, for the same reason: **once something is published, the files stop editing it too.**
+Candidates are reading those words, so changing them is an admin's deliberate act in the CMS, not a
+line in a file — a re-import names published items it would have changed and leaves them alone. So
+the window for bulk corrections from the YAML is _before_ the bank goes live, which is exactly the
+window this review is for.
+
 So: **corrections to a whole bank at once, before anyone has touched the CMS, go in the YAML;
 everything after that goes in the CMS.** Nobody has to remember which is which — the importer says
 what it left alone, every time it runs.

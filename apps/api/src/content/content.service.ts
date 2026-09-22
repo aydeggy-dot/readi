@@ -324,6 +324,7 @@ export class ContentService {
     context: ChangeContext,
   ): Promise<{ entity: Track; changed: boolean }> {
     const current = await this.findTrackOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
     if (sameContent(trackInputOf(current), { ...input, topics: sortTopics(input.topics) })) {
       return { entity: toTrack(current), changed: false };
     }
@@ -362,6 +363,8 @@ export class ContentService {
 
   async createModule(trackId: string, input: ModuleInput, context: ChangeContext): Promise<Module> {
     const track = await this.findTrackOrFail(trackId);
+    // A module is part of a published track's shape, so adding one changes what candidates see.
+    this.assertMayEdit(context.actor, track.status);
     const created = await this.prisma
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "track", track, trackContent(track), context);
@@ -400,6 +403,8 @@ export class ContentService {
   ): Promise<{ entity: Module; changed: boolean }> {
     const current = await this.prisma.module.findUnique({ where: { id }, include: moduleInclude });
     if (!current) throw this.notFound("module_not_found");
+    // A module rides on its track's status, and its title reaches a candidate reading the track.
+    this.assertMayEdit(context.actor, (await this.findTrackOrFail(current.trackId)).status);
     const before: ModuleInput = {
       slug: current.slug,
       title: current.title,
@@ -494,6 +499,7 @@ export class ContentService {
     context: ChangeContext,
   ): Promise<{ entity: Lesson; changed: boolean }> {
     const current = await this.findLessonOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
     if (sameContent(lessonContent(current), input)) {
       return { entity: toLesson(current), changed: false };
     }
@@ -570,6 +576,7 @@ export class ContentService {
     context: ChangeContext,
   ): Promise<{ entity: Rubric; changed: boolean }> {
     const current = await this.findRubricOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
     if (sameContent(rubricContent(current), input)) {
       return { entity: toRubric(current), changed: false };
     }
@@ -645,6 +652,7 @@ export class ContentService {
     context: ChangeContext,
   ): Promise<{ entity: Question; changed: boolean }> {
     const current = await this.findQuestionOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
     if (sameContent(questionContent(current), input)) {
       return { entity: toQuestion(current), changed: false };
     }
@@ -1224,6 +1232,27 @@ export class ContentService {
         after: { status, version },
       },
       tx,
+    );
+  }
+
+  /**
+   * Editing the **words** of published content is an admin's call (ADR-0014 decision 7).
+   *
+   * The workflow's whole point is that an admin decides what candidates see, and until this guard
+   * existed it only governed *transitions*: a content expert could rewrite a published question's
+   * prompt and candidates read the new wording on their next request — no transition, no admin,
+   * nothing in the audit log but `content.question.updated`. Take the item back to draft to work
+   * on it, or ask an admin.
+   *
+   * The seed importer holds an admin's authority, so it passes here; what it may do to published
+   * content is a separate rule, in the importer (decision 7).
+   */
+  private assertMayEdit(actor: Actor, status: ContentStatus): void {
+    if (status !== "published" || actor.role === "admin") return;
+    throw new ApiError(
+      HttpStatus.FORBIDDEN,
+      "content_edit_needs_admin",
+      "editing published content is an admin's call",
     );
   }
 

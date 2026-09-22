@@ -512,7 +512,38 @@ the review state is three columns rather than one boolean, because "who vouched 
 is the evidence that makes the mark worth having, and `reviewed_by_user_id` is tombstoned on
 erasure like the other authorship columns.
 
+### Phase 7 — the owner's three decisions after the review (done, 2026-09-22)
+
+- [x] **Published edits are an admin's call (ADR-0014 decision 7).** `assertMayEdit` in
+      `ContentService` refuses a content expert changing the content of a published track, lesson,
+      rubric or question — and of a module under a published track — with
+      `content_edit_needs_admin`. A transition is not an edit; nothing unpublished changes
+- [x] The CMS does not offer what it cannot do: the four editors and the module panel render
+      disabled for an expert on a published item, with a sentence saying why
+- [x] **The importer never rewrites published content** whatever authority it holds: it names the
+      row under "left alone — published, and candidates are reading them", and `--force` is the way
+      through. The test that asserted the opposite now asserts this
+- [x] **M3/M4 note** in "Carried forward": a session must store the question and rubric _versions_
+      it was scored against, or a later edit silently rewrites past reports
+- [x] **The review flow has an e2e.** It builds its own uniquely-slugged topic, rubric and question
+      in a temp directory each run and imports them — the only way to get an unreviewed AI draft,
+      since anything the CMS creates was written by a person — then drives the chip, Mark as
+      reviewed, both publishes, and the candidate API's answer-key check
+- [x] Docs: ADR-0014 decision 7 and its consequences and alternatives, CLAUDE.md §5,
+      `content/seed/README.md`, `content/seed/REVIEW.md`, the handover
+
 ## Carried forward
+
+- **M3/M4 — pin the content a session was scored against.** Every `InterviewSession` must record the
+  exact **question version and rubric version** it used (and the resolved rubric criteria, or a
+  reference that can reach the right `content_versions` snapshot), not just `question_id` /
+  `rubric_id`. Content keeps changing after a session: an admin edits a published question, an
+  expert reworks a rubric's weights, `--force` re-imports a bank. Without the version pinned, a
+  candidate's past report and readiness score silently start describing a rubric nobody scored them
+  against, and the `/evals` regression suite stops being reproducible. `content_versions` already
+  holds the snapshot (ADR-0014 decision 2) — the session needs to name which one. Decide the shape
+  when M3 designs the session bundle the worker receives, and cover it with a test that edits the
+  content after a session and asserts the report does not move.
 
 - M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is
   added to the repo, tell the owner to install Chromium's system libraries by running:

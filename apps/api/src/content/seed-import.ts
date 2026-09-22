@@ -1,4 +1,5 @@
 import type {
+  ContentStatus,
   LessonInput,
   ModuleInput,
   QuestionInput,
@@ -50,6 +51,13 @@ export interface SeedCounts {
    * a reader hunting, and the point of the report is to say what the files no longer control.
    */
   skipped: string[];
+  /**
+   * Slugs that are **published** and whose file would have rewritten them. Left alone and named,
+   * for the same reason an expert cannot edit published content in the CMS (ADR-0014 decision 7):
+   * candidates are reading these words now, and changing them is an admin's deliberate act.
+   * `--force` writes them anyway.
+   */
+  published: string[];
 }
 
 export type SeedEntityKind = "topics" | "rubrics" | "questions" | "tracks" | "modules" | "lessons";
@@ -80,6 +88,7 @@ const emptyCounts = (): SeedCounts => ({
   unchanged: 0,
   reviewed: 0,
   skipped: [],
+  published: [],
 });
 
 const emptyReport = (): SeedReport => ({
@@ -134,7 +143,7 @@ export class SeedImporter {
   private async applyChange(
     counts: SeedCounts,
     slug: string,
-    existing: { seedManaged: boolean },
+    existing: { seedManaged: boolean; status?: ContentStatus },
     unchanged: () => Promise<boolean>,
     update: () => Promise<unknown>,
     /**
@@ -153,6 +162,16 @@ export class SeedImporter {
        */
       if (syncReview && mayWrite && (await syncReview())) counts.reviewed += 1;
       counts.unchanged += 1;
+      return;
+    }
+    /*
+     * Published content is what candidates are reading right now, and a file rewriting it is the
+     * same act as an expert rewriting it in the CMS — an admin's call (ADR-0014 decision 7). It is
+     * also how model-drafted words could reach candidates without the publish guard ever running:
+     * an import changes no status, so nothing passes `publishNeedsReview`.
+     */
+    if (existing.status === "published" && this.options.force !== true) {
+      counts.published.push(slug);
       return;
     }
     if (!mayWrite) {

@@ -69,6 +69,7 @@ async function main(): Promise<number> {
     console.log(`${files.length} file(s) from ${values.dir ?? "content/seed"}`);
     for (const line of formatReport(report, dryRun)) console.log(`  ${line}`);
     for (const line of formatSkipped(report)) console.log(line);
+    for (const line of formatPublished(report)) console.log(line);
     if (dryRun) console.log("\ndry run: nothing was written");
     return 0;
   } catch (error) {
@@ -120,6 +121,23 @@ export function formatSkipped(report: SeedReport): string[] {
     ...kept.map(([kind, counts]) => `  ${kind}: ${counts.skipped.join(", ")}`),
     "",
     "Edit them in /admin/content, or re-run with --force to overwrite (ADR-0014).",
+  ];
+}
+
+/**
+ * Published items whose file would have rewritten them, by name (ADR-0014 decision 7). Said
+ * separately from the CMS-owned list because the reason is different and so is the remedy: these
+ * are words candidates are reading right now, and changing them is an admin's deliberate act.
+ */
+export function formatPublished(report: SeedReport): string[] {
+  const live = Object.entries(report).filter(([, counts]) => counts.published.length > 0);
+  if (live.length === 0) return [];
+  return [
+    "",
+    "left alone — published, and candidates are reading them:",
+    ...live.map(([kind, counts]) => `  ${kind}: ${counts.published.join(", ")}`),
+    "",
+    "Retire them, edit them in /admin/content as an admin, or re-run with --force (ADR-0014).",
   ];
 }
 
