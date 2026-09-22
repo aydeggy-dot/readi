@@ -656,7 +656,7 @@ rubrics:
         weight: 30
         levels:
           "0": Not addressed, or "add more servers".
-          "1": Scales the wrong thing with confidence — more web processes, a bigger machine, raising the rate limit — as the answer to a hundred exports.
+          "1": Scales the part that was never the constraint — more web processes, a bigger machine, a raised rate limit — as the answer to a hundred exports.
           "2": Says the queue "handles it" without saying what actually has to be decided.
           "3": Says the queue buffers and the number of workers sets the throughput, so the queue grows and nothing falls over.
           "4": As 3, and stops one user's second press starting a second export, and says what they would watch to know the workers are behind.
@@ -928,7 +928,7 @@ rubrics:
         weight: 35
         levels:
           "0": No change, or removing the role column from the response.
-          "1": Guards the wrong layer with confidence — hiding the field in the form, validating on the client, checking for a role field in middleware, or listing every column that must not be written rather than the few that may.
+          "1": Guards the wrong layer — hiding the field in the form, validating on the client, checking for a role field in middleware, or listing every column that must not be written rather than the few that may.
           "2": Names the guard or the validator — `$fillable`, `#[Fillable]`, `validated()` — without saying which fields or why those.
           "3": Validates the request and passes only the fields sign-up is allowed to set, and names what may be filled on the model as well.
           "4": As 3, and says anything that decides permissions should not be settable from a request at all, whatever the guard list says.

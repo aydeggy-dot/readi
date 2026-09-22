@@ -14,6 +14,12 @@
 //   - a question's levels and stacks against what its roles actually offer
 //   - cross-file slug resolution, which the importer only does once it has a database
 //   - the bank against its blueprint's `targets` block
+//   - descriptors that score the manner rather than the answer ("confidently", "with conviction")
+//   - a prompt that asks for fewer things than its rubric scores
+//
+// `--numbers` prints every quantitative claim in the bank as a worklist and checks nothing: a
+// fact-check asks a vendor whether a claim about their product holds, and cannot tell you that a
+// claim about arithmetic is false.
 //
 // The limits it enforces are read out of `packages/shared-types/src/constants.ts` at run time
 // rather than copied here, so they cannot drift.
@@ -36,7 +42,14 @@ try {
 }
 
 const { values } = parseArgs({
-  options: { strict: { type: "boolean", default: false }, dir: { type: "string" } },
+  options: {
+    strict: { type: "boolean", default: false },
+    dir: { type: "string" },
+    // Prints every quantitative claim in the bank as a worklist, and checks nothing. A fact-check
+    // asks a vendor whether a claim about their product holds; it cannot tell you that a claim
+    // about numbers is false. See "Check the arithmetic, not only the vendor" in SKILL.md.
+    numbers: { type: "boolean", default: false },
+  },
 });
 const SEED = resolve(ROOT, values.dir ?? "content/seed");
 
@@ -180,6 +193,46 @@ for (const role of roles.values()) {
 }
 
 // ------------------------------------------------------------------------------------------- //
+// Counting what a spoken prompt asks for.
+//
+// An ask is an interrogative ("what", "why", "how much") or a directive to produce something
+// ("tell me", "walk me through", "explain"). Two interrogatives sharing one clause — "what and why"
+// — are two asks, which is right: they are two things to answer. The engine speaks the prompt once,
+// so this is also roughly what a candidate has to hold in their head.
+
+const ASK =
+  /\b(what|why|how|where|when|which|who|whether)\b|\b(tell|walk|talk|take)\s+me\b|\b(explain|describe|diagnose)\b/gi;
+// A yes/no question is an ask too — "is there anything you would keep out of the link?" — but only
+// where it does not already belong to an interrogative, or "what would you change" counts twice.
+const YES_NO =
+  /(?<!\b(?:what|why|how|where|when|which|who|whether)\s)\b(would|should|could|do|does|did|is|are|can|will)\s+(you|it|that|they|there)\b/gi;
+
+function countAsks(prompt) {
+  // "tell me what X" is one ask, not two: drop the interrogative that belongs to a directive.
+  const text = String(prompt ?? "").replace(
+    /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|why|how|where|when|which|who|whether)\b/gi,
+    " $1 me ",
+  );
+  return (text.match(ASK) ?? []).length + (text.match(YES_NO) ?? []).length;
+}
+
+// ------------------------------------------------------------------------------------------- //
+// Words a descriptor may not contain, and words it should be looked at twice for.
+//
+// Banned outright: these describe delivery and nothing else, so there is no reading on which they
+// belong in a descriptor. Suspect: these usually describe the *content* being unspecific, which is
+// legitimate and is what separates level 1 from level 2 — but they are the words the defect arrives
+// through, so a human confirms each one.
+
+const MANNER_BANNED =
+  /\b(confiden\w*|conviction|articulat\w*|fluen\w*|eloquen\w*|polish\w*|rambl\w*|waffl\w*|hesitan\w*|well[- ]spoken|glib|smooth[- ]talk\w*)/i;
+const MANNER_SUSPECT = /\b(vague\w*|concise\w*|coherent\w*|succinct\w*)/i;
+// `clear` and `verbose` are deliberately NOT on either list. They do too much ordinary work in a
+// descriptor — "clearing the cache", "one clear misuse", "JSON is verbose" — for a lexical check to
+// be worth the noise, and "every criterion's top band turned on clear" is a defect the fairness
+// critique pass caught by reading, in context, which is where it has to be caught.
+
+// ------------------------------------------------------------------------------------------- //
 // Rubrics: house style, and descriptors two readers could agree on.
 
 const normalise = (text) =>
@@ -241,16 +294,40 @@ for (const rubric of rubrics.values()) {
       else seen.set(key, level);
     }
 
-    // "As 3, but said more confidently" is the canonical defect: it scores delivery, not content.
-    if (
-      /\b(confiden|articulat|fluen|eloquen|well[- ]spoken)/i.test(
-        String(criterion.levels?.["4"] ?? ""),
-      )
-    )
+    /*
+     * Manner words, in ANY descriptor and in the criterion's own wording.
+     *
+     * "As 3, but said more confidently" is the canonical defect and used to be checked here — on
+     * descriptor 4 only, and as a warning. That is exactly how the 2026-09-22 slip got through: the
+     * house rule was written as "a descriptor that fits a **confident**, specific, wrong answer",
+     * and the word landed in descriptors 0, 1 and 2 of thirty-four criteria across two banks before
+     * two critique passes caught it by reading. Every word in a descriptor is a scoring
+     * instruction, so one that names the manner tells the evaluator to attend to how an answer
+     * sounded — which an evaluator reading a transcript of spoken Nigerian English cannot separate
+     * from fluency. Name the belief, never the manner.
+     */
+    const wording = [
+      criterion.dimension,
+      criterion.description,
+      ...Object.values(criterion.levels ?? {}),
+    ]
+      .map((value) => String(value ?? ""))
+      .join("\n");
+
+    const banned = wording.match(MANNER_BANNED);
+    if (banned)
+      error(
+        rubric.file,
+        where,
+        `scores the manner, not the answer: "${banned[0]}" — name the belief the wrong answer commits to, not how it was delivered`,
+      );
+
+    const suspect = wording.match(MANNER_SUSPECT);
+    if (suspect)
       warn(
         rubric.file,
         where,
-        "descriptor 4 mentions confidence or fluency — score what was said, not how it sounded",
+        `"${suspect[0]}" can read as delivery — keep it only if it describes what was said rather than how`,
       );
   }
 }
@@ -406,6 +483,36 @@ for (const question of questions) {
   if ((question.stacks ?? []).length > LIMITS.questionStacks)
     error(question.file, at, `names more than ${LIMITS.questionStacks} stacks`);
 
+  /*
+   * Every criterion must have a clause in the spoken prompt that asks for it.
+   *
+   * This is the best finding either critique pass produced — the prompt asks for a diagnosis and
+   * the rubric charges 35% for a fix, so a candidate answers the question they were asked,
+   * completely, and loses a third of the score. It was found nine times in the frontend bank, made
+   * a hard rule in SKILL.md, and then broken eighteen times in the backend bank by the same
+   * drafter. A rule that has to be remembered once per criterion is a rule that needs a check.
+   *
+   * No lexical test can know whether a clause *asks for* a criterion — the first version of this
+   * check tried, comparing the words of each dimension against the prompt, and produced 130
+   * warnings on 80 questions because dimensions are phrased abstractly ("Fixes it", "Starts
+   * narrow") and prompts are not. What is mechanical is the rule's arithmetic: a rubric with three
+   * criteria needs a prompt that asks for three things. Counting the asks is exact, and a prompt
+   * that asks for fewer things than its rubric scores is either charging for something it never
+   * requested or has one deliberately broad clause covering two criteria — which the drafter then
+   * says in `reviewer_notes`. Hence a warning, with the counts, rather than an error.
+   */
+  const scoredBy = rubrics.get(question.rubric);
+  if (scoredBy && typeof question.prompt === "string") {
+    const criteria = (scoredBy.criteria ?? []).length;
+    const asks = countAsks(question.prompt);
+    if (criteria && asks < criteria)
+      warn(
+        question.file,
+        at,
+        `the prompt asks for ${asks} thing${asks === 1 ? "" : "s"} and \`${question.rubric}\` scores ${criteria} — every criterion needs a clause in the prompt that asks for it, or a note saying which clause covers two`,
+      );
+  }
+
   const notes = String(question.reviewer_notes ?? "").trim();
   if (!notes)
     error(
@@ -543,6 +650,47 @@ for (const role of roles.values()) {
       null,
       `${role.slug} has questions and no blueprint`,
     );
+}
+
+// ------------------------------------------------------------------------------------------- //
+// --numbers: the arithmetic worklist.
+
+if (values.numbers) {
+  // Bare integers 0-9 and the levels' own keys are noise; anything else with a digit is a claim.
+  const CLAIM = /(?<![\w.])(?:\d[\d,._]*\s*(?:%|ms|s\b|kb|mb|gb|k\b|x\b)?|\d{2,})(?![\w])/gi;
+  const interesting = (text) => {
+    const hits = String(text ?? "").match(CLAIM) ?? [];
+    return hits.filter((hit) => !/^[0-9]$/.test(hit.trim()));
+  };
+  let found = 0;
+  for (const question of questions) {
+    const lines = [];
+    const add = (where, text) => {
+      const hits = interesting(text);
+      if (hits.length)
+        lines.push(
+          `    ${where}: ${hits.join("  ")}   — ${String(text).replace(/\s+/g, " ").slice(0, 96)}`,
+        );
+    };
+    add("prompt", question.prompt);
+    for (const chunk of String(question.context ?? "").split("\n")) add("context", chunk);
+    for (const [index, point] of (question.ideal_points ?? []).entries())
+      add(`ideal_points[${index}]`, point);
+    const rubric = rubrics.get(question.rubric);
+    for (const criterion of rubric?.criteria ?? [])
+      for (const [level, text] of Object.entries(criterion.levels ?? {}))
+        add(`${question.rubric} / ${criterion.dimension} / ${level}`, text);
+    if (lines.length) {
+      found += lines.length;
+      console.log(`\n  ${question.slug}  (${relative(ROOT, question.file)})`);
+      console.log(lines.join("\n"));
+    }
+  }
+  console.log(
+    `\n${found} quantitative claim(s). Work each one out rather than recognise it — ` +
+      `does the stated consequence follow from the stated numbers?\n`,
+  );
+  process.exit(0);
 }
 
 // ------------------------------------------------------------------------------------------- //

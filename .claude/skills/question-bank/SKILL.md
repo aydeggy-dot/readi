@@ -24,7 +24,7 @@ against those six questions), then the role's row in `docs/role-catalogue.md`.
 | 2. Catalogue   | rows in `roles.yaml`, `stacks.yaml`, `levels.yaml`, `topics.yaml` | `check-bank.mjs` resolves every slug                   |
 | 3. Draft       | `content/seed/<role>/{questions,rubrics}.yaml`                    | `check-bank.mjs`, then `pnpm db:seed -- --dry-run`     |
 | 4. Critique    | edits, and `reviewer_notes` where it is a judgement call          | `references/critique.md` — four passes, run separately |
-| 5. Fact-check  | edits, and the blueprint's fact-check appendix                    | Current official docs, dated                           |
+| 5. Fact-check  | edits, and the blueprint's fact-check appendix                    | Current official docs, dated — **and the arithmetic**  |
 | 6. Stress test | `evals/datasets/synthetic/<role>/<rubric>.yaml`                   | `references/stress-test.md` — five answers per rubric  |
 | 7. Coverage    | the blueprint's closing section                                   | Bank against blueprint, and against a real interview   |
 | 8. Hand over   | `pnpm --filter @readi/api content:review-doc`                     | The expert reads the generated page, not the YAML      |
@@ -96,6 +96,14 @@ critique pass found nine times in one bank: the prompt asks for a diagnosis and 
 were asked, completely, and loses a third of the score. Read each criterion, find the words in the
 prompt that ask for it, and if there are none, add them or drop the criterion.
 
+**`check-bank.mjs` counts the asks** — a rubric with three criteria needs a prompt that asks for
+three things — and warns where a prompt asks for fewer. It was made a check after the rule was
+written down, made a hard rule here, and then broken **eighteen times in the next bank by the same
+drafter**. A rule that has to be remembered once per criterion is a rule that needs a check. The
+warning is not always a defect: a prompt may have one deliberately broad clause covering two
+criteria, and then the drafter says which in `reviewer_notes` and moves on. It is never ignored
+silently.
+
 **Rubrics.** Three criteria; five if the answer genuinely has five separable parts. Weights total
 exactly 100 and are a claim about what matters most. Each criterion carries five descriptors, 0
 (absent) to 4 (excellent), and the test is that **two readers scoring the same answer pick the same
@@ -129,6 +137,17 @@ a specific wrong mechanism and level 2 is vague**, and a hesitant candidate nami
 mechanism has to land in the same band. No descriptor contains "confidently", "with conviction",
 "however fluently" or "argued in detail".
 
+**`check-bank.mjs` enforces this as an error.** `confiden*`, `conviction`, `articulat*`, `fluen*`,
+`eloquen*`, `polish*`, `rambl*`, `waffl*`, `hesitan*`, `well-spoken`, `glib` and `smooth-talking`
+are banned outright in a dimension, a description or any descriptor — there is no reading on which
+they belong. `vague*`, `concise*`, `coherent*` and `succinct*` warn instead, because they usually
+describe the _content_ being unspecific, which is legitimate and is exactly what separates level 1
+from level 2 — but they are the words the defect arrives through, so a human confirms each one.
+`clear` is deliberately on neither list: it does too much ordinary work in a descriptor ("clearing
+the cache", "one clear misuse") for a lexical check to be worth the noise, and "every criterion's
+top band turned on _clear_" is a defect the **fairness critique pass** caught by reading, in
+context, which is where it has to be caught.
+
 The `fluent-but-wrong` answer in the stress test is where the wrong belief comes from, which is why
 the test is worth running before the rubric is finished rather than after. Applied across every
 frontend, shared and backend rubric on 2026-09-22; every bank after that is written this way from
@@ -142,6 +161,43 @@ the two is wrong.
 
 **Prose.** Say the thing. No marketing, no "leverage", no em-dash-joined lists of adjectives. The
 reviewer is a working engineer whose time we are spending.
+
+## Check the arithmetic, not only the vendor
+
+A fact-check asks a vendor's documentation whether a claim about their product is still true. It
+cannot tell you that a claim about **numbers** is false, and the two worst defects in the first two
+banks were both of that kind. Neither was caught by the fact-check; both were caught by a critique
+pass doing the sums.
+
+- `db-money-as-a-float` asked why daily naira totals drift a few kobo and get worse over a month.
+  `double precision` carries fifteen to sixteen significant digits, so a total would have to reach
+  about ₦10^14 before losing a kobo — **and floating-point errors are signed and largely cancel**
+  rather than accumulating, so the rubric was charging 30% for an explanation that is not true. The
+  example value, 1500.50, is also exactly representable in binary, so the premise was false of the
+  number on screen and the candidate who understands floating point best was the one most likely to
+  be marked down.
+- `node-async-error-never-caught` said the request hangs until it times out. Since Node 15 an
+  unhandled rejection is an uncaught exception and the **process exits**.
+
+So: before the critique passes, go through every question and rubric and **verify each quantitative
+or behavioural claim by working it out**, not by recognising it.
+
+1. **Do the sum.** Every number in a prompt, a context block, an `ideal_point` or a descriptor —
+   row counts, timings, percentages, money, sizes, limits, precision. Does the stated consequence
+   follow from the stated numbers? `node .claude/skills/question-bank/scripts/check-bank.mjs
+--numbers` prints them all as a worklist.
+2. **Check the example value.** A question about a type that cannot represent something must use a
+   value it cannot represent. Run it if you can.
+3. **Check the direction.** "Gets worse over time", "scales with traffic", "compounds" — say why,
+   and check the mechanism actually has that shape. Errors that cancel do not accumulate; a fixed
+   window with more arrivals does lose a rising _fraction_.
+4. **Check the default.** "It hangs", "it retries", "it is on by default" — a behaviour claim about
+   a runtime is a version-sensitive claim, so it gets the marker and a source.
+5. **Write the outcome in the blueprint's fact-check appendix** beside the vendor rows, so the
+   next pass can see that the arithmetic was checked and when.
+
+A claim you recognised is not a claim you checked. The drafter who wrote both defects above had
+read the right things about floating point and about Node, and still wrote them down backwards.
 
 ## Coverage: how many questions
 
@@ -170,6 +226,7 @@ Stop after each role, not after each wave.
 ```bash
 node .claude/skills/question-bank/scripts/check-bank.mjs          # offline: no database, no network
 node .claude/skills/question-bank/scripts/check-bank.mjs --strict # blueprint shortfalls become errors
+node .claude/skills/question-bank/scripts/check-bank.mjs --numbers # the arithmetic worklist: every quantitative claim, to work out
 node .claude/skills/question-bank/scripts/check-stress.mjs        # the rubric stress tests, and the two separations
 pnpm db:seed -- --dry-run                                         # the contract, against the database
 pnpm --filter @readi/api content:review-doc                       # regenerate the reviewer's pages
@@ -178,7 +235,9 @@ pnpm format                                                       # the generato
 
 `check-bank.mjs` enforces what the seed contract does not: house style (3–5 criteria, five
 distinguishable descriptors), that a question's `type` is one its roles support, that its stacks and
-levels are ones its roles offer, and the bank against its blueprint's targets. `pnpm db:seed --
+levels are ones its roles offer, the bank against its blueprint's targets, **descriptors that score
+the manner rather than the answer**, and **a prompt that asks for fewer things than its rubric
+scores**. The last two exist because both defects got past a written rule and a human reading. `pnpm db:seed --
 --dry-run` is the authority on everything the contract owns — run both.
 
 ## References

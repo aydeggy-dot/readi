@@ -147,7 +147,7 @@ rubrics:
         weight: 40
         levels:
           "0": Sees nothing wrong.
-          "1": Locates the problem somewhere else — the dependency array, a render loop — whether vaguely or in convincing detail.
+          "1": Locates the problem somewhere else — the dependency array, a render loop — whatever else is said about it.
           "2": Identifies the effect as suspicious but explains it as a style preference.
           "3": Says that the value can be computed during render, so it is not state.
           "4": "As 3, and states the rule: effects are for synchronising with things outside React."
@@ -731,7 +731,7 @@ rubrics:
         levels:
           "0": Treats it as a per-file setting with no wider effect — unexamined, or asserted as the point of the directive.
           "1": Names no real cost — "it makes the page interactive", or a specific cost that is a side effect, alongside a claim that little more is shipped.
-          "2": Knows it affects children but describes the effect vaguely.
+          "2": Knows it affects children without saying what the effect is.
           "3": Says everything imported below becomes client code and ships to the browser.
           "4": As 3, and separates what is rendered on the server once from what must be sent to run again.
       - dimension: Names the cost

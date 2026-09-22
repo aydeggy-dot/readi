@@ -312,7 +312,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 That the value is derived and does not need to be state, or that the effect duplicates a render.
 
 - **0 (absent):** Sees nothing wrong.
-- **1 (weak):** Locates the problem somewhere else — the dependency array, a render loop — whether vaguely or in convincing detail.
+- **1 (weak):** Locates the problem somewhere else — the dependency array, a render loop — whatever else is said about it.
 - **2 (partial):** Identifies the effect as suspicious but explains it as a style preference.
 - **3 (solid):** Says that the value can be computed during render, so it is not state.
 - **4 (excellent):** As 3, and states the rule: effects are for synchronising with things outside React.
@@ -765,7 +765,7 @@ Ephemeral interface state — an open menu, an unsent draft — is not a URL con
 
 **The interviewer asks**
 
-> This is the CSS for a grid of job cards. It works. What does it cost, and what would you write instead?
+> This is the CSS for a grid of job cards. It works. What does it cost, what would you write instead, and which screen width would you start from?
 
 **Setup the candidate is given**
 
@@ -916,7 +916,7 @@ Deliberately trying the worst content available rather than the sample you built
 
 **The interviewer asks**
 
-> Six large photographs have been added to the landing page. Users on mobile data are complaining that it takes forever and eats their data. What do you do about it, and is there a conversation to be had with whoever asked for them?
+> Six large photographs have been added to the landing page. Users on mobile data are complaining that it takes forever and eats their data. How would you find out what is actually being sent, what would you change, and is there a conversation to be had with whoever asked for them?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1151,7 +1151,7 @@ That styling was never the reason to avoid a button.
 
 **The interviewer asks**
 
-> A user submits a sign-up form and two fields are wrong. Describe everything that should happen next — and make sure it works for someone using a screen reader.
+> A user submits a sign-up form and two fields are wrong. Describe everything that should happen next, what each message actually says to them, and how you would make sure it works for someone using a screen reader.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1265,7 +1265,7 @@ Styling, framework behaviour, and anything whose test would only restate the cod
 
 **The interviewer asks**
 
-> A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour changed, and eleven tests failed. What does that tell you about those tests, and what would you do about it?
+> A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour changed, and eleven tests failed. What does that tell you about those tests, what does having a suite like that cost the team, and what would you do about it?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1322,7 +1322,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 
 **The interviewer asks**
 
-> Someone has sent this in about the job board. What do you do next, and what would you want to know before you touch any code?
+> Someone has sent this in about the job board. What do you do next, what would you want to know before you touch any code, and how would you go about seeing it for yourself?
 
 **Setup the candidate is given**
 
@@ -1530,7 +1530,7 @@ A key from the item itself, and an honest account of when an index is acceptable
 
 **The interviewer asks**
 
-> You have a page that lists jobs from a database, and one button on it that opens a filter panel. A colleague has put "use client" at the top of the page file to make the button work. What does that cost, and what would you do instead?
+> You have a page that lists jobs from a database, and one button on it that opens a filter panel. A colleague has put "use client" at the top of the page file to make the button work. What does that line actually do, what does it cost, and what would you do instead?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1549,7 +1549,7 @@ That it applies to everything beneath it, not only to the file it is written in.
 
 - **0 (absent):** Treats it as a per-file setting with no wider effect — unexamined, or asserted as the point of the directive.
 - **1 (weak):** Names no real cost — "it makes the page interactive", or a specific cost that is a side effect, alongside a claim that little more is shipped.
-- **2 (partial):** Knows it affects children but describes the effect vaguely.
+- **2 (partial):** Knows it affects children without saying what the effect is.
 - **3 (solid):** Says everything imported below becomes client code and ships to the browser.
 - **4 (excellent):** As 3, and separates what is rendered on the server once from what must be sent to run again.
 
@@ -1662,7 +1662,7 @@ Rotating it, and finding out whether it was used, rather than quietly removing i
 
 **The interviewer asks**
 
-> The count on screen never changes, even though clicking the button clearly runs the function. Why, and what would you change?
+> The count on screen never changes, even though clicking the button clearly runs the function. Why, what would you change, and what is the general rule you would take away from it?
 
 **Setup the candidate is given**
 
@@ -1814,7 +1814,7 @@ Something that has to happen when a value changes, as opposed to a value that fo
 
 **The interviewer asks**
 
-> A user moves between the job list and a job's detail page a few dozen times. The app gets slower, and the list starts showing results from a search they ran several pages ago. What is wrong here, and what would you change?
+> A user moves between the job list and a job's detail page a few dozen times. The app gets slower, and the list starts showing results from a search they ran several pages ago. What is wrong here, what would you change, and what else in a component would you check for the same thing?
 
 **Setup the candidate is given**
 
@@ -1881,7 +1881,7 @@ Anything started in a component — subscription, timer, listener — is ended w
 
 **The interviewer asks**
 
-> The new job appears in the console, but the list on screen does not change. Nothing throws. Where would you start, and what would you expect to find?
+> The new job appears in the console, but the list on screen does not change. Nothing throws. Where would you start, what would you expect to find, and how would you fix it?
 
 **Setup the candidate is given**
 
@@ -2028,7 +2028,7 @@ That a click travels up through the ancestors, so a parent can hear it.
 
 **The interviewer asks**
 
-> On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has finished loading, and nothing happens. Some of them tap it repeatedly and then leave. How would you build this so that does not happen?
+> On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is going on in those few seconds, how would you build this so that does not happen, and what should that button look like before it can work?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2200,7 +2200,7 @@ Something specific they would do differently, and why they did not know it then.
 
 **The interviewer asks**
 
-> This works until it does not. What breaks first, and how would you restructure it?
+> This works until it does not. What breaks first, where is the cart actually being kept, and how would you restructure it?
 
 **Setup the candidate is given**
 

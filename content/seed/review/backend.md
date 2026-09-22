@@ -1402,7 +1402,7 @@ Told it is being prepared, told when it is ready, and given the file without it 
 The queue absorbs the burst; what is sized is the workers, not the endpoint.
 
 - **0 (absent):** Not addressed, or "add more servers".
-- **1 (weak):** Scales the wrong thing with confidence — more web processes, a bigger machine, raising the rate limit — as the answer to a hundred exports.
+- **1 (weak):** Scales the part that was never the constraint — more web processes, a bigger machine, a raised rate limit — as the answer to a hundred exports.
 - **2 (partial):** Says the queue "handles it" without saying what actually has to be decided.
 - **3 (solid):** Says the queue buffers and the number of workers sets the throughput, so the queue grows and nothing falls over.
 - **4 (excellent):** As 3, and stops one user's second press starting a second export, and says what they would watch to know the workers are behind.
@@ -1561,12 +1561,12 @@ Running it, following one path through, changing something to see what moves —
 
 **How they decided a change was safe — 35%**
 
-Something told them — a test, a small experiment, a person, a way to undo it — rather than confidence.
+Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine.
 
 - **0 (absent):** Not addressed; they changed it and it worked.
 - **1 (weak):** Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
 - **2 (partial):** Names one safeguard without saying what it would have caught.
-- **3 (solid):** Says what gave them the confidence and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
+- **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
 - **4 (excellent):** As 3, and says what it did not cover, so they knew what they were still taking a chance on.
 
 **The change they made — 30%**
@@ -2135,7 +2135,7 @@ The request is whatever was posted; the form is not a constraint on it.
 Validate, and pass named fields — not the request.
 
 - **0 (absent):** No change, or removing the role column from the response.
-- **1 (weak):** Guards the wrong layer with confidence — hiding the field in the form, validating on the client, checking for a role field in middleware, or listing every column that must not be written rather than the few that may.
+- **1 (weak):** Guards the wrong layer — hiding the field in the form, validating on the client, checking for a role field in middleware, or listing every column that must not be written rather than the few that may.
 - **2 (partial):** Names the guard or the validator — `$fillable`, `#[Fillable]`, `validated()` — without saying which fields or why those.
 - **3 (solid):** Validates the request and passes only the fields sign-up is allowed to set, and names what may be filled on the model as well.
 - **4 (excellent):** As 3, and says anything that decides permissions should not be settable from a request at all, whatever the guard list says.
@@ -2165,7 +2165,7 @@ A pattern used once is used everywhere; the next step is finding the rest.
 
 **The interviewer asks**
 
-> You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong result for hours. The web side of the same deploy was correct immediately. Tell me what was happening, and what you would put in place so it cannot happen again.
+> You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong result for hours. The web side of the same deploy was correct immediately. Tell me what was happening, what you would put in place so it cannot happen again, and how anyone would notice if it did.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 

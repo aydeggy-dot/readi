@@ -1179,7 +1179,8 @@ questions:
     prompt: >-
       You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong
       result for hours. The web side of the same deploy was correct immediately. Tell me what was
-      happening, and what you would put in place so it cannot happen again.
+      happening, what you would put in place so it cannot happen again, and how anyone would
+      notice if it did.
     context: null
     rubric: worker-deploy-diagnosis
     ideal_points:

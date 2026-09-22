@@ -413,8 +413,8 @@ questions:
     subtopic: choosing a layout tool
     difficulty: 2
     prompt: >-
-      This is the CSS for a grid of job cards. It works. What does it cost, and what would you write
-      instead?
+      This is the CSS for a grid of job cards. It works. What does it cost, what would you write
+      instead, and which screen width would you start from?
     context: |
       ```css
       .cards { display: grid; grid-template-columns: 1fr; }
@@ -481,8 +481,9 @@ questions:
     difficulty: 2
     prompt: >-
       Six large photographs have been added to the landing page. Users on mobile data are
-      complaining that it takes forever and eats their data. What do you do about it, and is there a
-      conversation to be had with whoever asked for them?
+      complaining that it takes forever and eats their data. How would you find out what is
+      actually being sent, what would you change, and is there a conversation to be had with
+      whoever asked for them?
     context: null
     rubric: image-delivery-judgement
     ideal_points:
@@ -582,8 +583,9 @@ questions:
     subtopic: forms and error feedback
     difficulty: 3
     prompt: >-
-      A user submits a sign-up form and two fields are wrong. Describe everything that should happen
-      next — and make sure it works for someone using a screen reader.
+      A user submits a sign-up form and two fields are wrong. Describe everything that should
+      happen next, what each message actually says to them, and how you would make sure it works
+      for someone using a screen reader.
     context: null
     rubric: accessible-error-feedback
     ideal_points:
@@ -633,9 +635,9 @@ questions:
     subtopic: brittle tests
     difficulty: 3
     prompt: >-
-      A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour
-      changed, and eleven tests failed. What does that tell you about those tests, and what would you
-      do about it?
+      A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the
+      behaviour changed, and eleven tests failed. What does that tell you about those tests, what
+      does having a suite like that cost the team, and what would you do about it?
     context: null
     rubric: test-brittleness-diagnosis
     ideal_points:
@@ -659,8 +661,8 @@ questions:
     subtopic: reproducing a report
     difficulty: 2
     prompt: >-
-      Someone has sent this in about the job board. What do you do next, and what would you want to
-      know before you touch any code?
+      Someone has sent this in about the job board. What do you do next, what would you want to
+      know before you touch any code, and how would you go about seeing it for yourself?
     context: |
       > good day. the app is not working. on my Tecno Spark the job list is just blank, but the
       > menu at the top is there. my sister opened it on her iPhone and hers is fine. please fix
@@ -776,7 +778,7 @@ questions:
     prompt: >-
       You have a page that lists jobs from a database, and one button on it that opens a filter
       panel. A colleague has put "use client" at the top of the page file to make the button work.
-      What does that cost, and what would you do instead?
+      What does that line actually do, what does it cost, and what would you do instead?
     context: null
     rubric: client-boundary-reasoning
     ideal_points:
@@ -843,8 +845,9 @@ questions:
     subtopic: reactivity
     difficulty: 3
     prompt: >-
-      The count on screen never changes, even though clicking the button clearly runs the function.
-      Why, and what would you change?
+      The count on screen never changes, even though clicking the button clearly runs the
+      function. Why, what would you change, and what is the general rule you would take away from
+      it?
     context: |
       ```vue
       <script setup>
@@ -938,8 +941,9 @@ questions:
     difficulty: 3
     prompt: >-
       A user moves between the job list and a job's detail page a few dozen times. The app gets
-      slower, and the list starts showing results from a search they ran several pages ago. What is
-      wrong here, and what would you change?
+      slower, and the list starts showing results from a search they ran several pages ago. What
+      is wrong here, what would you change, and what else in a component would you check for the
+      same thing?
     context: |
       ```ts
       ngOnInit() {
@@ -977,7 +981,7 @@ questions:
     difficulty: 3
     prompt: >-
       The new job appears in the console, but the list on screen does not change. Nothing throws.
-      Where would you start, and what would you expect to find?
+      Where would you start, what would you expect to find, and how would you fix it?
     context: |
       ```ts
       @Component({
@@ -1056,9 +1060,10 @@ questions:
     subtopic: what works before the script arrives
     difficulty: 3
     prompt: >-
-      On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has
-      finished loading, and nothing happens. Some of them tap it repeatedly and then leave. How
-      would you build this so that does not happen?
+      On a slow connection, users sometimes tap Submit on your form before the page's JavaScript
+      has finished loading, and nothing happens. Some of them tap it repeatedly and then leave.
+      What is going on in those few seconds, how would you build this so that does not happen, and
+      what should that button look like before it can work?
     context: null
     rubric: progressive-enhancement-reasoning
     ideal_points:
@@ -1153,7 +1158,8 @@ questions:
     subtopic: where the data lives
     difficulty: 3
     prompt: >-
-      This works until it does not. What breaks first, and how would you restructure it?
+      This works until it does not. What breaks first, where is the cart actually being kept, and
+      how would you restructure it?
     context: |
       ```js
       function addToCart(name, price) {
