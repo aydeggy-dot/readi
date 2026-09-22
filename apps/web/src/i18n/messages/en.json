@@ -196,22 +196,19 @@
     "targetDate": "Interview date (optional)",
     "targetDateHint": "If you already have an interview scheduled.",
     "save": "Save changes",
+    "noRoles": "No roles are open for practice just yet. Please check back shortly.",
+    "levelAfterRole": "Choose a role first — every role is hired at its own levels.",
+    "levelNone": "This role has no levels to choose from just yet. Please check back shortly.",
     "errors": {
       "stackRequired": "Add at least one item.",
       "stackMax": "You can add up to {max} items.",
       "yearsRange": "Enter a whole number from 0 to {max}.",
       "datePast": "Choose today or a later date.",
-      "stackDuplicate": "{item} is already on the list."
+      "stackDuplicate": "{item} is already on the list.",
+      "roleGone": "That role is no longer on offer. Please pick another one.",
+      "levelGone": "That level is no longer on offer. Please pick another one.",
+      "levelNotOffered": "That role is not hired at that level. Please pick a level it offers."
     }
-  },
-  "targetRoles": {
-    "frontend": "Frontend engineer",
-    "backend": "Backend engineer",
-    "qa": "QA engineer"
-  },
-  "levels": {
-    "intern_junior": "Intern or junior",
-    "mid": "Mid-level"
   },
   "companyTypes": {
     "local_startup": "Nigerian startup",
@@ -343,6 +340,10 @@
         "owned": "Edited here",
         "ownedHint": "content/seed no longer overwrites this item."
       },
+      "catalogue": {
+        "noRoles": "No roles yet. Add one under Roles first.",
+        "noLevels": "No levels yet. Add one under Levels first."
+      },
       "filters": {
         "legend": "Filter",
         "search": "Search",
@@ -401,6 +402,7 @@
         "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft.",
         "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first.",
         "roleHasNoPublishedLevel": "Publish one of the role's levels first, or a candidate would be offered a role with nothing to choose.",
+        "roleInUse": "Published content or a candidate's profile still uses this role, so it cannot be withdrawn.",
         "levelInUse": "A published role still offers this level. Retire the role, or take the level off it first.",
         "stackInUse": "A published role still offers this stack. Retire the role, or take the stack off it first.",
         "oneDefaultStack": "Only one stack can be the default."

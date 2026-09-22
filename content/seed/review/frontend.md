@@ -1,4 +1,4 @@
-# Frontend — drafted content for expert review
+# Frontend engineer — drafted content for expert review
 
 **8 questions**, 7 rubrics, 1 track (3 modules, 6 lessons).
 
@@ -23,7 +23,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 ### 1. js-async-ordering
 
-**technical** · difficulty 3/5 · intern_junior, mid · topic: JavaScript fundamentals (event loop)
+**technical** · difficulty 3/5 · intern-junior, mid · topic: JavaScript fundamentals (event loop)
 
 **The interviewer asks**
 
@@ -89,7 +89,7 @@ What this means on screen — a frozen page, a late paint, a race between two re
 
 ### 2. fetch-failure-states
 
-**technical** · difficulty 2/5 · intern_junior · topic: HTTP, APIs and the network (error handling)
+**technical** · difficulty 2/5 · intern-junior · topic: HTTP, APIs and the network (error handling)
 
 **The interviewer asks**
 
@@ -146,7 +146,7 @@ Timeouts, a request that never returns, retries, and what is safe to retry.
 
 ### 3. react-state-placement
 
-**technical** · difficulty 3/5 · intern_junior, mid · topic: React state and data flow (lifting state)
+**technical** · difficulty 3/5 · intern-junior, mid · topic: React state and data flow (lifting state)
 
 **The interviewer asks**
 
@@ -203,7 +203,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 
 ### 4. react-unnecessary-effect
 
-**technical** · difficulty 3/5 · intern_junior, mid · topic: React state and data flow (effects)
+**technical** · difficulty 3/5 · intern-junior, mid · topic: React state and data flow (effects)
 
 **The interviewer asks**
 
@@ -274,7 +274,7 @@ Removes the state and the effect, computing the value where it is used.
 
 ### 5. css-overflow-at-360
 
-**technical** · difficulty 2/5 · intern_junior · topic: CSS layout and responsive design (responsive debugging)
+**technical** · difficulty 2/5 · intern-junior · topic: CSS layout and responsive design (responsive debugging)
 
 **The interviewer asks**
 
@@ -331,7 +331,7 @@ A fix that holds from 360px upward, rather than a media query patching one width
 
 ### 6. slow-page-on-3g
 
-**scenario** · difficulty 3/5 · intern_junior, mid · topic: Browser rendering and performance (performance investigation)
+**scenario** · difficulty 3/5 · intern-junior, mid · topic: Browser rendering and performance (performance investigation)
 
 **The interviewer asks**
 
@@ -388,7 +388,7 @@ The fix follows from the measurement, and its effect is checked.
 
 ### 7. stuck-and-asked-for-help
 
-**behavioral** · difficulty 2/5 · intern_junior · topic: Working with a team (asking for help)
+**behavioral** · difficulty 2/5 · intern-junior · topic: Working with a team (asking for help)
 
 **The interviewer asks**
 
@@ -445,7 +445,7 @@ How it ended, honestly — including if it went badly — and something specific
 
 ### 8. feedback-on-your-code
 
-**behavioral** · difficulty 2/5 · intern_junior, mid · topic: Working with a team (code review)
+**behavioral** · difficulty 2/5 · intern-junior, mid · topic: Working with a team (code review)
 
 **The interviewer asks**
 
@@ -502,7 +502,7 @@ How it ended, honestly — including if it went badly — and something specific
 
 ## Track: Frontend engineer — intern and junior
 
-`frontend-intern-junior` · frontend · intern_junior
+`frontend-intern-junior` · frontend · intern-junior
 
 What an interviewer expects from someone in their first two years of frontend work: the language, React that stays predictable, and pages that are fast on the phones people here actually use.
 

@@ -50,7 +50,7 @@ describe("candidate content never carries the answer key", () => {
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
-    fixture = await seedPublishedContent(prisma, { role: "frontend", level: "mid" });
+    fixture = await seedPublishedContent(prisma);
 
     const candidate = await signUpWithEmail(app, uniqueEmail());
     candidateCookie = candidate.cookie;

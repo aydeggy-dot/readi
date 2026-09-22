@@ -16,6 +16,7 @@ import { eraseUser, TOMBSTONED_COLUMNS } from "../src/account/erase-user";
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
 import { Prisma } from "../src/generated/prisma/client";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { removeCataloguePair, seedCataloguePair, type CataloguePair } from "./content-fixtures";
 import { StorageService } from "../src/storage/storage.service";
 import { FakeAiWorker, PARSED } from "./fake-ai-worker";
 import {
@@ -34,15 +35,18 @@ const PDF_BYTES = new TextEncoder().encode("%PDF-1.7\nA CV body that the fake wo
 const DAY_MS = 86_400_000;
 const SUPPORT_EMAIL = "help@readi.example";
 
-const PROFILE = {
+/** Minted per run: the catalogue is content, and the test database is never seeded (ADR-0015). */
+let pair: CataloguePair;
+
+const profileFor = () => ({
   name: "Ada Obi",
-  target_role: "backend",
-  level: "mid",
+  target_role: pair.roleSlug,
+  level: pair.levelSlug,
   years_experience: 3,
   stack: ["Go"],
   target_company_type: "remote_foreign",
   target_date: null,
-};
+});
 
 describe("data export and account deletion (ADR-0011)", () => {
   let app: NestExpressApplication;
@@ -58,8 +62,10 @@ describe("data export and account deletion (ADR-0011)", () => {
     });
     prisma = app.get(PrismaService);
     storage = app.get(StorageService);
+    pair = await seedCataloguePair(prisma);
   });
   afterAll(async () => {
+    await removeCataloguePair(prisma, pair);
     await app.close();
   });
 
@@ -83,7 +89,7 @@ describe("data export and account deletion (ADR-0011)", () => {
 
   /** Profile, consents and a parsed CV: a user with data in every table. */
   async function withData(cookie: string): Promise<void> {
-    await http().put("/api/me/profile").set("cookie", cookie).send(PROFILE).expect(200);
+    await http().put("/api/me/profile").set("cookie", cookie).send(profileFor()).expect(200);
     await http()
       .put("/api/me/consents")
       .set("cookie", cookie)
@@ -151,7 +157,7 @@ describe("data export and account deletion (ADR-0011)", () => {
         phone_number: null,
       });
       expect(data.user.image).toBeNull(); // set by Google sign-in; absent for email accounts
-      expect(data.profile).toMatchObject({ target_role: "backend", stack: ["Go"] });
+      expect(data.profile).toMatchObject({ target_role: pair.roleSlug, stack: ["Go"] });
       expect(data.cv).toMatchObject({ status: "parsed", content_type: PDF, parsed: PARSED });
       expect(data.consents).toHaveLength(CONSENT_TYPES.length);
       expect(data.consents.find((c) => c.type === "marketing")?.granted).toBe(false);

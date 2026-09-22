@@ -1,15 +1,14 @@
 "use client";
 
-import type { ProfileResponse, TargetRole, UpdateProfileRequest } from "@readi/shared-types";
+import type {
+  CandidateCareerRole,
+  ProfileResponse,
+  UpdateProfileRequest,
+} from "@readi/shared-types";
 import { invalidFields } from "@readi/api-client";
-import {
-  EXPERIENCE_LEVELS,
-  PROFILE_LIMITS,
-  TARGET_COMPANY_TYPES,
-  TARGET_ROLES,
-} from "@readi/shared-types/constants";
+import { PROFILE_LIMITS, TARGET_COMPANY_TYPES } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { ErrorAlert } from "@/components/ui/error-alert";
@@ -20,7 +19,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
-import { STACK_SUGGESTIONS } from "@/lib/stack-suggestions";
+import { profileErrorMessage } from "@/lib/profile-errors";
 
 type Values = Omit<UpdateProfileRequest, "years_experience" | "target_date"> & {
   // Form inputs hold strings; converted on submit.
@@ -28,18 +27,27 @@ type Values = Omit<UpdateProfileRequest, "years_experience" | "target_date"> & {
   target_date: string;
 };
 
-/** The career profile (spec §4.1), used in onboarding and on the profile page. */
+/**
+ * The career profile (spec §4.1), used in onboarding and on the profile page.
+ *
+ * Everything on it that used to be a closed set is now the catalogue, read from the API by the page
+ * that draws this form (ADR-0015): which roles exist, what each one is called, the levels it is
+ * hired at, and the technologies worth suggesting for its stack. Nothing here knows any of them.
+ */
 export function ProfileForm({
   initial,
   name,
   mode,
   today,
+  roles,
 }: {
   initial: ProfileResponse | null;
   name: string;
   mode: "onboarding" | "edit";
   /** YYYY-MM-DD, from the server, so the date picker's minimum matches server rendering. */
   today: string;
+  /** The published catalogue: the only roles a candidate may prepare for, in the API's order. */
+  roles: readonly CandidateCareerRole[];
 }) {
   const router = useRouter();
   const [failure, setFailure] = useState<ApiFailure>();
@@ -48,19 +56,35 @@ export function ProfileForm({
     control,
     handleSubmit,
     setError,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     defaultValues: {
       name: initial?.name ?? name,
-      target_role: initial?.target_role,
-      level: initial?.level,
+      target_role: initial?.target_role ?? "",
+      level: initial?.level ?? "",
       years_experience: initial ? String(initial.years_experience) : "",
       stack: initial?.stack ?? [],
       target_company_type: initial?.target_company_type,
       target_date: initial?.target_date ?? "",
     },
   });
-  const role: TargetRole | undefined = useWatch({ control, name: "target_role" });
+  const roleSlug = useWatch({ control, name: "target_role" });
+  const role = roles.find((candidate) => candidate.slug === roleSlug);
+  const levelOptions = role?.level_options ?? [];
+
+  /*
+   * A level belongs to the role that offers it, so changing the role changes the ladder. A level
+   * the new role is not hired at has to go with it: its radio is no longer drawn, so leaving the
+   * value behind would submit a choice nobody can see, and the API would answer
+   * `level_not_offered_for_role` about a field the form looks happy with.
+   */
+  const offered = levelOptions.map((option) => option.slug).join(" ");
+  useEffect(() => {
+    const chosen = getValues("level");
+    if (chosen && !offered.split(" ").includes(chosen)) setValue("level", "");
+  }, [offered, getValues, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     setFailure(undefined);
@@ -72,6 +96,12 @@ export function ProfileForm({
     try {
       const { error, response } = await browserApi.PUT("/api/me/profile", { body });
       if (response.status === 400) {
+        // The catalogue moved under the form: say which choice went stale, not "check this field".
+        const stale = profileErrorMessage(error);
+        if (stale) {
+          setFailure({ message: stale, signedOut: false });
+          return;
+        }
         const fields = invalidFields(error);
         for (const field of fields) {
           if (field in body) {
@@ -120,22 +150,34 @@ export function ProfileForm({
         )}
       </Field>
 
-      <ChoiceGroup
-        name="target_role"
-        legend={t("profileForm.targetRole")}
-        options={TARGET_ROLES.map((value) => ({ value, label: t(`targetRoles.${value}`) }))}
-        error={errors.target_role?.message}
-        inputProps={register("target_role", { required })}
-      />
+      {roles.length === 0 ? (
+        <Aside legend={t("profileForm.targetRole")} note={t("profileForm.noRoles")} />
+      ) : (
+        <ChoiceGroup
+          name="target_role"
+          legend={t("profileForm.targetRole")}
+          options={roles.map((option) => ({ value: option.slug, label: option.name }))}
+          error={errors.target_role?.message}
+          inputProps={register("target_role", { required })}
+        />
+      )}
 
-      <ChoiceGroup
-        name="level"
-        legend={t("profileForm.level")}
-        columns={2}
-        options={EXPERIENCE_LEVELS.map((value) => ({ value, label: t(`levels.${value}`) }))}
-        error={errors.level?.message}
-        inputProps={register("level", { required })}
-      />
+      {/* The levels of the chosen role, so the picker can only offer what the role is hired at. */}
+      {levelOptions.length === 0 ? (
+        <Aside
+          legend={t("profileForm.level")}
+          note={role ? t("profileForm.levelNone") : t("profileForm.levelAfterRole")}
+        />
+      ) : (
+        <ChoiceGroup
+          name="level"
+          legend={t("profileForm.level")}
+          columns={2}
+          options={levelOptions.map((option) => ({ value: option.slug, label: option.name }))}
+          error={errors.level?.message}
+          inputProps={register("level", { required })}
+        />
+      )}
 
       <Field
         id="years_experience"
@@ -185,7 +227,7 @@ export function ProfileForm({
                 placeholder={t("profileForm.stackPlaceholder")}
                 maxItems={PROFILE_LIMITS.stackMaxItems}
                 maxLength={PROFILE_LIMITS.stackItemMaxLength}
-                suggestions={role ? STACK_SUGGESTIONS[role] : []}
+                suggestions={role?.stacks.map((option) => option.name) ?? []}
                 invalid={fieldState.invalid}
                 describedBy={describedBy}
               />
@@ -234,5 +276,15 @@ export function ProfileForm({
             : t("profileForm.save")}
       </Button>
     </form>
+  );
+}
+
+/** A choice that cannot be made yet, in the shape of the group it stands in for. */
+function Aside({ legend, note }: { legend: string; note: string }) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-2 font-bold text-heading">{legend}</legend>
+      <p className="text-base text-muted-foreground">{note}</p>
+    </fieldset>
   );
 }

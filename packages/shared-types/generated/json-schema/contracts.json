@@ -185,19 +185,23 @@
           "contentEncoding": "base64",
           "pattern": "^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$"
         },
-        "target_role": {
-          "$ref": "#/$defs/TargetRole"
+        "target_role_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
         },
-        "level": {
-          "$ref": "#/$defs/ExperienceLevel"
+        "level_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
         }
       },
       "required": [
         "request_id",
         "content_type",
         "file_base64",
-        "target_role",
-        "level"
+        "target_role_label",
+        "level_label"
       ],
       "additionalProperties": false
     },
@@ -368,13 +372,6 @@
       ],
       "additionalProperties": false
     },
-    "ExperienceLevel": {
-      "type": "string",
-      "enum": [
-        "intern_junior",
-        "mid"
-      ]
-    },
     "HealthCheckError": {
       "type": "string",
       "enum": [
@@ -484,14 +481,6 @@
         "gaps"
       ],
       "additionalProperties": false
-    },
-    "TargetRole": {
-      "type": "string",
-      "enum": [
-        "frontend",
-        "backend",
-        "qa"
-      ]
     },
     "YearMonth": {
       "type": "string",

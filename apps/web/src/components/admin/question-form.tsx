@@ -2,22 +2,14 @@
 
 import type {
   DuplicateMatch,
-  ExperienceLevel,
   Question,
   QuestionInput,
   QuestionType,
   RubricListItem,
-  TargetRole,
   Topic,
 } from "@readi/shared-types";
 import { invalidFields } from "@readi/api-client";
-import {
-  CONTENT_LIMITS,
-  DIFFICULTY_RANGE,
-  EXPERIENCE_LEVELS,
-  QUESTION_TYPES,
-  TARGET_ROLES,
-} from "@readi/shared-types/constants";
+import { CONTENT_LIMITS, DIFFICULTY_RANGE, QUESTION_TYPES } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -33,13 +25,15 @@ import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
+import type { CatalogueOption } from "@/lib/catalogue-choices";
 import { contentErrorMessage } from "@/lib/content-errors";
 
 interface Values {
   slug: string;
   type: QuestionType;
-  roles: TargetRole[];
-  levels: ExperienceLevel[];
+  /** Catalogue slugs (ADR-0015), which is what the question stores. */
+  roles: string[];
+  levels: string[];
   topic_id: string;
   subtopic: string;
   difficulty: string;
@@ -67,11 +61,16 @@ export function QuestionForm({
   question,
   topics,
   rubrics,
+  roles,
+  levels,
   readOnly = false,
 }: {
   question: Question | null;
   topics: Topic[];
   rubrics: RubricListItem[];
+  /** The catalogue to tag against, drafts included: a question is written before its role goes out. */
+  roles: readonly CatalogueOption[];
+  levels: readonly CatalogueOption[];
   /** Published, and the reader is not an admin: the words are theirs to read, not to change. */
   readOnly?: boolean;
 }) {
@@ -226,19 +225,25 @@ export function QuestionForm({
           <p className="-mt-1 mb-1 text-base text-muted-foreground">
             {t("admin.content.question.rolesHint")}
           </p>
-          <div className="flex flex-wrap gap-4">
-            {TARGET_ROLES.map((role) => (
-              <label key={role} className="flex items-center gap-2 text-base">
-                <input
-                  type="checkbox"
-                  value={role}
-                  className="size-4 accent-primary"
-                  {...register("roles", { validate: (value) => value.length > 0 || required })}
-                />
-                {t(`targetRoles.${role}`)}
-              </label>
-            ))}
-          </div>
+          {roles.length === 0 ? (
+            <p className="text-base text-muted-foreground">
+              {t("admin.content.catalogue.noRoles")}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {roles.map((role) => (
+                <label key={role.slug} className="flex items-center gap-2 text-base">
+                  <input
+                    type="checkbox"
+                    value={role.slug}
+                    className="size-4 accent-primary"
+                    {...register("roles", { validate: (value) => value.length > 0 || required })}
+                  />
+                  {role.name}
+                </label>
+              ))}
+            </div>
+          )}
           <FieldError message={errors.roles?.message} />
         </fieldset>
 
@@ -246,19 +251,25 @@ export function QuestionForm({
           <legend className="mb-1 font-bold text-heading">
             {t("admin.content.question.levels")}
           </legend>
-          <div className="flex flex-wrap gap-4">
-            {EXPERIENCE_LEVELS.map((level) => (
-              <label key={level} className="flex items-center gap-2 text-base">
-                <input
-                  type="checkbox"
-                  value={level}
-                  className="size-4 accent-primary"
-                  {...register("levels", { validate: (value) => value.length > 0 || required })}
-                />
-                {t(`levels.${level}`)}
-              </label>
-            ))}
-          </div>
+          {levels.length === 0 ? (
+            <p className="text-base text-muted-foreground">
+              {t("admin.content.catalogue.noLevels")}
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {levels.map((level) => (
+                <label key={level.slug} className="flex items-center gap-2 text-base">
+                  <input
+                    type="checkbox"
+                    value={level.slug}
+                    className="size-4 accent-primary"
+                    {...register("levels", { validate: (value) => value.length > 0 || required })}
+                  />
+                  {level.name}
+                </label>
+              ))}
+            </div>
+          )}
           <FieldError message={errors.levels?.message} />
         </fieldset>
 

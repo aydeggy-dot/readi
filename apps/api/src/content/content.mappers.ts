@@ -46,12 +46,33 @@ export const rubricInclude = {
   criteria: { orderBy: [{ position: Prisma.SortOrder.asc }] },
 } satisfies Prisma.RubricInclude;
 
+/**
+ * A question's roles and levels are a **set**, but they travel as an array, so they are read in
+ * one fixed order — by slug — everywhere. `sameContent` compares the projection field by field
+ * (ADR-0014 decision 2): without a canonical order, saving a form that reordered nothing would
+ * look like a change and write a version snapshot nobody asked for.
+ */
+const bySlug = { orderBy: { slug: Prisma.SortOrder.asc } };
+
+export const questionLinkInclude = {
+  roles: { orderBy: { role: bySlug.orderBy }, include: { role: { select: { slug: true } } } },
+  levels: { orderBy: { level: bySlug.orderBy }, include: { level: { select: { slug: true } } } },
+} satisfies Prisma.QuestionInclude;
+
 export const questionInclude = {
+  ...questionLinkInclude,
   topic: true,
   rubric: { include: rubricInclude },
 } satisfies Prisma.QuestionInclude;
 
+/** A track names one role and one level; only their slugs reach the wire (ADR-0015). */
+export const trackCatalogueInclude = {
+  role: { select: { slug: true } },
+  level: { select: { slug: true } },
+} satisfies Prisma.TrackInclude;
+
 export const trackInclude = {
+  ...trackCatalogueInclude,
   topics: { orderBy: [{ topicId: Prisma.SortOrder.asc }] },
   modules: { orderBy: byPosition, include: { lessons: { orderBy: byPosition } } },
 } satisfies Prisma.TrackInclude;
@@ -114,8 +135,8 @@ export const toRubric = (row: RubricRow): Rubric => ({
 export const toQuestion = (row: QuestionRow): Question => ({
   id: row.id,
   slug: row.slug,
-  roles: row.roles,
-  levels: row.levels,
+  roles: row.roles.map((link) => link.role.slug),
+  levels: row.levels.map((link) => link.level.slug),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,
@@ -164,8 +185,8 @@ export const toModule = (row: ModuleRow): Module => ({
 export const toTrack = (row: TrackRow): Track => ({
   id: row.id,
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   summary: row.summary,
   status: row.status,
@@ -181,12 +202,14 @@ export const toTrack = (row: TrackRow): Track => ({
 // List rows.
 
 export const toTrackListItem = (
-  row: Prisma.TrackGetPayload<{ include: { _count: { select: { modules: true } } } }>,
+  row: Prisma.TrackGetPayload<{
+    include: typeof trackCatalogueInclude & { _count: { select: { modules: true } } };
+  }>,
 ): TrackListItem => ({
   id: row.id,
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   status: row.status,
   version: row.version,
@@ -213,14 +236,14 @@ export const toLessonListItem = (
 
 export const toQuestionListItem = (
   row: Prisma.QuestionGetPayload<{
-    include: { topic: true; rubric: { select: { slug: true } } };
+    include: typeof questionLinkInclude & { topic: true; rubric: { select: { slug: true } } };
   }>,
 ): QuestionListItem => ({
   id: row.id,
   slug: row.slug,
   type: row.type,
-  roles: row.roles,
-  levels: row.levels,
+  roles: row.roles.map((link) => link.role.slug),
+  levels: row.levels.map((link) => link.level.slug),
   difficulty: row.difficulty,
   topic: toTopic(row.topic),
   rubric_slug: row.rubric.slug,
@@ -254,11 +277,28 @@ export const toRubricListItem = (
 export const sortTopics = <T extends { topic_id: string }>(topics: readonly T[]): T[] =>
   [...topics].sort((a, b) => (a.topic_id < b.topic_id ? -1 : a.topic_id > b.topic_id ? 1 : 0));
 
+/**
+ * The same rule for a question's roles and levels, and for the same reason. `questionContent`
+ * reads them back from the join tables sorted by slug, so an input that lists the same roles in a
+ * different order must sort to the same thing — otherwise re-importing an unchanged seed file
+ * writes a version snapshot for a question nobody touched, which `content-seed.int.spec.ts`
+ * catches by importing the real corpus twice.
+ *
+ * A question's roles really are a set: they decide who is offered it, and nothing renders them in
+ * order. A role's *stacks* are the opposite case and are deliberately not sorted — their order is
+ * what a candidate sees in the picker, so reordering them is a change (`careerRoleContent`).
+ */
+export const canonicalQuestionInput = (input: QuestionInput): QuestionInput => ({
+  ...input,
+  roles: [...input.roles].sort(),
+  levels: [...input.levels].sort(),
+});
+
 /** What a track's own editor edits — the shape an update sends, for comparing like with like. */
 export const trackInputOf = (row: TrackRow): TrackInput => ({
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   summary: row.summary,
   topics: sortTopics(row.topics.map((link) => ({ topic_id: link.topicId, is_core: link.isCore }))),
@@ -300,8 +340,8 @@ export const rubricContent = (row: RubricRow): RubricInput => ({
 
 export const questionContent = (row: QuestionRow): QuestionInput => ({
   slug: row.slug,
-  roles: row.roles,
-  levels: row.levels,
+  roles: row.roles.map((link) => link.role.slug),
+  levels: row.levels.map((link) => link.level.slug),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,
@@ -318,8 +358,8 @@ export const questionContent = (row: QuestionRow): QuestionInput => ({
 
 export const toCandidateTrack = (row: TrackRow): CandidateTrackResponse => ({
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   summary: row.summary,
   modules: row.modules.map((module): CandidateModule => ({

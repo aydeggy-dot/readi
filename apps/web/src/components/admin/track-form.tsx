@@ -1,7 +1,7 @@
 "use client";
 
-import type { ExperienceLevel, TargetRole, Topic, Track, TrackInput } from "@readi/shared-types";
-import { CONTENT_LIMITS, EXPERIENCE_LEVELS, TARGET_ROLES } from "@readi/shared-types/constants";
+import type { Topic, Track, TrackInput } from "@readi/shared-types";
+import { CONTENT_LIMITS } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -16,14 +16,16 @@ import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
+import type { CatalogueOption } from "@/lib/catalogue-choices";
 import { contentErrorMessage } from "@/lib/content-errors";
 
 interface Values {
   slug: string;
   title: string;
   summary: string;
-  role: TargetRole;
-  level: ExperienceLevel;
+  /** Catalogue slugs (ADR-0015), which is what the track stores. */
+  role: string;
+  level: string;
   /** Topic ids that are covered, and which of those are core. */
   topics: string[];
   core: string[];
@@ -37,10 +39,15 @@ interface Values {
 export function TrackForm({
   track,
   topics,
+  roles,
+  levels,
   readOnly = false,
 }: {
   track: Track | null;
   topics: Topic[];
+  /** The catalogue to aim the track at, drafts included: a track is written before its role goes out. */
+  roles: readonly CatalogueOption[];
+  levels: readonly CatalogueOption[];
   /** Published, and the reader is not an admin (ADR-0014 decision 7). */
   readOnly?: boolean;
 }) {
@@ -56,8 +63,8 @@ export function TrackForm({
       slug: track?.slug ?? "",
       title: track?.title ?? "",
       summary: track?.summary ?? "",
-      role: track?.role ?? "frontend",
-      level: track?.level ?? "mid",
+      role: track?.role ?? roles[0]?.slug ?? "",
+      level: track?.level ?? levels[0]?.slug ?? "",
       topics: track?.topics.map((link) => link.topic_id) ?? [],
       core: track?.topics.filter((link) => link.is_core).map((link) => link.topic_id) ?? [],
     },
@@ -151,26 +158,38 @@ export function TrackForm({
             label={t("admin.content.track.role")}
             hint={t("admin.content.track.roleLevelHint")}
           >
-            {(describedBy) => (
-              <Select id="role" aria-describedby={describedBy} {...register("role")}>
-                {TARGET_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {t(`targetRoles.${role}`)}
-                  </option>
-                ))}
-              </Select>
-            )}
+            {(describedBy) =>
+              roles.length === 0 ? (
+                <p className="text-base text-muted-foreground">
+                  {t("admin.content.catalogue.noRoles")}
+                </p>
+              ) : (
+                <Select id="role" aria-describedby={describedBy} {...register("role")}>
+                  {roles.map((role) => (
+                    <option key={role.slug} value={role.slug}>
+                      {role.name}
+                    </option>
+                  ))}
+                </Select>
+              )
+            }
           </Field>
           <Field id="level" label={t("admin.content.track.level")}>
-            {(describedBy) => (
-              <Select id="level" aria-describedby={describedBy} {...register("level")}>
-                {EXPERIENCE_LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {t(`levels.${level}`)}
-                  </option>
-                ))}
-              </Select>
-            )}
+            {(describedBy) =>
+              levels.length === 0 ? (
+                <p className="text-base text-muted-foreground">
+                  {t("admin.content.catalogue.noLevels")}
+                </p>
+              ) : (
+                <Select id="level" aria-describedby={describedBy} {...register("level")}>
+                  {levels.map((level) => (
+                    <option key={level.slug} value={level.slug}>
+                      {level.name}
+                    </option>
+                  ))}
+                </Select>
+              )
+            }
           </Field>
         </div>
 

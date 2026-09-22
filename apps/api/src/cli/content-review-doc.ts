@@ -26,11 +26,17 @@ function main(): number {
     return 1;
   }
 
-  const roles = values.role
-    ? [values.role]
-    : readdirSync(directory)
-        .filter((entry) => statSync(join(directory, entry)).isDirectory() && entry !== "review")
-        .sort();
+  /*
+   * Which roles exist is `roles.yaml`, not the directory listing (ADR-0015): a role is content,
+   * and `content/seed` holds directories that are not roles. A role with no directory of its own
+   * yet would produce an empty page, so only roles that some file actually writes content for are
+   * listed — the intersection of the catalogue and the directories.
+   */
+  const catalogue = files.flatMap(({ data }) => data.career_roles ?? []).map((role) => role.slug);
+  const directories = new Set(
+    readdirSync(directory).filter((entry) => statSync(join(directory, entry)).isDirectory()),
+  );
+  const roles = values.role ? [values.role] : catalogue.filter((slug) => directories.has(slug));
 
   mkdirSync(outDirectory, { recursive: true });
   for (const role of roles) {

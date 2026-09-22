@@ -10,7 +10,7 @@ import {
   RUBRIC_WEIGHT_TOTAL,
   SLUG_PATTERN,
 } from "../constants.js";
-import { ExperienceLevel, TargetRole } from "./profiles.js";
+import { Slug } from "./slug.js";
 
 /**
  * Learning content: tracks, modules, lessons, topics, questions and rubrics (spec §4.2, §4.8,
@@ -168,9 +168,13 @@ export type Rubric = z.infer<typeof Rubric>;
 
 export const QuestionInput = z.object({
   slug: slug(),
-  /** Which roles this question suits; a question may serve more than one (spec §6.1). */
-  roles: z.array(TargetRole).min(1).max(3),
-  levels: z.array(ExperienceLevel).min(1).max(2),
+  /**
+   * Which catalogue roles and levels this question is offered to, by slug (spec §6.1, ADR-0015).
+   * A question may serve more than one of each — one frontend question is also a full-stack
+   * question, which is why a full-stack track costs almost no new content.
+   */
+  roles: z.array(Slug).min(1).max(CONTENT_LIMITS.questionRoles),
+  levels: z.array(Slug).min(1).max(CONTENT_LIMITS.questionLevels),
   type: QuestionType,
   topic_id: z.uuid(),
   subtopic: z.string().trim().min(1).max(CONTENT_LIMITS.subtopicMaxLength).nullable(),
@@ -250,8 +254,9 @@ export type TrackTopicInput = z.infer<typeof TrackTopicInput>;
 
 export const TrackInput = z.object({
   slug: slug(),
-  role: TargetRole,
-  level: ExperienceLevel,
+  /** The catalogue role and level this track is for, by slug (ADR-0015). */
+  role: Slug,
+  level: Slug,
   title: title(),
   summary: summary(),
   topics: z.array(TrackTopicInput).max(40),
@@ -261,8 +266,8 @@ export type TrackInput = z.infer<typeof TrackInput>;
 export const Track = z.object({
   id: z.uuid(),
   slug: slug(),
-  role: TargetRole,
-  level: ExperienceLevel,
+  role: Slug,
+  level: Slug,
   title: title(),
   summary: summary(),
   status: ContentStatus,
@@ -289,8 +294,8 @@ export const ContentListQuery = z.object({
   status: ContentStatus.optional(),
   /** Free text, matched without regard to case against the slug and the title or name. */
   q: z.string().trim().min(1).max(CONTENT_LIMITS.searchMaxLength).optional(),
-  role: TargetRole.optional(),
-  level: ExperienceLevel.optional(),
+  role: Slug.optional(),
+  level: Slug.optional(),
   type: QuestionType.optional(),
   topic_id: z.uuid().optional(),
   cursor: z.string().min(1).max(CONTENT_LIMITS.cursorMaxLength).optional(),
@@ -310,8 +315,8 @@ export const TrackListItem = z
   .object({
     id: z.uuid(),
     slug: slug(),
-    role: TargetRole,
-    level: ExperienceLevel,
+    role: Slug,
+    level: Slug,
     title: title(),
     status: ContentStatus,
     version: z.int().min(1),
@@ -362,8 +367,8 @@ export const QuestionListItem = z
     id: z.uuid(),
     slug: slug(),
     type: QuestionType,
-    roles: z.array(TargetRole),
-    levels: z.array(ExperienceLevel),
+    roles: z.array(Slug),
+    levels: z.array(Slug),
     difficulty: z.int().min(DIFFICULTY_RANGE.min).max(DIFFICULTY_RANGE.max),
     topic: Topic,
     rubric_slug: slug(),
@@ -435,8 +440,8 @@ export type CandidateModule = z.infer<typeof CandidateModule>;
 /** `GET /api/content/track?role&level` — the published track for a candidate's role and level. */
 export const CandidateTrackResponse = z.object({
   slug: slug(),
-  role: TargetRole,
-  level: ExperienceLevel,
+  role: Slug,
+  level: Slug,
   title: title(),
   summary: summary(),
   modules: z.array(CandidateModule),
@@ -476,8 +481,8 @@ export type CandidatePracticeResponse = z.infer<typeof CandidatePracticeResponse
 
 /** Query for `GET /api/content/track`; both fall back to the candidate's own profile. */
 export const CandidateTrackQuery = z.object({
-  role: TargetRole.optional(),
-  level: ExperienceLevel.optional(),
+  role: Slug.optional(),
+  level: Slug.optional(),
 });
 export type CandidateTrackQuery = z.infer<typeof CandidateTrackQuery>;
 

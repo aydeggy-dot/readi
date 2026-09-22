@@ -2,6 +2,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { EMBEDDING_DIMENSIONS } from "@readi/shared-types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { type CataloguePair, removeCataloguePair, seedCataloguePair } from "./content-fixtures";
 import { createTestApp } from "./helpers";
 
 /**
@@ -14,6 +15,7 @@ describe("content schema", () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
   const created: string[] = [];
+  const pairs: CataloguePair[] = [];
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -22,6 +24,8 @@ describe("content schema", () => {
 
   afterAll(async () => {
     if (created.length > 0) await prisma.track.deleteMany({ where: { id: { in: created } } });
+    // After the tracks: a role cannot be deleted while one still points at it.
+    for (const pair of pairs) await removeCataloguePair(prisma, pair);
     await app.close();
   });
 
@@ -59,9 +63,13 @@ describe("content schema", () => {
   });
 
   it("allows only one published track per role and level", async () => {
+    // Its own catalogue pair, so this test cannot collide with another spec publishing a track —
+    // and so the index is exercised on the columns it now covers (`role_id`, `level_id`).
+    const pair = await seedCataloguePair(prisma);
+    pairs.push(pair);
     const base = {
-      role: "qa" as const,
-      level: "intern_junior" as const,
+      roleId: pair.roleId,
+      levelId: pair.levelId,
       title: "QA, intern",
       summary: null,
     };

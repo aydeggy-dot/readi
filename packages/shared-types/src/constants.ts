@@ -7,12 +7,6 @@ export const ROLES = ["candidate", "content_expert", "admin"] as const;
 /** How the account was created (spec §6.1 `User.signup_method`). */
 export const SIGNUP_METHODS = ["email", "google", "phone"] as const;
 
-/** Target roles at MVP (spec §3). */
-export const TARGET_ROLES = ["frontend", "backend", "qa"] as const;
-
-/** Experience levels at MVP (spec §3). */
-export const EXPERIENCE_LEVELS = ["intern_junior", "mid"] as const;
-
 /** Target company types (spec §4.1). */
 export const TARGET_COMPANY_TYPES = [
   "local_startup",
@@ -208,6 +202,14 @@ export const CONTENT_LIMITS = {
   pageSize: { default: 20, max: 100 },
   /** Keyset cursors are base64url of `{updated_at, id}`; this leaves room for both. */
   cursorMaxLength: 200,
+  /**
+   * How many catalogue roles and levels one question may be offered to (ADR-0015). These used to
+   * be `.max(3)` and `.max(2)` — which were not limits at all, but the cardinalities of the two
+   * enums. With roles as content there is no cardinality to borrow, so these are what they say:
+   * a question serving seven roles is a question that has stopped being about any of them.
+   */
+  questionRoles: 6,
+  questionLevels: 4,
 } as const;
 
 /**

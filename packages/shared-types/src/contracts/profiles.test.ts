@@ -4,7 +4,7 @@ import { UpdateProfileRequest } from "./profiles.js";
 const valid = {
   name: "Ada",
   target_role: "frontend",
-  level: "intern_junior",
+  level: "intern-junior",
   years_experience: 1,
   stack: ["React", "TypeScript"],
   target_company_type: "remote_foreign",
@@ -22,8 +22,16 @@ describe("profile contracts", () => {
     expect(UpdateProfileRequest.safeParse({ ...valid, target_date: null }).success).toBe(true);
   });
 
+  /*
+   * `target_role` and `level` are slugs now, not enum values (ADR-0015): whether `devops` exists
+   * is a fact about the database, so the schema checks the **shape** and the service checks
+   * existence — `profiles.service.ts` answers an unknown slug with a field error, and
+   * `onboarding.int.spec.ts` is where that is tested.
+   */
   it.each([
-    ["an unknown role", { target_role: "devops" }],
+    ["a role slug with an underscore", { target_role: "full_stack" }],
+    ["a role slug with spaces", { target_role: "Full Stack" }],
+    ["an empty role slug", { target_role: "" }],
     ["a blank name", { name: "   " }],
     ["negative experience", { years_experience: -1 }],
     ["fractional experience", { years_experience: 1.5 }],

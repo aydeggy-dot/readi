@@ -9,7 +9,7 @@ status: draft
 questions:
   - slug: js-async-ordering
     roles: [frontend]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: technical
     topic: javascript-fundamentals
     subtopic: event loop
@@ -39,7 +39,7 @@ questions:
 
   - slug: fetch-failure-states
     roles: [frontend]
-    levels: [intern_junior]
+    levels: [intern-junior]
     type: technical
     topic: web-networking
     subtopic: error handling
@@ -63,7 +63,7 @@ questions:
 
   - slug: react-state-placement
     roles: [frontend]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: technical
     topic: react-state
     subtopic: lifting state
@@ -86,7 +86,7 @@ questions:
 
   - slug: react-unnecessary-effect
     roles: [frontend]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: technical
     topic: react-state
     subtopic: effects
@@ -121,7 +121,7 @@ questions:
 
   - slug: css-overflow-at-360
     roles: [frontend]
-    levels: [intern_junior]
+    levels: [intern-junior]
     type: technical
     topic: css-layout
     subtopic: responsive debugging
@@ -146,7 +146,7 @@ questions:
 
   - slug: slow-page-on-3g
     roles: [frontend]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: scenario
     topic: browser-rendering
     subtopic: performance investigation
@@ -171,7 +171,7 @@ questions:
 
   - slug: stuck-and-asked-for-help
     roles: [frontend, backend, qa]
-    levels: [intern_junior]
+    levels: [intern-junior]
     type: behavioral
     topic: collaboration
     subtopic: asking for help
@@ -195,7 +195,7 @@ questions:
 
   - slug: feedback-on-your-code
     roles: [frontend, backend, qa]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: behavioral
     topic: collaboration
     subtopic: code review

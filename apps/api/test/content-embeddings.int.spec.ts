@@ -209,7 +209,13 @@ describe("question embeddings", () => {
 
   it("re-embeds a published question when its wording changes", async () => {
     const published = await publishQuestion(`First wording. ${short()}`);
-    const question = await prisma.question.findUniqueOrThrow({ where: { id: published.id } });
+    const question = await prisma.question.findUniqueOrThrow({
+      where: { id: published.id },
+      include: {
+        roles: { include: { role: { select: { slug: true } } } },
+        levels: { include: { level: { select: { slug: true } } } },
+      },
+    });
     const rewritten = `Second wording, entirely different. ${short()}`;
 
     const response = await http()
@@ -217,8 +223,8 @@ describe("question embeddings", () => {
       .set({ cookie: admin })
       .send({
         slug: question.slug,
-        roles: question.roles,
-        levels: question.levels,
+        roles: question.roles.map((link) => link.role.slug),
+        levels: question.levels.map((link) => link.level.slug),
         type: question.type,
         topic_id: question.topicId,
         subtopic: question.subtopic,

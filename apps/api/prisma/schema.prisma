@@ -120,21 +120,6 @@ model Verification {
 // ---------------------------------------------------------------------------------------------
 // Profile and consent (spec §4.1, §6.1). Personal data: deleted with the user (cascade).
 
-enum TargetRole {
-  frontend
-  backend
-  qa
-
-  @@map("target_role")
-}
-
-enum ExperienceLevel {
-  intern_junior
-  mid
-
-  @@map("experience_level")
-}
-
 enum TargetCompanyType {
   local_startup
   enterprise_bank_telco
@@ -147,8 +132,14 @@ enum TargetCompanyType {
 model Profile {
   userId                String            @id @map("user_id") @db.Uuid
   user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetRole            TargetRole        @map("target_role")
-  level                 ExperienceLevel
+  /// Which role and level this candidate is preparing for, from the catalogue (ADR-0015). Plain
+  /// foreign keys, not enums: adding a role is a content task. `onDelete` is left at the default
+  /// (restrict) on purpose — a role a candidate is preparing for cannot be deleted out from under
+  /// them, and the CMS retires content rather than deleting it.
+  targetRoleId          String            @map("target_role_id") @db.Uuid
+  targetRole            CareerRole        @relation(fields: [targetRoleId], references: [id])
+  targetLevelId         String            @map("target_level_id") @db.Uuid
+  targetLevel           CareerLevel       @relation(fields: [targetLevelId], references: [id])
   yearsExperience       Int               @map("years_experience")
   stack                 String[]
   targetCompanyType     TargetCompanyType @map("target_company_type")
@@ -168,6 +159,8 @@ model Profile {
   createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([targetRoleId])
+  @@index([targetLevelId])
   @@map("profiles")
 }
 
@@ -348,8 +341,8 @@ enum ContentEntityType {
 // candidate can be interviewed for. Publishable content with the same workflow, history, audit
 // trail and review state as a question — so adding a role is a content task, not a migration.
 //
-// `TargetRole` and `ExperienceLevel` are still the enums tracks, questions and profiles use; they
-// are replaced by these tables in M2.5 phase 3, which is why nothing references them yet.
+// As of M2.5 phase 3 these tables *are* the closed set: the `target_role` and `experience_level`
+// enums are gone, and tracks, questions and profiles carry foreign keys into the catalogue.
 
 /// One role a candidate prepares for (frontend, backend, QA…). `slug` is what the wire carries.
 model CareerRole {
@@ -376,6 +369,10 @@ model CareerRole {
 
   levels CareerRoleLevel[]
   stacks CareerRoleStack[]
+
+  tracks    Track[]
+  questions QuestionCareerRole[]
+  profiles  Profile[]
 
   @@index([status])
   /// The CMS list order (`updated_at desc, id desc`).
@@ -405,6 +402,10 @@ model CareerLevel {
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   roles CareerRoleLevel[]
+
+  tracks    Track[]
+  questions QuestionCareerLevel[]
+  profiles  Profile[]
 
   @@index([status])
   @@index([updatedAt, id])
@@ -489,8 +490,12 @@ model Topic {
 model Track {
   id                String          @id @default(uuid()) @db.Uuid
   slug              String          @unique
-  role              TargetRole
-  level             ExperienceLevel
+  /// The catalogue role and level this track is for (ADR-0015). A track is still keyed by the
+  /// pair — the stack dimension is on questions and on the profile, not here (M2.5 decision 4).
+  roleId            String          @map("role_id") @db.Uuid
+  role              CareerRole      @relation(fields: [roleId], references: [id])
+  levelId           String          @map("level_id") @db.Uuid
+  level             CareerLevel     @relation(fields: [levelId], references: [id])
   title             String
   summary           String?
   status            ContentStatus   @default(draft)
@@ -514,7 +519,7 @@ model Track {
   modules Module[]
   topics  TrackTopic[]
 
-  @@index([role, level, status])
+  @@index([roleId, levelId, status])
   /// The CMS list order (`updated_at desc, id desc`); without it every page sorts the table.
   @@index([updatedAt, id])
   @@map("tracks")
@@ -646,8 +651,6 @@ model RubricCriterion {
 model Question {
   id                String            @id @default(uuid()) @db.Uuid
   slug              String            @unique
-  roles             TargetRole[]
-  levels            ExperienceLevel[]
   type              QuestionType
   topicId           String            @map("topic_id") @db.Uuid
   topic             Topic             @relation(fields: [topicId], references: [id])
@@ -686,12 +689,42 @@ model Question {
 
   flags ContentFlag[]
 
+  /// Which roles and levels this question is offered to (ADR-0015). Many-to-many, so one question
+  /// can serve frontend and full-stack without being written twice — which is the whole reason a
+  /// full-stack track costs almost no new content.
+  roles  QuestionCareerRole[]
+  levels QuestionCareerLevel[]
+
   @@index([status])
   @@index([topicId])
   @@index([type, difficulty])
   /// The CMS list order (`updated_at desc, id desc`).
   @@index([updatedAt, id])
   @@map("questions")
+}
+
+/// Which roles a question is asked for. No row for a role means the question is not offered to it.
+model QuestionCareerRole {
+  questionId String     @map("question_id") @db.Uuid
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  roleId     String     @map("role_id") @db.Uuid
+  role       CareerRole @relation(fields: [roleId], references: [id])
+
+  @@id([questionId, roleId])
+  @@index([roleId])
+  @@map("question_career_roles")
+}
+
+/// Which levels a question is asked at. The same shape, and read the same way.
+model QuestionCareerLevel {
+  questionId String      @map("question_id") @db.Uuid
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  levelId    String      @map("level_id") @db.Uuid
+  level      CareerLevel @relation(fields: [levelId], references: [id])
+
+  @@id([questionId, levelId])
+  @@index([levelId])
+  @@map("question_career_levels")
 }
 
 /// A candidate's report about a question (spec §6.1). Personal to them: it cascades on deletion.

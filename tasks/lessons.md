@@ -178,3 +178,59 @@ uncoded 500 for a review. The database was never corrupted; the error was just a
 **The rule:** if a check decides whether a write is legal, put it in the write's `WHERE` and treat
 `count === 0` as the conflict. `account-deletion.service.ts` already did this — the pattern was in
 the codebase and I did not go looking for it.
+
+## A dropped column takes its indexes with it, and Prisma proposes nothing (M2.5 phase 3, 2026-09-22)
+
+CLAUDE.md already warned that Prisma proposes `DROP INDEX questions_embedding_hnsw` in migrations
+that never touch `questions`, because it cannot see an index over an `Unsupported` column. The
+catalogue switch found the other half of that rule, and it is the more dangerous half.
+
+`tracks_one_published_per_role_level` is a **partial** unique index, which Prisma also cannot see.
+It was never proposed for dropping — it did not need to be. The generated migration contained
+`ALTER TABLE "tracks" DROP COLUMN "role", DROP COLUMN "level"`, and Postgres drops every index that
+depends on a dropped column. "At most one published track per role and level" would have
+disappeared with no `DROP INDEX` line to delete, and nothing would have failed until two published
+tracks for the same audience collided in the candidate API — months later, in data.
+
+**The rule:** reading a migration for lines that _undo_ hand-written SQL is not enough. Read it for
+lines that make hand-written SQL impossible. For every `DROP COLUMN`, ask what was indexed on that
+column; for every dropped table, the same. `content-schema.int.spec.ts` already asserts both indexes
+exist, and it is the test that would have caught this — it earned its place twice now.
+
+## Prisma's generated migration is a data-loss plan when a column changes type (M2.5 phase 3, 2026-09-22)
+
+`prisma migrate dev --create-only` refused to run at all: "Added the required column `target_role_id`
+to the `profiles` table without a default value. There are 2 rows in this table." The SQL it _would_
+have written drops `target_role` and adds `target_role_id NOT NULL` — the enum values simply gone.
+
+That refusal is the useful part. It means the generated file is a starting point for a conversion,
+never the conversion. The shape that worked: add nullable → backfill → **verify and raise, naming
+what did not map** → `SET NOT NULL` → only then drop. Each migration runs in one transaction, so the
+`RAISE EXCEPTION` rolls the whole thing back and the database is untouched.
+
+Proving the failure path mattered as much as proving the happy one: a copy of the dev database with
+one catalogue row deleted aborted with `no career_roles/career_levels row for tracks.level=intern_junior`
+and left `tracks.role` and both enums exactly as they were. Later the same guard fired for real on
+`readi_e2e`, which had tracks and profiles from old runs but an empty catalogue — it refused rather
+than inventing rows, which is precisely what it is for.
+
+**The rule:** test a converting migration against a **copy of a database with real rows**, and test
+that it refuses. The empty test database proves nothing about a conversion, because there is nothing
+to convert.
+
+## A set that travels as an array must be sorted on both sides (M2.5 phase 3, 2026-09-22)
+
+`questionContent` reads a question's roles back from the join tables sorted by slug. The seed file
+lists them in whatever order a person typed. `sameContent(questionContent(current), input)` compared
+`["backend","frontend","qa"]` with `["frontend","backend","qa"]`, found a difference, and wrote a
+version snapshot — so `pnpm db:seed` twice was no longer idempotent, for exactly the two questions
+whose roles were not already in alphabetical order.
+
+`content-seed.int.spec.ts` caught it by importing the real corpus twice and asserting `updated: 0`.
+That test exists because idempotency is the importer's whole promise, and it is worth more than the
+unit tests around it: it failed on real content, in the one shape a fixture would never have had.
+
+**The rule:** when a set is stored one way and written another, canonicalise **both** sides at the
+comparison, not just the one you happen to control. And note which collections are genuinely ordered
+— a role's stacks _are_ their order, because that is the order a candidate sees in the picker — so
+the fix is per-field judgement, not a blanket sort.

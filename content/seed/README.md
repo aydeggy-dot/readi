@@ -18,10 +18,11 @@ backend/, qa/          the same three files, as skeletons
 review/                generated review pages — do not edit by hand
 ```
 
-Files refer to each other **by slug**: a question names its `topic` and its `rubric`, a track names
-its `topics`, a role names its `levels` and `stacks`. The importer resolves those to database ids,
-and fails with the file name if a slug is not defined anywhere. The catalogue is imported first,
-because a role cannot name a level that does not exist yet.
+Files refer to each other **by slug**: a question names its `topic`, its `rubric`, its `roles` and
+its `levels`, a track names its `role`, its `level` and its `topics`, and a role names its `levels`
+and `stacks`. The importer resolves those to database ids, and fails with the file name if a slug
+is not defined anywhere. The catalogue is imported first, because a role cannot name a level that
+does not exist yet.
 
 **Roles, levels and stacks are content now** (ADR-0015), not enums: adding a role is an entry in
 `roles.yaml` — or, just as legitimately, a form in `/admin/content` — and never a migration. The

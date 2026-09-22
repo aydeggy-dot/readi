@@ -5,7 +5,7 @@ status: draft
 questions:
   - slug: test-design-signup-form
     roles: [qa]
-    levels: [intern_junior]
+    levels: [intern-junior]
     type: test_design
     topic: test-design
     subtopic: boundary and state coverage
@@ -28,7 +28,7 @@ questions:
 
   - slug: intermittent-failure-triage
     roles: [qa]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: scenario
     topic: defect-reporting
     subtopic: intermittent defects
@@ -51,7 +51,7 @@ questions:
 
   - slug: pushing-back-on-a-release
     roles: [qa]
-    levels: [intern_junior, mid]
+    levels: [intern-junior, mid]
     type: behavioral
     topic: collaboration
     subtopic: raising concerns

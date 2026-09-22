@@ -19,6 +19,7 @@ const MESSAGES: Record<string, () => string> = {
   content_edit_needs_admin: () => t("admin.content.errors.editNeedsAdmin"),
   // The catalogue (ADR-0015).
   career_role_has_no_published_level: () => t("admin.content.errors.roleHasNoPublishedLevel"),
+  role_in_use: () => t("admin.content.errors.roleInUse"),
   level_in_use: () => t("admin.content.errors.levelInUse"),
   stack_in_use: () => t("admin.content.errors.stackInUse"),
   career_role_not_found: () => t("admin.content.errors.notFound"),

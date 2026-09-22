@@ -24,7 +24,6 @@ import {
   type ContentVersionsResponse,
   type DuplicateCheckRequest,
   type DuplicateMatch,
-  type ExperienceLevel,
   type Lesson,
   type LessonInput,
   type LessonListResponse,
@@ -40,7 +39,6 @@ import {
   type Stack,
   type StackInput,
   type StackListResponse,
-  type TargetRole,
   type Topic,
   type TopicInput,
   type TopicsResponse,
@@ -79,7 +77,9 @@ import {
   type CareerRoleRow,
   type StackRow,
   questionContent,
+  canonicalQuestionInput,
   questionInclude,
+  questionLinkInclude,
   rubricContent,
   rubricInclude,
   sortTopics,
@@ -102,6 +102,7 @@ import {
   type QuestionRow,
   type RubricRow,
   type TrackRow,
+  trackCatalogueInclude,
   trackInclude,
 } from "./content.mappers";
 
@@ -502,12 +503,12 @@ export class ContentService {
         AND: [
           cursorWhere(query.cursor) ?? {},
           query.status ? { status: query.status } : {},
-          query.role ? { role: query.role } : {},
-          query.level ? { level: query.level } : {},
+          query.role ? { role: { slug: query.role } } : {},
+          query.level ? { level: { slug: query.level } } : {},
           this.trackSearch(query.q),
         ],
       },
-      include: { _count: { select: { modules: true } } },
+      include: { ...trackCatalogueInclude, _count: { select: { modules: true } } },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: query.limit + 1,
     });
@@ -520,13 +521,14 @@ export class ContentService {
   }
 
   async createTrack(actor: Actor, input: TrackInput): Promise<Track> {
+    const [roleId, levelId] = await this.resolveTrackPair(input);
     const track = await this.prisma
       .$transaction(async (tx) => {
         const row = await tx.track.create({
           data: {
             slug: input.slug,
-            role: input.role,
-            level: input.level,
+            roleId,
+            levelId,
             title: input.title,
             summary: input.summary,
             createdByUserId: actor.id,
@@ -557,6 +559,7 @@ export class ContentService {
     if (sameContent(trackInputOf(current), { ...input, topics: sortTopics(input.topics) })) {
       return { entity: toTrack(current), changed: false };
     }
+    const [roleId, levelId] = await this.resolveTrackPair(input);
     const updated = await this.prisma
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "track", current, trackContent(current), context);
@@ -565,8 +568,8 @@ export class ContentService {
           where: { id },
           data: {
             slug: input.slug,
-            role: input.role,
-            level: input.level,
+            roleId,
+            levelId,
             title: input.title,
             summary: input.summary,
             version: { increment: 1 },
@@ -844,12 +847,12 @@ export class ContentService {
           query.status ? { status: query.status } : {},
           query.type ? { type: query.type } : {},
           query.topic_id ? { topicId: query.topic_id } : {},
-          query.role ? { roles: { has: query.role } } : {},
-          query.level ? { levels: { has: query.level } } : {},
+          query.role ? { roles: { some: { role: { slug: query.role } } } } : {},
+          query.level ? { levels: { some: { level: { slug: query.level } } } } : {},
           this.questionSearch(query.q),
         ],
       },
-      include: { topic: true, rubric: { select: { slug: true } } },
+      include: { ...questionLinkInclude, topic: true, rubric: { select: { slug: true } } },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: query.limit + 1,
     });
@@ -862,10 +865,16 @@ export class ContentService {
   }
 
   async createQuestion(actor: Actor, input: QuestionInput): Promise<Question> {
+    const links = await this.questionLinks(input);
     const question = await this.prisma
       .$transaction(async (tx) => {
         const row = await tx.question.create({
-          data: { ...this.questionRow(input), createdByUserId: actor.id, ...authorship(actor) },
+          data: {
+            ...this.questionRow(input),
+            ...links,
+            createdByUserId: actor.id,
+            ...authorship(actor),
+          },
           include: questionInclude,
         });
         await this.recordCreation(actor, "question", row.id, row.status, tx);
@@ -882,16 +891,22 @@ export class ContentService {
   ): Promise<{ entity: Question; changed: boolean }> {
     const current = await this.findQuestionOrFail(id);
     this.assertMayEdit(context.actor, current.status);
-    if (sameContent(questionContent(current), input)) {
+    if (sameContent(questionContent(current), canonicalQuestionInput(input))) {
       return { entity: toQuestion(current), changed: false };
     }
+    const links = await this.questionLinks(input);
     const updated = await this.prisma
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "question", current, questionContent(current), context);
+        // The links are a set, and a set is replaced rather than merged: deleting first is what
+        // makes removing a role from a question possible at all.
+        await tx.questionCareerRole.deleteMany({ where: { questionId: id } });
+        await tx.questionCareerLevel.deleteMany({ where: { questionId: id } });
         const row = await tx.question.update({
           where: { id },
           data: {
             ...this.questionRow(input),
+            ...links,
             version: { increment: 1 },
             ...authorship(context.actor),
           },
@@ -1297,14 +1312,23 @@ export class ContentService {
     current: TransitionTarget,
   ): Promise<void> {
     if (entity === "career-levels") {
-      const roles = await this.prisma.careerRoleLevel.count({
-        where: { levelId: current.id, role: { status: "published" } },
-      });
-      if (roles > 0) {
+      // Same rule as a role, and for the same reason: a published track or question offered at
+      // this level, or a candidate preparing at it, is content that would silently lose its rung.
+      const [roles, tracks, questions, profiles] = await Promise.all([
+        this.prisma.careerRoleLevel.count({
+          where: { levelId: current.id, role: { status: "published" } },
+        }),
+        this.prisma.track.count({ where: { levelId: current.id, status: "published" } }),
+        this.prisma.question.count({
+          where: { status: "published", levels: { some: { levelId: current.id } } },
+        }),
+        this.prisma.profile.count({ where: { targetLevelId: current.id } }),
+      ]);
+      if (roles > 0 || tracks > 0 || questions > 0 || profiles > 0) {
         throw new ApiError(
           HttpStatus.CONFLICT,
           "level_in_use",
-          "a published role still offers this level",
+          "a published role, published content or a candidate's profile still uses this level",
         );
       }
     }
@@ -1321,11 +1345,30 @@ export class ContentService {
       }
     }
     /*
-     * `career-roles` has no check here yet, and that is not an oversight: tracks, questions and
-     * profiles still carry the `target_role` enum and move onto the catalogue in M2.5 phase 3,
-     * which is where `role_in_use` belongs. Today, retiring a role withdraws it from the candidate
-     * catalogue and nothing else points at it.
+     * A role is in use the moment published content is offered under it, or a candidate is
+     * preparing for it. Retiring it would take the track out of the candidate API and leave every
+     * profile pointing at a role that is no longer offered — the rubric failure from the M2
+     * handover, on the row that would do the most damage.
+     *
+     * Draft content is deliberately not a reason to refuse: content is written against a role
+     * before either goes live, and a half-built role must stay withdrawable.
      */
+    if (entity === "career-roles") {
+      const [tracks, questions, profiles] = await Promise.all([
+        this.prisma.track.count({ where: { roleId: current.id, status: "published" } }),
+        this.prisma.question.count({
+          where: { status: "published", roles: { some: { roleId: current.id } } },
+        }),
+        this.prisma.profile.count({ where: { targetRoleId: current.id } }),
+      ]);
+      if (tracks > 0 || questions > 0 || profiles > 0) {
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          "role_in_use",
+          "published content or a candidate's profile still uses this role",
+        );
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -1375,10 +1418,11 @@ export class ContentService {
     user: AuthenticatedUser,
     query: CandidateTrackQuery,
   ): Promise<CandidateTrackResponse> {
-    const { role, level } = await this.audience(user.id, query);
+    const { roleId, levelId } = await this.audience(user.id, query);
     const track = await this.prisma.track.findFirst({
-      where: { role, level, status: "published" },
+      where: { roleId, levelId, status: "published" },
       include: {
+        ...trackCatalogueInclude,
         topics: { orderBy: { topicId: "asc" } },
         modules: {
           orderBy: [{ position: "asc" }, { slug: "asc" }],
@@ -1409,14 +1453,14 @@ export class ContentService {
     user: AuthenticatedUser,
     query: CandidatePracticeQuery,
   ): Promise<CandidatePracticeResponse> {
-    const { role, level } = await this.audience(user.id, {});
+    const { roleId, levelId } = await this.audience(user.id, {});
     const questions = await this.prisma.question.findMany({
       where: {
         status: "published",
         // A question is only as published as its rubric: without one, M4 cannot score the answer.
         rubric: { status: "published" },
-        roles: { has: role },
-        levels: { has: level },
+        roles: { some: { roleId } },
+        levels: { some: { levelId } },
         ...(query.topic ? { topic: { slug: query.topic } } : {}),
       },
       include: { topic: true },
@@ -1440,27 +1484,117 @@ export class ContentService {
     return { roles: roles.map(toCandidateCareerRole) };
   }
 
-  /** Whose content to show: what was asked for, else what the candidate's profile says. */
+  /**
+   * Whose content to show: what was asked for, else what the candidate's profile says.
+   *
+   * The query carries slugs and the profile carries ids, and both end up as ids — this is the
+   * seam M3 grows a `stack` through, so the two sources are reconciled in one place rather than
+   * at each call site.
+   */
   private async audience(
     userId: string,
     query: CandidateTrackQuery,
-  ): Promise<{ role: TargetRole; level: ExperienceLevel }> {
-    if (query.role && query.level) return { role: query.role, level: query.level };
-    const profile = await this.prisma.profile.findUnique({ where: { userId } });
-    const role = query.role ?? profile?.targetRole;
-    const level = query.level ?? profile?.level;
-    if (!role || !level) {
+  ): Promise<{ roleId: string; levelId: string }> {
+    const asked = await Promise.all([
+      query.role ? this.resolveRole(query.role) : null,
+      query.level ? this.resolveLevel(query.level) : null,
+    ]);
+    let [roleId, levelId] = asked;
+    if (!roleId || !levelId) {
+      const profile = await this.prisma.profile.findUnique({
+        where: { userId },
+        select: { targetRoleId: true, targetLevelId: true },
+      });
+      roleId ??= profile?.targetRoleId ?? null;
+      levelId ??= profile?.targetLevelId ?? null;
+    }
+    if (!roleId || !levelId) {
       throw new ApiError(
         HttpStatus.BAD_REQUEST,
         "profile_required",
         "finish onboarding, or ask for a role and level",
       );
     }
-    return { role, level };
+    return { roleId, levelId };
   }
 
   // ---------------------------------------------------------------------------------------------
   // Shared internals.
+
+  /*
+   * Slugs on the wire, uuids in the database (ADR-0015). Everything that *writes* a role or level
+   * comes through here, so there is one place where "backend" becomes a row and one error when it
+   * is not one. Reads are different and deliberately so: a list filtered by an unknown slug is an
+   * empty list, not a failure, because a filter is a question and "none" is a valid answer.
+   *
+   * Unpublished is not the same as unknown. A draft role is a real row and the CMS must be able to
+   * tag content with it — that is how a role is built before it goes live. What a *candidate* may
+   * see is enforced where candidate queries are written, by `status: "published"`.
+   */
+  private async resolveRole(slug: string): Promise<string> {
+    const role = await this.prisma.careerRole.findUnique({ where: { slug }, select: { id: true } });
+    if (!role) throw this.noSuchCatalogueRow("role_not_found", "role", slug);
+    return role.id;
+  }
+
+  private async resolveLevel(slug: string): Promise<string> {
+    const level = await this.prisma.careerLevel.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!level) throw this.noSuchCatalogueRow("level_not_found", "level", slug);
+    return level.id;
+  }
+
+  /**
+   * Many slugs in one query, preserving the caller's order — the order a question lists its roles
+   * in is not content (the mapper reads them back sorted by slug), but resolving one-by-one would
+   * be six round trips for a question tagged with six roles.
+   */
+  private async resolveRoles(slugs: readonly string[]): Promise<string[]> {
+    this.assertDistinct(slugs, "roles", "a role may be listed only once");
+    const rows = await this.prisma.careerRole.findMany({
+      where: { slug: { in: [...slugs] } },
+      select: { id: true, slug: true },
+    });
+    return this.orderedIds(slugs, rows, "role_not_found", "role");
+  }
+
+  private async resolveLevels(slugs: readonly string[]): Promise<string[]> {
+    this.assertDistinct(slugs, "levels", "a level may be listed only once");
+    const rows = await this.prisma.careerLevel.findMany({
+      where: { slug: { in: [...slugs] } },
+      select: { id: true, slug: true },
+    });
+    return this.orderedIds(slugs, rows, "level_not_found", "level");
+  }
+
+  private orderedIds(
+    slugs: readonly string[],
+    rows: readonly { id: string; slug: string }[],
+    code: string,
+    noun: string,
+  ): string[] {
+    const bySlug = new Map(rows.map((row) => [row.slug, row.id]));
+    return slugs.map((slug) => {
+      const id = bySlug.get(slug);
+      if (!id) throw this.noSuchCatalogueRow(code, noun, slug);
+      return id;
+    });
+  }
+
+  private assertDistinct(slugs: readonly string[], field: string, message: string): void {
+    if (new Set(slugs).size !== slugs.length) throw fieldError(field, message);
+  }
+
+  /**
+   * 400, not 404: the request named something that does not exist, and the thing that does not
+   * exist is one field of it. `ApiError`'s code is what the CMS and the onboarding form turn into
+   * copy — they never show this message (ADR-0012).
+   */
+  private noSuchCatalogueRow(code: string, noun: string, slug: string): ApiError {
+    return new ApiError(HttpStatus.BAD_REQUEST, code, `no published or draft ${noun} "${slug}"`);
+  }
 
   private criteriaRows(input: RubricInput) {
     return input.criteria.map((criterion, position) => ({
@@ -1496,11 +1630,10 @@ export class ContentService {
     }));
   }
 
+  /** The question's own columns. Its roles and levels are join rows — see `questionLinks`. */
   private questionRow(input: QuestionInput) {
     return {
       slug: input.slug,
-      roles: input.roles,
-      levels: input.levels,
       type: input.type,
       topicId: input.topic_id,
       subtopic: input.subtopic,
@@ -1515,6 +1648,22 @@ export class ContentService {
   // Free-text search, without regard to case, over the two columns that identify each row. One
   // helper per entity rather than one built from column names: Prisma's where types are the check
   // that a column exists, and a string array throws that away.
+  private resolveTrackPair(input: TrackInput): Promise<[string, string]> {
+    return Promise.all([this.resolveRole(input.role), this.resolveLevel(input.level)]);
+  }
+
+  /** A question's catalogue links, resolved from slugs, ready to `create` in either direction. */
+  private async questionLinks(input: QuestionInput) {
+    const [roleIds, levelIds] = await Promise.all([
+      this.resolveRoles(input.roles),
+      this.resolveLevels(input.levels),
+    ]);
+    return {
+      roles: { create: roleIds.map((roleId) => ({ roleId })) },
+      levels: { create: levelIds.map((levelId) => ({ levelId })) },
+    };
+  }
+
   private trackSearch(q: string | undefined): Prisma.TrackWhereInput {
     return q ? { OR: [{ slug: contains(q) }, { title: contains(q) }] } : {};
   }

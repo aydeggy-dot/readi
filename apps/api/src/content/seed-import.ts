@@ -15,6 +15,7 @@ import type {
   TopicInput,
 } from "@readi/shared-types";
 import { PrismaService } from "../prisma/prisma.service";
+import { canonicalQuestionInput } from "./content.mappers";
 import { sameContent } from "./content-diff";
 import { type Actor, ContentService, seedActor } from "./content.service";
 import type { LoadedSeedFile } from "./seed-loader";
@@ -129,6 +130,7 @@ export class SeedImporter {
     topics: new Set<string>(),
     rubrics: new Set<string>(),
     career_levels: new Set<string>(),
+    career_roles: new Set<string>(),
     stacks: new Set<string>(),
   };
 
@@ -215,6 +217,7 @@ export class SeedImporter {
       for (const rubric of data.rubrics ?? []) this.defined.rubrics.add(rubric.slug);
       for (const level of data.career_levels ?? []) this.defined.career_levels.add(level.slug);
       for (const stack of data.stacks ?? []) this.defined.stacks.add(stack.slug);
+      for (const role of data.career_roles ?? []) this.defined.career_roles.add(role.slug);
     }
     // The catalogue first: a role names the levels and stacks it offers (ADR-0015).
     for (const { data } of files)
@@ -420,7 +423,19 @@ export class SeedImporter {
   private async importQuestions(file: string, data: SeedFile, report: SeedReport): Promise<void> {
     for (const question of data.questions ?? []) {
       const input = await this.questionInput(file, question);
-      const existing = await this.prisma.question.findUnique({ where: { slug: question.slug } });
+      const existing = await this.prisma.question.findUnique({
+        where: { slug: question.slug },
+        include: {
+          roles: {
+            orderBy: { role: { slug: "asc" } },
+            include: { role: { select: { slug: true } } },
+          },
+          levels: {
+            orderBy: { level: { slug: "asc" } },
+            include: { level: { select: { slug: true } } },
+          },
+        },
+      });
       if (!existing) {
         if (!this.options.dryRun) await this.content.createQuestion(this.actor, input);
         report.questions.created += 1;
@@ -428,8 +443,8 @@ export class SeedImporter {
       }
       const current: QuestionInput = {
         slug: existing.slug,
-        roles: existing.roles,
-        levels: existing.levels,
+        roles: existing.roles.map((link) => link.role.slug),
+        levels: existing.levels.map((link) => link.level.slug),
         type: existing.type,
         topic_id: existing.topicId,
         subtopic: existing.subtopic,
@@ -443,7 +458,11 @@ export class SeedImporter {
         report.questions,
         question.slug,
         existing,
-        () => Promise.resolve(sameContent(current, input)),
+        // Roles and levels are sets: a file listing them in a different order is not a change.
+        () =>
+          Promise.resolve(
+            sameContent(canonicalQuestionInput(current), canonicalQuestionInput(input)),
+          ),
         () =>
           this.content.updateQuestion(existing.id, input, { actor: this.actor, note: this.note }),
         () =>
@@ -573,8 +592,8 @@ export class SeedImporter {
   ): Promise<string | null> {
     const input = {
       slug: track.slug,
-      role: track.role,
-      level: track.level,
+      role: await this.catalogueSlug(file, "career_roles", track.role, `track ${track.slug}`),
+      level: await this.catalogueSlug(file, "career_levels", track.level, `track ${track.slug}`),
       title: track.title,
       summary: track.summary,
       topics: await Promise.all(
@@ -586,7 +605,11 @@ export class SeedImporter {
     };
     const existing = await this.prisma.track.findUnique({
       where: { slug: track.slug },
-      include: { topics: true },
+      include: {
+        topics: true,
+        role: { select: { slug: true } },
+        level: { select: { slug: true } },
+      },
     });
     if (!existing) {
       report.tracks.created += 1;
@@ -595,8 +618,8 @@ export class SeedImporter {
     }
     const current = {
       slug: existing.slug,
-      role: existing.role,
-      level: existing.level,
+      role: existing.role.slug,
+      level: existing.level.slug,
       title: existing.title,
       summary: existing.summary,
       topics: existing.topics.map((link) => ({ topic_id: link.topicId, is_core: link.isCore })),
@@ -631,8 +654,16 @@ export class SeedImporter {
     }
     return {
       slug: question.slug,
-      roles: question.roles,
-      levels: question.levels,
+      roles: await Promise.all(
+        question.roles.map((slug) =>
+          this.catalogueSlug(file, "career_roles", slug, `question ${question.slug}`),
+        ),
+      ),
+      levels: await Promise.all(
+        question.levels.map((slug) =>
+          this.catalogueSlug(file, "career_levels", slug, `question ${question.slug}`),
+        ),
+      ),
       type: question.type,
       topic_id: await this.topicId(file, question.topic),
       subtopic: question.subtopic,
@@ -683,6 +714,30 @@ export class SeedImporter {
       );
     }
     return id;
+  }
+
+  /**
+   * Checks that a role or level slug is real and hands it straight back: unlike topics and
+   * rubrics, the catalogue is passed to `ContentService` **by slug**, which resolves it itself
+   * (ADR-0015). What is gained here is the error — `SeedReferenceError` names the file and the
+   * question, where the service could only say `role_not_found` about a request it did not make.
+   */
+  private async catalogueSlug(
+    file: string,
+    kind: "career_roles" | "career_levels",
+    slug: string,
+    usedBy: string,
+  ): Promise<string> {
+    const found =
+      kind === "career_roles"
+        ? await this.prisma.careerRole.findUnique({ where: { slug }, select: { id: true } })
+        : await this.prisma.careerLevel.findUnique({ where: { slug }, select: { id: true } });
+    if (found || this.defined[kind].has(slug)) return slug;
+    const noun = kind === "career_roles" ? "role" : "level";
+    throw new SeedReferenceError(
+      file,
+      `${usedBy} names ${noun} ${slug}, which no seed file defines`,
+    );
   }
 
   private async topicId(file: string, slug: string): Promise<string> {

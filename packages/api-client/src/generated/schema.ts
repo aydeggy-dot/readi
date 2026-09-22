@@ -696,15 +696,11 @@ export interface components {
             completed_at: string | null;
         };
         /** @enum {string} */
-        TargetRole_Output: "frontend" | "backend" | "qa";
-        /** @enum {string} */
-        ExperienceLevel_Output: "intern_junior" | "mid";
-        /** @enum {string} */
         TargetCompanyType_Output: "local_startup" | "enterprise_bank_telco" | "remote_foreign" | "big_tech";
         ProfileResponseDto_Output: {
             name: string;
-            target_role: components["schemas"]["TargetRole_Output"];
-            level: components["schemas"]["ExperienceLevel_Output"];
+            target_role: string;
+            level: string;
             years_experience: number;
             stack: string[];
             target_company_type: components["schemas"]["TargetCompanyType_Output"];
@@ -714,15 +710,11 @@ export interface components {
             updated_at: string;
         };
         /** @enum {string} */
-        TargetRole: "frontend" | "backend" | "qa";
-        /** @enum {string} */
-        ExperienceLevel: "intern_junior" | "mid";
-        /** @enum {string} */
         TargetCompanyType: "local_startup" | "enterprise_bank_telco" | "remote_foreign" | "big_tech";
         UpdateProfileRequestDto: {
             name: string;
-            target_role: components["schemas"]["TargetRole"];
-            level: components["schemas"]["ExperienceLevel"];
+            target_role: string;
+            level: string;
             years_experience: number;
             stack: string[];
             target_company_type: components["schemas"]["TargetCompanyType"];
@@ -868,8 +860,8 @@ export interface components {
         };
         CandidateTrackResponseDto_Output: {
             slug: string;
-            role: components["schemas"]["TargetRole_Output"];
-            level: components["schemas"]["ExperienceLevel_Output"];
+            role: string;
+            level: string;
             title: string;
             summary: string | null;
             modules: components["schemas"]["CandidateModule_Output"][];
@@ -1075,8 +1067,8 @@ export interface components {
             /** Format: uuid */
             id: string;
             slug: string;
-            role: components["schemas"]["TargetRole_Output"];
-            level: components["schemas"]["ExperienceLevel_Output"];
+            role: string;
+            level: string;
             title: string;
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
@@ -1099,8 +1091,8 @@ export interface components {
         };
         TrackInputDto: {
             slug: string;
-            role: components["schemas"]["TargetRole"];
-            level: components["schemas"]["ExperienceLevel"];
+            role: string;
+            level: string;
             title: string;
             summary: string | null;
             topics: components["schemas"]["TrackTopicInput"][];
@@ -1114,8 +1106,8 @@ export interface components {
             /** Format: uuid */
             id: string;
             slug: string;
-            role: components["schemas"]["TargetRole_Output"];
-            level: components["schemas"]["ExperienceLevel_Output"];
+            role: string;
+            level: string;
             title: string;
             summary: string | null;
             status: components["schemas"]["ContentStatus_Output"];
@@ -1322,8 +1314,8 @@ export interface components {
             id: string;
             slug: string;
             type: components["schemas"]["QuestionType_Output"];
-            roles: components["schemas"]["TargetRole_Output"][];
-            levels: components["schemas"]["ExperienceLevel_Output"][];
+            roles: string[];
+            levels: string[];
             difficulty: number;
             topic: {
                 slug: string;
@@ -1365,8 +1357,8 @@ export interface components {
         };
         QuestionInputDto: {
             slug: string;
-            roles: components["schemas"]["TargetRole"][];
-            levels: components["schemas"]["ExperienceLevel"][];
+            roles: string[];
+            levels: string[];
             type: components["schemas"]["QuestionType"];
             /** Format: uuid */
             topic_id: string;
@@ -1380,8 +1372,8 @@ export interface components {
         };
         QuestionDto_Output: {
             slug: string;
-            roles: components["schemas"]["TargetRole_Output"][];
-            levels: components["schemas"]["ExperienceLevel_Output"][];
+            roles: string[];
+            levels: string[];
             type: components["schemas"]["QuestionType_Output"];
             /** Format: uuid */
             topic_id: string;
@@ -1512,8 +1504,8 @@ export interface components {
                 updated_at: string;
             };
             profile: {
-                target_role: components["schemas"]["TargetRole_Output"];
-                level: components["schemas"]["ExperienceLevel_Output"];
+                target_role: string;
+                level: string;
                 years_experience: number;
                 stack: string[];
                 target_company_type: components["schemas"]["TargetCompanyType_Output"];
@@ -2001,8 +1993,8 @@ export interface operations {
     ContentController_track: {
         parameters: {
             query?: {
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
             };
             header?: never;
             path?: never;
@@ -2177,8 +2169,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2288,8 +2280,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2399,8 +2391,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2510,8 +2502,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2671,8 +2663,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2777,8 +2769,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2881,8 +2873,8 @@ export interface operations {
             query?: {
                 status?: components["schemas"]["ContentStatus"];
                 q?: string;
-                role?: components["schemas"]["TargetRole"];
-                level?: components["schemas"]["ExperienceLevel"];
+                role?: string;
+                level?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;

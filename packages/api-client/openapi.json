@@ -367,7 +367,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -375,7 +378,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           }
         ],
@@ -598,7 +604,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -606,7 +615,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -792,7 +804,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -800,7 +815,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -986,7 +1004,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -994,7 +1015,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1180,7 +1204,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1188,7 +1215,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1454,7 +1484,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1462,7 +1495,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1658,7 +1694,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1666,7 +1705,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1849,7 +1891,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1857,7 +1902,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -2473,14 +2521,6 @@
         "required": ["profile_completed", "consents_completed", "completed_at"],
         "additionalProperties": false
       },
-      "TargetRole_Output": {
-        "type": "string",
-        "enum": ["frontend", "backend", "qa"]
-      },
-      "ExperienceLevel_Output": {
-        "type": "string",
-        "enum": ["intern_junior", "mid"]
-      },
       "TargetCompanyType_Output": {
         "type": "string",
         "enum": ["local_startup", "enterprise_bank_telco", "remote_foreign", "big_tech"]
@@ -2494,10 +2534,16 @@
             "maxLength": 80
           },
           "target_role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "years_experience": {
             "type": "integer",
@@ -2541,14 +2587,6 @@
         ],
         "additionalProperties": false
       },
-      "TargetRole": {
-        "type": "string",
-        "enum": ["frontend", "backend", "qa"]
-      },
-      "ExperienceLevel": {
-        "type": "string",
-        "enum": ["intern_junior", "mid"]
-      },
       "TargetCompanyType": {
         "type": "string",
         "enum": ["local_startup", "enterprise_bank_telco", "remote_foreign", "big_tech"]
@@ -2562,10 +2600,16 @@
             "maxLength": 80
           },
           "target_role": {
-            "$ref": "#/components/schemas/TargetRole"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "years_experience": {
             "type": "integer",
@@ -3218,10 +3262,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -4133,10 +4183,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -4233,10 +4289,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -4289,10 +4351,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -5202,13 +5270,19 @@
           "roles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TargetRole_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "levels": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ExperienceLevel_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "difficulty": {
@@ -5392,18 +5466,24 @@
           },
           "roles": {
             "minItems": 1,
-            "maxItems": 3,
+            "maxItems": 6,
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TargetRole"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "levels": {
             "minItems": 1,
-            "maxItems": 2,
+            "maxItems": 4,
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "type": {
@@ -5478,17 +5558,23 @@
           "roles": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 3,
+            "maxItems": 6,
             "items": {
-              "$ref": "#/components/schemas/TargetRole_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "levels": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 2,
+            "maxItems": 4,
             "items": {
-              "$ref": "#/components/schemas/ExperienceLevel_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "type": {
@@ -5995,10 +6081,16 @@
             "type": "object",
             "properties": {
               "target_role": {
-                "$ref": "#/components/schemas/TargetRole_Output"
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
               },
               "level": {
-                "$ref": "#/components/schemas/ExperienceLevel_Output"
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
               },
               "years_experience": {
                 "type": "integer",

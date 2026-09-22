@@ -6,7 +6,7 @@ status: draft
 track:
   slug: qa-intern-junior
   role: qa
-  level: intern_junior
+  level: intern-junior
   title: QA engineer — intern and junior
   summary: >-
     A starting skeleton for the QA programme: choosing the cases worth writing, and reporting what

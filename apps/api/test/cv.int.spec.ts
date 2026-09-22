@@ -7,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
 import { CvParseProcessor } from "../src/cv/cv-parse.processor";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { removeCataloguePair, seedCataloguePair, type CataloguePair } from "./content-fixtures";
 import { REDIS } from "../src/redis/redis.module";
 import { StorageService } from "../src/storage/storage.service";
 import { FakeAiWorker, PARSED } from "./fake-ai-worker";
@@ -17,15 +18,18 @@ const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.doc
 const PDF_BYTES = new TextEncoder().encode("%PDF-1.7\nA CV body that the fake worker never reads.");
 const DOCX_BYTES = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3, 4, 5, 6]);
 
-const PROFILE = {
+/** Minted per run: the catalogue is content, and the test database is never seeded (ADR-0015). */
+let pair: CataloguePair;
+
+const profileFor = () => ({
   name: "Ada",
-  target_role: "backend",
-  level: "mid",
+  target_role: pair.roleSlug,
+  level: pair.levelSlug,
   years_experience: 3,
   stack: ["Go"],
   target_company_type: "remote_foreign",
   target_date: null,
-};
+});
 
 describe("CV upload and parsing", () => {
   let app: NestExpressApplication;
@@ -38,8 +42,10 @@ describe("CV upload and parsing", () => {
     app = await createTestApp({ overrides: [[AiWorkerClient, worker]] });
     prisma = app.get(PrismaService);
     storage = app.get(StorageService);
+    pair = await seedCataloguePair(prisma);
   });
   afterAll(async () => {
+    await removeCataloguePair(prisma, pair);
     await app.close();
   });
   beforeEach(() => {
@@ -48,7 +54,7 @@ describe("CV upload and parsing", () => {
 
   async function candidate(withProfile = true): Promise<{ cookie: string; userId: string }> {
     const { cookie } = await signUpWithEmail(app);
-    if (withProfile) await http().put("/api/me/profile").set("cookie", cookie).send(PROFILE);
+    if (withProfile) await http().put("/api/me/profile").set("cookie", cookie).send(profileFor());
     const me = await http().get("/api/me").set("cookie", cookie);
     return { cookie, userId: (me.body as { id: string }).id };
   }
@@ -125,10 +131,15 @@ describe("CV upload and parsing", () => {
 
     // The worker got the file and minimal context only.
     const sent = worker.requests.at(-1);
-    expect(sent).toMatchObject({ content_type: PDF, target_role: "backend", level: "mid" });
+    // Labels, not keys (ADR-0015): the worker has no catalogue and no enum to recognise.
+    expect(sent).toMatchObject({
+      content_type: PDF,
+      target_role_label: pair.roleName,
+      level_label: pair.levelName,
+    });
     expect(Buffer.from(sent?.file_base64 ?? "", "base64")).toEqual(Buffer.from(PDF_BYTES));
     expect(Object.keys(sent ?? {}).sort()).toEqual(
-      ["content_type", "file_base64", "level", "request_id", "target_role"].sort(),
+      ["content_type", "file_base64", "level_label", "request_id", "target_role_label"].sort(),
     );
 
     const calls = await prisma.aiCallLog.findMany({ where: { userId } });

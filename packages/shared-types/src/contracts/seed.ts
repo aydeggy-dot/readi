@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { CATALOGUE_LIMITS, CONTENT_LIMITS, DIFFICULTY_RANGE, SLUG_PATTERN } from "../constants.js";
 import { QuestionType, RubricCriterionInput, weightsTotalCorrectly } from "./content.js";
-import { ExperienceLevel, TargetRole } from "./profiles.js";
+import { Slug } from "./slug.js";
 
 /**
  * The seed file format: the YAML under `/content/seed` that `pnpm db:seed` imports (spec §4.2).
@@ -94,8 +94,9 @@ export type SeedRubric = z.infer<typeof SeedRubric>;
 export const SeedQuestion = z
   .object({
     slug: slug(),
-    roles: z.array(TargetRole).min(1).max(3),
-    levels: z.array(ExperienceLevel).min(1).max(2),
+    /** Catalogue role and level slugs, from `roles.yaml` and `levels.yaml` (ADR-0015). */
+    roles: z.array(Slug).min(1).max(CONTENT_LIMITS.questionRoles),
+    levels: z.array(Slug).min(1).max(CONTENT_LIMITS.questionLevels),
     type: QuestionType,
     /** A topic's slug, from `topics.yaml`. */
     topic: slug(),
@@ -144,8 +145,8 @@ export type SeedModule = z.infer<typeof SeedModule>;
 export const SeedTrack = z
   .object({
     slug: slug(),
-    role: TargetRole,
-    level: ExperienceLevel,
+    role: Slug,
+    level: Slug,
     title: title(),
     summary: summary(),
     /** Topic slugs this track covers; `core` ones drive readiness coverage (spec §7). */

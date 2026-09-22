@@ -131,6 +131,17 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   `prisma migrate dev --create-only`, edit, then apply. Dropping it breaks nothing visibly: duplicate
   search just becomes a sequential scan, and only `content-schema.int.spec.ts` notices. The partial
   unique index `tracks_one_published_per_role_level` is the other hand-written object at risk.
+  **A hand-written index can also be lost without Prisma proposing anything**: `DROP COLUMN` takes
+  every index that depends on the column with it, so a migration that replaces a column must
+  recreate any hand-written index over it (M2.5 phase 3 did this for
+  `tracks_one_published_per_role_level`, moving it to `role_id, level_id`). Grep the migration for
+  every `DROP COLUMN` and ask what was indexed on it.
+- **A migration that converts data verifies the conversion before it drops anything.** Prisma
+  generates "drop the old column, add the new one `NOT NULL`", which refuses to run against rows and
+  would lose them if it did. Backfill, then `RAISE EXCEPTION` naming any row that did not map, then
+  drop — so a mismatch rolls back with a message instead of guessing or deleting
+  (`20260922145408_catalogue_switch` is the worked example). Test it against a **copy of a real
+  database**, not only the empty test one.
 - The worker receives what it needs in requests (e.g. a session bundle at session start) and emits typed events
   (turns, latency samples, AI-call records) that the API persists idempotently. Ephemeral engine state lives in Redis.
 

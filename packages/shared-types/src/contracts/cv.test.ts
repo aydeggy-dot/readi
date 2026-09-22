@@ -60,8 +60,8 @@ describe("cv contracts", () => {
       request_id: "8d3f9c2e-4b1a-4c7e-9f00-1a2b3c4d5e6f",
       content_type: "application/pdf",
       file_base64: Buffer.from("%PDF-1.7").toString("base64"),
-      target_role: "frontend",
-      level: "mid",
+      target_role_label: "Frontend engineer",
+      level_label: "Mid-level",
     };
     expect(CvParseRequest.safeParse(request).success).toBe(true);
     expect(CvParseRequest.safeParse({ ...request, file_base64: "not base64!" }).success).toBe(

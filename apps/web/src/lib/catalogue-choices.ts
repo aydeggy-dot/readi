@@ -35,3 +35,54 @@ export async function catalogueChoices() {
     capped: levels.data.next_cursor || stacks.data.next_cursor ? CONTENT_LIMITS.pageSize.max : null,
   };
 }
+
+/** A catalogue row as a picker needs it: the slug that is stored, and the name that is shown. */
+export interface CatalogueOption {
+  slug: string;
+  name: string;
+}
+
+/**
+ * The roles and levels that *other* content is tagged with — a track's role and level, a
+ * question's lists of both — for the CMS's editors and filter bars (ADR-0015).
+ *
+ * Slugs rather than ids here, because that is what a track and a question store. Drafts and
+ * retired rows are included for the same reason as above: a question is written for a role before
+ * the role goes out, and a row already tagged has to stay pickable or saving would drop it.
+ *
+ * One page each, uncapped deliberately: a role is a whole hiring track and a level a rung on a
+ * ladder, so a catalogue that outgrew 100 of either would be a product problem long before it was
+ * a paging one — unlike stacks, where the editor has to say when it is showing only the first page.
+ */
+export async function roleAndLevelChoices(): Promise<{
+  roles: CatalogueOption[];
+  levels: CatalogueOption[];
+}> {
+  const api = await serverApi();
+  const query = { limit: CONTENT_LIMITS.pageSize.max };
+  const [roles, levels] = await Promise.all([
+    api.GET("/api/admin/content/career-roles", { params: { query } }),
+    api.GET("/api/admin/content/career-levels", { params: { query } }),
+  ]);
+  if (!roles.data || !levels.data) throw new Error("GET the catalogue for the CMS failed");
+
+  // The order a candidate meets them in: roles by position, levels by the ladder they describe.
+  return {
+    roles: [...roles.data.items].sort(
+      (a, b) => a.position - b.position || a.name.localeCompare(b.name),
+    ),
+    levels: [...levels.data.items].sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name)),
+  };
+}
+
+/**
+ * Looks catalogue names up by slug, for a list that shows what a row is tagged with.
+ *
+ * A slug the catalogue no longer lists falls back to itself rather than to nothing: a question
+ * tagged with a role that has since been deleted still has to draw a row, and the slug is the
+ * truest thing left to say about it.
+ */
+export function slugNames(rows: readonly CatalogueOption[]): (slug: string) => string {
+  const names = new Map(rows.map((row) => [row.slug, row.name]));
+  return (slug) => names.get(slug) ?? slug;
+}

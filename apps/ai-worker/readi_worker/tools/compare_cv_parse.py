@@ -2,7 +2,7 @@
 
     cd apps/ai-worker
     uv run python -m readi_worker.tools.compare_cv_parse ~/sample-cvs \\
-        --models claude-sonnet-5,claude-haiku-4-5 --role frontend --level intern_junior
+        --models claude-sonnet-5,claude-haiku-4-5 --role "Frontend engineer" --level "Mid-level"
 
 Uses the production pipeline (extraction, prompt, validation, normalisation) with each model and
 prints latency, tokens, cost and what was extracted. The full results go to a Markdown report in
@@ -91,8 +91,8 @@ async def _compare_file(
             "request_id": str(uuid.uuid4()),
             "content_type": CONTENT_TYPES[path.suffix.lower()],
             "file_base64": base64.b64encode(data).decode(),
-            "target_role": role,
-            "level": level,
+            "target_role_label": role,
+            "level_label": level,
         }
     )
     responses = await asyncio.gather(*(p.parse(request) for p in parsers.values()))
@@ -124,8 +124,9 @@ async def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("folder", type=Path, help="folder of .pdf / .docx CVs")
     parser.add_argument("--models", default="claude-sonnet-5,claude-haiku-4-5")
-    parser.add_argument("--role", choices=["frontend", "backend", "qa"], default="frontend")
-    parser.add_argument("--level", choices=["intern_junior", "mid"], default="intern_junior")
+    parser.add_argument("--role", default="Frontend engineer")
+    # Free text, not a choice: roles and levels are catalogue content now (ADR-0015).
+    parser.add_argument("--level", default="Intern / Junior")
     parser.add_argument("--max-files", type=int, default=20)
     args = parser.parse_args(argv)
 

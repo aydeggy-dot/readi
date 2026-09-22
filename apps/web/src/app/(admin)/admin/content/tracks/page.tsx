@@ -4,6 +4,7 @@ import { ContentFilters, ContentRow, ContentRows, Pager } from "@/components/adm
 import { PageHeading } from "@/components/layout/page-heading";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
+import { roleAndLevelChoices, slugNames } from "@/lib/catalogue-choices";
 import { contentListQuery, type SearchParams } from "@/lib/content-query";
 import { requireContentEditor, serverApi } from "@/lib/session";
 
@@ -19,8 +20,14 @@ export default async function TracksPage({
   await requireContentEditor();
   const query = contentListQuery(await searchParams);
   const api = await serverApi();
-  const { data } = await api.GET("/api/admin/content/tracks", { params: { query } });
+  const [tracks, catalogue] = await Promise.all([
+    api.GET("/api/admin/content/tracks", { params: { query } }),
+    roleAndLevelChoices(),
+  ]);
+  const data = tracks.data;
   if (!data) throw new Error("GET /api/admin/content/tracks failed");
+  const roleName = slugNames(catalogue.roles);
+  const levelName = slugNames(catalogue.levels);
 
   return (
     <>
@@ -38,6 +45,8 @@ export default async function TracksPage({
         action={PATH}
         query={query}
         fields={{ status: true, role: true, level: true }}
+        roles={catalogue.roles}
+        levels={catalogue.levels}
       />
 
       <ContentRows items={data.items} query={query}>
@@ -51,7 +60,7 @@ export default async function TracksPage({
             seedManaged={track.seed_managed}
             aiDraftUnreviewed={track.ai_draft_unreviewed}
             meta={[
-              `${t(`targetRoles.${track.role}`)} · ${t(`levels.${track.level}`)}`,
+              `${roleName(track.role)} · ${levelName(track.level)}`,
               t("admin.content.list.modules", { count: track.module_count }),
             ]}
             updatedAt={track.updated_at}

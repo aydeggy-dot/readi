@@ -13,8 +13,8 @@ const request: CvParseRequest = {
   request_id: "3f1a1a1e-0f0e-4b3e-9c3e-2d2b1a0f0e0d",
   content_type: "application/pdf",
   file_base64: "JVBERi0=",
-  target_role: "backend",
-  level: "mid",
+  target_role_label: "Backend engineer",
+  level_label: "Mid-level",
 };
 
 const response: CvParseResponse = {

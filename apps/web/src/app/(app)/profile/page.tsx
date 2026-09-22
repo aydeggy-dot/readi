@@ -7,15 +7,27 @@ import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { Button } from "@/components/ui/button";
 import { formatDate, t } from "@/i18n";
 import { consentCopy } from "@/lib/consent-copy";
-import { getConsents, getCv, getProfile } from "@/lib/profile-data";
+import { getCareerRoles, getConsents, getCv, getProfile } from "@/lib/profile-data";
 import { requireOnboarded } from "@/lib/session";
 
 export const metadata: Metadata = { title: t("profile.title") };
 
 export default async function ProfilePage() {
   const me = await requireOnboarded();
-  const [profile, consents, cv] = await Promise.all([getProfile(), getConsents(), getCv()]);
+  const [profile, consents, cv, careerRoles] = await Promise.all([
+    getProfile(),
+    getConsents(),
+    getCv(),
+    getCareerRoles(),
+  ]);
   const notSet = t("common.notSet");
+  /*
+   * Roles and levels are content now (ADR-0015), so their names come from the catalogue rather than
+   * from a message key. A role or level that has since been retired is no longer in it: the slug
+   * the profile stored is then shown as it is, which is truer than showing nothing.
+   */
+  const role = careerRoles.find((candidate) => candidate.slug === profile?.target_role);
+  const level = role?.level_options.find((option) => option.slug === profile?.level);
 
   return (
     <>
@@ -26,11 +38,8 @@ export default async function ProfilePage() {
         {profile && (
           <>
             <Row label={t("profile.fields.name")} value={profile.name} />
-            <Row
-              label={t("profile.fields.targetRole")}
-              value={t(`targetRoles.${profile.target_role}`)}
-            />
-            <Row label={t("profile.fields.level")} value={t(`levels.${profile.level}`)} />
+            <Row label={t("profile.fields.targetRole")} value={role?.name ?? profile.target_role} />
+            <Row label={t("profile.fields.level")} value={level?.name ?? profile.level} />
             <Row
               label={t("profile.fields.yearsExperience")}
               value={String(profile.years_experience)}

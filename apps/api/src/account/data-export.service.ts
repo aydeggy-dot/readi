@@ -52,7 +52,14 @@ export class DataExportService {
 
     const [user, profile, consents, accounts, sessions, audit, aiCalls] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
-      this.prisma.profile.findUnique({ where: { userId } }),
+      this.prisma.profile.findUnique({
+        where: { userId },
+        // The export answers with slugs, as the API does everywhere (ADR-0015).
+        include: {
+          targetRole: { select: { slug: true } },
+          targetLevel: { select: { slug: true } },
+        },
+      }),
       this.prisma.consentRecord.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
       // Only non-secret columns: never tokens or password hashes.
       this.prisma.account.findMany({
@@ -113,8 +120,8 @@ export class DataExportService {
         updated_at: user.updatedAt.toISOString(),
       },
       profile: profile && {
-        target_role: profile.targetRole,
-        level: profile.level,
+        target_role: profile.targetRole.slug,
+        level: profile.targetLevel.slug,
         years_experience: profile.yearsExperience,
         stack: profile.stack,
         target_company_type: profile.targetCompanyType,

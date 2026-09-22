@@ -665,3 +665,54 @@ rather than letting a save drop what it never showed — `admin.content.role.cat
   nothing to rebase; `feat/m1-auth-onboarding` stacks on the M0 commits. After M0 lands on `main`: a
   merge commit or fast-forward needs no action; after a squash merge run
   `git rebase --onto origin/main feat/m0-scaffold feat/m1-auth-onboarding`.
+
+## M2.5 phase 3 — the switch (done 2026-09-22)
+
+Tracks, questions and profiles moved onto the catalogue; the `target_role` and `experience_level`
+Postgres enums are gone. Roles and levels are content everywhere now, and adding one is a row.
+
+- [x] **Migration `20260922145408_catalogue_switch`, hand-written.** Prisma's own version refused to
+      run ("Added the required column `target_role_id` … There are 2 rows in this table") and would
+      have dropped six columns' worth of data. The shipped one adds nullable → backfills
+      (`intern_junior` → `intern-junior`; role values were already the slugs) → raises, naming any
+      row that did not map → `SET NOT NULL` → drops. Two indexes it had to protect: the HNSW one
+      Prisma always proposes dropping, and `tracks_one_published_per_role_level`, which Prisma
+      proposed nothing about because `DROP COLUMN` would have taken it silently
+- [x] Tested against a **copy of the dev database with real rows** before the dev database itself,
+      and the refusal path tested too (a copy with a catalogue row deleted aborted and rolled back
+      leaving both enums intact). Row counts identical before and after; 20 question→role and 21
+      question→level links created from the arrays
+- [x] `QuestionCareerRole` / `QuestionCareerLevel` join tables; `Track.roleId/levelId`;
+      `Profile.targetRoleId/targetLevelId`; `role_in_use` and a widened `level_in_use` on retire
+- [x] Contracts: `TargetRole` / `ExperienceLevel` deleted, `Slug` added (`contracts/slug.ts`);
+      `TARGET_ROLES` / `EXPERIENCE_LEVELS` deleted from `constants.ts`; `CONTENT_LIMITS.questionRoles`
+      (6) and `questionLevels` (4) replace the old `.max(3)` / `.max(2)`, which were enum
+      cardinalities wearing a limit's clothes
+- [x] **`CvParseRequest` carries labels, not keys** — pulled forward from phase 4 because phase 3 is
+      what deletes the enum, and the alternative was a worker looking up keys in a map that could no
+      longer be complete. `ROLE_LABELS`/`LEVEL_LABELS` and `test_labels_cover_every_enum_value`
+      deleted; prompt `cv_parse.v2.md` wraps both labels **as data**, because a role's name is
+      written by staff in the CMS and lands in a system prompt. New test proves a label cannot close
+      its own tag. `stack_label` and the stack prompt line remain phase 4's
+- [x] Web: `stack-suggestions.ts` deleted (suggestions come from the role's stacks); nine
+      `t(`targetRoles._`)` / `t(`levels._`)` lookups replaced by names from the API; `targetRoles`
+      and `levels` namespaces removed from `en.json`; four client components take catalogue options
+      as props from their server pages; `content-query.ts` validates slug _shape_ and passes unknown
+      slugs through
+- [x] **Test fixtures mint their own catalogue pair.** The `(role, level)` pair-ownership table is
+      deleted: it existed because the enum had six pairs and four were taken. The test database is
+      migrated but never seeded, so minting is also the only thing that works
+- [x] **e2e gained a `setup` project** (`catalogue.setup.ts`): seeds `/content/seed` and publishes
+      the catalogue over the admin API, because the importer never publishes (ADR-0014 decision 5)
+      and a candidate is only offered published roles. Without it the onboarding form draws an empty
+      picker
+- [x] Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (311 API, 117 web, 81 shared-types, 56 ui,
+      3 api-client, 76 pytest), `pnpm test:e2e` (7 passed, 5 skipped by design), `pnpm gen:contracts`,
+      `pnpm db:seed` on the migrated dev database reports every item **unchanged**
+- [x] `readi_e2e` was dropped and recreated: it held tracks and profiles from old runs but an empty
+      catalogue, so the migration's guard refused it — correctly. Backed up first
+      (`.backups/readi-e2e-*.dump`)
+
+**Deliberately not in this phase** (phase 4): `QuestionStack`, `Profile.targetStackId`,
+`Profile.stack` → `technologies`, the stack eligibility predicate, the onboarding stack picker,
+`stacks:` on seeded questions, and `stack_label` on `CvParseRequest`.

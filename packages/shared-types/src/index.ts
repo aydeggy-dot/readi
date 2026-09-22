@@ -1,5 +1,6 @@
 export * from "./contracts/health.js";
 export * from "./contracts/users.js";
+export * from "./contracts/slug.js";
 export * from "./contracts/profiles.js";
 export * from "./contracts/consents.js";
 export * from "./contracts/cv.js";

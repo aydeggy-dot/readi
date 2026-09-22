@@ -57,3 +57,6 @@ sample-cvs/
 
 # Visual review screenshots (e2e/visual): looked at, never committed
 screenshots/
+
+# Local database backups (pg_dump before a risky migration): never committed
+.backups/
