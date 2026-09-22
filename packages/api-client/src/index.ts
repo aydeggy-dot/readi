@@ -37,6 +37,27 @@ export function errorCode(body: unknown): string | undefined {
     : undefined;
 }
 
+/**
+ * The counts a refusal carries, for the handful whose copy needs a number ("4 candidates are
+ * preparing at it"). Numbers only by contract — the API never puts anything a person wrote in here.
+ */
+export function errorDetails(body: unknown): Record<string, number> {
+  if (
+    typeof body !== "object" ||
+    body === null ||
+    !("details" in body) ||
+    typeof body.details !== "object" ||
+    body.details === null
+  ) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(body.details as Record<string, unknown>).filter(
+      (entry): entry is [string, number] => typeof entry[1] === "number",
+    ),
+  );
+}
+
 /** The top-level field names a validation error body reports as invalid. */
 export function invalidFields(body: unknown): string[] {
   if (

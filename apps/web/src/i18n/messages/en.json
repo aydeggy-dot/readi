@@ -418,7 +418,11 @@
         "questionHasNoPublishedLevel": "Every level this question is written for is still a draft, so no candidate could be asked it. Publish one of them first.",
         "questionHasNoPublishedStack": "Every stack this question is tagged for is still a draft, so no candidate could be asked it. Publish one of them, or take the tags off to make the question general.",
         "cursorInvalid": "That page link is stale. Go back to the first page and try again.",
-        "versionNotFound": "That version is not in the history any more."
+        "versionNotFound": "That version is not in the history any more.",
+        "roleLevelInUseOne": "One candidate is preparing for this role at that level, so it cannot be taken off. Leave it on the role, or move that candidate to another level first.",
+        "roleLevelInUseMany": "{count} candidates are preparing for this role at that level, so it cannot be taken off. Leave it on the role, or move them to another level first.",
+        "roleStackInUseOne": "One candidate is interviewing for this role on that stack, so it cannot be taken off. Leave it on the role, or move that candidate to another stack first.",
+        "roleStackInUseMany": "{count} candidates are interviewing for this role on that stack, so it cannot be taken off. Leave it on the role, or move them to another stack first."
       },
       "transition": {
         "legend": "Workflow",

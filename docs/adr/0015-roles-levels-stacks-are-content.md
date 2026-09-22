@@ -1,6 +1,11 @@
 # 0015 — Roles, levels and stacks are content, and a question can be written for a stack
 
-**Status:** Accepted · **Date:** 2026-09-22
+**Status:** Accepted · **Date:** 2026-09-22 · **Amended:** 2026-09-22 (decision 7, un-linking)
+
+> CLAUDE.md §7.4 says an accepted ADR is superseded, not edited. The addition to decision 7 was
+> made at the owner's request while this ADR is still unmerged, and it answers a question decision 7
+> left open rather than changing any answer it gave — the same reasoning ADR-0014 records for its
+> decisions 6 and 7. **Once this is merged, a change becomes a new ADR.**
 
 ## Context
 
@@ -98,7 +103,7 @@ A variant a candidate chose is never cleared behind their back: `profiles.target
 `ON DELETE RESTRICT`, and a **retired** role, level or stack stays on the profile that chose it and
 is shown by its slug once the published catalogue stops carrying it.
 
-### 7. Retiring is refused while something still uses it
+### 7. Retiring is refused while something still uses it — and so is un-linking
 
 `role_in_use`, `level_in_use` and `stack_in_use` refuse to retire a catalogue row that a published
 track or question, or a candidate's profile, still points at. Publishing a role is refused unless it
@@ -109,6 +114,28 @@ Stacks are deliberately not required: a role with no variants is a legitimate ro
 This is the M2 handover's failure written down before it happens again ("retiring a rubric silently
 hides every published question that uses it") — on the entity that would otherwise blank the whole
 catalogue.
+
+**Taking a level or a stack off a role is refused on the same grounds** (`role_level_in_use`,
+`role_stack_in_use`), because it is the same failure one step earlier. Un-linking looks like an
+ordinary content edit and the database does not object: `profiles.target_level_id` points at the
+**level**, not at the link, so dropping the link leaves every affected profile intact and pointing
+at a rung the role no longer offers. Nothing errors, nothing is logged, and the candidate discovers
+it the next time they open their profile and are made to re-pick a level they never changed.
+
+Two things about the refusal are deliberate:
+
+- **It is scoped to the role.** Retiring a level asks "is anyone, anywhere, using this?";
+  un-linking asks only "is anyone using it *for this role*?". A backend candidate at mid level is
+  no reason for the frontend role to keep offering mid.
+- **It carries the number of profiles affected**, in an `ApiError`'s `details` — the first refusal
+  that needed one. "You cannot do this" is not actionable; "4 candidates are preparing at that
+  level" tells an admin what migrating them would involve, which is the decision they are actually
+  making. `details` carries counts and ids only, never anything a person wrote, and the web app
+  still renders its own copy (ADR-0012) with the number dropped into it.
+
+There is no migration path for those candidates yet: the admin's choices are to leave the level on
+the role or to move the candidates by hand. Building one is a product decision, recorded in
+`tasks/todo.md` rather than guessed at here.
 
 ### 8. Labels come from the API; the worker is sent words, not keys
 

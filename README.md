@@ -44,10 +44,12 @@ Open http://localhost:3002 and choose **Start free** to sign up (email, phone or
 http://localhost:3002/status shows API, database, and Redis health (admins only when `APP_ENV=production`).
 Emails and SMS are not sent locally: read them (verification links, OTP codes) from the dev mailbox,
 `http://localhost:4000/api/dev/mailbox?to=<email or +234…>`. To make yourself an admin after signing
-up: `pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin`.
+up: `pnpm --filter @readi/api admin:grant -- --email <the address you signed up with> --role admin`.
+In production that command refuses unless you also pass `--acknowledge-production`, which is
+recorded in the audit entry: granting yourself admin on a live database should be a deliberate act.
 Profile → **Your data and account** downloads everything we hold about you, or deletes the account
 (7-day grace period, ADR-0011); support cancels a deletion with
-`pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com`.
+`pnpm --filter @readi/api admin:cancel-deletion -- --email <their address>`.
 API docs (development only): http://localhost:4000/docs.
 
 ## Checks

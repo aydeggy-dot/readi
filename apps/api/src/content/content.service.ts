@@ -354,6 +354,7 @@ export class ContentService {
     if (sameContent(careerRoleContent(current), input)) {
       return { entity: toCareerRole(current), changed: false };
     }
+    await this.assertLinksRemovable(id, current, input);
     const updated = await this.prisma
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "career_role", current, careerRoleContent(current), context);
@@ -1354,6 +1355,67 @@ export class ContentService {
    * used it — and the catalogue is where that would hurt most: retiring a level would blank the
    * picker of every role that offers it.
    */
+  /**
+   * Taking a level or a stack **off a role** is refused while a candidate is preparing for that
+   * role at it — the same rule as retiring one (`assertRetirable`), one step earlier and scoped to
+   * this role (ADR-0015 decision 7).
+   *
+   * Without it the un-link is a plain content edit that quietly invalidates a choice somebody
+   * already made: their `target_level_id` survives, because the foreign key is to the level and not
+   * to the link, so nothing errors — and they find out the next time they open their profile and
+   * are made to re-pick a level they never changed. The refusal carries the number of profiles
+   * affected, because "you cannot do this" is not actionable and "4 candidates are preparing at it"
+   * is: it says what migrating them would involve.
+   *
+   * Scoped to the role on purpose. Retiring a level asks "is anyone, anywhere, using this?";
+   * un-linking asks only "is anyone using it **for this role**?" — a backend candidate at mid level
+   * is no reason for the frontend role to keep offering mid.
+   */
+  private async assertLinksRemovable(
+    roleId: string,
+    current: CareerRoleRow,
+    input: CareerRoleInput,
+  ): Promise<void> {
+    const keptLevels = new Set(input.levels);
+    const removedLevels = current.levels
+      .map((link) => link.levelId)
+      .filter((levelId) => !keptLevels.has(levelId));
+    const keptStacks = new Set(input.stacks.map((link) => link.stack_id));
+    const removedStacks = current.stacks
+      .map((link) => link.stackId)
+      .filter((stackId) => !keptStacks.has(stackId));
+    if (removedLevels.length === 0 && removedStacks.length === 0) return;
+
+    const [levelProfiles, stackProfiles] = await Promise.all([
+      removedLevels.length === 0
+        ? 0
+        : this.prisma.profile.count({
+            where: { targetRoleId: roleId, targetLevelId: { in: removedLevels } },
+          }),
+      removedStacks.length === 0
+        ? 0
+        : this.prisma.profile.count({
+            where: { targetRoleId: roleId, targetStackId: { in: removedStacks } },
+          }),
+    ]);
+    if (levelProfiles > 0) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "role_level_in_use",
+        "candidates are preparing for this role at a level it would stop offering",
+        { profiles: levelProfiles },
+      );
+    }
+    if (stackProfiles > 0) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "role_stack_in_use",
+        "candidates are interviewing for a variant this role would stop offering",
+        { profiles: stackProfiles },
+      );
+    }
+  }
+
   private async assertRetirable(
     entity: ContentEntityPath,
     current: TransitionTarget,

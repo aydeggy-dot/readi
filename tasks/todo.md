@@ -969,6 +969,11 @@ The dev database has accumulated nine accounts; **one of them, `you@example.com`
 came from the example in `CLAUDE.md` §4 being run verbatim, and it is worth removing before anything
 is ever exposed beyond localhost.
 
+That example is now an obvious placeholder in `CLAUDE.md`, the README and the CLI's own usage line,
+and `admin:grant` refuses when `NODE_ENV=production` unless `--acknowledge-production` is passed
+(owner, 2026-09-22). Verified both ways against a production-shaped environment: without the flag it
+refuses by name and touches nothing, with it the grant proceeds and is audited.
+
 ```bash
 PGPASSWORD=readi psql -h 127.0.0.1 -p 15432 -U readi -d readi -c "
   DELETE FROM users WHERE email <> 'aydeggy5@gmail.com';"
@@ -1061,12 +1066,19 @@ migrations, contracts and the worker, the web and the docs. Findings below; ever
   Either add a later migration that inserts the five known enum values as drafts before anything
   needs them, or make `e2e-prepare.ts` drop and recreate, and write the recovery into a runbook.
   Whoever deploys first owns this.
-- **Removing a level or a stack from a role silently invalidates the profiles that chose it.**
-  Retiring is refused while something uses it; un-linking is a plain content edit with no check. The
-  candidate keeps a `target_level_id` the catalogue no longer offers, and finds out only when they
-  next save their profile and are made to re-pick a level they never changed. Is un-linking supposed
-  to be refused like retiring, or to migrate the affected profiles, or to be allowed with a warning
-  that says how many candidates it will affect? A product decision, not a bug fix.
+- **~~Removing a level or a stack from a role silently invalidates the profiles that chose it.~~**
+  **Decided (owner, 2026-09-22): refuse it**, consistent with the existing "cannot retire a level in
+  use" rule, and say how many profiles are affected so an admin knows what migrating would involve.
+  Implemented as `role_level_in_use` / `role_stack_in_use`, scoped to the role, with the count in the
+  error body; recorded in ADR-0015 decision 7.
+
+  **What is still open: there is no way to migrate those candidates.** An admin's only choices today
+  are to leave the level on the role or to move each candidate by hand — and nothing in the CMS lets
+  them do the second. A bulk "move everyone preparing at X to Y" action belongs with whichever
+  milestone first has a real reason to retire a level, and needs its own thought about consent and
+  about what the candidate is told. Until then the refusal is a stop sign with no detour, which is
+  the right way round but worth knowing.
+
 - **A catalogue past 100 levels or stacks would drop a role's links on save.** The editor warns
   (`catalogueCapped`) but the save still rebuilds the links from the rows it drew. Comments in
   `catalogue-choices.ts` and `catalogue-order.ts` now say so; the fix is a pager in the role editor,

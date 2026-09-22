@@ -96,8 +96,8 @@ pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and O
 pnpm check:contracts         # regenerate both and fail on drift (as CI does)
 pnpm db:seed                 # import /content/seed (idempotent; `-- --dry-run` plans, `-- --force` overwrites CMS edits)
 pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
-pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
-pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
+pnpm --filter @readi/api admin:grant -- --email <your-email> --role admin   # grant a role (audited; refuses in production without --acknowledge-production)
+pnpm --filter @readi/api admin:cancel-deletion -- --email <their-email>      # keep an account during its 7-day grace period (audited, ADR-0011)
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
@@ -287,6 +287,13 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - API routes are default-deny: every controller route needs a session unless marked `@Public()`, and
   `@Roles()` restricts by role. Depend on `AuthService`, never on Better Auth types (ADR-0005/0009).
 - Every email goes through `EmailSender`, which refuses `.invalid` placeholder addresses (ADR-0009).
+- **A CLI that changes who can do what refuses in production unless told to proceed.**
+  `admin:grant` is the shortest path from a shell to an admin account, so it checks
+  `needsProductionAcknowledgement` (`apps/api/src/cli/production.ts`) and requires
+  `--acknowledge-production`; the grant is audited either way. It is a speed bump with a record,
+  not a security control — what stops the wrong person is access to the server. Write CLI examples
+  with an obvious placeholder (`--email <their-email>`), never a plausible address: the old
+  `you@example.com` example was run verbatim and left a real admin account behind.
 - API errors that the UI must explain carry a stable `code` (`ApiError`); validation 400s list field paths.
   The web app maps both to i18n copy and never shows the server's English message (ADR-0012).
 - A nullable string in a contract needs a constraint (format, pattern, length): a bare

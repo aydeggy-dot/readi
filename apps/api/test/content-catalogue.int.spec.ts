@@ -14,6 +14,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
+import { giveProfile } from "./content-fixtures";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
 
 /**
@@ -318,6 +319,84 @@ describe("the catalogue: career roles, levels and stacks", () => {
       const { role, level } = await publishedRole();
       expect((await move(admin, "career-roles", role.id, "retire")).status).toBe(201);
       expect((await move(admin, "career-levels", level.id, "retire")).status).toBe(201);
+    });
+  });
+
+  /*
+   * The same rule one step earlier: a level a candidate is preparing at cannot be taken *off the
+   * role* either (ADR-0015 decision 7). Un-linking used to be a plain content edit — the foreign
+   * key is to the level, not to the link, so nothing errored and the candidate found out when
+   * their next profile save made them re-pick a level they had never changed.
+   */
+  describe("taking a level or a stack off a role someone is preparing for", () => {
+    /** A published role, a second published level on it, and a candidate parked on one of them. */
+    const roleWithCandidateAt = async (on: "level" | "stack") => {
+      const { role, level, stack } = await publishedRole();
+      const spare = await createLevel(admin, { rank: 50 });
+      for (const transition of ["submit", "publish"] as const) {
+        expect((await move(admin, "career-levels", spare.id, transition)).status).toBe(201);
+      }
+      const put = (levels: string[], stacks: { stack_id: string; is_default: boolean }[]) =>
+        http().put(`/api/admin/content/career-roles/${role.id}`).set(as(admin)).send({
+          slug: role.slug,
+          name: role.name,
+          summary: role.summary,
+          position: role.position,
+          supported_question_types: role.supported_question_types,
+          levels,
+          stacks,
+        });
+      expect(
+        (await put([level.id, spare.id], [{ stack_id: stack.id, is_default: true }])).status,
+      ).toBe(200);
+
+      const { cookie, email } = await signUpWithEmail(app, uniqueEmail());
+      await giveProfile(
+        prisma,
+        email,
+        role.slug,
+        on === "level" ? level.slug : level.slug,
+        on === "stack" ? stack.slug : undefined,
+      );
+      return { role, level, spare, stack, cookie, put };
+    };
+
+    it("refuses, and says how many candidates it would affect", async () => {
+      const { role, level, spare, stack, put } = await roleWithCandidateAt("level");
+
+      const read = async () =>
+        (await http().get(`/api/admin/content/career-roles/${role.id}`).set(as(admin)))
+          .body as CareerRole;
+      const before = await read();
+
+      // Drop the level the candidate is preparing at, keeping the other one.
+      const refused = await put([spare.id], [{ stack_id: stack.id, is_default: true }]);
+      expect(refused.status).toBe(409);
+      expect(refused.body).toMatchObject({ code: "role_level_in_use", details: { profiles: 1 } });
+
+      // Nothing was written: the links are replaced wholesale, so a refusal that half-applied
+      // would be worse than no rule at all.
+      const after = await read();
+      expect(after.levels).toEqual([level.id, spare.id]);
+      expect(after.version).toBe(before.version);
+    });
+
+    it("refuses for a stack the same way", async () => {
+      const { level, spare, put } = await roleWithCandidateAt("stack");
+      const refused = await put([level.id, spare.id], []);
+      expect(refused.status).toBe(409);
+      expect(refused.body).toMatchObject({
+        code: "role_stack_in_use",
+        details: { profiles: 1 },
+      });
+    });
+
+    it("allows dropping a level nobody is preparing at", async () => {
+      const { level, stack, put } = await roleWithCandidateAt("level");
+      // `spare` is the one nobody chose, so taking it off is an ordinary edit.
+      const ok = await put([level.id], [{ stack_id: stack.id, is_default: true }]);
+      expect(ok.status).toBe(200);
+      expect((ok.body as CareerRole).levels).toEqual([level.id]);
     });
   });
 

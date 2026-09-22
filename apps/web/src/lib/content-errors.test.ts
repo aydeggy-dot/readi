@@ -58,6 +58,26 @@ describe("the CMS error map", () => {
     expect(unmapped).toEqual([]);
   });
 
+  it("says how many candidates a refusal is about, and gets the grammar right for one", () => {
+    const many = contentErrorMessage({
+      code: "role_level_in_use",
+      message: "ignored",
+      details: { profiles: 4 },
+    });
+    expect(many).toContain("4 candidates");
+
+    const one = contentErrorMessage({
+      code: "role_level_in_use",
+      message: "ignored",
+      details: { profiles: 1 },
+    });
+    expect(one).toContain("One candidate is");
+    expect(one).not.toContain("1 candidates");
+
+    // A body with no details at all must still produce copy rather than throwing.
+    expect(contentErrorMessage({ code: "role_stack_in_use", message: "ignored" })).toBeTruthy();
+  });
+
   it("does not show the server's message", () => {
     expect(
       contentErrorMessage({ code: "content_slug_taken", message: "slug taken" }),
