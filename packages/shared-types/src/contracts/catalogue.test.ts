@@ -52,6 +52,24 @@ describe("career roles", () => {
     expect(result.error?.issues[0]?.path).toEqual(["stacks"]);
   });
 
+  it("rejects two default stacks: a picker starts in one place", () => {
+    const stacks = [
+      { stack_id: STACK_ID, is_default: true },
+      { stack_id: OTHER_STACK_ID, is_default: true },
+    ];
+    const result = CareerRoleInput.safeParse(roleInput({ stacks }));
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["stacks"]);
+  });
+
+  it("accepts no default at all — the candidate then chooses", () => {
+    const stacks = [
+      { stack_id: STACK_ID, is_default: false },
+      { stack_id: OTHER_STACK_ID, is_default: false },
+    ];
+    expect(CareerRoleInput.safeParse(roleInput({ stacks })).success).toBe(true);
+  });
+
   it("rejects the same question type twice", () => {
     const result = CareerRoleInput.safeParse(
       roleInput({ supported_question_types: ["technical", "technical"] }),

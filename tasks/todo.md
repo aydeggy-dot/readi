@@ -588,6 +588,43 @@ argued, not measured. The catalogue is `docs/role-catalogue.md` (committed at `9
   `levels` as a rubric's level descriptors, which is answer key. Renaming the field was the honest
   fix; weakening the detector was not. Recorded in the contract and in a test.
 
+### Phase 2 — the CMS for the catalogue (done, 2026-09-22)
+
+- [x] Three new sections in `/admin/content`: **Roles**, **Levels**, **Stacks** — list, create and
+      edit pages each, with the no-JavaScript filter bar, the keyset pager, and the same
+      review/transition/version panels as every other entity. The nav bar is eight items now and
+      still scrolls sideways at 360px
+- [x] `career-role-form.tsx`: name, slug, summary, position, interview types, and the levels and
+      stacks the role offers. The links are part of the role (the `TrackInput.topics` shape), not
+      sub-resources, so they are saved with it
+- [x] **The order a role lists its levels and stacks in is preserved on save.** `catalogue-order.ts`
+      draws what the role already offers first, in its order, then the rest of the catalogue, and a
+      newly ticked row joins the end — so opening a seeded role and pressing Save does not reshuffle
+      the candidate's picker. Five unit tests
+- [x] `catalogue-form.tsx` serves levels and stacks: they differ by one field and one endpoint, and
+      two files of the same form would drift
+- [x] Choices are sorted for a picker rather than for a worklist — levels by rank, stacks by name —
+      because the API lists come back "most recently edited first" (`catalogue-choices.ts`)
+- [x] The six new refusal codes are mapped to copy (`content-errors.ts`); the CMS never shows the
+      API's English (ADR-0012)
+- [x] The `in_review` queue on the CMS home covers the catalogue too: a submitted role nobody
+      publishes is the same stall as a submitted question
+- [x] **At most one default stack** — a new refine on `CareerRoleInput`, because the picker starts
+      in one place and two defaults would make it arbitrary. The form uses a radio group, so the
+      rule is visible before the API has to enforce it. Contract test + integration test
+- [x] e2e `catalogue.spec.ts`: an admin adds a level, a stack and a role, is refused the publish
+      until the level is out, publishes all three, and the candidate catalogue returns the role with
+      its label, level and stack — then the level cannot be retired out from under it
+- [x] Checks: lint, typecheck, `pnpm test` (311 API, 116 web), `pnpm test:e2e` (6 passed)
+- [x] Walked by hand at 360px in Chromium (dev servers, seeded catalogue): both lists, the role
+      editor, create → submit → publish, both refusals with their copy. The dev database was put
+      back afterwards — the check role deleted and `intern-junior` returned to draft; the audit log
+      keeps its record, as it should
+
+**Known limit, deliberate:** the role editor offers one page of levels and stacks (100 each, far
+above the per-role limits of 8 and 20). If the catalogue ever outgrows that, the editor says so
+rather than letting a save drop what it never showed — `admin.content.role.catalogueCapped`.
+
 ## Carried forward
 
 - **M3/M4 — pin the content a session was scored against.** Every `InterviewSession` must record the

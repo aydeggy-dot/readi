@@ -316,7 +316,13 @@
         "tracks": "Tracks",
         "tracksLead": "A programme for one role and level, with its modules.",
         "topics": "Topics",
-        "topicsLead": "The taxonomy every question and lesson hangs from."
+        "topicsLead": "The taxonomy every question and lesson hangs from.",
+        "roles": "Roles",
+        "rolesLead": "The roles a candidate prepares for, and what each one offers.",
+        "levels": "Levels",
+        "levelsLead": "The ladder a role is hired at, lowest first.",
+        "stacks": "Stacks",
+        "stacksLead": "The variants a role is interviewed for, like Java / Spring."
       },
       "workflow": "A content expert writes and submits; an admin publishes. Candidates only ever see published content — and a lesson also needs its track published, a question its rubric.",
       "queue": {
@@ -359,7 +365,11 @@
         "version": "v{version}",
         "criteria": "{count} criteria",
         "modules": "{count} modules",
-        "difficulty": "Difficulty {value}"
+        "difficulty": "Difficulty {value}",
+        "roleLevels": "{count} levels",
+        "roleStacks": "{count} stacks",
+        "usedByRoles": "Offered by {count} roles",
+        "rank": "Rank {value}"
       },
       "actions": {
         "newQuestion": "New question",
@@ -373,7 +383,10 @@
         "create": "Create",
         "back": "Back to the list",
         "openTrack": "Open its track",
-        "publishedReadOnly": "This is published — candidates are reading it now, so changing its words is an admin's call. Ask an admin, or have it retired first."
+        "publishedReadOnly": "This is published — candidates are reading it now, so changing its words is an admin's call. Ask an admin, or have it retired first.",
+        "newRole": "New role",
+        "newLevel": "New level",
+        "newStack": "New stack"
       },
       "errors": {
         "slugTaken": "That slug is already in use.",
@@ -386,7 +399,11 @@
         "notFound": "That item no longer exists.",
         "unreviewedAiDraft": "A model drafted this and nobody has marked it reviewed, so it cannot be published here. Have an expert review it, or publish it anyway if you are certain.",
         "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft.",
-        "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first."
+        "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first.",
+        "roleHasNoPublishedLevel": "Publish one of the role's levels first, or a candidate would be offered a role with nothing to choose.",
+        "levelInUse": "A published role still offers this level. Retire the role, or take the level off it first.",
+        "stackInUse": "A published role still offers this stack. Retire the role, or take the stack off it first.",
+        "oneDefaultStack": "Only one stack can be the default."
       },
       "transition": {
         "legend": "Workflow",
@@ -528,6 +545,41 @@
         "done": "Marked reviewed.",
         "reviewedOn": "Reviewed on {date}.",
         "note": "Note for the review"
+      },
+      "role": {
+        "name": "Name",
+        "nameHint": "What a candidate sees when choosing, like “Backend engineer”.",
+        "slug": "Slug",
+        "summary": "Summary",
+        "summaryHint": "One line about the work, shown under the name.",
+        "position": "Position",
+        "positionHint": "Where it sits in the list a candidate chooses from; ties break by name.",
+        "questionTypes": "Interview types",
+        "questionTypesHint": "What a session for this role may contain. QA needs test design; most engineering roles do not.",
+        "levels": "Levels offered",
+        "levelsHint": "A role needs at least one published level before it can be published. Candidates see them in the order below; a level you add joins the end.",
+        "noLevels": "No levels yet. Add one under Levels first.",
+        "stacks": "Stacks offered",
+        "stacksHint": "Leave them all unticked for a role with no variants. The default is where the candidate's picker starts.",
+        "noStacks": "No stacks yet. Add one under Stacks first.",
+        "default": "Default",
+        "unpublished": "Not published yet",
+        "catalogueCapped": "Showing the first {count}. Search the Levels and Stacks lists for the rest."
+      },
+      "level": {
+        "name": "Name",
+        "slug": "Slug",
+        "summary": "Summary",
+        "summaryHint": "One line about who this level is for.",
+        "rank": "Rank",
+        "rankHint": "Lowest first. Leave gaps (10, 20, 30) so a level can be added between two others."
+      },
+      "stack": {
+        "name": "Name",
+        "nameHint": "The variant as a candidate would say it, like “Java / Spring”.",
+        "slug": "Slug",
+        "summary": "Summary",
+        "summaryHint": "Optional. One line, if the name is not self-explanatory."
       }
     }
   },

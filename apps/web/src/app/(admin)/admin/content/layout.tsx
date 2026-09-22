@@ -3,13 +3,26 @@ import { NavLink } from "@/components/layout/nav-link";
 import { t } from "@/i18n";
 import { requireContentEditor } from "@/lib/session";
 
-const SECTIONS = ["questions", "rubrics", "lessons", "tracks", "topics"] as const;
+/**
+ * The catalogue (roles, levels, stacks) sits at the end: it is set up once and then rarely
+ * touched, unlike the questions someone is writing today.
+ */
+const SECTIONS = [
+  "questions",
+  "rubrics",
+  "lessons",
+  "tracks",
+  "topics",
+  "roles",
+  "levels",
+  "stacks",
+] as const;
 
 /**
  * The CMS. A content expert and an admin both work here; who may *publish* is decided per
  * transition, not per route (ADR-0014 decision 1), so this only has to keep everyone else out.
  *
- * The section bar scrolls sideways rather than wrapping: five items at 360px, in the order they
+ * The section bar scrolls sideways rather than wrapping: eight items at 360px, in the order they
  * are worked on — questions first, because that is where most of the day goes.
  */
 export default async function ContentLayout({ children }: { children: ReactNode }) {

@@ -17,6 +17,13 @@ const MESSAGES: Record<string, () => string> = {
   content_unreviewed_ai_draft: () => t("admin.content.errors.unreviewedAiDraft"),
   content_not_unreviewed: () => t("admin.content.errors.notUnreviewed"),
   content_edit_needs_admin: () => t("admin.content.errors.editNeedsAdmin"),
+  // The catalogue (ADR-0015).
+  career_role_has_no_published_level: () => t("admin.content.errors.roleHasNoPublishedLevel"),
+  level_in_use: () => t("admin.content.errors.levelInUse"),
+  stack_in_use: () => t("admin.content.errors.stackInUse"),
+  career_role_not_found: () => t("admin.content.errors.notFound"),
+  career_level_not_found: () => t("admin.content.errors.notFound"),
+  stack_not_found: () => t("admin.content.errors.notFound"),
   track_not_found: () => t("admin.content.errors.notFound"),
   lesson_not_found: () => t("admin.content.errors.notFound"),
   question_not_found: () => t("admin.content.errors.notFound"),

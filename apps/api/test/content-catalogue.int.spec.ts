@@ -217,6 +217,27 @@ describe("the catalogue: career roles, levels and stacks", () => {
       expect(JSON.stringify(response.body)).toContain("levels");
     });
 
+    it("refuses two default stacks, because a picker starts in one place", async () => {
+      const [first, second] = await Promise.all([createStack(admin), createStack(admin)]);
+      const response = await http()
+        .post("/api/admin/content/career-roles")
+        .set(as(admin))
+        .send({
+          slug: `role-${id()}`,
+          name: "Two defaults",
+          summary: null,
+          position: 91,
+          supported_question_types: ["technical"],
+          levels: [],
+          stacks: [
+            { stack_id: first.id, is_default: true },
+            { stack_id: second.id, is_default: true },
+          ],
+        });
+      expect(response.status).toBe(400);
+      expect(JSON.stringify(response.body)).toContain("stacks");
+    });
+
     it("refuses a slug that is already taken", async () => {
       const level = await createLevel(admin);
       const response = await http()

@@ -128,6 +128,15 @@ export const CareerRoleInput = z
   .refine((role) => distinct(role.stacks.map((link) => link.stack_id)), {
     message: "a stack may be listed only once",
     path: ["stacks"],
+  })
+  /*
+   * `is_default` is where the onboarding picker starts, and a picker starts in one place. None is
+   * legitimate — the candidate then has to choose — but two is a content mistake that would make
+   * the default arbitrary, decided by whichever row the query returned first.
+   */
+  .refine((role) => role.stacks.filter((link) => link.is_default).length <= 1, {
+    message: "only one stack can be the default",
+    path: ["stacks"],
   });
 export type CareerRoleInput = z.infer<typeof CareerRoleInput>;
 

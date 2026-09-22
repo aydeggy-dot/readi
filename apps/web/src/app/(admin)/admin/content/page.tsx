@@ -14,6 +14,9 @@ const SECTIONS = [
   { key: "lessons", href: "/admin/content/lessons" },
   { key: "tracks", href: "/admin/content/tracks" },
   { key: "topics", href: "/admin/content/topics" },
+  { key: "roles", href: "/admin/content/roles" },
+  { key: "levels", href: "/admin/content/levels" },
+  { key: "stacks", href: "/admin/content/stacks" },
 ] as const;
 
 interface QueueItem {
@@ -33,11 +36,16 @@ export default async function ContentHomePage() {
   await requireContentEditor();
   const api = await serverApi();
   const query = { status: "in_review" as const, limit: 5 };
-  const [questions, rubrics, lessons, tracks] = await Promise.all([
+  const [questions, rubrics, lessons, tracks, roles, levels, stacks] = await Promise.all([
     api.GET("/api/admin/content/questions", { params: { query } }),
     api.GET("/api/admin/content/rubrics", { params: { query } }),
     api.GET("/api/admin/content/lessons", { params: { query } }),
     api.GET("/api/admin/content/tracks", { params: { query } }),
+    // The catalogue waits in the same queue (ADR-0015): a submitted role nobody publishes is the
+    // same kind of stall as a submitted question, and a queue that covers only some kinds is a trap.
+    api.GET("/api/admin/content/career-roles", { params: { query } }),
+    api.GET("/api/admin/content/career-levels", { params: { query } }),
+    api.GET("/api/admin/content/stacks", { params: { query } }),
   ]);
 
   const waiting: QueueItem[] = [
@@ -63,6 +71,24 @@ export default async function ContentHomePage() {
       href: `/admin/content/tracks/${item.id}`,
       title: item.title,
       kind: t("admin.content.sections.tracks"),
+      updatedAt: item.updated_at,
+    })),
+    ...(roles.data?.items ?? []).map((item) => ({
+      href: `/admin/content/roles/${item.id}`,
+      title: item.name,
+      kind: t("admin.content.sections.roles"),
+      updatedAt: item.updated_at,
+    })),
+    ...(levels.data?.items ?? []).map((item) => ({
+      href: `/admin/content/levels/${item.id}`,
+      title: item.name,
+      kind: t("admin.content.sections.levels"),
+      updatedAt: item.updated_at,
+    })),
+    ...(stacks.data?.items ?? []).map((item) => ({
+      href: `/admin/content/stacks/${item.id}`,
+      title: item.name,
+      kind: t("admin.content.sections.stacks"),
       updatedAt: item.updated_at,
     })),
   ].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
