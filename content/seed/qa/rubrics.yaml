@@ -1,0 +1,66 @@
+version: 1
+author: ai_draft
+status: draft
+
+rubrics:
+  - slug: test-case-selection
+    name: Choosing test cases
+    criteria:
+      - dimension: Covers the obvious ground economically
+        description: Valid and invalid inputs chosen by partition rather than by listing examples.
+        weight: 35
+        levels:
+          "0": A handful of arbitrary cases.
+          "1": Many cases from the same equivalence class.
+          "2": Valid and invalid cases, without a stated reason for the selection.
+          "3": Partitions the input space and takes one case from each.
+          "4": As 3, and says what is deliberately not being tested, and why.
+      - dimension: Tests the edges
+        description: Boundaries, empty values, maximum lengths, and the values either side of a rule.
+        weight: 35
+        levels:
+          "0": No boundary cases.
+          "1": One boundary, found by chance.
+          "2": Some boundaries, missing the values either side.
+          "3": Tests each boundary and its neighbours.
+          "4": As 3, including edges that are easy to forget — empty input, whitespace, very long values, duplicates.
+      - dimension: Thinks past the happy path
+        description: States and sequences — double submission, going back, a dropped connection, a slow network.
+        weight: 30
+        levels:
+          "0": Happy path only.
+          "1": One error case, and only the one the form was designed for.
+          "2": Several error cases, all of them about input validation.
+          "3": Covers behaviour as well as input — resubmission, navigation, failure mid-request.
+          "4": As 3, with cases drawn from how the software will really be used here (bad connection, small screen).
+
+  - slug: defect-report-quality
+    name: Reporting a defect
+    criteria:
+      - dimension: Reproducible by someone else
+        description: Steps precise enough that a developer reaches the same screen without asking.
+        weight: 40
+        levels:
+          "0": A description of the problem with no steps.
+          "1": Steps that skip preconditions or assume the reader's setup.
+          "2": Mostly complete steps, missing test data or an account detail.
+          "3": Numbered steps, preconditions, and the data used.
+          "4": As 3, and states how often it happens out of how many attempts.
+      - dimension: Separates observation from interpretation
+        description: What happened and what was expected, kept apart from a theory about the cause.
+        weight: 30
+        levels:
+          "0": A theory with no observation.
+          "1": Observation and cause mixed together in one sentence.
+          "2": Both present, but the title is a guess at the cause.
+          "3": Clear observed versus expected, with the source of the expectation named.
+          "4": As 3, with a theory offered separately and marked as one.
+      - dimension: Gives the evidence and the context
+        description: Build, environment, device, time, and an attachment that shows it.
+        weight: 30
+        levels:
+          "0": No context.
+          "1": Environment only.
+          "2": Some context, missing the build or the time.
+          "3": Build, environment, device and time, with a screenshot or recording.
+          "4": As 3, plus logs, a request id, or a network capture that points to where it failed.

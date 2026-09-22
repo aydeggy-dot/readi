@@ -85,7 +85,8 @@
     "profile": "Profile",
     "admin": "Admin",
     "main": "Main",
-    "wordmark": "Readi home"
+    "wordmark": "Readi home",
+    "content": "Content"
   },
   "auth": {
     "email": "Email",
@@ -294,13 +295,240 @@
   },
   "admin": {
     "title": "Admin",
-    "description": "Platform administration. Content management arrives in Milestone M2.",
+    "description": "Platform administration.",
     "usersTotal": "Users",
     "byRole": "Users by role",
     "roles": {
       "candidate": "Candidates",
       "content_expert": "Content experts",
       "admin": "Admins"
+    },
+    "content": {
+      "title": "Content",
+      "description": "The tracks, lessons, questions and rubrics candidates practise with.",
+      "sections": {
+        "questions": "Questions",
+        "questionsLead": "What the interviewer asks, and what a strong answer covers.",
+        "rubrics": "Rubrics",
+        "rubricsLead": "How an answer is scored: criteria, weights and five level descriptors.",
+        "lessons": "Lessons",
+        "lessonsLead": "The reading inside a track's modules.",
+        "tracks": "Tracks",
+        "tracksLead": "A programme for one role and level, with its modules.",
+        "topics": "Topics",
+        "topicsLead": "The taxonomy every question and lesson hangs from."
+      },
+      "workflow": "A content expert writes and submits; an admin publishes. Candidates only ever see published content — and a lesson also needs its track published, a question its rubric.",
+      "queue": {
+        "title": "Waiting for an admin",
+        "empty": "Nothing is waiting to be published.",
+        "lead": "Submitted for review, newest first."
+      },
+      "status": {
+        "label": "Status",
+        "draft": "Draft",
+        "in_review": "In review",
+        "published": "Published",
+        "retired": "Retired"
+      },
+      "seed": {
+        "badge": "From the seed files",
+        "badgeHint": "Still maintained in content/seed. Saving a change here makes this page the source of it, and a re-import will leave it alone.",
+        "owned": "Edited here",
+        "ownedHint": "content/seed no longer overwrites this item."
+      },
+      "filters": {
+        "legend": "Filter",
+        "search": "Search",
+        "searchHint": "Matches the slug and the title.",
+        "status": "Status",
+        "role": "Role",
+        "level": "Level",
+        "type": "Type",
+        "topic": "Topic",
+        "any": "Any",
+        "apply": "Apply",
+        "clear": "Clear filters",
+        "more": "Narrow it down"
+      },
+      "list": {
+        "empty": "Nothing here yet.",
+        "emptyFiltered": "Nothing matches those filters.",
+        "more": "Next page",
+        "updated": "Edited {when}",
+        "version": "v{version}",
+        "criteria": "{count} criteria",
+        "modules": "{count} modules",
+        "difficulty": "Difficulty {value}"
+      },
+      "actions": {
+        "newQuestion": "New question",
+        "newRubric": "New rubric",
+        "newTrack": "New track",
+        "newTopic": "New topic",
+        "newModule": "Add a module",
+        "newLesson": "Add a lesson",
+        "save": "Save",
+        "saved": "Saved.",
+        "create": "Create",
+        "back": "Back to the list",
+        "openTrack": "Open its track",
+        "publishedReadOnly": "This is published — candidates are reading it now, so changing its words is an admin's call. Ask an admin, or have it retired first."
+      },
+      "errors": {
+        "slugTaken": "That slug is already in use.",
+        "weights": "The weights must add up to 100.",
+        "rubricNotPublished": "Publish the question's rubric first.",
+        "trackHasNoModules": "A track needs at least one module before it can be published.",
+        "trackAlreadyPublished": "Another track is already published for this role and level.",
+        "transitionForbidden": "That move is not yours to make.",
+        "transitionInvalid": "This item is not in a state that allows that move.",
+        "notFound": "That item no longer exists.",
+        "unreviewedAiDraft": "A model drafted this and nobody has marked it reviewed, so it cannot be published here. Have an expert review it, or publish it anyway if you are certain.",
+        "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft.",
+        "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first."
+      },
+      "transition": {
+        "legend": "Workflow",
+        "submit": "Submit for review",
+        "publish": "Publish",
+        "retire": "Retire",
+        "return_to_draft": "Send back to draft",
+        "note": "Note for the history",
+        "notePlaceholder": "What changed, and why (optional)",
+        "confirmRetire": "Retire this? Candidates stop seeing it immediately.",
+        "confirmPublish": "Publish this? Candidates can see it as soon as you do.",
+        "done": "Now: {status}.",
+        "nothing": "Nothing to do from here.",
+        "publishAnyway": "Publish without a review",
+        "confirmUnreviewed": "This is an unreviewed AI draft. Publishing it puts words no expert has checked in front of candidates, and it is recorded against your name."
+      },
+      "versions": {
+        "title": "History",
+        "lead": "Every version of this item, newest first. A version is kept only when the content actually changed.",
+        "none": "No earlier versions.",
+        "entry": "Version {version}",
+        "show": "Show what it said",
+        "hide": "Hide",
+        "changeNote": "Note: {note}",
+        "noNote": "No note.",
+        "failed": "Couldn't load the history."
+      },
+      "markdown": {
+        "write": "Write",
+        "preview": "Preview",
+        "empty": "Nothing to preview yet.",
+        "hint": "Markdown. Headings, lists, links and code."
+      },
+      "duplicates": {
+        "title": "Close to questions we already have",
+        "lead": "A warning, not a refusal — you decide whether it is really the same question.",
+        "match": "{percent}% alike",
+        "check": "Check for near-duplicates",
+        "none": "Nothing close found.",
+        "unavailable": "Couldn't check for near-duplicates just now."
+      },
+      "question": {
+        "new": "New question",
+        "slug": "Slug",
+        "slugHint": "Permanent: the seed files and the importer match on it. Lowercase words joined by hyphens.",
+        "type": "Type",
+        "roles": "Roles",
+        "rolesHint": "A question may suit more than one role.",
+        "levels": "Levels",
+        "topic": "Topic",
+        "subtopic": "Subtopic",
+        "subtopicHint": "Optional, freer than the topic: 'useEffect', 'index design'.",
+        "difficulty": "Difficulty",
+        "difficultyHint": "1 is a warm-up, 5 is hard for the level it is aimed at.",
+        "prompt": "The question",
+        "promptHint": "What the interviewer asks, in the interviewer's words.",
+        "context": "Setup",
+        "contextHint": "Optional: what the candidate is given before the question.",
+        "rubric": "Rubric",
+        "rubricHint": "Only a published rubric lets a question be published.",
+        "idealPoints": "What a strong answer covers",
+        "idealPointsHint": "The answer key. Never shown to a candidate; the evaluator scores against it.",
+        "addPoint": "Add a point",
+        "removePoint": "Remove point {number}",
+        "types": {
+          "behavioral": "Behavioural",
+          "technical": "Technical",
+          "scenario": "Scenario",
+          "test_design": "Test design"
+        }
+      },
+      "rubric": {
+        "new": "New rubric",
+        "name": "Name",
+        "slug": "Slug",
+        "criteria": "Criteria",
+        "criteriaHint": "Between 2 and 8. The weights must add up to 100.",
+        "criterion": "Criterion {number}",
+        "dimension": "What is being judged",
+        "criterionDescription": "What it means",
+        "weight": "Weight",
+        "weightTotal": "Weights add up to {total} of 100.",
+        "weightOk": "Weights add up to 100.",
+        "levels": "Level descriptors",
+        "levelsHint": "0 is absent, 4 is excellent. Two readers of the same answer should land on the same number.",
+        "level": "Level {level}",
+        "addCriterion": "Add a criterion",
+        "removeCriterion": "Remove criterion {number}",
+        "usedBy": "Used by {count} questions"
+      },
+      "lesson": {
+        "title": "Title",
+        "slug": "Slug",
+        "body": "The lesson",
+        "topic": "Topic",
+        "noTopic": "No topic",
+        "position": "Position",
+        "positionHint": "Order within the module, from 0.",
+        "minutes": "Estimated minutes",
+        "inModule": "In {module}"
+      },
+      "track": {
+        "new": "New track",
+        "title": "Title",
+        "slug": "Slug",
+        "summary": "Summary",
+        "role": "Role",
+        "level": "Level",
+        "roleLevelHint": "Only one track may be published per role and level.",
+        "topics": "Topics covered",
+        "topicsHint": "Core topics drive the readiness score.",
+        "core": "Core",
+        "modules": "Modules",
+        "modulesHint": "A module has no status of its own: it is published with its track.",
+        "moduleTitle": "Title",
+        "moduleSlug": "Slug",
+        "moduleSummary": "Summary",
+        "modulePosition": "Position",
+        "noModules": "No modules yet. A track needs at least one before it can be published.",
+        "noLessons": "No lessons in this module yet.",
+        "editModule": "Edit module",
+        "saveModule": "Save module"
+      },
+      "topic": {
+        "name": "Name",
+        "slug": "Slug",
+        "description": "Description",
+        "descriptionHint": "One line, for the people writing content.",
+        "rename": "Rename",
+        "created": "Topic added."
+      },
+      "review": {
+        "badge": "AI draft, unreviewed",
+        "badgeHint": "A model drafted this and nobody has marked it reviewed. It can be published here for development, but in production publishing it is refused until someone has.",
+        "legend": "Expert review",
+        "lead": "A model drafted this. Mark it reviewed once you have read it and stand behind it — the question, its answer key and every level descriptor of its rubric.",
+        "action": "Mark as reviewed",
+        "confirm": "Mark this reviewed? It records your name against it, and it is what lets it be published in production.",
+        "done": "Marked reviewed.",
+        "reviewedOn": "Reviewed on {date}.",
+        "note": "Note for the review"
+      }
     }
   },
   "status": {

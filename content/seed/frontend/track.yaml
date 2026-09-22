@@ -1,0 +1,254 @@
+# The frontend programme for interns and juniors: three modules, two lessons each.
+# Draft. Every lesson needs an expert's eye before a candidate reads it.
+version: 1
+author: ai_draft
+status: draft
+
+track:
+  slug: frontend-intern-junior
+  role: frontend
+  level: intern_junior
+  title: Frontend engineer — intern and junior
+  summary: >-
+    What an interviewer expects from someone in their first two years of frontend work: the
+    language, React that stays predictable, and pages that are fast on the phones people here
+    actually use.
+  topics:
+    - { topic: javascript-fundamentals, core: true }
+    - { topic: react-state, core: true }
+    - { topic: browser-rendering, core: true }
+    - { topic: css-layout, core: true }
+    - { topic: web-networking, core: true }
+    - { topic: debugging, core: true }
+    - { topic: collaboration, core: true }
+    - { topic: accessibility, core: false }
+    - { topic: frontend-testing, core: false }
+
+  modules:
+    - slug: javascript-in-the-browser
+      title: JavaScript in the browser you ship to
+      summary: The runtime your code lives in, and the network it depends on.
+      lessons:
+        - slug: how-javascript-runs
+          title: How your JavaScript actually runs
+          topic: javascript-fundamentals
+          estimated_minutes: 12
+          body: |
+            Your page has **one thread** for running JavaScript, and that same thread paints the
+            screen. Everything follows from that.
+
+            When a function is called it goes on the **call stack**. The browser runs it to
+            completion — nothing else happens in that page while it does. A loop that takes 300ms
+            is 300ms in which no button responds and no frame is drawn. This is why "the page
+            froze" is usually not the network.
+
+            Work that finishes later does not interrupt the running code. It waits in a queue:
+
+            - **Tasks** (also called macrotasks): `setTimeout`, a click, a `fetch` response
+              arriving.
+            - **Microtasks**: promise callbacks — `.then`, and everything after an `await`.
+
+            After the stack empties, the browser drains **all** microtasks, then takes one task,
+            then considers painting. So a promise chain that never stops queueing more microtasks
+            can starve rendering just as effectively as a long loop.
+
+            ```js
+            console.log("1");
+            setTimeout(() => console.log("4"), 0);
+            Promise.resolve().then(() => console.log("3"));
+            console.log("2");
+            ```
+
+            The order is 1, 2, 3, 4. `setTimeout(…, 0)` does not mean "now" — it means "after the
+            current work and after the microtasks".
+
+            Two practical consequences:
+
+            1. **Long work belongs off the main thread** or broken into pieces. On a mid-range
+               Android phone the main thread is the scarce resource, not bandwidth.
+            2. **`await` does not block anything but the function it is in.** The rest of the page
+               carries on. Two independent requests should be started together and awaited
+               together (`Promise.all`), not one after the other.
+
+        - slug: data-over-the-network
+          title: Fetching data, and what happens when it fails
+          topic: web-networking
+          estimated_minutes: 12
+          body: |
+            The happy path is the easy half. On a Nigerian mobile network your page will meet slow
+            responses, dropped connections and captive portals that return HTML where you expected
+            JSON — and the difference between a junior and a mid-level engineer is usually how
+            much of that they thought about.
+
+            **`fetch` only rejects when the request could not be made at all.** A 404 or a 500 is a
+            *successful* fetch with an unhappy status. This is the single most common mistake in
+            frontend error handling:
+
+            ```js
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`); // without this, a 500
+            const data = await response.json();                          // becomes a parse error
+            ```
+
+            **Every screen that loads data has four states**, and all four need a design: loading,
+            empty ("no jobs match this filter" is not an error), error, and data. A spinner that
+            never resolves is a bug with no error message.
+
+            **Give requests a deadline.** A phone that has lost signal does not fail fast; it hangs.
+            `AbortController` plus a timer turns that into an error you can show and a retry the
+            user can choose.
+
+            **Retry carefully.** Retrying a `GET` is usually safe. Retrying a payment because the
+            response did not arrive can take money twice — that is why the API gives you an
+            idempotency key. When in doubt, ask, and say so in the interview.
+
+            Finally: show *something* useful while waiting. A skeleton that matches the shape of
+            the content beats a spinner, because the page does not jump when the data lands.
+
+    - slug: react-that-stays-predictable
+      title: React that stays predictable
+      summary: Where data lives, and why most effects are a mistake.
+      lessons:
+        - slug: where-state-lives
+          title: Where state should live
+          topic: react-state
+          estimated_minutes: 12
+          body: |
+            Most confusing React components are confusing because the same fact is stored in two
+            places. The cure is a habit, not a library.
+
+            **Start local.** State belongs in the component that uses it. A dropdown's open/closed
+            flag has no business above the dropdown.
+
+            **Lift only when two components need the same fact.** Move it to their nearest common
+            parent and pass it down. If that parent is far away and the props have to travel
+            through components that do not care, that is the moment to reach for context or a
+            store — not before.
+
+            **Derive, do not duplicate.** If `fullName` is `firstName + " " + lastName`, it is not
+            state; it is a calculation you do while rendering. Storing it means two things to keep
+            in step, and they will drift.
+
+            ```jsx
+            // no
+            const [total, setTotal] = useState(0);
+            useEffect(() => setTotal(items.reduce(sum, 0)), [items]);
+
+            // yes
+            const total = items.reduce(sum, 0);
+            ```
+
+            **Server data is not UI state.** A list of jobs fetched from an API is a *cache* of
+            something that lives elsewhere: it can be stale, it can fail, it needs refetching. Copying
+            it into `useState` and editing it by hand is how lists get out of step with the server.
+            This is what TanStack Query and friends exist for.
+
+            **The URL is state too.** A filter, a page number, a selected tab: putting them in the
+            URL means a candidate can share a link, reload without losing their place, and use the
+            back button. It costs nothing and interviewers notice.
+
+        - slug: effects-you-do-not-need
+          title: Effects you probably do not need
+          topic: react-state
+          estimated_minutes: 10
+          body: |
+            `useEffect` is for synchronising with something **outside** React — the network, a
+            timer, a subscription, the document title, a map widget. Almost every other use of it
+            is a bug waiting to happen, because an effect runs *after* render, which means the user
+            sees one frame of the wrong thing first.
+
+            Three patterns worth recognising, because interviewers ask about all three:
+
+            **1. Deriving state in an effect.** If it can be calculated during render, calculate it
+            during render. An effect that calls `setState` from props causes a second render every
+            time.
+
+            **2. Reacting to an event in an effect.** If something should happen *because the user
+            clicked*, do it in the click handler. An effect watching a state variable cannot tell
+            "the user did this" from "this arrived from the server", and it will fire in cases you
+            did not intend.
+
+            **3. Fetching on mount without cleanup.** Two requests race, the slower one lands last,
+            and the screen shows the older answer. Either use a data library, or abort the previous
+            request in the cleanup function:
+
+            ```jsx
+            useEffect(() => {
+              const controller = new AbortController();
+              load(id, controller.signal).then(setJob).catch(ignoreAbort);
+              return () => controller.abort();
+            }, [id]);
+            ```
+
+            A good answer in an interview names the cleanup function and says what it is for. A very
+            good one mentions that in development React mounts components twice on purpose, exactly
+            so that missing cleanup shows up on your machine rather than on a user's.
+
+    - slug: fast-on-a-mid-range-phone
+      title: Fast on a mid-range Android phone
+      summary: What actually costs time, and how to find out rather than guess.
+      lessons:
+        - slug: what-makes-a-page-slow
+          title: What actually makes a page slow
+          topic: browser-rendering
+          estimated_minutes: 12
+          body: |
+            "It feels slow" is not a diagnosis. There are two different budgets, and they fail
+            differently.
+
+            **The network budget** is bytes and round trips. It hurts most on a first visit, on 3G,
+            and on a data plan people pay for by the megabyte. Watch: total transferred size, how
+            many requests block the first paint, and whether anything large is downloaded before the
+            page is usable.
+
+            **The CPU budget** is time on that one main thread. It hurts on every visit. A phone
+            that costs ₦150,000 has perhaps a quarter of the single-core speed of a development
+            laptop, so 200ms of JavaScript parsing and execution on your machine is closer to a
+            second on the device your users hold. Big JavaScript bundles cost twice: once to
+            download, again to parse and run.
+
+            **Measure, then change.** In Chrome DevTools: the Network panel with throttling set to
+            "Slow 4G", and the Performance panel with CPU throttling at 4–6×. Record a load, then
+            look at what the main thread was doing. Lighthouse gives you the same picture as a
+            score, which is useful for tracking but hides which of the two budgets you blew.
+
+            The three numbers worth knowing by name:
+
+            - **LCP** — when the largest thing on screen finished rendering. Usually an image or a
+              heading. Hurt by slow servers, render-blocking CSS and late-loading images.
+            - **INP** — how long the page takes to respond to a tap. Hurt by long tasks on the main
+              thread.
+            - **CLS** — how much the layout jumped. Hurt by images and ads without reserved space.
+
+            An interviewer is not looking for these acronyms. They are looking for someone who
+            opens a profiler before opening an editor.
+
+        - slug: images-and-fonts
+          title: Images, fonts and the critical path
+          topic: browser-rendering
+          estimated_minutes: 10
+          body: |
+            On most pages the heaviest things are not code. They are images and fonts, and both have
+            well-known fixes.
+
+            **Images.** Serve the size you display: a 2,000px photo scaled to a 360px column wastes
+            most of what it cost to download. `srcset` and `sizes` let the browser choose. Prefer
+            modern formats (WebP, AVIF) with a fallback. Always set `width` and `height` — the
+            browser then reserves the space and the text below does not jump when the image lands.
+            Use `loading="lazy"` for anything below the fold, and *not* for the main image, which
+            you want early.
+
+            **Fonts.** A custom font blocks the text that uses it. `font-display: swap` shows the
+            fallback immediately and swaps when the font arrives — a brief flash of the wrong font
+            is better than a second of no text at all. Subset to the characters you need, self-host
+            rather than depend on a third party's uptime, and preload only the one or two files
+            needed for the first paint.
+
+            **The critical path** is everything the browser must fetch and process before it can
+            paint. CSS is render-blocking by design: the browser will not show a half-styled page.
+            A synchronous `<script>` in `<head>` blocks parsing entirely — use `defer`. Anything
+            that is not needed for the first screen (a charting library, a rich editor, a map)
+            belongs behind a dynamic import, loaded when the user actually needs it.
+
+            The habit to build: before adding a dependency, ask what it costs on a phone. Most
+            "small" packages are not.

@@ -86,3 +86,133 @@ export const ACCOUNT_DELETION = {
 
 /** Data export (ADR-0011): how long the CV download link in an export stays valid. */
 export const DATA_EXPORT_CV_LINK_MINUTES = 15;
+
+// -----------------------------------------------------------------------------------------------
+// Learning content (spec §4.2, §4.8; ADR-0014).
+
+/**
+ * The content workflow. Only `published` content reaches candidates; `retired` is withdrawn
+ * without being deleted, because sessions and reports still reference it.
+ */
+export const CONTENT_STATUSES = ["draft", "in_review", "published", "retired"] as const;
+
+/** What kind of answer a question asks for (spec §4.2; `test_design` and `scenario` are QA's). */
+export const QUESTION_TYPES = ["behavioral", "technical", "scenario", "test_design"] as const;
+
+/** Entities that carry version history, in `content_versions.entity_type`. */
+export const CONTENT_ENTITY_TYPES = ["track", "module", "lesson", "question", "rubric"] as const;
+
+/** Why a candidate flagged a question (spec §6.1 `ContentFlag`). */
+export const CONTENT_FLAG_REASONS = [
+  "unclear",
+  "incorrect",
+  "duplicate",
+  "offensive",
+  "other",
+] as const;
+
+export const CONTENT_FLAG_STATUSES = ["open", "reviewing", "resolved", "rejected"] as const;
+
+/** Slugs are the stable key seed files and URLs use: lowercase words joined by single hyphens. */
+export const SLUG_PATTERN = "^[a-z0-9]+(?:-[a-z0-9]+)*$";
+
+/** Difficulty is 1–5 (spec §6.1). */
+export const DIFFICULTY_RANGE = { min: 1, max: 5 } as const;
+
+/** A rubric's criterion weights must add up to exactly this (checked before publishing). */
+export const RUBRIC_WEIGHT_TOTAL = 100;
+
+/** The five rubric levels every criterion describes, 0 (absent) to 4 (excellent). */
+export const RUBRIC_LEVELS = ["0", "1", "2", "3", "4"] as const;
+
+/**
+ * Who may move a piece of content where (spec §4.8, ADR-0014 decision 1). A content expert writes
+ * and submits; only an admin publishes or retires.
+ *
+ * It lives here, with the other plain values, because two sides need the same table: the API
+ * enforces it (`apps/api/src/content/content-workflow.ts`, which is still the guard), and the CMS
+ * draws only the buttons that would work. A second copy in the web app would drift.
+ */
+export const CONTENT_TRANSITIONS = {
+  submit: {
+    from: ["draft"],
+    to: "in_review",
+    roles: ["content_expert", "admin"],
+    /** The verb the audit log records, as `content.<entity>.<verb>`. */
+    verb: "submitted",
+  },
+  return_to_draft: {
+    from: ["in_review", "retired"],
+    to: "draft",
+    roles: ["content_expert", "admin"],
+    verb: "returned_to_draft",
+  },
+  publish: { from: ["in_review"], to: "published", roles: ["admin"], verb: "published" },
+  retire: { from: ["published"], to: "retired", roles: ["admin"], verb: "retired" },
+} as const satisfies Record<
+  string,
+  {
+    from: readonly (typeof CONTENT_STATUSES)[number][];
+    to: (typeof CONTENT_STATUSES)[number];
+    roles: readonly (typeof ROLES)[number][];
+    verb: string;
+  }
+>;
+
+/** The moves a role could make from a status, so the CMS draws only the buttons that work. */
+export function availableTransitions(
+  status: (typeof CONTENT_STATUSES)[number],
+  role: (typeof ROLES)[number],
+): (keyof typeof CONTENT_TRANSITIONS)[] {
+  const names = Object.keys(CONTENT_TRANSITIONS) as (keyof typeof CONTENT_TRANSITIONS)[];
+  return names.filter((name) => {
+    const rule = CONTENT_TRANSITIONS[name];
+    return (
+      (rule.roles as readonly string[]).includes(role) &&
+      (rule.from as readonly string[]).includes(status)
+    );
+  });
+}
+
+export const CONTENT_LIMITS = {
+  slugMaxLength: 80,
+  titleMaxLength: 140,
+  summaryMaxLength: 400,
+  /** Lesson bodies are markdown; long enough for a full lesson, short enough to render fast. */
+  lessonBodyMaxLength: 20_000,
+  lessonMinutesMax: 120,
+  questionPromptMaxLength: 2_000,
+  questionContextMaxLength: 4_000,
+  subtopicMaxLength: 80,
+  idealPoints: 10,
+  idealPointMaxLength: 300,
+  /** House style is 3–5 criteria; the contract leaves room without inviting a wall of them. */
+  rubricCriteria: { min: 2, max: 8 },
+  dimensionMaxLength: 80,
+  criterionDescriptionMaxLength: 300,
+  levelDescriptorMaxLength: 300,
+  changeNoteMaxLength: 200,
+  /** Seed-file notes from the drafter to the reviewing expert (`/content/seed`). */
+  reviewerNotesMaxLength: 1_000,
+  flagNoteMaxLength: 500,
+  searchMaxLength: 100,
+  pageSize: { default: 20, max: 100 },
+  /** Keyset cursors are base64url of `{updated_at, id}`; this leaves room for both. */
+  cursorMaxLength: 200,
+} as const;
+
+/**
+ * Cosine similarity above which two questions are reported as near-duplicates (ADR-0006). A
+ * warning, never a block: the API returns the matches and a human decides.
+ */
+export const CONTENT_DUPLICATE_THRESHOLD = 0.92;
+
+/** Embedding vector length; must match the `vector(N)` column in the migration (ADR-0006). */
+export const EMBEDDING_DIMENSIONS = 1024;
+
+/**
+ * One request to the worker's embedding route. `textMaxLength` comfortably holds a question's
+ * prompt and its context together; `batchMax` keeps a re-embed run's requests small enough to
+ * retry cheaply.
+ */
+export const EMBEDDING_LIMITS = { textMaxLength: 8_000, batchMax: 32 } as const;

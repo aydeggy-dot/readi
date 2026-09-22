@@ -14,6 +14,11 @@ TOKEN_PRICES: dict[tuple[str, str], tuple[int, int]] = {
     ("anthropic", "claude-sonnet-5"): (2_000_000, 10_000_000),
     ("anthropic", "claude-haiku-4-5"): (1_000_000, 5_000_000),
     ("fake", "fake"): (0, 0),
+    # Embeddings have no output side. This figure is an ESTIMATE: it was set before we had a
+    # Voyage key, so nobody has checked it against voyageai.com/pricing. Confirm it with the first
+    # real call (the M2 handover says how) and correct it here — `ai_call_log` cost is only ever
+    # an estimate, but it should not be a guess.
+    ("voyage", "voyage-4"): (60_000, 0),
 }
 
 

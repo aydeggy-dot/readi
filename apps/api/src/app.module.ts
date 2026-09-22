@@ -9,6 +9,7 @@ import { AiWorkerModule } from "./ai-worker/ai-worker.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { ConsentsModule } from "./consents/consents.module";
+import { ContentModule } from "./content/content.module";
 import { CvModule } from "./cv/cv.module";
 import type { Env } from "./config/env";
 import { EnvModule } from "./config/env.module";
@@ -43,6 +44,7 @@ export class AppModule {
         ProfilesModule,
         ConsentsModule,
         CvModule,
+        ContentModule,
         AccountModule,
         AdminModule,
       ],

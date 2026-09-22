@@ -1,7 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { uniqueEmail } from "../helpers";
+import { grantRole, seedContent, uniqueEmail } from "../helpers";
 
 /**
  * Before/after screenshots of every screen, for reviewing a visual change (D1 and later UI
@@ -16,7 +15,6 @@ import { uniqueEmail } from "../helpers";
  */
 const label = process.env.E2E_SCREENSHOTS;
 const OUT = fileURLToPath(new URL("../../../../screenshots", import.meta.url));
-const API_DIR = fileURLToPath(new URL("../../../api", import.meta.url));
 const CV_FIXTURE = fileURLToPath(new URL("../fixtures/cv.pdf", import.meta.url));
 const PASSWORD = "correct horse battery staple";
 
@@ -42,6 +40,14 @@ const SCREENS = [
   ["18-profile-consent", "/profile/consent", "done"],
   ["19-profile-account", "/profile/account", "done"],
   ["20-admin", "/admin", "done"],
+  ["21-content-home", "/admin/content", "expert"],
+  ["22-content-questions", "/admin/content/questions", "expert"],
+  ["23-content-question-new", "/admin/content/questions/new", "expert"],
+  ["24-content-rubrics", "/admin/content/rubrics", "expert"],
+  ["25-content-rubric-new", "/admin/content/rubrics/new", "expert"],
+  ["26-content-lessons", "/admin/content/lessons", "expert"],
+  ["27-content-tracks", "/admin/content/tracks", "expert"],
+  ["28-content-topics", "/admin/content/topics", "expert"],
 ] as const satisfies ReadonlyArray<readonly [string, string, StateKey | null]>;
 
 /** 360px is the narrowest width we support; 1280px is where the desktop layout applies. */
@@ -51,7 +57,7 @@ const VIEWPORTS = [
 ] as const;
 const THEMES = ["light", "dark"] as const;
 
-type StateKey = "fresh" | "mid" | "done";
+type StateKey = "fresh" | "mid" | "done" | "expert";
 type States = Record<StateKey, Awaited<ReturnType<BrowserContext["storageState"]>>>;
 
 async function signUp(page: Page, address: string): Promise<void> {
@@ -74,23 +80,9 @@ async function fillProfile(page: Page, name: string): Promise<void> {
   await page.waitForURL(/\/onboarding\/cv$/);
 }
 
-/** Makes the role change the same way an operator would, so /admin renders for this account. */
-function grantAdmin(address: string): void {
-  execFileSync("node", ["dist-cli/src/cli/grant-role.js", "--email", address, "--role", "admin"], {
-    cwd: API_DIR,
-    env: {
-      ...process.env,
-      DATABASE_URL:
-        process.env.DATABASE_URL ?? "postgresql://readi:readi@127.0.0.1:15432/readi_e2e",
-      REDIS_URL: process.env.REDIS_URL ?? "redis://127.0.0.1:16379/2",
-    },
-    stdio: "pipe",
-  });
-}
-
 /**
- * Three accounts, each parked at the point that makes a group of screens reachable. They are made
- * once and replayed as cookies, so the 80 screenshots below never mutate anything.
+ * Four accounts, each parked at the point that makes a group of screens reachable. They are made
+ * once and replayed as cookies, so the captures themselves never mutate anything.
  */
 async function seedAccounts(browser: Browser): Promise<States> {
   const states: Partial<States> = {};
@@ -119,10 +111,22 @@ async function seedAccounts(browser: Browser): Promise<States> {
   await donePage.getByText("Process my voice during interviews").click();
   await donePage.getByRole("button", { name: "Continue" }).click();
   await donePage.waitForURL(/\/home$/);
-  grantAdmin(address);
+  grantRole(address, "admin");
   await donePage.reload();
   states.done = await done.storageState();
   await done.close();
+
+  // The CMS is only worth looking at with content in it, so the seed bank is imported once and
+  // an account is given the role that can see it.
+  const expert = await browser.newContext();
+  const expertPage = await expert.newPage();
+  const expertAddress = uniqueEmail();
+  await signUp(expertPage, expertAddress);
+  await fillProfile(expertPage, "Ngozi Bello");
+  seedContent();
+  grantRole(expertAddress, "content_expert");
+  states.expert = await expert.storageState();
+  await expert.close();
 
   return states as States;
 }
@@ -140,7 +144,7 @@ test.describe("visual review", () => {
 
     for (const viewport of VIEWPORTS) {
       for (const colorScheme of THEMES) {
-        for (const key of [null, "fresh", "mid", "done"] as const) {
+        for (const key of [null, "fresh", "mid", "done", "expert"] as const) {
           const screens = SCREENS.filter(([, , state]) => state === key);
           const context = await browser.newContext({
             viewport,

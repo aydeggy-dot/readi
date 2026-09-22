@@ -94,10 +94,12 @@ pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
 pnpm check:contracts         # regenerate both and fail on drift (as CI does)
-pnpm db:seed                 # load /content/seed (stub until M2)
+pnpm db:seed                 # import /content/seed (idempotent; `-- --dry-run` plans, `-- --force` overwrites CMS edits)
 pnpm storage:setup           # local bucket + CORS for browser uploads + upload expiry (ADR-0010)
 pnpm --filter @readi/api admin:grant -- --email you@example.com --role admin   # grant a role (audited)
 pnpm --filter @readi/api admin:cancel-deletion -- --email you@example.com      # keep an account during its 7-day grace period (audited, ADR-0011)
+pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
+pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -133,6 +135,55 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call.
 - The readiness score formula lives in code (see spec §7), is versioned, and is unit-tested.
 - Any change to evaluator prompts or models must pass `/evals` regression (agreement with human scores must not drop).
+
+### Learning content
+- Statuses are `draft → in_review → published → retired`. A content expert writes, edits and submits; an
+  **admin** publishes and retires. The rules are one pure function, `apps/api/src/content/content-workflow.ts`.
+- **Candidate-facing content responses never contain rubrics, criteria, level descriptors or ideal points.**
+  The candidate schemas are separate, smaller shapes — never an admin shape with fields omitted — and
+  `apps/api/test/content-no-answer-key.int.spec.ts` enforces it over the raw JSON of every `/api/content/`
+  GET route, with the endpoint list read from the OpenAPI document. Never weaken that test to make another pass.
+- Only `published` content reaches a candidate, and dependencies count: a lesson also needs its track
+  published, a question its rubric (ADR-0014).
+- Every content mutation is one transaction — the row, its `content_versions` snapshot and its audit entry.
+  A snapshot is written only when the content actually changed; the audit entry carries statuses and
+  versions, never prose.
+- Admin lists page with a keyset cursor (`cursor` + `limit` in, `next_cursor` out), never an offset.
+- Publishing a question embeds its prompt and context through the worker and stores the vector with
+  the model that made it (ADR-0006). Near-duplicates are a **warning, never a refusal**: an unreachable
+  worker or a vector of the wrong length leaves the question published and its vector *absent* rather
+  than stale, for `content:reembed` to put right. All raw vector SQL lives in
+  `apps/api/src/content/question-embeddings.repository.ts` and nowhere else.
+- `EMBEDDING_PROVIDER=fake` (the default) derives a vector from the text, so only identical questions
+  ever match. Duplicate detection means something only on the real provider —
+  `docs/runbooks/embeddings-switchover.md` is the path from one to the other.
+- Seed files in `/content/seed` refer to each other by **slug**, may declare only `status: draft`
+  (publishing is an admin's decision in the CMS, never a line in a file), and carry `author` and a
+  required `reviewer_notes` per question for the experts who review them. The importer writes through
+  `ContentService` as the system, skips anything unchanged — no version, no audit row — and never
+  deletes, publishes or embeds. `content/seed/REVIEW.md` is the guide the reviewers are given.
+- **The files create; the CMS owns** (ADR-0014 decision 5). Every content row carries `seed_managed`:
+  true while `/content/seed` is the source of its content, false from the first save in the CMS. The
+  importer updates only `seed_managed` rows and **names** the rest in its report; `pnpm db:seed --
+  --force` overwrites them and takes them back. A status transition is not an edit, so publishing
+  seeded content leaves it under the files. `seed_managed` is written in `ContentService` alone,
+  from `Actor.source` (`SEED_ACTOR`), and never by a transition.
+- **A model's draft never reaches candidates in production unreviewed** (ADR-0014 decision 6). The
+  four publishable entities carry `ai_draft_unreviewed` (set by the importer from each seed file's
+  `author`), `reviewed_by_user_id` and `reviewed_at`. Publishing a marked item is refused
+  **only when `NODE_ENV=production`** (`content_unreviewed_ai_draft`), unless the admin publishing
+  it passes `acknowledge_unreviewed`, which the audit entry records. Dev, test and e2e never
+  refuse, so M3 is built against the seeded drafts. The mark is cleared by the explicit
+  `POST /api/admin/content/:entity/:id/reviewed` (content expert or admin, versioned and audited)
+  or by a re-import from a file saying `author: human` — **never by saving an edit**, because a
+  typo fix is not a review. A new publishable entity must carry these columns.
+- **Editing published content is an admin's call** (ADR-0014 decision 7). Changing the content of
+  a `published` track, lesson, rubric or question — or of a module under a published track —
+  requires the `admin` role (`content_edit_needs_admin`); everything not published is an expert's
+  as before, and a transition is not an edit. The CMS renders the editor disabled rather than
+  offering a Save that would be refused. **The seed importer never rewrites published content**
+  whatever role it holds: it names the row under "left alone — published" and `--force` is the way
+  through. Recording a review (`author: human`, or Mark as reviewed) is not an edit and still works.
 
 ### Prompts
 - Prompts live in versioned files: `apps/ai-worker/readi_worker/prompts/<name>.v<N>.md` (Jinja2 templates).
@@ -185,7 +236,9 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Pin direct dependencies exactly and prefer releases that have been out a few weeks (ADR-0001 version policy).
   Dependency build scripts need an explicit, commented `allowBuilds` entry in `pnpm-workspace.yaml`.
 - Cross-language contracts: wire fields are `snake_case`; a registered (top-level) contract has no root
-  `.meta({ id })`, reusable nested schemas do (ADR-0001). Run `pnpm gen:contracts` after changing them.
+  `.meta({ id })`, and neither does any schema a controller uses as a DTO root — nestjs-zod then emits two
+  OpenAPI components with the same name. Reusable nested schemas do carry one (ADR-0001). Run
+  `pnpm gen:contracts` after changing them.
 - Browser code never imports Zod or other heavy libraries eagerly; validate `NEXT_PUBLIC_*` at build time and
   lazy-load optional SDKs (ADR-0001).
 - Turborepo runs tasks in strict env mode: every env var a task reads must be declared in `turbo.json`
@@ -211,6 +264,13 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   under `prefers-reduced-motion`. `app/global-error.tsx` renders outside the root layout, so it
   carries its own inline CSS and must never depend on the tokens, `globals.css` or the fonts.
   The landing copy is a draft for the owner: `docs/progress/2026-09-20-d1-landing-copy.md`.
+- The CMS is its own route group, `apps/web/src/app/(admin)`, at `max-w-5xl` — staff screens, not
+  reading. Every page states its own access rule (`requireAdmin`, `requireContentEditor`), and the
+  lists are server-rendered: the filter bar is a plain GET form and the pager a link, so filtering,
+  searching and paging need no JavaScript. Which workflow buttons to draw comes from
+  `CONTENT_TRANSITIONS` in `@readi/shared-types/constants` — the same table the API guard enforces.
+  The markdown preview (`marked` + `dompurify`, sanitised) is imported dynamically, so no candidate
+  page ever loads it.
 - API → worker calls carry `Authorization: Bearer <service token>` (`AI_WORKER_TOKEN` = worker
   `SERVICE_TOKEN`). Files go to the worker in the request body; jobs carry ids only (ADR-0004/0010).
 - User files are uploaded by the browser to object storage with presigned URLs (type and length

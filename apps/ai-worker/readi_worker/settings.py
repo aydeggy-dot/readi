@@ -26,7 +26,16 @@ class Settings(BaseSettings):
     llm_model_cv_parse: str = Field(default="claude-sonnet-5", min_length=1)
     llm_timeout_s: float = Field(default=90.0, gt=0, le=600)
 
-    @field_validator("sentry_dsn", "anthropic_api_key", mode="before")
+    # Embedding adapter (ADR-0006). `fake` is a pure function of the text: no key, no network, no
+    # cost. `embedding_dimensions` must match the `vector(N)` column in the migration — the worker
+    # refuses a provider answer of any other length rather than store an unsearchable row.
+    embedding_provider: Literal["voyage", "fake"] = "fake"
+    voyage_api_key: SecretStr | None = None
+    embedding_model: str = Field(default="voyage-4", min_length=1)
+    embedding_dimensions: int = Field(default=1024, ge=1, le=4096)
+    embedding_timeout_s: float = Field(default=30.0, gt=0, le=600)
+
+    @field_validator("sentry_dsn", "anthropic_api_key", "voyage_api_key", mode="before")
     @classmethod
     def _empty_is_none(cls, value: object) -> object:
         return None if value == "" else value
@@ -40,6 +49,17 @@ class Settings(BaseSettings):
             )
         if self.environment == "production" and self.llm_provider == "fake":
             raise ValueError("LLM_PROVIDER=fake is not allowed in production")
+        return self
+
+    @model_validator(mode="after")
+    def _embedding_configured(self) -> "Settings":
+        if self.embedding_provider == "voyage" and self.voyage_api_key is None:
+            raise ValueError(
+                "VOYAGE_API_KEY is required when EMBEDDING_PROVIDER=voyage "
+                "(set EMBEDDING_PROVIDER=fake for local development without a key)"
+            )
+        if self.environment == "production" and self.embedding_provider == "fake":
+            raise ValueError("EMBEDDING_PROVIDER=fake is not allowed in production")
         return self
 
 

@@ -97,3 +97,80 @@
 - Next's `<Link>` prefetches (`?_rsc=…`) land after `load`, so they are outside the Slow 4G figure
   but inside a naive `performance.getEntriesByType("resource")` dump taken later. Compare like with
   like, or the two numbers disagree by a few KB for no reason.
+- Build the CMS against real content, not empty tables (owner, M2 planning). The plan had the admin
+  UI before the seed importer; the owner swapped them so the screens are designed and reviewed with
+  real tracks, lessons and rubrics in them, and so the drafted content reaches expert reviewers a
+  phase earlier. Default to ordering a milestone's phases by "what makes the next phase's work
+  reviewable", not by dependency order alone.
+- A product invariant needs a test that cannot be satisfied by the types (owner, M2 planning).
+  Separate admin and candidate schemas express "candidates never see the answer key" but do not
+  enforce it — one `.extend()` undoes it. The enforcement is a test that greps the **raw serialized
+  JSON** of every candidate endpoint for sentinel strings planted in the rubric, and derives its
+  endpoint list from the OpenAPI document so a new endpoint is covered the day it is added. Ask of
+  any rule that matters: what would fail if someone widened the type later?
+- A safety-net test must be shown to fail (owner, M2 phase 2). Sentinels and an OpenAPI-derived
+  endpoint list are not enough: the fixture has to contain a _real_ answer key, the test has to
+  prove it is really there (the admin API returns it), and a negative control has to run the same
+  detector over a payload that does leak. Then verify by hand once — widen the candidate schema,
+  watch the test fail, revert — and record in the spec what was done and when. Written for a leak
+  test; true of every invariant test.
+- After `pnpm add` in a workspace, run `pnpm install` before trusting a typecheck (M2 phase 4). The
+  incremental install left `apps/web` resolving a second copy of `@types/react`, and the failure
+  surfaced as a nonsense error in an untouched component (`TextLink` props "not assignable to
+  IntrinsicAttributes"). A full install fixed it. A duplicated `@types/*` is the usual cause of a
+  type error in code nobody edited — check for two versions before debugging the component.
+- Prisma proposes dropping the hand-written HNSW index in **every** migration that touches
+  `questions` (M2 phase 5). It cannot see an index on an `Unsupported` column, so
+  `DROP INDEX questions_embedding_hnsw` appears at the top of each generated migration and, if it
+  ships, turns near-duplicate search into a sequential scan with nothing failing. Read every
+  generated migration for statements that undo hand-written SQL before applying it — the rule
+  generalises to any index, constraint or trigger Prisma does not model.
+- Generated types reach the web app through a **built** workspace package (M2 phase 5). After
+  `pnpm gen:contracts`, `packages/api-client/src/generated/schema.ts` is current but `dist` is not,
+  so `apps/web` typechecks against the old shapes and the errors read as if the contract change
+  never happened. Build the package (or run the turbo task that does) before believing a typecheck.
+- `data-*` attributes type-check on any component and then vanish (M2 phase 5). TypeScript skips
+  excess-property checks for hyphenated JSX attributes, so `<Alert data-testid="x">` compiles even
+  though `Alert` does not spread its props — and the test id is simply not in the DOM. Put a test id
+  on an element, or on a component that spreads, and check it renders once.
+- Page weight must be measured in a **cold** browser context (M2 phase 5). Measuring the CMS in the
+  context that had just signed up reported 801 KB for a 274 KB page: `encodedBodySize` counts
+  resources served from the browser cache, and the load time (667 ms on a 1.6 Mbps profile) was the
+  tell — 800 KB cannot arrive in 667 ms. When a weight and a duration disagree, the weight is wrong.
+
+## A test that changes two things at once proves neither (M2 phase 6, 2026-09-22)
+
+I added a column the seed importer sets from each file's `author`, documented in four places that
+`author: human` clears it, and wrote a test that passed. The test changed the prompt **and** the
+author in the same import, so it only ever exercised the path where the content had changed — which
+is the path that already worked. The case the feature exists for (an expert approves a bank without
+rewriting a word) did nothing at all, and two independent reviewers found it within minutes.
+
+**The rule:** when a test sets up a change, change exactly the one thing under test. If the feature
+is "X causes Y", the fixture must differ from the baseline in X and nothing else. A passing test
+over a confounded fixture is worse than no test, because it stops anyone looking.
+
+**The tell:** I wrote `write("...actually do?", undefined, "human")` — two arguments moved. That
+`undefined` in the middle was the signal that the helper was doing more than the test needed.
+
+## Audit entries must record what happened, not what was true (M2 phase 6, 2026-09-22)
+
+I recorded `acknowledged_unreviewed: true` whenever a marked item was published, with a comment
+saying "only recorded when it actually mattered". In development the guard never runs, so that
+logged an override nobody performed — and a later search for real overrides would have found noise.
+The condition has to include the flag the admin actually sent.
+
+**The rule:** an audit field names an _act_, so its condition must include the act. "This was true
+at the time" and "someone did this" are different claims, and only the second belongs in an audit
+log.
+
+## Read a precondition inside the transaction that depends on it (M2 phase 6, 2026-09-22)
+
+`transition` and `markReviewed` both read the row's state outside the transaction and then updated
+by id. Two concurrent requests both passed the check, both wrote, and the loser collided on the
+version history's unique key — surfacing as `track_already_published` for a _question_, and as an
+uncoded 500 for a review. The database was never corrupted; the error was just a lie.
+
+**The rule:** if a check decides whether a write is legal, put it in the write's `WHERE` and treat
+`count === 0` as the conflict. `account-deletion.service.ts` already did this — the pattern was in
+the codebase and I did not go looking for it.

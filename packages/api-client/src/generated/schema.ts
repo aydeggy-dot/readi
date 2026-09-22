@@ -148,6 +148,342 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/content/track": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentController_track"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/content/practice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentController_practice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/content/lessons/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentController_lesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listTopics"];
+        put?: never;
+        post: operations["ContentAdminController_createTopic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/topics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ContentAdminController_updateTopic"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/tracks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listTracks"];
+        put?: never;
+        post: operations["ContentAdminController_createTrack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/tracks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getTrack"];
+        put: operations["ContentAdminController_updateTrack"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/tracks/{id}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_createModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/modules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ContentAdminController_updateModule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listLessons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/modules/{id}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_createLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/lessons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getLesson"];
+        put: operations["ContentAdminController_updateLesson"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/rubrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listRubrics"];
+        put?: never;
+        post: operations["ContentAdminController_createRubric"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/rubrics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getRubric"];
+        put: operations["ContentAdminController_updateRubric"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listQuestions"];
+        put?: never;
+        post: operations["ContentAdminController_createQuestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/questions/duplicate-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_duplicateCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getQuestion"];
+        put: operations["ContentAdminController_updateQuestion"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{entity}/{id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_transition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{entity}/{id}/reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_markReviewed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{entity}/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/{entity}/{id}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/export": {
         parameters: {
             query?: never;
@@ -383,6 +719,497 @@ export interface components {
             experience: components["schemas"]["CvExperience"][];
             gaps: string[];
         };
+        CandidateModule_Output: {
+            slug: string;
+            title: string;
+            summary: string | null;
+            lessons: components["schemas"]["CandidateLessonSummary_Output"][];
+        };
+        CandidateLessonSummary_Output: {
+            slug: string;
+            title: string;
+            estimated_minutes: number | null;
+        };
+        CandidateTrackResponseDto_Output: {
+            slug: string;
+            role: components["schemas"]["TargetRole_Output"];
+            level: components["schemas"]["ExperienceLevel_Output"];
+            title: string;
+            summary: string | null;
+            modules: components["schemas"]["CandidateModule_Output"][];
+        };
+        CandidatePracticeItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            type: components["schemas"]["QuestionType_Output"];
+            difficulty: number;
+            prompt: string;
+            context: string | null;
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+        };
+        /** @enum {string} */
+        QuestionType_Output: "behavioral" | "technical" | "scenario" | "test_design";
+        CandidatePracticeResponseDto_Output: {
+            items: components["schemas"]["CandidatePracticeItem_Output"][];
+        };
+        CandidateLessonResponseDto_Output: {
+            slug: string;
+            title: string;
+            body: string;
+            estimated_minutes: number | null;
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            } | null;
+        };
+        TopicsResponseDto_Output: {
+            topics: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            }[];
+        };
+        TopicInputDto: {
+            slug: string;
+            name: string;
+            description: string | null;
+        };
+        TopicDto_Output: {
+            slug: string;
+            name: string;
+            description: string | null;
+            /** Format: uuid */
+            id: string;
+        };
+        TrackListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            role: components["schemas"]["TargetRole_Output"];
+            level: components["schemas"]["ExperienceLevel_Output"];
+            title: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            module_count: number;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @enum {string} */
+        ContentStatus_Output: "draft" | "in_review" | "published" | "retired";
+        TrackListResponseDto_Output: {
+            items: components["schemas"]["TrackListItem_Output"][];
+            next_cursor: string | null;
+        };
+        TrackTopicInput: {
+            /** Format: uuid */
+            topic_id: string;
+            is_core: boolean;
+        };
+        TrackInputDto: {
+            slug: string;
+            role: components["schemas"]["TargetRole"];
+            level: components["schemas"]["ExperienceLevel"];
+            title: string;
+            summary: string | null;
+            topics: components["schemas"]["TrackTopicInput"][];
+        };
+        TrackTopicInput_Output: {
+            /** Format: uuid */
+            topic_id: string;
+            is_core: boolean;
+        };
+        TrackDto_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            role: components["schemas"]["TargetRole_Output"];
+            level: components["schemas"]["ExperienceLevel_Output"];
+            title: string;
+            summary: string | null;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            topics: components["schemas"]["TrackTopicInput_Output"][];
+            modules: {
+                slug: string;
+                title: string;
+                summary: string | null;
+                position: number;
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                track_id: string;
+                seed_managed: boolean;
+                lessons: {
+                    slug: string;
+                    title: string;
+                    body: string;
+                    /** Format: uuid */
+                    topic_id: string | null;
+                    position: number;
+                    estimated_minutes: number | null;
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    module_id: string;
+                    status: components["schemas"]["ContentStatus_Output"];
+                    version: number;
+                    seed_managed: boolean;
+                    ai_draft_unreviewed: boolean;
+                    /** Format: date-time */
+                    reviewed_at: string | null;
+                    /** Format: date-time */
+                    updated_at: string;
+                }[];
+            }[];
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ModuleInputDto: {
+            slug: string;
+            title: string;
+            summary: string | null;
+            position: number;
+        };
+        ModuleDto_Output: {
+            slug: string;
+            title: string;
+            summary: string | null;
+            position: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            track_id: string;
+            seed_managed: boolean;
+            lessons: {
+                slug: string;
+                title: string;
+                body: string;
+                /** Format: uuid */
+                topic_id: string | null;
+                position: number;
+                estimated_minutes: number | null;
+                /** Format: uuid */
+                id: string;
+                /** Format: uuid */
+                module_id: string;
+                status: components["schemas"]["ContentStatus_Output"];
+                version: number;
+                seed_managed: boolean;
+                ai_draft_unreviewed: boolean;
+                /** Format: date-time */
+                reviewed_at: string | null;
+                /** Format: date-time */
+                updated_at: string;
+            }[];
+        };
+        LessonListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            title: string;
+            /** Format: uuid */
+            module_id: string;
+            /** Format: uuid */
+            track_id: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LessonListResponseDto_Output: {
+            items: components["schemas"]["LessonListItem_Output"][];
+            next_cursor: string | null;
+        };
+        LessonInputDto: {
+            slug: string;
+            title: string;
+            body: string;
+            /** Format: uuid */
+            topic_id: string | null;
+            position: number;
+            estimated_minutes: number | null;
+        };
+        LessonDto_Output: {
+            slug: string;
+            title: string;
+            body: string;
+            /** Format: uuid */
+            topic_id: string | null;
+            position: number;
+            estimated_minutes: number | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            module_id: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        RubricListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            criteria_count: number;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        RubricListResponseDto_Output: {
+            items: components["schemas"]["RubricListItem_Output"][];
+            next_cursor: string | null;
+        };
+        RubricCriterionInput: {
+            dimension: string;
+            description: string;
+            weight: number;
+            levels: components["schemas"]["RubricLevels"];
+        };
+        RubricLevels: {
+            0: string;
+            1: string;
+            2: string;
+            3: string;
+            4: string;
+        };
+        RubricInputDto: {
+            slug: string;
+            name: string;
+            criteria: components["schemas"]["RubricCriterionInput"][];
+        };
+        RubricCriterion_Output: {
+            dimension: string;
+            description: string;
+            weight: number;
+            levels: components["schemas"]["RubricLevels_Output"];
+            /** Format: uuid */
+            id: string;
+        };
+        RubricLevels_Output: {
+            0: string;
+            1: string;
+            2: string;
+            3: string;
+            4: string;
+        };
+        RubricDto_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            criteria: components["schemas"]["RubricCriterion_Output"][];
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        QuestionListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            type: components["schemas"]["QuestionType_Output"];
+            roles: components["schemas"]["TargetRole_Output"][];
+            levels: components["schemas"]["ExperienceLevel_Output"][];
+            difficulty: number;
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+            rubric_slug: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        QuestionListResponseDto_Output: {
+            items: components["schemas"]["QuestionListItem_Output"][];
+            next_cursor: string | null;
+        };
+        DuplicateCheckRequestDto: {
+            prompt: string;
+            context: string | null;
+            /** Format: uuid */
+            exclude_question_id: string | null;
+        };
+        DuplicateMatch_Output: {
+            /** Format: uuid */
+            question_id: string;
+            slug: string;
+            prompt: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            similarity: number;
+        };
+        DuplicateWarningsResponseDto_Output: {
+            matches: components["schemas"]["DuplicateMatch_Output"][];
+        };
+        /** @enum {string} */
+        QuestionType: "behavioral" | "technical" | "scenario" | "test_design";
+        QuestionInputDto: {
+            slug: string;
+            roles: components["schemas"]["TargetRole"][];
+            levels: components["schemas"]["ExperienceLevel"][];
+            type: components["schemas"]["QuestionType"];
+            /** Format: uuid */
+            topic_id: string;
+            subtopic: string | null;
+            difficulty: number;
+            prompt: string;
+            context: string | null;
+            /** Format: uuid */
+            rubric_id: string;
+            ideal_points: string[];
+        };
+        QuestionDto_Output: {
+            slug: string;
+            roles: components["schemas"]["TargetRole_Output"][];
+            levels: components["schemas"]["ExperienceLevel_Output"][];
+            type: components["schemas"]["QuestionType_Output"];
+            /** Format: uuid */
+            topic_id: string;
+            subtopic: string | null;
+            difficulty: number;
+            prompt: string;
+            context: string | null;
+            /** Format: uuid */
+            rubric_id: string;
+            ideal_points: string[];
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+            rubric: {
+                /** Format: uuid */
+                id: string;
+                slug: string;
+                name: string;
+                status: components["schemas"]["ContentStatus_Output"];
+                version: number;
+                criteria: components["schemas"]["RubricCriterion_Output"][];
+                seed_managed: boolean;
+                ai_draft_unreviewed: boolean;
+                /** Format: date-time */
+                reviewed_at: string | null;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            embedding_model: string | null;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @enum {string} */
+        ContentTransition: "submit" | "publish" | "retire" | "return_to_draft";
+        ContentTransitionRequestDto: {
+            transition: components["schemas"]["ContentTransition"];
+            note: string | null;
+            /** @default false */
+            acknowledge_unreviewed: boolean;
+        };
+        /** @enum {string} */
+        ContentEntityPath_Output: "tracks" | "lessons" | "questions" | "rubrics";
+        ContentTransitionResponseDto_Output: {
+            entity: components["schemas"]["ContentEntityPath_Output"];
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            duplicates: components["schemas"]["DuplicateMatch_Output"][];
+        };
+        ContentReviewRequestDto: {
+            note: string | null;
+        };
+        ContentReviewResponseDto_Output: {
+            entity: components["schemas"]["ContentEntityPath_Output"];
+            /** Format: uuid */
+            id: string;
+            /** @constant */
+            ai_draft_unreviewed: false;
+            /** Format: date-time */
+            reviewed_at: string;
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ContentVersionSummary_Output: {
+            version: number;
+            change_note: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ContentVersionsResponseDto_Output: {
+            versions: components["schemas"]["ContentVersionSummary_Output"][];
+        };
+        /** @enum {string} */
+        ContentEntityType_Output: "track" | "module" | "lesson" | "question" | "rubric";
+        ContentVersionResponseDto_Output: {
+            entity_type: components["schemas"]["ContentEntityType_Output"];
+            /** Format: uuid */
+            entity_id: string;
+            version: number;
+            change_note: string | null;
+            /** Format: date-time */
+            created_at: string;
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
         DataExportDto_Output: {
             /** @enum {number} */
             format_version: 1;
@@ -497,6 +1324,10 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** @enum {string} */
+        ContentStatus: "draft" | "in_review" | "published" | "retired";
+        /** @enum {string} */
+        ContentEntityPath: "tracks" | "lessons" | "questions" | "rubrics";
     };
     responses: never;
     parameters: never;
@@ -867,6 +1698,803 @@ export interface operations {
             };
             /** @description No CV, or still processing (`cv_not_editable`) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentController_track: {
+        parameters: {
+            query?: {
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateTrackResponseDto_Output"];
+                };
+            };
+            /** @description No role or level to use (code `profile_required`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nothing published yet (code `track_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentController_practice: {
+        parameters: {
+            query?: {
+                topic?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidatePracticeResponseDto_Output"];
+                };
+            };
+            /** @description No profile to read from (code `profile_required`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentController_lesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateLessonResponseDto_Output"];
+                };
+            };
+            /** @description Not published (code `lesson_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_listTopics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicsResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopicInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicDto_Output"];
+                };
+            };
+            /** @description Slug already in use (code `content_slug_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopicInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicDto_Output"];
+                };
+            };
+            /** @description No such topic (code `topic_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_listTracks: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_getTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackDto_Output"];
+                };
+            };
+            /** @description No such track (code `track_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModuleInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModuleDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_updateModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModuleInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModuleDto_Output"];
+                };
+            };
+            /** @description No such module (code `module_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_listLessons: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_getLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDto_Output"];
+                };
+            };
+            /** @description No such lesson (code `lesson_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_listRubrics: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RubricListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createRubric: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RubricInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RubricDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_getRubric: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RubricDto_Output"];
+                };
+            };
+            /** @description No such rubric (code `rubric_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateRubric: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RubricInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RubricDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_listQuestions: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_duplicateCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateCheckRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicateWarningsResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_getQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionDto_Output"];
+                };
+            };
+            /** @description No such question (code `question_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_transition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: components["schemas"]["ContentEntityPath"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentTransitionRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentTransitionResponseDto_Output"];
+                };
+            };
+            /** @description Not yours to make (code `content_transition_forbidden`) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_markReviewed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: components["schemas"]["ContentEntityPath"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentReviewRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentReviewResponseDto_Output"];
+                };
+            };
+            /** @description Nothing to review — it was not an AI draft, or already is (`content_not_unreviewed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_listVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: components["schemas"]["ContentEntityPath"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentVersionsResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_getVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: components["schemas"]["ContentEntityPath"];
+                id: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentVersionResponseDto_Output"];
+                };
+            };
+            /** @description No such version (code `content_version_not_found`) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -269,7 +269,281 @@ Decisions (owner, 2026-09-20):
       support email, removing the `/status` link (N4), the missing legal pages, the example answer
       being an illustration, and M10's icons and Lighthouse pass.
 
+## M2 — content model, admin CMS, seed content (branch `feat/m2-content`, from `main` at `c5f6814`)
+
+Plan approved by the owner (2026-09-20) with two changes: the seed importer and drafted content come
+**before** the admin UI, so the CMS is built against real content; and decision 3 gets a leak test
+over raw JSON, not just separate schemas. Plan: `~/.claude/plans/twinkly-twirling-kay.md`.
+
+Decisions (recorded in ADR-0014 in phase 6): status lives on the publishable units (Track, Lesson,
+Question, Rubric) and a Module inherits its track's; version history is one `content_versions` table
+of JSONB snapshots; **candidate payloads never carry the answer key**; authorship columns are plain
+uuids with no foreign key and are tombstoned on erasure; admin gets its own route group with a wider
+column; `EMBEDDING_PROVIDER=fake` until the Voyage key arrives; markdown preview renders lazily in
+the browser.
+
+### Phase 1 — contracts, schema, migration (done, 2026-09-20)
+
+- [x] `packages/shared-types`: content constants, `contracts/content.ts` with **separate admin and
+      candidate shapes** (the candidate ones have no rubric, criteria, level descriptors or ideal
+      points at all), and a test that proves it plus the rubric weight rule
+- [x] Prisma: `Topic`, `Track`, `TrackTopic(is_core)`, `Module`, `Lesson`, `Rubric`,
+      `RubricCriterion`, `Question`, `ContentFlag`, `ContentVersion`, and the `content_status` /
+      `question_type` / `content_entity_type` / flag enums
+- [x] Migration `content_model`, hand-edited below the generated SQL for the two things Prisma
+      cannot express: the HNSW cosine index on `questions.embedding`, and a **partial unique index**
+      giving at most one published track per (role, level) — so the candidate API always finds one
+- [x] Erasure: the five authorship columns are tombstoned (ADR-0011), and the schema test that
+      catches unlisted user references now also looks at columns ending in `_by`, not only
+      `%user_id` — the previous pattern would have missed a `created_by`
+- [x] `content-schema.int.spec.ts` proves the vector column, the HNSW index, the one-published-track
+      rule and the version uniqueness against the real database
+- [x] Checks: lint, typecheck, format, `check:contracts`, and 460 tests (403 TypeScript + 57 Python)
+- Note: `EMBEDDING_DIMENSIONS` lives in shared-types and the migration hard-codes `vector(1024)`;
+  phase 3 adds the startup check that the worker's configured dimension matches.
+
+### Phase 2 — content service and APIs (done, 2026-09-20)
+
+- [x] `apps/api/src/content/`: `content-workflow.ts` (pure guard, who may move what where),
+      `content-cursor.ts` (the API's first keyset paging), `content-diff.ts` (a snapshot only when
+      the content changed), `content.mappers.ts` (admin and candidate shapes built separately),
+      `content.service.ts`, `content-admin.controller.ts`, `content.controller.ts`
+- [x] Contracts: admin list query + row shapes, `TopicsResponse`, `CandidateTrackQuery` /
+      `CandidatePracticeQuery`, `ContentEntityPath`, `ContentTransitionResponse`
+- [x] Admin API under `/api/admin/content/*` — topics, tracks, modules, lessons, rubrics, questions,
+      plus one generic transition route and two version routes for all four publishable entities
+- [x] Candidate API under `/api/content/*` — `track?role&level` (falls back to the profile),
+      `lessons/{slug}`, `practice?topic&limit`
+- [x] Publish guards: rubric weights total 100, a question's rubric published first, a track has at
+      least one module, one published track per (role, level) — the last from the partial index
+- [x] **The leak test** (`content-no-answer-key.int.spec.ts`): sentinels through the whole answer
+      key, endpoints read from the OpenAPI document, two negative controls, and verified by hand —
+      widening `CandidatePracticeItem` made it fail on both the marker and the field name
+- [x] `AuditService.record` takes an optional transaction client, so a content change and its audit
+      row land together
+- [x] Checks: lint, typecheck, format, 516 tests (459 TypeScript + 57 Python), `pnpm gen:contracts`
+- Notes for later phases:
+  - A DTO root must not carry `.meta({ id })` — nestjs-zod 5.5 then emits two components with the
+    same name. It cost a `gen:contracts` failure; the rule is now in CLAUDE.md §6.
+  - Test files that publish a track must own a (role, level) pair: the partial unique index allows
+    one published track per pair and the suite shares one database. The table is in
+    `apps/api/test/content-fixtures.ts`.
+  - `ContentEntityType.module` is unused for now: a module has no status or version of its own, so
+    editing one versions its track (ADR-0014 decision 1). Say so in the ADR.
+  - Candidate flag submission (`ContentFlagInput`, `POST /api/content/flags`) is **not** built — it
+    was not in the phase's scope; it belongs with the feedback loop in M9.
+  - Retiring a rubric silently hides its published questions from practice. Correct, but the CMS
+    should warn: phase 5.
+
+### Phase 3 — embeddings (done, 2026-09-21)
+
+- [x] Worker `readi_worker/embeddings/`: `base.py` (Protocol, frozen result, `EmbeddingError` with
+      latency), `fake.py` (hash-seeded unit vector + a scripted provider for error cases),
+      `voyage.py` (REST via httpx2, retries 408/429/5xx, orders vectors by `index`, refuses a
+      vector of the wrong length), `service.py`, `router.py`
+- [x] `POST /embeddings` behind the service token; a provider failure is a 200 with
+      `status: "failed"` so the API still records what the call cost (as `/cv/parse` does)
+- [x] Settings: `EMBEDDING_PROVIDER` (default `fake`), `VOYAGE_API_KEY`, `EMBEDDING_MODEL`,
+      `EMBEDDING_DIMENSIONS`, `EMBEDDING_TIMEOUT_S`; voyage without a key and fake in production
+      both fail at startup. `.env.example` documented
+- [x] Contracts `EmbedRequest` / `EmbedResponse` registered, so the Pydantic models are generated
+- [x] API: `question-embeddings.repository.ts` is the only raw vector SQL (store, clear, cosine
+      search, stale rows); `question-embeddings.service.ts` embeds, records the `ai_call_log` row
+      and never throws; publishing a question returns `duplicates`;
+      `POST /admin/content/questions/duplicate-check` warns while a question is still being typed
+- [x] A published question whose wording changes is re-embedded; a failure clears the vector rather
+      than leave a stale one
+- [x] `pnpm --filter @readi/api content:reembed` (probes the worker for the current model,
+      `--dry-run`, `--limit`, `--model`)
+- [x] Checks: 552 tests (476 TypeScript + 76 Python), lint, typecheck, format, contracts
+- [x] Verified against a real worker over HTTP (fake provider): `/embeddings` returned a 1024-dim
+      vector and a zero-cost `ai_call` record, and `content:reembed` found one stale question,
+      embedded it, and reported `0 to (re-)embed` on the next run
+- **Switchover when the Voyage key arrives: `docs/runbooks/embeddings-switchover.md`** — which env
+  vars to set, how to verify one real call (including that the model name in ADR-0006 still
+  exists), and when to run `content:reembed`. The Voyage price in `pricing.py` is an unverified
+  estimate; step 2 of the runbook says to confirm it.
+- Notes: `httpx2` became a direct worker dependency (it was already present under the Anthropic
+  SDK). The contract generator wraps length-constrained strings in a RootModel, so the worker
+  unwraps `request.texts[i].root` — a comment says what to delete if that ever changes.
+
+### Phase 4 — seed format, importer, drafted content (done, 2026-09-21)
+
+- [x] `contracts/seed.ts`: the YAML format — slug references rather than uuids, `status: draft` as
+      the only status a file may declare, `author`, and a **required `reviewer_notes` per
+      question** (owner's ask: make review easy)
+- [x] `seed-loader.ts`: `yaml`'s `parseDocument` + a `LineCounter`, so every complaint carries
+      file, line, column and the path in the file's own words — and reports every problem, not the
+      first. A missing key is reported against the item that is missing it
+- [x] `seed-import.ts`: writes through `ContentService` as `SYSTEM_ACTOR`, so a seeded change makes
+      the same version snapshot and audit row as a human edit; skips anything unchanged; never
+      deletes, publishes or embeds. `--dry-run` resolves forward references to a placeholder so it
+      can print the whole plan
+- [x] `pnpm db:seed` (replacing the M2 placeholder) and `pnpm --filter @readi/api content:review-doc`
+- [x] Content, all `status: draft` / `author: ai_draft`: 14 topics; **frontend** — 1 track, 3
+      modules, 6 lessons, **8 questions** (5 technical, 1 scenario, 2 behavioural) with 6 sharp
+      rubrics plus a shared behavioural one; **backend** and **qa** skeletons — 1 track, 1 module,
+      2 lessons, 3 questions each
+- [x] `content/seed/REVIEW.md` — the guide the experts are given (the four checks, how to send it
+      back, what to know first) — and `content/seed/README.md` for engineers
+- [x] `content/seed/review/{frontend,backend,qa}.md` — generated printable pages: each question with
+      its answer key, all five level descriptors per criterion, the drafter's uncertainties, and a
+      tick box per check. Regenerate after editing the YAML; do not hand-edit
+- [x] Tests: loader unit tests (line/column, every problem, draft-only) and assertions over the real
+      corpus (valid, all draft, references resolve, weights total 100, notes present); integration
+      tests for create/idempotent/update-history/dry-run/bad-reference, plus **the answer-key
+      detector run over the corpus we actually ship** — the leak test's second pass, moved into the
+      seed spec so two files never import concurrently
+- [x] Checks: 572 tests (496 TypeScript + 76 Python), lint, typecheck, format, contracts
+- [x] Verified by hand: `pnpm db:seed -- --dry-run` → 14 topics, 11 rubrics, 14 questions, 3 tracks,
+      5 modules, 10 lessons to create; import; second run reports everything unchanged
+- Owner action: **the frontend bank needs expert review** — `content/seed/review/frontend.md` is the
+  page to send. Quality over quantity was the instruction, so cuts are welcome; the questions I am
+  least sure about are `js-async-ordering` (level) and `pushing-back-on-a-release` (cultural fit).
+- Notes: `yaml@2.9.1` is a new API dependency. `reviewer_notes` and `author` stay in the files —
+  they have no column — so if the CMS should show them, that is a migration in a later milestone.
+  Two spec files that both publish a track for one (role, level) pair still conflict; the fixtures
+  now clear only _published_ tracks for a pair, so the seeded drafts survive.
+
+### Phase 5 — admin UI, and the source of truth after import (done, 2026-09-21)
+
+Owner's ask: settle where content lives once it has been imported, record it in ADR-0014, and say
+how expert feedback on `content/seed/review/*.md` comes back.
+
+**The decision (ADR-0014 decision 5).** The seed files create; the CMS owns. Every content row
+carries `seed_managed`: true while the importer is the only thing that has written its content,
+false the moment a person saves a change to it in the CMS. The importer creates what is missing,
+updates only rows that are still `seed_managed`, and **names** the rest in its report. `--force`
+overwrites anyway and takes the row back. Two things deliberately do not take a row away from the
+files: a status transition (publishing is not authorship) and a save that changed nothing. The
+skipped list only names items whose file content actually differs, so it stays a list of file
+changes that did not land rather than one that never empties.
+
+**Feedback flow** (written into `content/seed/REVIEW.md` and `README.md`): the YAML until the first
+expert review lands, the CMS after. Nobody has to remember which — the importer says what it left
+alone, every run.
+
+- [x] `docs/adr/0014-content-model-and-workflow.md` — decisions 1–4 from the approved plan plus
+      decision 5 and the feedback loop; ADR index updated
+- [x] Migration `content_seed_managed` on all six content tables, backfilling existing rows as
+      seed-managed. Prisma's generated `DROP INDEX questions_embedding_hnsw` was removed by hand —
+      it proposes that in **every** migration that touches `questions`
+- [x] `Actor.source` / `SEED_ACTOR` in `ContentService`; the flag is written by content writes only
+- [x] Importer: `skipped` slugs, `--force`, and six per-entity update paths collapsed into one
+      `applyChange` helper; `pnpm db:seed` reports what it kept and how to overwrite it
+- [x] `seed_managed` on the admin contracts (not `Topic` — it is the one admin shape the candidate
+      responses share), so the CMS can say which items a re-import still controls
+- [x] Web: route group `(admin)` at `max-w-5xl`, `requireContentEditor()`, admin bar + content
+      section bar, `NavLink` gained `exact` (/admin and /admin/content are siblings, not a section)
+- [x] Screens: content home with the "waiting for an admin" queue; lists with a GET filter bar,
+      search and keyset paging for questions, rubrics, lessons, tracks; topics managed in place;
+      create/edit forms for questions, rubrics, lessons, tracks and modules; the rubric editor with
+      a live weight total; transitions; version history with snapshots; duplicate warnings
+- [x] Markdown preview: `marked` 18.0.12 + `dompurify` 3.4.15, dynamically imported and sanitised.
+      Verified in the build: the two chunks (27 KB + 42 KB) are in **no** route's initial JS
+- [x] `CONTENT_TRANSITIONS` moved to `@readi/shared-types/constants`, so the CMS draws its buttons
+      from the same table the API guard enforces instead of a second copy that would drift
+- [x] e2e `apps/web/e2e/content.spec.ts`: candidate gets a 404 from the CMS; expert adds a topic,
+      writes a rubric (weights 60/40, five descriptors each) and a question, previews the markdown
+      and submits both; expert has no Publish button; the candidate API does not have the question;
+      admin's publish is refused until the rubric is published, then succeeds; history shows the
+      snapshot; the candidate sees the question and none of the answer key
+- [x] `e2e/visual/capture.spec.ts`: a fourth `expert` state (seeds `/content/seed` into the e2e
+      database, then grants the role) and eight CMS screens
+- [x] Checks: lint, typecheck, format, `check:contracts`, build, 507 TypeScript + 76 Python tests,
+      the full e2e suite
+- [x] Slow 4G, measured at `8bf3fef` (`E2E_SLOW_NETWORK=1 pnpm test:e2e slow-network`, cold context,
+      uncompressed over loopback): CMS question list 274 KB / 2.9 s, question form 294 KB / 1.3 s —
+      in line with sign-up (275 KB). 112 screenshots in `screenshots/m2-phase5/` for review
+- Deviation from the approved plan: retire/publish confirm with a second click and a sentence,
+  not a typed word. Both moves are reversible (`retired → draft`), and a modal at 360px costs more
+  than it protects. Say so if you would rather have the typed confirmation.
+- Not built, and worth a decision later: reordering modules and lessons by drag (position is a
+  number field today), and `reviewer_notes` / `author` in the CMS — they have no column, so showing
+  them is a migration (noted in phase 4 too).
+
+### Phase 6 — verification, docs, handover, and the unreviewed-draft guard
+
+Owner's ask (2026-09-22): say plainly that seeded drafts may be published in development to build
+M3 but never in production before an expert review, and make production enforce it.
+
+**The decision (ADR-0014 decision 6).** `author: ai_draft` lived only in the YAML, so once content
+was imported nothing could tell a model's draft from a vetted question. `seed_managed` is the wrong
+axis — it says who owns the words, and it stays true after an expert reviews a bank in the YAML, so
+a guard built on it would refuse the reviewed content and wave through a typo fix. The fact needs
+its own column.
+
+- [x] Migration `content_review_state` on tracks, lessons, questions, rubrics:
+      `ai_draft_unreviewed` (bool, default false), `reviewed_by_user_id` (uuid, no FK),
+      `reviewed_at` (timestamptz). Drop Prisma's proposed `DROP INDEX questions_embedding_hnsw`
+      by hand, as in phase 5
+- [x] `TOMBSTONED_COLUMNS` gains the four `reviewed_by_user_id` columns (ADR-0011); the schema
+      test in `account.int.spec.ts` is the gate
+- [x] `Actor.drafted` + `seedActor(author)` in `ContentService`; the importer passes each file's
+      own `author`. A bare `SEED_ACTOR` means authorship unstated, which counts as an AI draft —
+      the conservative default
+- [x] **Not cleared by a content save.** A perfect draft would need a fake edit to be approved, and
+      a typo fix would count as reviewing the whole question and rubric
+- [x] `POST /api/admin/content/:entity/:id/reviewed` — the explicit "Mark as reviewed" action, for
+      content_expert and admin. Writes a version snapshot and an audit entry with who and when;
+      409 `content_not_unreviewed` when there is nothing to review, so it never churns a version
+- [x] Re-import with `author: human` clears the flag; re-import of changed `ai_draft` text sets it
+      again and clears a stale review
+- [x] The guard in `assertPublishable`: `NODE_ENV=production` only, code
+      `content_unreviewed_ai_draft`, override `acknowledge_unreviewed` on the publish transition
+      (already admin-only) recorded in the audit entry. Never refuses in dev, test or e2e, so M3
+      builds on seeded drafts freely
+- [x] CMS: "AI draft, unreviewed" chip in the four lists and on each item, the Mark as reviewed
+      button, and publish copy that explains the refusal and offers the override
+- [x] ADR-0014 decision 6; `content/seed/REVIEW.md` and the handover say the rule in prose
+
+- [x] Verification: lint, typecheck, format, `check:contracts` (no drift), `pnpm build`,
+      **595 tests** (519 TypeScript + 76 Python), `pnpm test:e2e` 4 specs green, `pnpm db:seed`
+      twice with nothing to do on the second run
+- [x] Docs: ADR-0014 decision 6 and the index, CLAUDE.md §5, `content/seed/REVIEW.md` (the rule in
+      prose for the expert reviewers), `content/seed/README.md`, `docs/progress/2026-09-22-m2.md`
+- [x] Found in my own code during the review and fixed at `36dd6ff`+: the transition audit entry
+      recorded `acknowledged_unreviewed: true` whenever a marked item was published, including in
+      development where the guard never ran and nothing was overridden. It now requires the flag
+      itself, with a regression test.
+
+**Deviations from the proposal the owner approved.** None. The one judgement call not in the brief:
+the review state is three columns rather than one boolean, because "who vouched for this and when"
+is the evidence that makes the mark worth having, and `reviewed_by_user_id` is tombstoned on
+erasure like the other authorship columns.
+
+### Phase 7 — the owner's three decisions after the review (done, 2026-09-22)
+
+- [x] **Published edits are an admin's call (ADR-0014 decision 7).** `assertMayEdit` in
+      `ContentService` refuses a content expert changing the content of a published track, lesson,
+      rubric or question — and of a module under a published track — with
+      `content_edit_needs_admin`. A transition is not an edit; nothing unpublished changes
+- [x] The CMS does not offer what it cannot do: the four editors and the module panel render
+      disabled for an expert on a published item, with a sentence saying why
+- [x] **The importer never rewrites published content** whatever authority it holds: it names the
+      row under "left alone — published, and candidates are reading them", and `--force` is the way
+      through. The test that asserted the opposite now asserts this
+- [x] **M3/M4 note** in "Carried forward": a session must store the question and rubric _versions_
+      it was scored against, or a later edit silently rewrites past reports
+- [x] **The review flow has an e2e.** It builds its own uniquely-slugged topic, rubric and question
+      in a temp directory each run and imports them — the only way to get an unreviewed AI draft,
+      since anything the CMS creates was written by a person — then drives the chip, Mark as
+      reviewed, both publishes, and the candidate API's answer-key check
+- [x] Docs: ADR-0014 decision 7 and its consequences and alternatives, CLAUDE.md §5,
+      `content/seed/README.md`, `content/seed/REVIEW.md`, the handover
+
 ## Carried forward
+
+- **M3/M4 — pin the content a session was scored against.** Every `InterviewSession` must record the
+  exact **question version and rubric version** it used (and the resolved rubric criteria, or a
+  reference that can reach the right `content_versions` snapshot), not just `question_id` /
+  `rubric_id`. Content keeps changing after a session: an admin edits a published question, an
+  expert reworks a rubric's weights, `--force` re-imports a bank. Without the version pinned, a
+  candidate's past report and readiness score silently start describing a rubric nobody scored them
+  against, and the `/evals` regression suite stops being reproducible. `content_versions` already
+  holds the snapshot (ADR-0014 decision 2) — the session needs to name which one. Decide the shape
+  when M3 designs the session bundle the worker receives, and cover it with a test that edits the
+  content after a session and asserts the report does not move.
 
 - M1: install Playwright with the first e2e test (email signup → onboarding). Right after Playwright is
   added to the repo, tell the owner to install Chromium's system libraries by running:

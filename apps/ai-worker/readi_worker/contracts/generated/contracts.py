@@ -28,6 +28,22 @@ class CvProject(BaseModel):
     technologies: list[Technology] = Field(..., max_length=15)
 
 
+class Text(RootModel[str]):
+    root: str = Field(..., max_length=8000, min_length=1)
+
+
+class EmbedRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    request_id: UUID
+    texts: list[Text] = Field(..., max_length=32, min_length=1)
+
+
+class Error(RootModel[str]):
+    root: str = Field(..., max_length=60, min_length=1)
+
+
 class Skill(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
@@ -95,6 +111,19 @@ class CvParseRequest(BaseModel):
     )
     target_role: Literal["frontend", "backend", "qa"]
     level: Literal["intern_junior", "mid"]
+
+
+class EmbedResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    request_id: UUID
+    status: Literal["ok", "failed"]
+    error: Error | None
+    model: str = Field(..., max_length=60, min_length=1)
+    dimensions: int = Field(..., ge=0, le=9007199254740991)
+    embeddings: list[list[float]]
+    ai_calls: list[AiCallRecord]
 
 
 class HealthCheckResult(BaseModel):

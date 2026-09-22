@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { grantRole, uniqueEmail } from "./helpers";
 
 /**
  * Page weight and load time on a throttled connection (CLAUDE.md §5: mobile-first, low bandwidth).
@@ -23,6 +24,30 @@ const PAGES = [
   { path: "/login", name: "log in" },
 ];
 
+/**
+ * The CMS runs on the same phones and the same data as the rest of the product: a content expert
+ * in Lagos is not on an office connection either. The list is server-rendered (its filter bar is a
+ * GET form); the question form is the heaviest screen in the app, so both are measured.
+ */
+const SIGNED_IN_PAGES = [
+  { path: "/admin/content/questions", name: "CMS question list" },
+  { path: "/admin/content/questions/new", name: "CMS question form" },
+];
+
+/** What a page cost to load, with the connection already throttled. */
+async function measure(page: Page, path: string): Promise<{ loaded: number; kb: number }> {
+  const started = Date.now();
+  await page.goto(path, { waitUntil: "load" });
+  const loaded = Date.now() - started;
+  const kb = await page.evaluate(() => {
+    const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+    const sum = entries.reduce((total, e) => total + (e.encodedBodySize || 0), 0);
+    return Math.round((sum + (nav.encodedBodySize || 0)) / 1024);
+  });
+  return { loaded, kb };
+}
+
 test.describe("on a Slow 4G connection", () => {
   test.skip(!enabled, "set E2E_SLOW_NETWORK=1 to run");
 
@@ -32,19 +57,40 @@ test.describe("on a Slow 4G connection", () => {
       await client.send("Network.enable");
       await client.send("Network.emulateNetworkConditions", SLOW_4G);
 
-      const started = Date.now();
-      await page.goto(path, { waitUntil: "load" });
-      const loaded = Date.now() - started;
-      const transferredKB = await page.evaluate(() => {
-        const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
-        const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
-        const sum = entries.reduce((total, e) => total + (e.encodedBodySize || 0), 0);
-        return Math.round((sum + (nav.encodedBodySize || 0)) / 1024);
-      });
-
-      console.log(`${name}: ${loaded} ms, ${transferredKB} KB (uncompressed over loopback)`);
+      const { loaded, kb } = await measure(page, path);
+      console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
       expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
-      expect(transferredKB, `${name} is heavier than expected`).toBeLessThan(900);
+      expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
     });
   }
+
+  test("the CMS on a phone connection", async ({ page, browser }) => {
+    // Signing up is not what is being measured, so it happens first, unthrottled.
+    const email = uniqueEmail();
+    await page.goto("/signup");
+    await page.getByRole("textbox", { name: "Email" }).fill(email);
+    await page.getByRole("textbox", { name: "Password" }).fill("correct horse battery staple");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await page.waitForURL(/\/onboarding\/profile$/);
+    grantRole(email, "content_expert");
+
+    // A *fresh* context with those cookies: measuring in the context that just signed up would
+    // count chunks the browser already had, which is how a 250 KB page reports 800 KB.
+    const cold = await browser.newContext({ storageState: await page.context().storageState() });
+    const coldPage = await cold.newPage();
+    const client = await cold.newCDPSession(coldPage);
+    await client.send("Network.enable");
+    await client.send("Network.emulateNetworkConditions", SLOW_4G);
+
+    try {
+      for (const { path, name } of SIGNED_IN_PAGES) {
+        const { loaded, kb } = await measure(coldPage, path);
+        console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
+        expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
+        expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
+      }
+    } finally {
+      await cold.close();
+    }
+  });
 });

@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { CvParseRequest, CvParseResponse } from "./cv.js";
+import { EmbedRequest, EmbedResponse } from "./embeddings.js";
 import { HealthResponse } from "./health.js";
 
 /**
@@ -16,4 +17,6 @@ export const contractRegistry: Record<string, z.ZodType> = {
   HealthResponse,
   CvParseRequest,
   CvParseResponse,
+  EmbedRequest,
+  EmbedResponse,
 };

@@ -1,0 +1,76 @@
+# QA: a skeleton, as for backend. One module, two lessons, three questions.
+version: 1
+author: ai_draft
+status: draft
+
+track:
+  slug: qa-intern-junior
+  role: qa
+  level: intern_junior
+  title: QA engineer — intern and junior
+  summary: >-
+    A starting skeleton for the QA programme: choosing the cases worth writing, and reporting what
+    you find so that it gets fixed.
+  topics:
+    - { topic: test-design, core: true }
+    - { topic: defect-reporting, core: true }
+    - { topic: debugging, core: true }
+    - { topic: collaboration, core: false }
+
+  modules:
+    - slug: testing-what-matters
+      title: Testing what matters
+      summary: Cases chosen on purpose, and reports a developer can act on.
+      lessons:
+        - slug: choosing-cases-worth-writing
+          title: Choosing cases worth writing
+          topic: test-design
+          estimated_minutes: 12
+          body: |
+            You cannot test everything, so testing is mostly choosing. Three techniques do most of
+            the work, and an interviewer will expect you to name them.
+
+            **Equivalence partitioning.** Group inputs that the system should treat the same way
+            and test one from each group. An age field does not need 1, 2, 3 and 4 — it needs one
+            valid value, one too small, one too large, and one that is not a number at all.
+
+            **Boundary values.** Bugs live at the edges. If the rule is "18 or older", test 17, 18
+            and 19. Most off-by-one errors are found by three values.
+
+            **State transitions.** Many features are a small state machine — a form that can be
+            empty, filling, submitting, failed or done. Test the transitions, including the ones
+            nobody planned: submitting twice, going back after an error, refreshing mid-way.
+
+            To that add the conditions this market makes routine: a slow or dropped connection
+            halfway through a request, a small screen, a device with a full storage, and a user who
+            taps the button twice because nothing appeared to happen.
+
+            Write each case so that **failure means something**: one behaviour per case, a clear
+            precondition, and an expected result specific enough that two testers would agree on
+            whether it passed.
+
+        - slug: a-bug-report-that-gets-fixed
+          title: A bug report a developer can act on
+          topic: defect-reporting
+          estimated_minutes: 10
+          body: |
+            A report's job is to let someone else see what you saw. A report that cannot be
+            reproduced is usually closed, whatever it found.
+
+            Include, in this order: **what you did**, numbered and precise enough to repeat;
+            **what happened**; **what you expected**, and why — a spec, a design, or an existing
+            behaviour. Then the context: environment, build or commit, account used, device and
+            browser or OS version, and the time it happened, so logs can be found.
+
+            Attach evidence — a screenshot, a short recording, the console output, the request id.
+            A screenshot of the whole screen, not a crop that leaves out the error banner.
+
+            Say **how often**: every time, one time in five, or once and never again. "Intermittent"
+            without a count is not a measurement.
+
+            Judge **severity** by impact on the user, and keep it separate from priority, which is a
+            business decision about what gets fixed first. Inflating severity to get attention costs
+            you credibility on the next report.
+
+            One defect per report, and a title that says the symptom, not the guess: "checkout
+            button does nothing on second tap" rather than "race condition in checkout".

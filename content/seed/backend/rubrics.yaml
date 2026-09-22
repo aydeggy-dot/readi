@@ -1,0 +1,66 @@
+version: 1
+author: ai_draft
+status: draft
+
+rubrics:
+  - slug: api-error-contract
+    name: Designing an error contract
+    criteria:
+      - dimension: Gives clients something to branch on
+        description: A stable code per error, separate from the human-readable message.
+        weight: 40
+        levels:
+          "0": Returns a message only.
+          "1": Returns a message and expects clients to match on its text.
+          "2": Has codes, but they are inconsistent or duplicated by the status code alone.
+          "3": A stable code per error, plus a message for humans.
+          "4": As 3, and versions or documents the codes so a client can rely on them.
+      - dimension: Uses status codes honestly
+        description: The right category, and 4xx versus 5xx placed by whose fault it is.
+        weight: 35
+        levels:
+          "0": Everything is a 200, or everything is a 500.
+          "1": Uses 400 and 500 only.
+          "2": Mostly right, with one clear misuse (e.g. 404 for a failed validation).
+          "3": Correct categories, including the distinction between 401, 403 and 404.
+          "4": As 3, and can justify a harder case — 409 versus 422, or 429 with a retry hint.
+      - dimension: Says enough, and no more
+        description: Field-level detail for validation; no stack traces, SQL or internal identifiers.
+        weight: 25
+        levels:
+          "0": Either says nothing useful or returns the raw exception.
+          "1": A generic message for every failure.
+          "2": Some detail, but leaks something internal.
+          "3": Field-level validation detail and no internals.
+          "4": As 3, and returns a request id so support can find the log entry.
+
+  - slug: query-performance-diagnosis
+    name: Diagnosing a slow query path
+    criteria:
+      - dimension: Looks at what actually ran
+        description: Inspects the queries and their plans rather than reasoning from the code alone.
+        weight: 40
+        levels:
+          "0": Guesses at a cause and starts changing code.
+          "1": Reads the application code only.
+          "2": Logs the queries but does not read a plan.
+          "3": Finds the queries and reads an execution plan for the worst one.
+          "4": As 3, and measures under a realistic data volume rather than a development dataset.
+      - dimension: Recognises the pattern
+        description: Names the N+1, or whatever the real shape of the problem is.
+        weight: 35
+        levels:
+          "0": No diagnosis.
+          "1": '"The database is slow."'
+          "2": Suspects the right area without naming the pattern.
+          "3": Identifies the N+1 (or the missing index) and explains why it costs what it does.
+          "4": As 3, and distinguishes round-trip cost from row-scanning cost.
+      - dimension: Fixes it without creating the next problem
+        description: A fix proportionate to the cause, aware of what it costs elsewhere.
+        weight: 25
+        levels:
+          "0": No fix, or caching over the top of it.
+          "1": Adds indexes broadly.
+          "2": Fixes this query in a way that will not generalise.
+          "3": Fetches the related rows in one query, or adds the index the plan calls for.
+          "4": As 3, and notes the cost — write amplification from indexes, or over-fetching from a join.

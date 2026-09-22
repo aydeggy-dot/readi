@@ -1,5 +1,10 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { type CvParseRequest, CvParseResponse } from "@readi/shared-types";
+import {
+  type CvParseRequest,
+  CvParseResponse,
+  type EmbedRequest,
+  EmbedResponse,
+} from "@readi/shared-types";
 import type { Env } from "../config/env";
 import { ENV } from "../config/env.module";
 
@@ -11,6 +16,7 @@ export class AiWorkerUnavailableError extends Error {
 /** Calls to the AI worker (ADR-0004). Abstract so tests can substitute a fake. */
 export abstract class AiWorkerClient {
   abstract parseCv(request: CvParseRequest): Promise<CvParseResponse>;
+  abstract embed(request: EmbedRequest): Promise<EmbedResponse>;
 }
 
 @Injectable()
@@ -22,15 +28,29 @@ export class HttpAiWorkerClient extends AiWorkerClient {
   }
 
   async parseCv(request: CvParseRequest): Promise<CvParseResponse> {
+    return this.post("/cv/parse", request, CvParseResponse, request.request_id);
+  }
+
+  async embed(request: EmbedRequest): Promise<EmbedResponse> {
+    return this.post("/embeddings", request, EmbedResponse, request.request_id);
+  }
+
+  /** One POST to the worker, validated against the response contract (ADR-0003/0004). */
+  private async post<T>(
+    path: string,
+    body: unknown,
+    schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false } },
+    requestId: string,
+  ): Promise<T> {
     let response: Response;
     try {
-      response = await fetch(new URL("/cv/parse", this.env.AI_WORKER_URL), {
+      response = await fetch(new URL(path, this.env.AI_WORKER_URL), {
         method: "POST",
         headers: {
           "content-type": "application/json",
           authorization: `Bearer ${this.env.AI_WORKER_TOKEN}`,
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(this.env.AI_WORKER_TIMEOUT_MS),
       });
     } catch (error) {
@@ -40,9 +60,9 @@ export class HttpAiWorkerClient extends AiWorkerClient {
       // Status only: worker error bodies can echo request fields.
       throw new AiWorkerUnavailableError(`worker answered HTTP ${response.status}`);
     }
-    const parsed = CvParseResponse.safeParse(await response.json());
+    const parsed = schema.safeParse(await response.json());
     if (!parsed.success) {
-      this.logger.error(`invalid /cv/parse response for request ${request.request_id}`);
+      this.logger.error(`invalid ${path} response for request ${requestId}`);
       throw new AiWorkerUnavailableError("invalid worker response");
     }
     return parsed.data;

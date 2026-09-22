@@ -1,0 +1,73 @@
+version: 1
+author: ai_draft
+status: draft
+
+questions:
+  - slug: test-design-signup-form
+    roles: [qa]
+    levels: [intern_junior]
+    type: test_design
+    topic: test-design
+    subtopic: boundary and state coverage
+    difficulty: 2
+    prompt: >-
+      A sign-up form takes a phone number, a password and a date of birth, and the product says
+      users must be 18 or over. What would you test, and how would you decide that list is enough?
+    context: null
+    rubric: test-case-selection
+    ideal_points:
+      - Partition the inputs and take one case from each rather than listing many similar ones.
+      - Boundaries on the age rule — 17, 18 and 19 — and on password length.
+      - Phone number formats that occur here, including a leading zero and the +234 form.
+      - Behaviour as well as input — double submission, back after an error, a dropped connection mid-request.
+      - Say what is deliberately out of scope and why.
+    reviewer_notes: >-
+      The age boundary gives an objective anchor, which is why the rule is in the prompt. Is a
+      sign-up form too easy a subject at this level, and are the phone-number formats the ones you
+      would actually expect a Nigerian tester to name?
+
+  - slug: intermittent-failure-triage
+    roles: [qa]
+    levels: [intern_junior, mid]
+    type: scenario
+    topic: defect-reporting
+    subtopic: intermittent defects
+    difficulty: 3
+    prompt: >-
+      A test that passes on your machine fails in the pipeline about one run in four. The team is
+      about to mark it as flaky and move on. What do you do?
+    context: null
+    rubric: defect-report-quality
+    ideal_points:
+      - Measure it rather than accept "sometimes" — run it repeatedly and record the rate.
+      - Look for what differs between the two environments — timing, data left over, parallelism, time zone.
+      - Treat it as a possible product bug until shown otherwise; intermittent tests often find real races.
+      - Collect what the failing run leaves behind — logs, screenshots, the failure's exact assertion.
+      - Report it with the failure rate and the evidence, rather than muting it.
+    reviewer_notes: >-
+      Scored with the defect-reporting rubric, which is a stretch — the answer is as much about
+      investigation as about reporting. Should this question have its own rubric, or is the overlap
+      close enough? I would rather an expert decided that than have me invent a fourth one.
+
+  - slug: pushing-back-on-a-release
+    roles: [qa]
+    levels: [intern_junior, mid]
+    type: behavioral
+    topic: collaboration
+    subtopic: raising concerns
+    difficulty: 3
+    prompt: >-
+      Tell me about a time you thought something should not ship, and someone more senior
+      disagreed. What did you do?
+    context: null
+    rubric: behavioural-answer-quality
+    ideal_points:
+      - A specific occasion, with what the risk actually was.
+      - How they made the case — evidence and impact rather than opinion.
+      - That they escalated or documented rather than only objecting once.
+      - What happened, including if they were overruled and were later proved wrong.
+      - What they would do differently, and what they now do routinely.
+    reviewer_notes: >-
+      This is the question I am least sure about. It can reward people who are comfortable being
+      difficult, and penalise people from workplaces where disagreeing upwards is not done.
+      Keep, reword, or cut?

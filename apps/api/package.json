@@ -14,8 +14,10 @@
     "db:deploy": "prisma migrate deploy",
     "admin:grant": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/grant-role.js",
     "admin:cancel-deletion": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/cancel-deletion.js",
-    "db:seed": "node -e \"console.log('db:seed: nothing to seed yet. The seed importer arrives in Milestone M2.')\"",
+    "db:seed": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/seed-content.js",
+    "content:review-doc": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/content-review-doc.js",
     "storage:setup": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/storage-setup.js",
+    "content:reembed": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/content-reembed.js",
     "build:standalone": "nest build -p tsconfig.cli.json",
     "e2e:prepare": "node dist-cli/src/cli/e2e-prepare.js"
   },
@@ -38,6 +40,7 @@
     "reflect-metadata": "0.2.2",
     "resend": "6.25.0",
     "rxjs": "7.8.2",
+    "yaml": "2.9.1",
     "zod": "4.5.4"
   },
   "devDependencies": {

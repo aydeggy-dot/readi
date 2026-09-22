@@ -27,6 +27,16 @@ export function t(key: MessageKey, vars: Record<string, string | number> = {}): 
 /** Locale for formatting. English (Nigeria) at launch; later from the user's profile. */
 export const LOCALE = "en-NG";
 
+/**
+ * Formats a timestamp as a day. In UTC deliberately: the server and the browser render the same
+ * string, so a list of edit dates never flickers on hydration (all timestamps are UTC, CLAUDE.md §5).
+ */
+export function formatDay(isoTimestamp: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(isoTimestamp),
+  );
+}
+
 /** Formats a calendar date (YYYY-MM-DD) without shifting it across time zones. */
 export function formatDate(isoDate: string): string {
   return new Intl.DateTimeFormat(LOCALE, { dateStyle: "long", timeZone: "UTC" }).format(

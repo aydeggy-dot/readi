@@ -8,7 +8,7 @@ see the checklist at the end.
 Status: **M1**. Nothing here is a legal opinion; this file is what the system actually does, which is
 what legal review needs as input.
 
-Last reviewed: 2026-09-20 (M1 review).
+Last reviewed: 2026-09-21 (M2 phase 3: Voyage AI wired, still disabled).
 
 ## In use today
 
@@ -32,6 +32,7 @@ They become subprocessors the moment they are enabled in an environment that ser
 |---|---|---|
 | **Sentry** | Error reporting | Error events with **no** request bodies, cookies or secret headers, and no stack-frame locals. All three SDKs are configured that way and each has a test. `sendDefaultPii: false` alone does **not** do this in the JavaScript SDKs — the HTTP integration captures bodies unless `maxIncomingRequestBodySize: "none"` is set, which is why every event also goes through a scrubber. User ids only |
 | **PostHog** | Product analytics (M9) | Opaque user ids and event names |
+| **Voyage AI** | Embeddings for question near-duplicate detection and, later, question retrieval (ADR-0006) | **No personal data.** Only the text of our own questions — a prompt and its setup — written by content experts. No candidate answers, no account ids. Off until `EMBEDDING_PROVIDER=voyage` and a key are set; the default fake provider reaches no third party (see `docs/runbooks/embeddings-switchover.md`) |
 
 ## Planned, by milestone
 
@@ -42,7 +43,6 @@ Add each to the table above — with its region and retention — in the milesto
 | LiveKit Cloud | Real-time audio for voice interviews | M5 |
 | Deepgram (or AssemblyAI) | Speech to text | M5 |
 | ElevenLabs (or Cartesia) | Text to speech | M5 |
-| Voyage AI | Embeddings for question retrieval (ADR-0006) | M2 |
 | Langfuse (EU) | LLM tracing; treated as a personal-data store (ADR-0008) | M3 |
 | Paystack | Payments in Naira | M8 |
 | Stripe | Payments in USD | M8 |
