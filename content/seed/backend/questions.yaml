@@ -24,7 +24,8 @@ questions:
     difficulty: 3
     prompt: >-
       You are designing the error responses for an API that a mobile app and a web app both use.
-      What does an error look like, and how does the client know what to do with it?
+      What goes in the status line, what goes in the body, and how does the client know what to do
+      with it?
     context: null
     rubric: api-error-contract
     ideal_points:
@@ -46,8 +47,9 @@ questions:
     subtopic: query performance
     difficulty: 3
     prompt: >-
-      An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your
-      machine. Nothing in the code looks expensive. How do you find out what is happening?
+      An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on
+      your machine. Nothing in the code looks expensive. How do you find out what is happening,
+      and once you have found it, what do you change?
     context: null
     rubric: query-performance-diagnosis
     ideal_points:
@@ -69,8 +71,9 @@ questions:
     subtopic: incidents
     difficulty: 3
     prompt: >-
-      Tell me about a production problem you had a hand in causing. What happened, what did you do
-      at the time, and what changed afterwards?
+      Tell me about something you shipped that broke for real users — in production, or in a
+      project of your own. What happened, what did you do at the time, and what changed
+      afterwards?
     context: null
     rubric: behavioural-answer-quality
     ideal_points:
@@ -97,9 +100,10 @@ questions:
     subtopic: status codes
     difficulty: 2
     prompt: >-
-      A mobile app team says their error handling does not work against your API. This is what your
-      create-account endpoint sends back when the email is already taken. Tell me what the app has
-      to do to detect that failure, what you would send instead, and whether it matters.
+      A mobile app team says their error handling does not work against your API. This is what
+      your create-account endpoint sends back when the email is already taken. Tell me what the
+      app has to do to detect that failure, what you would send instead, and who else — besides
+      the app — reads that status line.
     context: |
       ```
       HTTP/1.1 200 OK
@@ -130,9 +134,10 @@ questions:
     subtopic: collections
     difficulty: 2
     prompt: >-
-      Your `GET /jobs` endpoint returns every job as one array. It was fine at two hundred jobs and
-      there are now forty thousand. What is going wrong, for whom, and how would you change the
-      endpoint — including what you would do about the apps that are already calling it?
+      Your `GET /jobs` endpoint returns every job as one array. It was fine at two hundred jobs
+      and there are now forty thousand. What is going wrong, for whom, and how would you change
+      the endpoint? And one last thing: the Android app is on twenty thousand phones and plenty of
+      those people will never update it. What do you do about them?
     context: null
     rubric: collection-endpoint-design
     ideal_points:
@@ -158,30 +163,44 @@ questions:
     subtopic: data types
     difficulty: 2
     prompt: >-
-      Finance say the daily totals are off by a few kobo and it gets worse over the month. This is
-      the column the amounts are in. What is happening, why does it get worse rather than staying
-      the same, and what would you store instead?
+      A handful of invoices stay marked unpaid although the customer has paid in full, and finance
+      can see the two figures are the same on screen. This is the column, and this is the check.
+      Tell me why the comparison fails, what you would store instead, and what happens to the rows
+      that are already in that column.
     context: |
       ```sql
       CREATE TABLE payments (
         id          uuid PRIMARY KEY,
-        amount      double precision NOT NULL,   -- naira, e.g. 1500.50
+        amount      double precision NOT NULL,   -- naira, e.g. 1500.10
         created_at  timestamptz      NOT NULL
       );
       ```
+
+      ```js
+      const paid = await sumPayments(invoiceId);   // 45200.100000000006
+      if (paid === invoice.total) {                // invoice.total is 45200.10
+        await markPaid(invoiceId);
+      }
+      ```
     rubric: money-storage-reasoning
     ideal_points:
-      - A binary floating-point number cannot hold most decimal fractions exactly, so each amount is already slightly wrong.
-      - Summing thousands of them adds the errors together, which is why the month is worse than the day.
-      - Store an exact type — an integer number of kobo, or `numeric` with a fixed scale.
-      - The currency has to be stored with the amount; the number alone does not say what it is.
-      - Changing the column means converting the rows that are already there, and checking the conversion before dropping anything.
+      - A binary floating-point number cannot hold most decimal fractions exactly, so 45200.10 is not the value that was stored.
+      - The two numbers were never equal; the screen rounds them to two places and hides the difference.
+      - Comparing floats for equality is the wrong operation — a tolerance would work and is a patch, not a fix.
+      - Store an exact type — an integer number of kobo, or `numeric` with a fixed scale — and the comparison becomes exact.
+      - The currency belongs with the amount; the number alone does not say what it is.
+      - Changing the column means converting the rows already there, and checking the conversion before dropping anything.
     reviewer_notes: >-
-      Our own convention is integer minor units (CLAUDE.md §5), so the answer key leads with kobo and
-      accepts `numeric` equally — a candidate from a Postgres or Java background will reach for
-      `numeric`/`BigDecimal` first and is not wrong. The rubric's level 4 on criterion 1 wants the
-      candidate to say the sum is worse than the parts, which is the part that separates
-      understanding from having read the rule. Is that too fine at intern-junior?
+      **Rewritten on 2026-09-22 after a critique pass showed the first version's premise was
+      arithmetically false.** It described daily naira totals drifting a few kobo and getting worse
+      over a month; `double precision` carries fifteen to sixteen significant digits, so a total
+      would have to reach about ₦10^14 before losing a kobo, and float errors are signed and largely
+      cancel rather than accumulating — the question was scoring an explanation that is not true. It
+      now turns on an equality comparison, which is what binary floats actually break, and the
+      failing criterion was replaced. Our own convention is integer minor units (CLAUDE.md §5), so
+      the answer key leads with kobo and accepts `numeric` equally — a Postgres or Java candidate
+      will reach for `numeric`/`BigDecimal` and is not wrong. Is the tolerance answer (compare within
+      a kobo) fairly placed at level 2, or is it good enough for a junior to score higher?
 
   - slug: db-half-finished-transfer
     roles: [backend, fullstack]
@@ -227,8 +246,9 @@ questions:
     difficulty: 3
     prompt: >-
       Users are reporting that they sometimes see someone else's dashboard — the wrong name, the
-      wrong figures — and refreshing fixes it. This is the caching that was added last week. Tell me
-      what is happening, why it is intermittent, and what you would do first.
+      wrong figures — and refreshing fixes it. This is the caching that was added last week. Tell
+      me what is happening, why it is intermittent, and what you would do before you get anywhere
+      near fixing the code.
     context: |
       ```js
       app.get("/api/dashboard", auth, async (req, res) => {
@@ -236,7 +256,7 @@ questions:
         if (cached) return res.json(JSON.parse(cached));
 
         const data = await buildDashboard(req.user.id);
-        await redis.set("dashboard", JSON.stringify(data), "EX", 300);
+        await redis.set("dashboard", JSON.stringify(data), "EX", 300);   // kept for 5 minutes
         res.json(data);
       });
       ```
@@ -263,10 +283,10 @@ questions:
     subtopic: what to cache
     difficulty: 3
     prompt: >-
-      A jobs board makes the same three database queries on every page load — the list of open jobs,
-      the categories, and the signed-in user's saved jobs — and the database is struggling at peak.
-      Which of those would you cache and for how long, which would you leave alone, and how does
-      each one stop being wrong?
+      A jobs board makes the same three database queries on every page load — the list of open
+      jobs, the categories, and the signed-in user's saved jobs — and the database is struggling
+      at peak. Would you cache anything at all here, or fix something else first? For whatever you
+      would cache — how long, and what makes sure a stale copy does not stay around?
     context: null
     rubric: caching-judgement
     ideal_points:
@@ -291,9 +311,10 @@ questions:
     subtopic: moving work out of the request
     difficulty: 2
     prompt: >-
-      Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user
-      gets an error and no account. This is the handler. What is wrong with doing it this way, what
-      would you change, and what does the user see while you are changing it?
+      Sign-up sometimes takes four seconds, and when the email provider is having a bad day the
+      user gets an error and no account. This is the handler. What is wrong with doing it this
+      way, what would you change, and what should the person signing up be told — including if the
+      email never arrives?
     context: |
       ```js
       app.post("/api/signup", async (req, res) => {
@@ -328,9 +349,9 @@ questions:
     difficulty: 3
     prompt: >-
       A background job that pays out to a vendor ran twice for the same payout, and the vendor was
-      paid twice. The logs show the worker was restarted in the middle of the first run. Why would a
-      queue do that, what would you change so it cannot cost money next time, and what would you
-      say to the vendor?
+      paid twice. The logs show the worker was restarted in the middle of the first run. Why would
+      a queue do that, what would you change so it cannot cost money next time, and what would you
+      say to the vendor — including how the money comes back?
     context: null
     rubric: duplicate-job-reasoning
     ideal_points:
@@ -394,8 +415,9 @@ questions:
     difficulty: 3
     prompt: >-
       A tester signed in as an ordinary user, changed the number in the address bar, and read
-      somebody else's invoice. This is the route. Explain what the check that is there does and what
-      it does not do, and tell me where you would put the missing one and why there.
+      somebody else's invoice. This is the route. Explain what the check that is there does and
+      what it does not do, then tell me how you would write the missing one — and where you would
+      put it so the next route gets it too.
     context: |
       ```js
       app.get("/api/invoices/:id", requireSignIn, async (req, res) => {
@@ -496,9 +518,10 @@ questions:
     difficulty: 3
     prompt: >-
       Your payment provider started taking thirty seconds to answer instead of half a second. They
-      did not go down — they got slow. Within a few minutes your whole API was unreachable, including
-      the pages that have nothing to do with payments. Explain how one slow dependency took the
-      whole service with it, and tell me what you would have had in place.
+      did not go down — they got slow. Within a few minutes your whole API was unreachable,
+      including the pages that have nothing to do with payments. Explain how one slow dependency
+      took the whole service with it, and tell me what you would put in place so it cannot do this
+      again.
     context: null
     rubric: slow-dependency-reasoning
     ideal_points:
@@ -587,10 +610,10 @@ questions:
     subtopic: test doubles
     difficulty: 3
     prompt: >-
-      Every test of your payment code passes, and a live payment has been failing for two days. The
-      tests stand in for the provider with a fake that returns a successful response. Tell me what
-      the tests were and were not telling you, what you would change about them, and what else you
-      would put in place to catch this.
+      Every test of your payment code passes, and a live payment has been failing for two days.
+      The tests stand in for the provider with a fake that returns a successful response. Tell me
+      what those passing tests actually proved and what they did not, what you would change about
+      them, and what else you would put in place to catch this.
     context: null
     rubric: test-double-judgement
     ideal_points:
@@ -651,8 +674,8 @@ questions:
     prompt: >-
       Your checkout endpoint has been failing for about one request in twelve for three days, and
       the first anyone heard of it was a customer complaint this morning. Tell me what you would
-      want measured so that a week from now the same failure reaches you first, and what would have
-      to be true for anyone to actually act on it.
+      want measured so that a week from now the same failure reaches you first, what would make it
+      fire, and what would have to be true for anyone to actually act on it.
     context: null
     rubric: alerting-judgement
     ideal_points:
@@ -680,8 +703,8 @@ questions:
     prompt: >-
       Product want a button that exports everything a user has ever done as a PDF. On a heavy
       account it takes about forty seconds to build. Talk me through how you would build it, what
-      the user experiences from the moment they press the button, and what you would have to get
-      right for it to still work when a hundred people press it at once.
+      the user experiences from the moment they press the button, and what holds up when a hundred
+      people press it at once.
     context: null
     rubric: long-running-work-design
     ideal_points:
@@ -708,8 +731,8 @@ questions:
     prompt: >-
       Everything runs on one machine — the API, the database, the uploaded files — and traffic has
       tripled since a radio advert. You are going to add a second machine behind a load balancer.
-      Tell me what breaks the moment you do that, what you would find out before choosing what to
-      move, and what order you would do it in.
+      Tell me what breaks the moment you do that, what you would measure before you start, and
+      what order you would do it in.
     context: null
     rubric: scaling-out-reasoning
     ideal_points:
@@ -795,15 +818,15 @@ questions:
     subtopic: the event loop
     difficulty: 3
     prompt: >-
-      This export endpoint works. But while anyone is downloading an export, every other request to
-      the service — health checks included — takes seconds instead of milliseconds, and the service
-      gets restarted for failing its health check. Explain why one request is able to do that, and
-      tell me what you would change.
+      This export endpoint works. But while anyone is downloading an export, every other request
+      to the service — health checks included — takes seconds instead of milliseconds, and the
+      service gets restarted for failing its health check. Explain why one request is able to do
+      that, why it ends up getting the service restarted, and tell me what you would change.
     context: |
       ```js
       app.get("/api/export", async (req, res) => {
         const rows = await db.orders.findAll();          // ~80,000 rows
-        const csv = rows.map(toCsvLine).join("\n");      // a few seconds of string work
+        const csv = rows.map(toCsvLine).join("\n");
         res.type("text/csv").send(csv);
       });
       ```
@@ -836,9 +859,10 @@ questions:
     subtopic: error handling
     difficulty: 2
     prompt: >-
-      When the database is unavailable this route does not return the 500 it looks like it should —
-      the request just hangs until it times out, and the error shows up in the process log with
-      nobody's name on it. Talk me through what happens to the error, and how you would write it.
+      When the database is unavailable this route does not return the 500 it looks like it should.
+      The whole service goes down instead — every request in flight dies with it — and the process
+      is restarted. Talk me through what happens to the error, why it takes the service with it, and
+      how you would write it.
     context: |
       ```js
       app.post("/api/orders", (req, res) => {
@@ -853,16 +877,20 @@ questions:
     ideal_points:
       - "`createOrder` returns immediately; the `try` block has already finished before the work fails."
       - A rejected promise is not an exception the surrounding `try` can see.
-      - Nothing handles the rejection, so nothing ever writes a response and the client waits.
+      - An unhandled rejection is treated as an uncaught exception, and the default is to terminate the process.
       - "`await` inside an `async` handler puts the failure back where the `catch` can see it."
       - A `.catch` on the chain does the same thing without `async`.
       - An error handler at the framework level is what stops the next route having the same hole.
+      - One request's unhandled rejection killing every other request in flight is the reason this matters more than the missing 500.
     reviewer_notes: >-
-      Kept at intern-junior because it is a shape a self-taught Node developer writes early and
-      keeps writing — the `try`/`catch` looks like it covers the call. The rubric's level 1 on
-      criterion 1 is written for the confident wrong answer I expect most often: that the `catch`
-      does fire and the problem is the missing `await` on `res`. Is the "hangs until it times out"
-      detail too much of a hint that no response is written?
+      **Version-sensitive: Node's unhandled-rejection default, not yet checked against nodejs.org —
+      please verify before this ships.** A critique pass pointed out the first version was wrong:
+      it said the request hangs until it times out, but since Node 15 the default mode is `throw`,
+      so an unhandled rejection is an uncaught exception and the **process exits**. The prompt now
+      says the service goes down, which is the better question anyway — one missing `catch` taking
+      down every other request in flight is a much larger fact than a missing 500. Kept at
+      intern-junior because it is a shape a self-taught Node developer writes early and keeps
+      writing. Does the crash framing make the answer too easy to guess?
 
   - slug: node-state-between-requests
     roles: [backend, fullstack]
@@ -916,7 +944,7 @@ questions:
     prompt: >-
       The order is saved even when the payment record fails, although the method that does both is
       annotated to be transactional. Tell me why the annotation is not doing what it looks like it
-      does here, and how you would fix it.
+      does here, how you would fix it, and what belongs inside that transaction and what does not.
     context: |
       ```java
       @Service
@@ -930,7 +958,7 @@ questions:
         @Transactional
         public void saveOrderAndPayment(OrderRequest request) {
           orderRepository.save(toOrder(request));
-          paymentRepository.save(toPayment(request));   // throws
+          paymentRepository.save(toPayment(request));   // throws DataIntegrityViolationException
         }
       }
       ```
@@ -1043,14 +1071,15 @@ questions:
     prompt: >-
       Support update a customer's phone number, and a minute later it is back to the old one. The
       only other thing touching that record is this view, which marks the account as verified.
-      Explain how this code could be putting the old number back, and what you would write instead.
+      Explain how this code could be putting the old number back, why the gap is a whole minute
+      rather than a millisecond, and what you would write instead.
     context: |
       ```python
       def verify(request, pk):
-          customer = Customer.objects.get(pk=pk)   # read at 14:02
+          customer = Customer.objects.get(pk=pk)
           # ... a slow call to the verification provider ...
           customer.is_verified = True
-          customer.save()                          # written at 14:03
+          customer.save()
           return redirect("customers")
       ```
     rubric: stale-write-diagnosis
@@ -1155,10 +1184,14 @@ questions:
     difficulty: 2
     prompt: >-
       When the database is unreachable this handler returns 200 and a customer with an empty name
-      and a zero balance, and nothing is logged. Tell me what the code does when the call fails, why
-      it ends up looking like success, and how you would write it.
+      and a zero balance, and nothing is logged. Tell me what the code does when the call fails,
+      why it ends up looking like success, and how you would write it — including what should
+      happen when the customer simply does not exist.
     context: |
       ```go
+      // FindCustomer returns a zero Customer and an error if the row cannot be read.
+      func (s *Store) FindCustomer(ctx context.Context, id string) (Customer, error)
+
       func GetCustomer(w http.ResponseWriter, r *http.Request) {
           customer, _ := store.FindCustomer(r.Context(), chi.URLParam(r, "id"))
           json.NewEncoder(w).Encode(customer)
@@ -1229,14 +1262,14 @@ questions:
     subtopic: side effects
     difficulty: 3
     prompt: >-
-      An overnight import of four thousand vendors sent four thousand emails and took two hours, and
-      the tests for anything that touches a vendor are slow and occasionally fail. This is the
-      model. Tell me what is causing all three of those, and what you would change.
+      An overnight import of four thousand vendors sent four thousand emails and took two hours,
+      and the tests for anything that touches a vendor are slow. This is the model. Tell me what
+      is causing all three of those, what you would change, and when a callback *is* the right
+      place for something.
     context: |
       ```ruby
       class Vendor < ApplicationRecord
         after_save :send_welcome_email
-        after_save :sync_to_search_index
 
         private
 

@@ -107,23 +107,32 @@ around", "checks the error rate afterwards", "tests on a real device" — a clai
 nothing to say, so the top band separates the coached from the good. Make level 4 a distinction, a
 trade-off, or a case where the candidate's own answer would be the wrong call.
 
-**Every criterion needs a descriptor that fits a confident, specific, wrong answer.** The low
-descriptors get written for vagueness — "a rule with no mechanism", "with nothing behind it",
-"without saying why" — because that is what a weak answer looks like. A fluent wrong answer is the
-opposite of vague: it is detailed, it uses the vocabulary correctly, and the detail is wrong. Scored
-against a descriptor written for absence, it lands on the right _number_ and the evaluator's
-evidence quote then contradicts the descriptor it was scored against — the candidate is told they
-were vague about something they were specific and wrong about. **M4's feedback is built on those
-evidence quotes**, so this is the difference between feedback a candidate trusts and feedback that
-tells them we were not listening. Name the wrong belief this question actually attracts, and put it
-at level 0, 1 or 2 beside the vague one:
+**Every criterion needs a descriptor that fits a specific, wrong answer.** The low descriptors get
+written for vagueness — "a rule with no mechanism", "with nothing behind it", "without saying why" —
+because that is what a weak answer looks like. A fluent wrong answer is the opposite of vague: it is
+detailed, it uses the vocabulary correctly, and the detail is wrong. Scored against a descriptor
+written for absence, it lands on the right _number_ and the evaluator's evidence quote then
+contradicts the descriptor it was scored against — the candidate is told they were vague about
+something they were specific and wrong about. **M4's feedback is built on those evidence quotes**, so
+this is the difference between feedback a candidate trusts and feedback that tells them we were not
+listening. Name the wrong belief this question actually attracts, and put it at level 0, 1 or 2
+beside the vague one — "Relies on the request rejecting: a try/catch only, or the claim that `fetch`
+throws on a 404 or a 500."
 
-> `"1": Relies on the request rejecting — a `try`/`catch`only, or a confident claim that`fetch`
-throws on a 404 or a 500.`
+**Name the belief, never the manner.** The first version of this rule said "a _confident_, specific,
+wrong answer", and writing it that way put the word _confident_ into thirty-four descriptors across
+two banks before two critique passes independently caught it. Every word in a descriptor is a
+scoring instruction, so that one told the evaluator to attend to how an answer sounded — the exact
+defect `rubrics.shared.yaml` had just been reworked to remove, reintroduced by the fix for a
+different problem. It also does no work: what separates level 1 from level 2 is that **level 1 names
+a specific wrong mechanism and level 2 is vague**, and a hesitant candidate naming the same wrong
+mechanism has to land in the same band. No descriptor contains "confidently", "with conviction",
+"however fluently" or "argued in detail".
 
 The `fluent-but-wrong` answer in the stress test is where the wrong belief comes from, which is why
-the test is worth running before the rubric is finished rather than after. Applied across all 34
-frontend and shared rubrics on 2026-09-22; every bank after that is written this way from the start.
+the test is worth running before the rubric is finished rather than after. Applied across every
+frontend, shared and backend rubric on 2026-09-22; every bank after that is written this way from
+the start.
 
 **A shared rubric must be able to score its questions.** A behavioural answer is judged the same way
 whatever the role, so the shared rubric is right — until a question is written about a _specific_

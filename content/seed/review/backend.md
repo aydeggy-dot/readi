@@ -1,6 +1,6 @@
 # Backend engineer — drafted content for expert review
 
-**3 questions**, 3 rubrics, 1 track (1 modules, 2 lessons).
+**37 questions**, 37 rubrics, 1 track (1 modules, 2 lessons).
 
 Everything here is a **draft written by `ai_draft`** and is invisible to candidates until a human publishes it. Your review is what decides whether it ever is.
 
@@ -184,6 +184,2224 @@ How it ended, including if it went badly, and something specific they do differe
 - **4 (excellent):** As 3, and the change is one an interviewer could check against how they now work.
 
 > **The drafter is unsure about:** Candidates often arrive coached to avoid admitting fault, so the answers may be evasive regardless of the person. Is this worth asking at mid level, or does it mostly measure interview training? If it stays, should the rubric explicitly reward admitting a mistake?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 4. api-status-code-choice
+
+**technical** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: API design (status codes)
+
+**The interviewer asks**
+
+> A mobile app team says their error handling does not work against your API. This is what your create-account endpoint sends back when the email is already taken. Tell me what the app has to do to detect that failure, what you would send instead, and whether it matters.
+
+**Setup the candidate is given**
+
+> ```
+> HTTP/1.1 200 OK
+> Content-Type: application/json
+>
+> { "success": false, "message": "Email already registered" }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The app has to read the body to find out it failed, because the status line says it worked.
+- Anything between the two — a proxy, a cache, a retry, an error tracker — reads the 200 and agrees.
+- A failure the caller caused is a 4xx; this one is a conflict with data that already exists.
+- The machine-readable part is the status plus a stable code, not the English sentence.
+- Being consistent across every endpoint matters more than which 4xx is picked.
+
+**Rubric: Saying in the status line what happened** (`status-code-honesty`)
+
+**Says what the client is forced to do — 30%**
+
+That the app has to parse the body to learn it failed, because the status says it did not.
+
+- **0 (absent):** Sees nothing wrong with the response.
+- **1 (weak):** Defends the shape — an envelope the client checks, status codes described as being about transport rather than the application — stated as a pattern rather than a mistake.
+- **2 (partial):** Says the status "should be different" without saying what the client has to do because it is not.
+- **3 (solid):** Says the app must read and understand the body before it knows this was a failure.
+- **4 (excellent):** As 3, and notes that a client written against a normal API would have treated this as a created account.
+
+**Sends a status the machine can act on — 40%**
+
+A 4xx for something the caller can fix, plus a stable code — not an English sentence.
+
+- **0 (absent):** No change, or a 500.
+- **1 (weak):** Keeps the 200 and improves the body, or picks a status by how it sounds rather than what it means.
+- **2 (partial):** Says "a 4xx" without choosing one or saying what the client branches on.
+- **3 (solid):** A defensible 4xx with a reason — this is a conflict with data that already exists — and a stable code beside it.
+- **4 (excellent):** As 3, and separates the code the client branches on from the message a person reads, so the wording can change freely.
+
+**Knows who else reads the status line — 30%**
+
+Proxies, caches, retries, load balancers and error tracking all act on it and never open the body.
+
+- **0 (absent):** Treats the status as something only this client sees.
+- **1 (weak):** Says it is "good practice" or "the standard" with nothing that follows from getting it wrong.
+- **2 (partial):** Names one other reader without saying what it does wrong.
+- **3 (solid):** Names something in the path that acts on a 200 — a cache storing it, a retry not happening, an error rate that looks clean.
+- **4 (excellent):** As 3, and says the monitoring is the expensive one: a failure that reports as success is invisible until a customer calls.
+
+> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on *which* 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 5. api-list-that-grew
+
+**scenario** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: API design (collections)
+
+**The interviewer asks**
+
+> Your `GET /jobs` endpoint returns every job as one array. It was fine at two hundred jobs and there are now forty thousand. What is going wrong, for whom, and how would you change the endpoint — including what you would do about the apps that are already calling it?
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The response is megabytes; on mobile data that is slow, expensive and may simply fail.
+- The server holds all of it in memory to build it, and the database reads all of it to answer.
+- Return a page at a time, with a way to ask for the next one.
+- The client needs to know there is more — a cursor, or a link — not to guess from the length.
+- Existing callers break if the shape changes, so it needs a default, a version or a new path.
+- Filtering and sorting belong on the server too, or every client downloads everything to find one row.
+
+**Rubric: An endpoint that returns a collection** (`collection-endpoint-design`)
+
+**Names what it costs and who pays — 35%**
+
+Bytes on mobile data, memory on the server, and a query that reads the whole table.
+
+- **0 (absent):** Sees no problem, or says only that it is "not scalable".
+- **1 (weak):** Names a cost that is not the main one, confidently — that JSON is verbose, that the client's rendering is slow, that the network is the user's problem.
+- **2 (partial):** Says the response is too big, without saying what that does to anyone.
+- **3 (solid):** Names the user's side and the server's side — megabytes over mobile data, and the memory and query needed to produce them.
+- **4 (excellent):** As 3, and says what it fails like rather than how slow it is: a phone on a weak connection that times out and retries the same download.
+
+**Changes the endpoint, not the size of the answer — 35%**
+
+Pages, with a way to ask for the next one, rather than a bigger pipe or a smaller payload.
+
+- **0 (absent):** No change, or a faster server.
+- **1 (weak):** Makes the same response cheaper — compression, fewer fields, a cache — and still returns all forty thousand.
+- **2 (partial):** Says "add pagination" without saying how the client asks for more.
+- **3 (solid):** Returns a page, and the response carries what is needed to ask for the next one rather than leaving the client to guess.
+- **4 (excellent):** As 3, and puts the filtering and sorting on the server too, so no client has to download everything to find one row.
+
+**Does not break the callers it already has — 30%**
+
+A change to a live contract needs a path that does not strand the apps on phones.
+
+- **0 (absent):** Changes the shape and does not consider who is calling it.
+- **1 (weak):** Says the clients "will need to update", with no account of the ones that will not — an installed app on a phone nobody updates.
+- **2 (partial):** Mentions versioning as a word, with no plan for this endpoint.
+- **3 (solid):** Keeps the old behaviour working while clients move — a default, a version, or a new path — and says how it ends.
+- **4 (excellent):** As 3, and says how they would know it is safe to remove the old one, rather than picking a date.
+
+> **The drafter is unsure about:** This is the question I would most want a junior to have met before their first job, and it is here rather than at mid for that reason. Two things for you. The migration clause ("the apps already calling it") adds 30% of the score for something a self-taught candidate may never have had to do — the rubric accepts "I would keep the old shape working while the apps update" in any form, but is asking it at intern-junior fair at all? And should the answer key insist on cursors over offsets, or is that a mid distinction? It currently rewards either with a reason.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 6. db-money-as-a-float
+
+**technical** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: Databases and data modelling (data types)
+
+**The interviewer asks**
+
+> Finance say the daily totals are off by a few kobo and it gets worse over the month. This is the column the amounts are in. What is happening, why does it get worse rather than staying the same, and what would you store instead?
+
+**Setup the candidate is given**
+
+> ```sql
+> CREATE TABLE payments (
+>   id          uuid PRIMARY KEY,
+>   amount      double precision NOT NULL,   -- naira, e.g. 1500.50
+>   created_at  timestamptz      NOT NULL
+> );
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- A binary floating-point number cannot hold most decimal fractions exactly, so each amount is already slightly wrong.
+- Summing thousands of them adds the errors together, which is why the month is worse than the day.
+- Store an exact type — an integer number of kobo, or `numeric` with a fixed scale.
+- The currency has to be stored with the amount; the number alone does not say what it is.
+- Changing the column means converting the rows that are already there, and checking the conversion before dropping anything.
+
+**Rubric: Storing an amount of money** (`money-storage-reasoning`)
+
+**Names why the value is already wrong — 35%**
+
+Binary floating point cannot represent most decimal fractions, so the stored amount is an approximation.
+
+- **0 (absent):** Treats it as a display or rounding bug in the report.
+- **1 (weak):** A confident wrong mechanism — that the column has too few decimal places, that the ORM is truncating, that `double` is fine and the reporting query needs rounding.
+- **2 (partial):** Says floating point is "inaccurate" with no account of why.
+- **3 (solid):** Says a binary fraction cannot hold most decimal values exactly, so each row is already slightly off.
+- **4 (excellent):** As 3, and gives an instance — a value that cannot be represented, or what the column actually holds for 1500.50.
+
+**Says why it gets worse — 30%**
+
+The errors accumulate over a sum; a month has more rows in it than a day.
+
+- **0 (absent):** Does not address it, or says the data is getting worse.
+- **1 (weak):** Attributes the growth to something else — more traffic, a currency conversion, the report caching yesterday's figure.
+- **2 (partial):** Says "the errors add up" with nothing behind it.
+- **3 (solid):** Says each amount carries a small error and summing thousands adds them together, so the longer the period the bigger the gap.
+- **4 (excellent):** As 3, and notes the error does not cancel out reliably, so "it will average out" is not a defence.
+
+**Chooses a type, and moves the data into it — 35%**
+
+An exact type, with the currency beside it, and a conversion that is checked before anything is dropped.
+
+- **0 (absent):** No change, or rounding at the point of display.
+- **1 (weak):** Swaps to another inexact type, or keeps `double` and adds rounding on write, described as the fix.
+- **2 (partial):** Names an exact type without saying what happens to the rows already there.
+- **3 (solid):** Integer minor units or a fixed-scale decimal, and a migration that converts the existing rows.
+- **4 (excellent):** As 3, and stores the currency with the amount, and verifies the conversion before dropping the old column rather than after.
+
+> **The drafter is unsure about:** Our own convention is integer minor units (CLAUDE.md §5), so the answer key leads with kobo and accepts `numeric` equally — a candidate from a Postgres or Java background will reach for `numeric`/`BigDecimal` first and is not wrong. The rubric's level 4 on criterion 1 wants the candidate to say the sum is worse than the parts, which is the part that separates understanding from having read the rule. Is that too fine at intern-junior?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 7. db-half-finished-transfer
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Databases and data modelling (transactions)
+
+**The interviewer asks**
+
+> Support have found accounts where money left one and never arrived in the other. This is the code that moves it. Walk me through how that state comes about, what you would change, and what you would do about the rows that are already wrong.
+
+**Setup the candidate is given**
+
+> ```js
+> async function transfer(fromId, toId, amountKobo) {
+>   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [amountKobo, fromId]);
+>   await notify(fromId, "Transfer sent");
+>   await db.query("UPDATE accounts SET balance = balance + $1 WHERE id = $2", [amountKobo, toId]);
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The two updates are separate; anything that stops the process between them leaves the money nowhere.
+- The notification in the middle makes the window larger and can fail on its own.
+- Both updates belong in one transaction, so either both happen or neither does.
+- The notification belongs outside it — it is not something a database can roll back.
+- The existing wrong rows need finding and correcting, not just a fix for the next one.
+- A check that the balance does not go below zero belongs in the same transaction, not before it.
+
+**Rubric: Where a unit of work begins and ends** (`transaction-boundary-reasoning`)
+
+**Sees the gap between the two writes — 35%**
+
+Two statements are two units of work; anything that stops in between leaves half of it done.
+
+- **0 (absent):** Blames the database, the network or the amount.
+- **1 (weak):** Locates the fault somewhere it is not, in detail — the subtraction failing, a negative balance, the notification throwing and being swallowed.
+- **2 (partial):** Says the two updates "should be together" without saying what happens if they are not.
+- **3 (solid):** Says a crash, a timeout or a thrown error between the statements commits the first and never runs the second.
+- **4 (excellent):** As 3, and notes the notification in the middle widens the window and can itself be the thing that fails.
+
+**Puts a boundary in the right place — 40%**
+
+Both writes in one transaction, and the things a database cannot undo outside it.
+
+- **0 (absent):** No transaction; a retry, a try/catch, or an alert instead.
+- **1 (weak):** Compensates rather than rolls back — reverses the first update in a `catch` — which fails in exactly the same window.
+- **2 (partial):** Says "wrap it in a transaction" without saying what goes inside and what does not.
+- **3 (solid):** Both updates in one transaction, committed or rolled back together, with the notification moved out.
+- **4 (excellent):** As 3, and puts the balance check inside the same transaction, because a check made before it opens proves nothing by the time it writes.
+
+**Deals with the rows that are already wrong — 25%**
+
+The accounts in that state exist now, and a code fix does not move them.
+
+- **0 (absent):** Not addressed.
+- **1 (weak):** Fixes the code and moves on, or assumes there cannot be many.
+- **2 (partial):** Says the data "would need fixing" with no way of finding which rows.
+- **3 (solid):** Says how they would find them — the debits with no matching credit — and that they are corrected deliberately, not by rerunning the transfer.
+- **4 (excellent):** As 3, and says who is told: the money belonged to someone who has not had it, so this is a conversation and not only a script.
+
+> **The drafter is unsure about:** The snippet is deliberately readable without knowing the library — it is two SQL statements and an await. My worry is the third clause: asking what to do about the rows that are already wrong is the part that separates someone who has been on call from someone who has not, and it carries 25%. The rubric's level 1 there is "would fix the code and move on", which is an honest junior answer — is 1 too harsh for it, or right? Also: is it fair to expect a candidate to say the notification should move out, or is that a mid-only point?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 8. cache-key-that-leaked
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Caching (cache keys)
+
+**The interviewer asks**
+
+> Users are reporting that they sometimes see someone else's dashboard — the wrong name, the wrong figures — and refreshing fixes it. This is the caching that was added last week. Tell me what is happening, why it is intermittent, and what you would do first.
+
+**Setup the candidate is given**
+
+> ```js
+> app.get("/api/dashboard", auth, async (req, res) => {
+>   const cached = await redis.get("dashboard");
+>   if (cached) return res.json(JSON.parse(cached));
+>
+>   const data = await buildDashboard(req.user.id);
+>   await redis.set("dashboard", JSON.stringify(data), "EX", 300);
+>   res.json(data);
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The key is the same for every user, so the first user's dashboard is served to everyone.
+- It is intermittent because it only shows while an entry is live, and the five minutes then expire.
+- The key has to include whatever the response depends on — here, the user.
+- This is a data-exposure incident, not a bug: the first thing is to clear the cache and turn it off.
+- Afterwards, work out who saw what, because someone's figures were shown to someone else.
+- A per-user cache is worth much less than it looks, which is a reason to ask what is being cached at all.
+
+**Rubric: Finding a cache that is serving the wrong person** (`cache-key-diagnosis`)
+
+**Finds the shared key — 40%**
+
+One key for every user, so whoever fills it decides what everyone sees.
+
+- **0 (absent):** Blames the session, the token or the authentication middleware.
+- **1 (weak):** A confident wrong cause — the serialisation racing, the Redis connection being shared, the middleware running out of order — argued from the code without reaching the key.
+- **2 (partial):** Suspects the cache without saying what about it is wrong.
+- **3 (solid):** Says the key is a constant, so the first response stored is returned to everyone until it expires.
+- **4 (excellent):** As 3, and says the check above it is irrelevant: the request is authenticated and then answered with somebody else's data anyway.
+
+**Explains why it comes and goes — 30%**
+
+It only shows while an entry is live; the five minutes expire and the next user refills it.
+
+- **0 (absent):** Treats the intermittency as unrelated, or as a different bug.
+- **1 (weak):** Explains it with something that is not there — load balancing between servers, a replica lag, the browser's own cache.
+- **2 (partial):** Says it is "a timing thing" without connecting it to the expiry.
+- **3 (solid):** Ties it to the lifetime: wrong until the entry expires, right again for whoever refills it, so refreshing often lands on a fresh one.
+- **4 (excellent):** As 3, and notes the pattern this produces — the same wrong dashboard for several users in a row, which is what makes it look like a login bug.
+
+**Treats it as an exposure, not a bug — 30%**
+
+People's figures were shown to other people; the key fix is the smallest part of the response.
+
+- **0 (absent):** Ships the key fix and considers it closed.
+- **1 (weak):** Mentions that it is "a security issue" with nothing following from it.
+- **2 (partial):** Says someone should be told, without saying what is done in the meantime.
+- **3 (solid):** Stops it first — clear the cache, turn the caching off — then fixes the key, and says someone has to be told.
+- **4 (excellent):** As 3, and asks what can be established about who saw what, and accepts that the honest answer may be "we cannot tell, and that is part of the report".
+
+> **The drafter is unsure about:** The strongest answer treats this as an incident before it treats it as a bug, and criterion 3 is built around that — 30% for turning it off and working out who saw what, rather than for the one-line key fix. I think that is right and it is the sort of thing a reviewer should challenge, because it means a candidate who gives a perfect technical answer and never says "tell someone" is capped at about 70%. Is that the judgement we want to make?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 9. what-to-cache-and-for-how-long
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Caching (what to cache)
+
+**The interviewer asks**
+
+> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Which of those would you cache and for how long, which would you leave alone, and how does each one stop being wrong?
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The categories barely change and are the same for everyone — the cheapest and safest to hold.
+- The jobs list changes, but a minute or two of staleness is usually acceptable, and that is a product question.
+- The user's saved jobs are per-user and change because of something that user just did, so it is the worst candidate.
+- Each cached thing needs a way to stop being wrong — a short life, or being dropped when the underlying data is written.
+- Caching hides a slow query rather than fixing it, so it is worth knowing why the queries are slow first.
+
+**Rubric: Deciding what is worth caching** (`caching-judgement`)
+
+**Discriminates between the three — 40%**
+
+They differ in how often they change, how many people share them, and what a stale one costs.
+
+- **0 (absent):** Treats them as one decision — cache all, or cache none.
+- **1 (weak):** Applies one rule to all three with a confident reason — a five-minute default, "cache the read-heavy ones", "Redis is fast enough that it does not matter".
+- **2 (partial):** Separates them, with a reason that is really about how often each is queried.
+- **3 (solid):** Separates them on what actually differs: shared versus per-user, how often it changes, and what a stale answer costs the person reading it.
+- **4 (excellent):** As 3, and names the saved-jobs list as the one to leave alone because the user changed it themselves a moment ago, so staleness is most visible exactly where it is least acceptable.
+
+**Gives each one a way to stop being wrong — 35%**
+
+A lifetime, or being dropped when the underlying data is written — decided, not assumed.
+
+- **0 (absent):** No expiry or invalidation considered.
+- **1 (weak):** One lifetime for everything, or invalidation described as something the cache does by itself.
+- **2 (partial):** Names expiry and invalidation without saying which suits which of the three.
+- **3 (solid):** Picks a lifetime for the ones where staleness is tolerable and dropping-on-write for the ones where it is not, and says why each way round.
+- **4 (excellent):** As 3, and says what happens the moment a cached entry disappears under load — everything asking the database at once — and that it is a thing to have thought about.
+
+**Knows what the cache is hiding — 25%**
+
+A cache in front of a slow query leaves the slow query there, now harder to see.
+
+- **0 (absent):** Treats caching as the fix for a struggling database.
+- **1 (weak):** Argues the query does not matter once it is cached, or that caching is cheaper than optimising.
+- **2 (partial):** Mentions that the queries could be improved, as an aside.
+- **3 (solid):** Says the cache hides the cost rather than removing it, and that the database is still the thing that fails when the cache does.
+- **4 (excellent):** As 3, and would look at why three queries are slow before caching any of them — an index, an N+1 — and treats the cache as what is left over.
+
+> **The drafter is unsure about:** Deliberately three things rather than one, so the answer has to discriminate rather than recite "cache the hot path". The risk is that it rewards talkers — there is no code and no single right answer — so the rubric puts 40% on the discrimination itself and level 4 asks the candidate to name what would change their mind. Does it still leave room for a good candidate who would simply say "I would fix the queries first"? I have made that a level-4 point on criterion 3 rather than a wrong answer.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 10. email-in-the-request
+
+**technical** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: Background and queued work (moving work out of the request)
+
+**The interviewer asks**
+
+> Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user gets an error and no account. This is the handler. What is wrong with doing it this way, what would you change, and what does the user see while you are changing it?
+
+**Setup the candidate is given**
+
+> ```js
+> app.post("/api/signup", async (req, res) => {
+>   const user = await createUser(req.body);
+>   await sendWelcomeEmail(user.email);   // calls the provider's API
+>   res.status(201).json({ id: user.id });
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The user waits for something they did not ask for and cannot benefit from.
+- A failure in the email fails the sign-up, although the account was already created.
+- The email is not part of the thing being asked for, so it belongs outside the request — a queue, or a job.
+- The response then returns as soon as the account exists, which is the thing the user wanted.
+- Moving it out means it can be retried when the provider recovers, which it cannot be now.
+- The user should be told the email is coming, not left wondering — and there needs to be a way to resend it.
+
+**Rubric: Taking work out of the request** (`background-work-reasoning`)
+
+**Says what the user is paying for — 30%**
+
+They are waiting for something that is not theirs, and a failure in it fails theirs.
+
+- **0 (absent):** Sees nothing wrong; the account is created and the email is sent.
+- **1 (weak):** Names the wrong cost with conviction — that the provider is slow and should be swapped, that four seconds is acceptable for sign-up, that the fix is a better email service.
+- **2 (partial):** Says it is slow, without connecting the slowness to what the user actually asked for.
+- **3 (solid):** Says the user waits for the email and that the email failing fails the whole request, although the account already exists.
+- **4 (excellent):** As 3, and notices the account is left created with no way to tell the user so — the failure is not only slow, it is dishonest.
+
+**Gets the work out of the request — 45%**
+
+The email leaves the handler entirely, somewhere it can be retried.
+
+- **0 (absent):** Keeps it in the handler.
+- **1 (weak):** Drops the `await` and leaves the call in the handler, or wraps it in a `try`/`catch` that swallows the failure — fire and forget, described as the fix.
+- **2 (partial):** Says to "make it asynchronous" or "use a queue" without saying what happens to a failure.
+- **3 (solid):** Hands the email to something outside the request — a queue, a job table, a worker — so the response returns as soon as the account exists.
+- **4 (excellent):** As 3, and says what that buys beyond speed: the provider recovering means the email eventually goes, which fire-and-forget can never do.
+
+**Says what the user is told — 25%**
+
+The person signing up has to know the email is coming and have a way to get it again.
+
+- **0 (absent):** Not addressed.
+- **1 (weak):** Would show a spinner or a generic success, and treats the question as answered.
+- **2 (partial):** Says they would "tell the user", without saying what.
+- **3 (solid):** Tells them the account exists and the email is on its way, and offers a resend.
+- **4 (excellent):** As 3, and will not claim something that has not happened — the message says the email is being sent, not that it has been.
+
+> **The drafter is unsure about:** The most common wrong answer here is to remove the `await` and leave the call in the handler, which looks like it works and loses every failure silently — the rubric has a descriptor for it at level 1 of criterion 2 rather than treating it as vagueness, because a candidate who does it says so confidently. Worth checking whether "put it on a queue" is a reasonable thing to expect from a candidate who has only ever deployed to one machine; the rubric accepts any mechanism that gets the work out of the request, including a cron job over a table — is that the right floor, or should the answer key expect a real queue?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 11. the-job-that-ran-twice
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Background and queued work (retries and duplicates)
+
+**The interviewer asks**
+
+> A background job that pays out to a vendor ran twice for the same payout, and the vendor was paid twice. The logs show the worker was restarted in the middle of the first run. Why would a queue do that, what would you change so it cannot cost money next time, and what would you say to the vendor?
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- A queue that guarantees delivery has to re-deliver anything it cannot confirm was finished.
+- A worker that dies mid-job never confirms, so the job comes back — that is the queue working, not failing.
+- The job has to be safe to run twice, rather than the queue being asked to promise it will not.
+- Record that this payout was made, in the same transaction as making it, and check that record first.
+- A natural key the payment provider will also recognise is better than a flag only we can see.
+- The vendor is told, and the money is recovered through the provider rather than quietly.
+
+**Rubric: A job that can run twice** (`duplicate-job-reasoning`)
+
+**Knows why a queue re-delivers — 35%**
+
+A queue that will not lose work has to repeat anything it cannot confirm finished.
+
+- **0 (absent):** Treats it as a bug in the queue, or as two jobs having been enqueued.
+- **1 (weak):** A confident wrong account — the queue being misconfigured, the retry count needing to be zero, a duplicate enqueue upstream — argued without the worker restart.
+- **2 (partial):** Connects it to the restart without saying why the restart causes a repeat.
+- **3 (solid):** Says a worker that dies mid-job never acknowledges it, so the queue hands it out again — which is the queue doing its job.
+- **4 (excellent):** As 3, and says the alternative is worse: a queue that only delivers once loses work whenever a worker dies, which is not a trade a payout system makes.
+
+**Makes the job safe to run twice — 40%**
+
+The protection lives in the job, not in a promise from the queue.
+
+- **0 (absent):** No change, or asks the queue for a stronger guarantee.
+- **1 (weak):** Guards with something that has the same gap — a flag set after the payment, an in-memory set, a check that reads before it writes.
+- **2 (partial):** Says the job "should be idempotent" without saying what makes it so.
+- **3 (solid):** Records that this payout was made as part of making it, in one transaction, and checks that record before paying.
+- **4 (excellent):** As 3, and sends something the provider will also recognise, so a repeat is refused at their end too rather than only at ours.
+
+**Says what happens to the money and the vendor — 25%**
+
+A vendor has been paid twice; a code change does not undo that.
+
+- **0 (absent):** Not addressed — the answer is entirely about the code.
+- **1 (weak):** Would quietly deduct it from the next payout, or assume the vendor will return it.
+- **2 (partial):** Says someone should be told, without saying who or what happens to the money.
+- **3 (solid):** The vendor is told, and the recovery goes through the payment provider rather than by adjusting a future payment.
+- **4 (excellent):** As 3, and asks how many other payouts this has happened to, because a weekly restart means this is unlikely to be the first.
+
+> **The drafter is unsure about:** This is the backend half of the frontend bank's `retry-and-the-double-charge` and they are deliberately different questions — that one is about what the interface does while a request is in flight, this one is about a worker that has already died. A reviewer should confirm they do not feel like the same question to a full-stack candidate, who is offered both. The third clause ("what would you say to the vendor") is 25% and is not a technical point: it is there because the honest answer to a double payment is not only a code change. Is scoring that fair, or is it a test of confidence rather than of engineering?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 12. passwords-in-the-database
+
+**technical** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: Authentication and authorisation (credential storage)
+
+**The interviewer asks**
+
+> You have joined a team and this is how sign-in works. Tell me what you would raise, what you would change it to, and what has to happen to the accounts that already exist.
+
+**Setup the candidate is given**
+
+> ```js
+> // on sign-up
+> const hash = crypto.createHash("md5").update(password).digest("hex");
+> await db.query("INSERT INTO users (email, password_hash) VALUES ($1, $2)", [email, hash]);
+>
+> // on sign-in
+> const hash = crypto.createHash("md5").update(password).digest("hex");
+> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [email, hash]);
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- MD5 is fast by design, which is exactly what a password hash must not be.
+- The same password gives the same hash for every user, so one leaked table reveals the repeats.
+- Use a slow hash built for passwords — bcrypt, scrypt or Argon2 — which salts each one itself.
+- Existing hashes cannot be converted, because the password is not recoverable from them.
+- Re-hash each password at the user's next successful sign-in, and expire the rest.
+- Comparing in SQL means the comparison is not constant-time and the hash is in the query log.
+
+**Rubric: Storing a password** (`credential-storage-reasoning`)
+
+**Says what is wrong with the hash — 40%**
+
+MD5 is fast and unsalted here, which are the two things a password hash must not be.
+
+- **0 (absent):** Sees nothing wrong; the password is hashed.
+- **1 (weak):** A confident partial — that MD5 is "broken" because of collisions, or that the fix is a stronger fast hash such as SHA-256.
+- **2 (partial):** Says MD5 is not safe for passwords without saying what about it is not.
+- **3 (solid):** Says it is fast, so guesses can be made in enormous numbers, and that a general-purpose hash is the wrong tool.
+- **4 (excellent):** As 3, and adds that every user with the same password has the same hash here, so one leaked table shows which accounts share one.
+
+**Picks something built for passwords — 35%**
+
+A slow, salted, tunable hash — bcrypt, scrypt, Argon2 — rather than a hash plus a salt column.
+
+- **0 (absent):** No change, or encryption instead of hashing.
+- **1 (weak):** Keeps a fast hash and adds a salt, or a pepper, or several rounds by hand, described as sufficient.
+- **2 (partial):** Names a password hash without saying what it does that the current one does not.
+- **3 (solid):** Names one and says why — it is deliberately slow and handles the salt itself — and that the cost can be raised as machines get faster.
+- **4 (excellent):** As 3, and notices the comparison is happening in SQL, so the hash is in the query log and the match is not constant-time.
+
+**Deals with the accounts that exist — 25%**
+
+The old hashes cannot be converted, because the password is not recoverable from them.
+
+- **0 (absent):** Not addressed.
+- **1 (weak):** Would re-hash the stored hashes, or run a migration over the table — treating the old hash as something the new one can be computed from.
+- **2 (partial):** Says the users will "have to reset", with no plan for getting there.
+- **3 (solid):** Re-hash each password at the next successful sign-in, keeping which scheme each row uses, and retire the rest after a period.
+- **4 (excellent):** As 3, and says what would change the answer: if the table is believed to have leaked, every password is forced rather than upgraded quietly.
+
+> **The drafter is unsure about:** Kept at intern-junior because it is the most important thing on this list and because the answer does not depend on having had a job. The migration clause is the part I am unsure of — "you cannot convert them, so re-hash on next sign-in" is a genuinely non-obvious answer and it carries 25%. The rubric gives level 2 to "force everyone to reset their password", which works and is worse, and level 3 to re-hashing on sign-in. Is that ordering right, or is a forced reset the responsible answer after a suspected leak?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 13. who-is-allowed-to-see-this
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Authentication and authorisation (authorisation)
+
+**The interviewer asks**
+
+> A tester signed in as an ordinary user, changed the number in the address bar, and read somebody else's invoice. This is the route. Explain what the check that is there does and what it does not do, and tell me where you would put the missing one and why there.
+
+**Setup the candidate is given**
+
+> ```js
+> app.get("/api/invoices/:id", requireSignIn, async (req, res) => {
+>   const invoice = await db.invoices.findById(req.params.id);
+>   if (!invoice) return res.status(404).json({ code: "not_found" });
+>   res.json(invoice);
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The check proves who the user is; nothing checks whether this invoice is theirs.
+- Knowing someone is signed in says nothing about what they may see.
+- Ask for the invoice by id *and* owner, so a mismatch cannot return a row at all.
+- Doing it in the query rather than after the fetch means there is no gap to forget.
+- It belongs somewhere every route inherits, not copied into each handler where one will be missed.
+- Returning 404 rather than 403 avoids confirming that the other invoice exists.
+
+**Rubric: Deciding what a signed-in user may see** (`authorisation-reasoning`)
+
+**Separates who you are from what you may do — 40%**
+
+The middleware proves identity; nothing here asks whether the invoice is theirs.
+
+- **0 (absent):** Sees nothing wrong, or blames the tester.
+- **1 (weak):** Locates the fault somewhere else, confidently — the ids being sequential and needing to be UUIDs, the middleware needing a role check, the route needing rate limiting.
+- **2 (partial):** Says an ownership check is missing without distinguishing it from the sign-in check.
+- **3 (solid):** Says `requireSignIn` establishes identity only, and that nothing compares the invoice's owner with the person asking.
+- **4 (excellent):** As 3, and names it as the general shape — every route that takes an id from the caller needs to ask whether that caller may have it.
+
+**Writes a check that cannot return the row — 30%**
+
+Ask for it by id and owner together, so a mismatch finds nothing.
+
+- **0 (absent):** No check, or one on the client side.
+- **1 (weak):** Hides the row rather than refusing it — unguessable ids, removing the id from the URL, filtering fields out of the response.
+- **2 (partial):** Fetches the invoice and compares afterwards, without noticing that the row was already loaded.
+- **3 (solid):** Includes the owner in the lookup, so a row belonging to someone else is never returned to compare against.
+- **4 (excellent):** As 3, and says what that buys: there is no branch to forget, and no window where the wrong row is in a variable.
+
+**Puts it where it cannot be forgotten — 30%**
+
+One place every route inherits, rather than a line copied into each handler.
+
+- **0 (absent):** Would add the check to this handler and consider the class of bug closed.
+- **1 (weak):** Says they would "be careful" or add it to a checklist, or rely on review to catch the next one.
+- **2 (partial):** Says it should be shared, without saying what would enforce it.
+- **3 (solid):** Puts it somewhere routes inherit — a policy, a scoped query, a repository that always takes the user — so a new route gets it by default.
+- **4 (excellent):** As 3, and says how they would find the routes that already lack it, rather than assuming this was the only one.
+
+> **The drafter is unsure about:** This is the bug I would most expect to find in a real codebase here, and the prompt supplies the whole scenario so it needs no employer. The 404-versus-403 point is level 4 of criterion 3 rather than an expectation, because it is a genuine trade-off and reasonable people write it the other way. What I would like a reviewer to weigh is whether "put it in the query" should really outrank "fetch, then compare and throw" — they are equally correct, and I ranked the query version higher on the grounds that it cannot be forgotten halfway. Is that defensible?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 14. two-people-bought-the-last-one
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Concurrency and race conditions (check-then-act)
+
+**The interviewer asks**
+
+> There was one unit left and two customers both got a confirmation. It happens perhaps once a week, always at peak. Talk me through how both requests got past this code, why it is rare rather than constant, and what you would change.
+
+**Setup the candidate is given**
+
+> ```js
+> const item = await db.items.findById(id);
+> if (item.stock < 1) {
+>   return res.status(409).json({ code: "out_of_stock" });
+> }
+> await db.items.update(id, { stock: item.stock - 1 });
+> await createOrder(userId, id);
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- Two requests can both read a stock of 1 before either has written, so both pass the check.
+- It is rare because the two have to land inside the same short window, which peak traffic makes likelier.
+- Writing `stock = stock - 1` back from a value read earlier overwrites whatever happened in between.
+- Let the database do the check and the decrement in one statement, and use what it reports.
+- A condition in the write — only decrement where stock is still above zero — means the loser gets nothing to update.
+- A constraint that forbids negative stock makes it impossible rather than unlikely.
+
+**Rubric: Two requests inside the same check** (`race-condition-reasoning`)
+
+**Sees the gap between the read and the write — 40%**
+
+Both requests read a stock of one before either has written, so both pass.
+
+- **0 (absent):** Blames the client sending twice, or the stock being wrong to begin with.
+- **1 (weak):** A confident wrong mechanism — the ORM caching the row, the reads hitting a replica, the two orders being one double-submitted request.
+- **2 (partial):** Says it is "a race condition" without saying which two operations race.
+- **3 (solid):** Says the check and the decrement are separate, so a second request can read the same value in between and pass the same check.
+- **4 (excellent):** As 3, and notes the write is as bad as the check — `stock - 1` computed from a value read earlier overwrites whatever happened since.
+
+**Says why it is rare rather than constant — 20%**
+
+The two have to land in a window measured in milliseconds, which traffic makes likelier.
+
+- **0 (absent):** Does not address it, or treats the rarity as evidence against a race.
+- **1 (weak):** Explains the rarity with something else — the cache expiring, a particular customer, a specific product.
+- **2 (partial):** Says "it depends on timing" with nothing more.
+- **3 (solid):** Says the overlap has to fall between the read and the write, which is a very short window, and peak traffic supplies more attempts at it.
+- **4 (excellent):** As 3, and says that is why it cannot be tested for by hand, and what they would do instead — two requests fired together.
+
+**Makes it impossible rather than unlikely — 40%**
+
+The database decides, in one statement, and the loser is told.
+
+- **0 (absent):** No change, or a delay, a retry, or a check done twice.
+- **1 (weak):** Wraps the same read-then-write in a transaction and stops there, on the belief that a transaction makes the sequence atomic.
+- **2 (partial):** Names locking or an atomic update without saying what the code would then do.
+- **3 (solid):** Decrements conditionally in one statement — only where stock is still above zero — and uses what the database reports to decide whether the order happens.
+- **4 (excellent):** As 3, and adds a constraint that forbids negative stock, so the rule survives the next piece of code that forgets it.
+
+> **The drafter is unsure about:** The blueprint named this as the one concurrency question that is fair at intern-junior, and I have written it so the whole answer is available from the snippet without the words "race condition" or "isolation level". The middle clause — why it is rare rather than constant — is there because a candidate who cannot say why has usually recognised the pattern rather than understood it. Is that separation real, or am I rewarding a particular way of explaining?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 15. the-counter-that-lost-updates
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Concurrency and race conditions (lost updates)
+
+**The interviewer asks**
+
+> The view counter on a popular listing says four hundred when the logs show it was opened about nine hundred times. Nothing errors. Here is what happens on each view. Tell me where the missing views went, why the loss gets proportionally worse as the listing gets more popular, and what you would do about it.
+
+**Setup the candidate is given**
+
+> ```js
+> const listing = await db.listings.findById(id);
+> await db.listings.update(id, { views: listing.views + 1 });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- Every view reads a number, adds one in the application, and writes back what it computed.
+- Two views that overlap both read the same number, and the second write erases the first.
+- The busier the listing, the more overlap there is, so a larger share is lost.
+- Let the database add — one statement that increments the column — so no value travels through the application.
+- A lock or a transaction with the right isolation also works, and costs more than the increment does.
+- If the count does not have to be exact or immediate, counting somewhere cheaper and reconciling is a legitimate answer.
+
+**Rubric: An update that overwrote another one** (`lost-update-reasoning`)
+
+**Finds the read-modify-write — 40%**
+
+The number is read, incremented in the application, and written back over whatever happened in between.
+
+- **0 (absent):** Blames the logs, the analytics, or bots being filtered out.
+- **1 (weak):** A confident wrong cause — a cache serving a stale count, the writes being throttled, the ORM batching updates, the counter overflowing.
+- **2 (partial):** Says two requests "interfere" without naming the read and the write.
+- **3 (solid):** Says two overlapping views read the same value and the later write replaces the earlier one, so one view is lost per collision.
+- **4 (excellent):** As 3, and notes nothing errors because both writes are perfectly valid — the row simply ends up one lower than it should be.
+
+**Says why it scales with traffic — 25%**
+
+More concurrent views means more overlap, so a larger share is lost, not a constant number.
+
+- **0 (absent):** Does not address it.
+- **1 (weak):** Attributes the growth to something else — the database slowing down under load, a rate limiter, a queue dropping writes.
+- **2 (partial):** Says "more traffic, more collisions" without connecting it to the proportion.
+- **3 (solid):** Says the chance that a view overlaps another rises with how many are in flight, so the fraction lost rises rather than the count.
+- **4 (excellent):** As 3, and says what that predicts — the quiet listings are roughly right and the popular ones are badly wrong, which is what was observed.
+
+**Moves the arithmetic to where the row is — 35%**
+
+One statement that increments the column, so no value travels through the application.
+
+- **0 (absent):** No change, or recounting from the logs.
+- **1 (weak):** Keeps the read and the write and narrows the gap — re-reading later, retrying, a short sleep — or wraps them in a transaction and stops there.
+- **2 (partial):** Says the database should do the increment without saying what that changes.
+- **3 (solid):** Increments in the database in one statement, so the value is never held in the application to be overwritten.
+- **4 (excellent):** As 3, and says when they would not bother being exact — a view count that can be counted elsewhere and reconciled is cheaper than making every view a write.
+
+> **The drafter is unsure about:** Mid only, as the blueprint says, because the "why does it get proportionally worse" clause is the part that distinguishes it from `two-people-bought-the-last-one` and it needs a model of overlapping requests rather than a memory of the pattern. A reviewer should check the two do not feel like one question asked twice to a candidate offered both — I think the difference is real — a wrong decision versus a silently wrong number — but does it survive being asked in the same hour?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 16. the-dependency-that-got-slow
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Reliability and failure handling (timeouts)
+
+**The interviewer asks**
+
+> Your payment provider started taking thirty seconds to answer instead of half a second. They did not go down — they got slow. Within a few minutes your whole API was unreachable, including the pages that have nothing to do with payments. Explain how one slow dependency took the whole service with it, and tell me what you would have had in place.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- Each waiting request is holding something — a connection, a worker, a thread — for thirty seconds instead of half of one.
+- Those run out, so requests that never touch payments queue behind the ones that do.
+- A call to someone else's service needs a deadline, and the deadline has to be shorter than your own.
+- When the deadline passes, the request fails cleanly rather than waiting to be killed.
+- After enough failures, stop calling for a while rather than sending every request into the same wall.
+- Work that can wait — the receipt, the ledger entry — should not be in the request at all.
+
+**Rubric: One slow dependency taking the service with it** (`slow-dependency-reasoning`)
+
+**Says what the waiting requests are holding — 40%**
+
+Each one occupies something finite for thirty seconds — a connection, a worker, a thread.
+
+- **0 (absent):** Treats it as the provider's outage and nothing to do with this service.
+- **1 (weak):** A confident wrong mechanism — the provider's errors crashing the process, memory filling up, the database being the thing that ran out.
+- **2 (partial):** Says the service was "overloaded" without saying what ran out.
+- **3 (solid):** Says each waiting request holds a finite resource for sixty times as long, so they run out and new requests have nowhere to go.
+- **4 (excellent):** As 3, and says why unrelated pages fail too — they queue behind the payment requests for the same pool, so one endpoint's problem becomes everyone's.
+
+**Gives the call a deadline — 35%**
+
+A call to someone else needs a timeout, and it has to be shorter than your own budget.
+
+- **0 (absent):** No timeout; retries, or more machines.
+- **1 (weak):** Adds a retry without a timeout, or sets a timeout generously above the observed thirty seconds so it never fires.
+- **2 (partial):** Says "add a timeout" without a number or a basis for one.
+- **3 (solid):** Sets a deadline derived from what the caller can wait for, and fails the request cleanly when it passes.
+- **4 (excellent):** As 3, and says a retry on top of a timeout multiplies the load on something already struggling, so it is bounded or skipped.
+
+**Stops asking for a while — 25%**
+
+After enough failures, stop calling rather than sending every request into the same wall.
+
+- **0 (absent):** Keeps calling regardless.
+- **1 (weak):** Names a pattern as the answer without saying what it does — a circuit breaker invoked as a component to add.
+- **2 (partial):** Says they would "back off" with no account of when it starts or stops.
+- **3 (solid):** Stops calling after a run of failures and tries again occasionally, by whatever name, and says what the request does meanwhile.
+- **4 (excellent):** As 3, and separates what must fail from what can still be served — the checkout stops, the rest of the site does not.
+
+> **The drafter is unsure about:** Written so it can be answered without the words "circuit breaker" or "bulkhead": the rubric scores stopping calling for a while, by any name, and names the pattern only in a level-4 descriptor. The clause I am least sure of is "what would you have had in place" — it is phrased in the past because asking "what would you do now" pulls candidates into incident response, which is a different question. Does the past tense read as a trap to a nervous candidate?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 17. what-happens-when-it-is-down
+
+**scenario** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: Reliability and failure handling (degrading)
+
+**The interviewer asks**
+
+> Your sign-in sends a one-time code by SMS, and the SMS provider is returning errors for everybody. Tell me what your code should do with that failure, what the person trying to sign in should see, and what you would want to be true the next time it happens.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The failure is caught rather than reaching the user as a 500 or a blank screen.
+- The person is told what happened and what to do — try again shortly, or use another way in.
+- A second route in (email, or an existing session) turns an outage into an inconvenience.
+- Nothing half-created is left behind — no account in a state that cannot be signed in to.
+- Someone should find out from an alert rather than from users, because every sign-in is failing.
+- A second provider is the expensive answer and worth naming as a cost, not a default.
+
+**Rubric: What the service does when something it needs is down** (`degradation-reasoning`)
+
+**Catches it rather than passing it on — 35%**
+
+The failure is handled where it happens; nothing half-created is left behind.
+
+- **0 (absent):** The error reaches the user as a 500 or a blank page.
+- **1 (weak):** Catches it and hides it — returns success, or logs and carries on as though the code was sent.
+- **2 (partial):** Catches it and returns a generic error, with no account of what state the sign-in is left in.
+- **3 (solid):** Fails the attempt cleanly, and says nothing is left behind that cannot be signed in to or retried.
+- **4 (excellent):** As 3, and separates the provider being down from a single number failing, because they deserve different handling.
+
+**Gives the person another way in — 35%**
+
+A second route — email, an existing session, a different provider — turns an outage into an inconvenience.
+
+- **0 (absent):** Not considered; the user waits for the provider.
+- **1 (weak):** Offers a retry button as the alternative, or proposes letting them in without the code.
+- **2 (partial):** Says a fallback "would be good" without naming one or what it costs.
+- **3 (solid):** Names a route that does not depend on the failing provider, and says who it works for and who it does not.
+- **4 (excellent):** As 3, and weighs the cost honestly — a second SMS provider is real money and a real integration, so it is proposed as a decision rather than assumed.
+
+**Says what the person is told — 30%**
+
+The message says what happened and what to do, and does not claim something that did not happen.
+
+- **0 (absent):** No message, or an error code.
+- **1 (weak):** A message that is untrue — "your code has been sent, please check your phone" when it has not.
+- **2 (partial):** A generic apology with nothing to do next.
+- **3 (solid):** Says the code could not be sent and what to do now — wait and try, or use the other route.
+- **4 (excellent):** As 3, and someone finds out from an alert rather than from users, because every sign-in is failing at once.
+
+> **The drafter is unsure about:** Deliberately not a code question: it is the one place in the bank where the candidate has to decide what a user is told, which is judgement the engine can follow up on well. The risk is that it rewards anyone who says "show a friendly message". The rubric tries to stop that by putting 35% on the alternative route in and only 30% on the message itself, and by making level 4 of the message criterion about not claiming something we do not know ("your code was sent" when it was not). Is that the right split?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 18. tests-that-share-a-database
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Testing backend code (test isolation)
+
+**The interviewer asks**
+
+> The backend test suite passes when you run one file and fails when you run all of them, and the failures move around. It fails on CI more often than locally. Tell me what you think is going on, how you would confirm it, and how you would make the suite trustworthy again.
+
+**Setup the candidate is given**
+
+> ```js
+> test("lists active vendors", async () => {
+>   await db.vendors.insert({ name: "Adaeze Foods", active: true });
+>   const result = await listVendors();
+>   expect(result).toHaveLength(1);
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The test asserts on the whole table, so any row another test left behind breaks it.
+- Tests that share a database are not independent, and the order they run in decides the result.
+- CI is worse because it runs them differently — in parallel, or in a different order, or on a database that was not fresh.
+- Confirm it by running the failing test alone, and by running the suite in a different order.
+- Each test should set up what it needs and leave nothing — a transaction rolled back, or a truncate between tests.
+- Assert on the row it created rather than on the size of the table, so a stray row cannot fail it.
+
+**Rubric: A suite that depends on what ran before it** (`test-isolation-diagnosis`)
+
+**Finds the shared state — 30%**
+
+The tests share a database and this one asserts on the whole table.
+
+- **0 (absent):** Concludes the tests are wrong about the code, or that the code is intermittently broken.
+- **1 (weak):** A confident wrong cause — an async race in the test, a connection pool limit, the framework's own caching, a timeout that needs raising.
+- **2 (partial):** Says the tests "interfere" without saying what they share.
+- **3 (solid):** Says rows left by other tests are in the table this test counts, so the result depends on what ran before it.
+- **4 (excellent):** As 3, and notes the failure moves around because the order does, which is why one file at a time passes.
+
+**Confirms it before changing anything — 30%**
+
+Run the failing test alone; run the suite in a different order.
+
+- **0 (absent):** Starts changing tests.
+- **1 (weak):** Proposes a confirmation that cannot distinguish the causes — rerunning the whole suite, adding logging, raising the timeout.
+- **2 (partial):** Says they would "run it alone" without saying what either outcome would tell them.
+- **3 (solid):** Runs it alone and runs the suite in a different order, and says what each result rules out.
+- **4 (excellent):** As 3, and says why CI differs — parallel workers, a fresh database, a different seed — and checks that rather than assuming CI is flaky.
+
+**Makes the suite independent again — 40%**
+
+Each test sets up what it needs, leaves nothing, and asserts on what it created.
+
+- **0 (absent):** Makes the tests pass by running them in a fixed order, or by deleting the failing ones.
+- **1 (weak):** Adds a sleep, a retry, or a shared fixture that every test depends on — trading one order dependency for another.
+- **2 (partial):** Says tests should "clean up after themselves" without a mechanism.
+- **3 (solid):** Isolates the data — a transaction rolled back, or the tables cleared between tests — so nothing survives a test.
+- **4 (excellent):** As 3, and changes the assertion as well, so it checks for the row it created rather than the size of the table and cannot be broken by a stray row.
+
+> **The drafter is unsure about:** The snippet is the smallest thing that shows the defect, and the fix has two halves that are worth different things — isolating the data (35%) and not asserting on global state (35%) — so a candidate who only says "truncate between tests" cannot reach the top. That may be harsh: truncating does fix the symptom. I have put it at level 3 of criterion 3 and reserved 4 for noticing the assertion. Is that split right, and is the whole question simply too hard at intern-junior?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 19. mocking-what-you-do-not-own
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Testing backend code (test doubles)
+
+**The interviewer asks**
+
+> Every test of your payment code passes, and a live payment has been failing for two days. The tests stand in for the provider with a fake that returns a successful response. Tell me what the tests were and were not telling you, what you would change about them, and what else you would put in place to catch this.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The tests prove your code handles the response you wrote down, not the one the provider sends.
+- A stand-in drifts as soon as the real thing changes, and nothing tells you it has.
+- Stand in for it anyway — tests that call a live payment provider are worse — but stand in for its failures too.
+- Base the fake on a real recorded response rather than on what the documentation implies.
+- Something has to touch the real provider on a schedule: a sandbox test, or a real low-value transaction.
+- A failure rate you can see is what actually catches this, not another test.
+
+**Rubric: Standing in for something you do not own** (`test-double-judgement`)
+
+**Says what the tests were proving — 40%**
+
+That the code handles the response the team wrote down, which is not the same as the provider's.
+
+- **0 (absent):** Concludes the tests were fine and the provider changed without warning.
+- **1 (weak):** Blames the fake's fidelity in the wrong place — that it needed more fields, that the library was wrong, that mocking is bad and everything should be integration-tested.
+- **2 (partial):** Says the fake "was out of date" without saying what that means the tests were checking.
+- **3 (solid):** Says the tests check the code against an assumption, so they pass for as long as the assumption is written down, true or not.
+- **4 (excellent):** As 3, and notes nothing in the suite could ever have told them otherwise, so the passing tests were not weak evidence — they were no evidence.
+
+**Improves the double without removing it — 30%**
+
+Keep standing in, and stand in for failure as well as success, from something real.
+
+- **0 (absent):** No change to the tests.
+- **1 (weak):** Removes the double and calls the real provider from the test suite, presented as the rigorous option.
+- **2 (partial):** Says the fake should be "more realistic" without saying where realism would come from.
+- **3 (solid):** Builds the fake from a real recorded response, and adds the provider's failures — declines, timeouts, malformed bodies — as cases.
+- **4 (excellent):** As 3, and says what still will not be caught, so the fake is not asked to do a job it cannot.
+
+**Puts something outside the tests — 30%**
+
+Something has to touch the real provider, or watch the real failure rate.
+
+- **0 (absent):** Treats another test as the whole answer.
+- **1 (weak):** Proposes more unit tests, or a stricter review, as the way this gets caught next time.
+- **2 (partial):** Says they would "monitor it" without saying what.
+- **3 (solid):** Names something that touches reality on a schedule — a sandbox run, a small live transaction — or a visible failure rate for that call.
+- **4 (excellent):** As 3, and says two days is the real defect: whatever is added has to shorten that, not just exist.
+
+> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place *instead of* a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 20. it-failed-and-we-do-not-know-why
+
+**technical** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: Logging, metrics and knowing it broke (logging)
+
+**The interviewer asks**
+
+> A user says their transfer failed yesterday at about two in the afternoon. This is every line your service wrote about it. Tell me what you can and cannot find out from this, what you would have logged instead, and whether there is anything you would deliberately keep out.
+
+**Setup the candidate is given**
+
+> ```
+> 2026-09-21T13:58:04Z  error
+> 2026-09-21T14:02:11Z  error
+> 2026-09-21T14:02:11Z  something went wrong
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- There is no way to tell which user, which transfer, or what failed — only that something did.
+- Nothing ties these lines to one request, so two users failing at once are indistinguishable.
+- Log an identifier for the request and for the user, the operation, and what actually failed.
+- The error itself — the message and where it came from — rather than the word "error".
+- Enough to answer the question without a deployment: which step, and what the inputs were in outline.
+- Not the account number, the phone number, the token or the amount in plain text — an id stands in for the person.
+
+**Rubric: Logging enough, and not too much** (`log-usefulness-reasoning`)
+
+**Says what these lines cannot answer — 35%**
+
+No user, no transfer, no cause — and nothing tying two lines to one request.
+
+- **0 (absent):** Believes the logs show what happened.
+- **1 (weak):** Reads more into them than is there — treats the two timestamps as one failure and its retry, or the gap between them as the cause.
+- **2 (partial):** Says the logs are "not detailed enough" without saying what question they fail to answer.
+- **3 (solid):** Says nothing identifies the user or the transfer, and nothing says what failed, so this user's report cannot be matched to these lines at all.
+- **4 (excellent):** As 3, and notes two users failing at the same minute would be indistinguishable, because nothing ties a line to a request.
+
+**Says what to log instead — 40%**
+
+An identifier per request and per user, the operation, and the error itself.
+
+- **0 (absent):** No specifics, or "log more".
+- **1 (weak):** Adds volume rather than structure — logging at every step, logging the whole request and response, raising the level to debug in production.
+- **2 (partial):** Names one or two fields without a way to join the lines for one request.
+- **3 (solid):** An id that travels with the request, an id for the user, what was being attempted, and the actual error rather than the word "error".
+- **4 (excellent):** As 3, and makes it structured rather than prose, because the question that gets asked is "everything about this request" and that has to be searchable.
+
+**Says what to keep out — 25%**
+
+The phone number, the account number, the token and the amount in plain text — an id stands in for the person.
+
+- **0 (absent):** Not addressed, or would log the whole request body.
+- **1 (weak):** Names the wrong boundary — would keep passwords out and everything else in, or believes a private log is a safe place for it.
+- **2 (partial):** Says "no sensitive data" with no example of what that is here.
+- **3 (solid):** Names what to leave out — the phone number, the account number, the token — and logs an id that can be looked up instead.
+- **4 (excellent):** As 3, and notes the phone number is the account identifier for much of this market, so leaving it in is not a small thing, and that logs are read by more people than the database is.
+
+> **The drafter is unsure about:** The last clause is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so the prompt asks for it directly rather than charging for it silently. It carries 25%. Two things to check: is asking a junior what they would keep *out* of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 21. how-would-you-know-it-broke
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Logging, metrics and knowing it broke (alerting)
+
+**The interviewer asks**
+
+> Your checkout endpoint has been failing for about one request in twelve for three days, and the first anyone heard of it was a customer complaint this morning. Tell me what you would want measured so that a week from now the same failure reaches you first, and what would have to be true for anyone to actually act on it.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The rate of failures matters, not the count — one in twelve of a small number is invisible in a total.
+- Measure it where the user is affected: responses by status, per endpoint, over time.
+- The measure has to have a normal, or there is nothing for "worse than usual" to mean.
+- An alert nobody is responsible for is not an alert; somebody has to receive it and be able to act.
+- An alert that fires often and means nothing gets ignored, which is how three days happen.
+- Latency and volume belong beside errors — a checkout that has stopped being called is also broken.
+
+**Rubric: Finding out before the customer does** (`alerting-judgement`)
+
+**Measures the right thing — 40%**
+
+A rate of failures per endpoint over time, not a count, and not a machine's health.
+
+- **0 (absent):** Nothing measured; would check the logs more often.
+- **1 (weak):** Measures something that would not have caught this — CPU and memory, the server being up, an uptime check hitting the home page, the total error count.
+- **2 (partial):** Says to "monitor errors" without saying per what, or against what.
+- **3 (solid):** Measures responses by status per endpoint over time, so one in twelve on checkout is visible as a rate.
+- **4 (excellent):** As 3, and puts latency and volume beside it, because a checkout that has stopped being called is also broken and shows no errors at all.
+
+**Knows what "worse than usual" means — 25%**
+
+A threshold is a claim about normal, and normal has to be known before it can be exceeded.
+
+- **0 (absent):** No threshold; would look at a dashboard.
+- **1 (weak):** Picks a number with a confident justification that is not about this service — an industry figure, a round percentage, "any error at all should alert".
+- **2 (partial):** Says a threshold is needed without saying how it would be chosen.
+- **3 (solid):** Derives it from what this endpoint normally does, and says an eight percent failure rate is far outside it.
+- **4 (excellent):** As 3, and says what they would do about the endpoints whose normal is genuinely noisy, rather than letting one of them train everyone to ignore alerts.
+
+**Makes it reach someone who can act — 35%**
+
+An alert nobody receives, or nobody can act on, is not an alert.
+
+- **0 (absent):** Treats the alert as done once it is configured.
+- **1 (weak):** Routes everything to a shared channel or an email nobody reads, described as covered.
+- **2 (partial):** Says someone "should be notified" without saying who or what they would do.
+- **3 (solid):** Says who receives it — even if that is only themselves — and what the message has to contain for them to start work rather than start looking.
+- **4 (excellent):** As 3, and says an alert that fires often and means nothing gets ignored, which is how three days pass, so the number of alerts is itself a thing to keep down.
+
+> **The drafter is unsure about:** This is the question in the bank most likely to be unfair to a self-taught candidate, because "what would have to be true for anyone to act on it" describes a team. I have written the rubric so that an answer about one person — themselves — being paged and knowing what to do scores the same as an answer about a rota, and criterion 3's level 0 is reserved for treating an alert as done once it is configured. Does that actually hold? It is the difference between scoring judgement and scoring employment.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 22. the-feature-that-needs-a-queue
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Designing something that has to grow (long-running work)
+
+**The interviewer asks**
+
+> Product want a button that exports everything a user has ever done as a PDF. On a heavy account it takes about forty seconds to build. Talk me through how you would build it, what the user experiences from the moment they press the button, and what you would have to get right for it to still work when a hundred people press it at once.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- Forty seconds is far past what a request should hold, so the work leaves the request.
+- The button accepts the job and returns immediately with something that identifies it.
+- The user is told it is being prepared and is told again when it is ready — a page that updates, an email, a notification.
+- The finished file goes to object storage and the user gets a link, rather than the file coming back through the API.
+- Under load the queue absorbs the burst; what has to be sized is the number of workers, not the endpoint.
+- Failures need a route back to the user, and a second press should not start a second export.
+
+**Rubric: Building something that takes too long for a request** (`long-running-work-design`)
+
+**Takes the work out of the request — 35%**
+
+Forty seconds is past what any request should hold; the button starts the work and returns.
+
+- **0 (absent):** Builds it in the request and raises the timeout.
+- **1 (weak):** Keeps it in the request and makes it feel shorter — streaming the response, a longer timeout, a spinner, chunked transfer — presented as the design.
+- **2 (partial):** Says it "should be a background job" without saying what the request returns.
+- **3 (solid):** The request accepts the work, returns immediately with something that identifies it, and the building happens elsewhere.
+- **4 (excellent):** As 3, and says what that buys beyond the timeout: the work survives the user closing the tab, and can be retried without them pressing anything.
+
+**Says what the user experiences — 35%**
+
+Told it is being prepared, told when it is ready, and given the file without it coming back through the API.
+
+- **0 (absent):** Not addressed; the user presses the button and waits.
+- **1 (weak):** Describes an experience that does not follow from the design — the file downloading when ready with no mechanism, or an email as the only route with no page state.
+- **2 (partial):** Says they would "show a status" without saying how the page learns it.
+- **3 (solid):** Describes both ends — a page or a notification that reflects progress, and a way to get the finished file, from storage rather than through the request.
+- **4 (excellent):** As 3, and says what happens when it fails: the user is told, rather than waiting for something that is never coming.
+
+**Holds up under a hundred at once — 30%**
+
+The queue absorbs the burst; what is sized is the workers, not the endpoint.
+
+- **0 (absent):** Not addressed, or "add more servers".
+- **1 (weak):** Scales the wrong thing with confidence — more web processes, a bigger machine, raising the rate limit — as the answer to a hundred exports.
+- **2 (partial):** Says the queue "handles it" without saying what actually has to be decided.
+- **3 (solid):** Says the queue buffers and the number of workers sets the throughput, so the queue grows and nothing falls over.
+- **4 (excellent):** As 3, and stops one user's second press starting a second export, and says what they would watch to know the workers are behind.
+
+> **The drafter is unsure about:** Mid only. This is as close to a system-design round as the engine can get without a drawing surface, and it is written as one user-visible feature rather than "design a system" for that reason. The clause about a hundred people at once is what stops it being answered purely as a queue tutorial. My worry is length: there are three clauses and each has a lot in it, so a candidate may answer the first well and run out of time. Should this be two questions?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 23. one-server-to-two
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Designing something that has to grow (scaling out)
+
+**The interviewer asks**
+
+> Everything runs on one machine — the API, the database, the uploaded files — and traffic has tripled since a radio advert. You are going to add a second machine behind a load balancer. Tell me what breaks the moment you do that, what you would find out before choosing what to move, and what order you would do it in.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- Anything held in the machine's memory stops working — sessions, in-process caches, scheduled jobs that now run twice.
+- Files written to local disk exist on one machine and not the other.
+- The database is still one thing, so adding a second API machine does not help if the database is the constraint.
+- Measure first: what is actually saturated — CPU, memory, connections, disk — before moving anything.
+- Move state out before adding the machine, rather than adding it and chasing the failures.
+- Some of the gain is cheaper than the second machine — a slow query, a missing index, a cache.
+
+**Rubric: Going from one machine to two** (`scaling-out-reasoning`)
+
+**Knows what breaks the moment there are two — 40%**
+
+Anything held on the machine — memory, local disk, scheduled jobs — stops being one thing.
+
+- **0 (absent):** Expects it to work; the load balancer shares the traffic.
+- **1 (weak):** Names a plausible wrong set — that the database will need sharding, that the code needs to be stateless in some unspecified way, that it is a deployment problem.
+- **2 (partial):** Names one thing, usually sessions, and stops.
+- **3 (solid):** Names state in memory and files on local disk, and says what each looks like to the user — being signed out at random, an upload that is there half the time.
+- **4 (excellent):** As 3, and gets to the scheduled jobs, which now run on both machines and do everything twice.
+
+**Finds out what is actually saturated — 30%**
+
+Measure before moving anything; the second machine may not be what is needed.
+
+- **0 (absent):** Adds the machine and sees what happens.
+- **1 (weak):** Asserts the bottleneck without checking — that it is obviously CPU, or obviously the database, or that tripled traffic needs tripled capacity.
+- **2 (partial):** Says they would "check the metrics" without saying which would decide.
+- **3 (solid):** Names what would tell them where the limit is — CPU, memory, database connections, disk — and says the answer changes what to do.
+- **4 (excellent):** As 3, and says the cheapest fix may not be a machine at all: one slow query or a missing index can be the whole of it.
+
+**Does it in an order that works — 30%**
+
+The state moves out before the machine is added, not after the failures start.
+
+- **0 (absent):** No order; a list of things to do.
+- **1 (weak):** Adds the machine first and fixes what breaks — described as pragmatic, and it is the outage.
+- **2 (partial):** Gives an order without a reason for it.
+- **3 (solid):** Moves sessions and files out and settles the scheduled jobs first, then adds the machine, so nothing user-visible breaks on the way.
+- **4 (excellent):** As 3, and says how they would verify each step before the next — and that the database becoming the constraint is the thing they are deferring, not solving.
+
+> **The drafter is unsure about:** Written to be answerable by someone who has only ever run one box, because that describes a lot of this audience and the question is precisely about what they have not had to think about yet. The scheduled-jobs-run-twice point is the one I would expect almost nobody to volunteer, so it is level 4 rather than an expectation. And is "a radio advert" the right framing — a real way traffic arrives here, or does it read as unserious?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 24. the-estimate-that-slipped
+
+**behavioral** · difficulty 2/5 · roles: backend, frontend, qa, fullstack · intern-junior, mid · topic: Saying it in writing (escalating early)
+
+**The interviewer asks**
+
+> You said a piece of work would be done by Friday. It is Wednesday morning and you are now sure it will not be. Tell me what you write, who you write it to, and when — and tell me about a time you had to do something like that, or did not.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- It goes out on Wednesday, not on Friday — the value of the message is the notice it gives.
+- It says what is done, what is left, and what the new date is, rather than apologising.
+- It names the cause plainly, including when the cause was their own estimate.
+- It offers something the reader can decide — cut this part, take this help, move the date.
+- It goes to whoever is depending on the date, not only to the person who asked for it.
+
+**Rubric: Saying a date will be missed, before it is** (`escalating-early`)
+
+**What the message contains — 35%**
+
+Where it is, what is left, the new date — and the cause, plainly, including when the cause was their own estimate.
+
+- **0 (absent):** No message written; would explain it in person or at standup.
+- **1 (weak):** A message that is mostly apology, or mostly explanation, with no new date in it — however well composed.
+- **2 (partial):** Says it will be late and by roughly how long, without what is done and what is left.
+- **3 (solid):** What is finished, what remains, and the date they now believe, with the reason stated without defensiveness.
+- **4 (excellent):** As 3, and owns the estimate where that is the honest answer — "I underestimated this part" rather than a cause outside themselves.
+
+**When it goes, and to whom — 25%**
+
+Wednesday, not Friday, and to whoever is depending on the date rather than only whoever asked for it.
+
+- **0 (absent):** Would tell someone on Friday, or when asked.
+- **1 (weak):** Justifies waiting — wanting certainty first, hoping to catch up over Thursday, not wanting to worry anyone until it is definite.
+- **2 (partial):** Says to tell someone soon, without saying who or what the timing is worth.
+- **3 (solid):** Sends it as soon as they are sure, to the people whose own work depends on the date, and says why the notice is the point.
+- **4 (excellent):** As 3, and offers something to decide — cut this part, take help, move the date — so the reader has a choice rather than an announcement.
+
+**A time they did it, or did not — 40%**
+
+One occasion, with what they actually did. Saying they left it too late counts, and counts well if they say what they learned.
+
+- **0 (absent):** No occasion; answers about how they generally communicate.
+- **1 (weak):** A situation with no detail that fixes it in time or place, or a confident account in which nothing was ever late.
+- **2 (partial):** One occasion, with what happened but not what they did about it.
+- **3 (solid):** One occasion, what they said and when, and how it landed — including plainly saying they left it too long.
+- **4 (excellent):** As 3, and something specific they changed afterwards about how they estimate or when they raise it.
+
+> **The drafter is unsure about:** The second question the frontend blueprint said belonged in this pass, and the second `written-communication` question for every wave-1 role. The prompt asks for the message first and the story second, deliberately: a candidate who has never had a deadline slip in a job can still answer the first half completely, and the rubric splits 60/40 that way so nobody is capped by not having had the experience. Is 40% still too much to hang on having had it?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 25. the-part-you-did-not-write
+
+**behavioral** · difficulty 3/5 · roles: backend, frontend, qa, fullstack · intern-junior, mid · topic: Talking about your own work (unfamiliar code)
+
+**The interviewer asks**
+
+> Tell me about a time you had to work on code you did not write and did not understand — a tutorial project, a library, something at work, anything. How did you get your bearings, how did you decide it was safe to change, and what did you end up changing?
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- A specific piece of code, named concretely enough to ask a follow-up about.
+- A way in that is not reading it top to bottom — running it, following one request, changing something to see what moves.
+- Working out what the code is for before deciding what it does wrong.
+- Something that told them a change was safe — a test, a small experiment, someone to ask, a way to undo it.
+- A change that is smaller than it was tempting to make, and why they kept it small.
+
+**Rubric: Working on code you did not write** (`unfamiliar-code-approach`)
+
+**A way in that is not reading it all — 35%**
+
+Running it, following one path through, changing something to see what moves — and a specific piece of code to point at.
+
+- **0 (absent):** No specific code; answers about how they would approach it in general.
+- **1 (weak):** A confident method that is not a way in — reading it top to bottom, reading the documentation, asking someone to explain the whole thing before touching it.
+- **2 (partial):** Names the code and one thing they did, without saying what it told them.
+- **3 (solid):** A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
+- **4 (excellent):** As 3, and worked out what the code was *for* before deciding what it was doing wrong.
+
+**How they decided a change was safe — 35%**
+
+Something told them — a test, a small experiment, a person, a way to undo it — rather than confidence.
+
+- **0 (absent):** Not addressed; they changed it and it worked.
+- **1 (weak):** Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
+- **2 (partial):** Names one safeguard without saying what it would have caught.
+- **3 (solid):** Says what gave them the confidence and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
+- **4 (excellent):** As 3, and says what it did not cover, so they knew what they were still taking a chance on.
+
+**The change they made — 30%**
+
+Smaller than it was tempting to make, and they can say why.
+
+- **0 (absent):** Cannot say what they changed.
+- **1 (weak):** A rewrite, or a refactor of code they had just met, described as the obvious improvement.
+- **2 (partial):** Describes the change without a reason for its size.
+- **3 (solid):** A change narrow enough to reason about, and they can say what they deliberately did not touch.
+- **4 (excellent):** As 3, and separates what they left alone because it was fine from what they left alone because they did not understand it yet — and what they did about the second.
+
+> **The drafter is unsure about:** The second `own-work` question, and the bank's answer to the gap a remote hiring manager named as the thing that actually predicts month six — every other question hands the candidate a small, complete snippet they own. The prompt says "a tutorial project, a library, something at work, anything" so it cannot require an employer. What a reviewer should check is whether the question survives being asked of a candidate whose honest answer is "I have only ever worked on my own code" — my view is that anyone who has used a library they had to read has an answer — am I assuming too much?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 26. node-blocked-event-loop
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Concurrency and race conditions (the event loop) · stacks: nodejs, react-node, nextjs
+
+**The interviewer asks**
+
+> This export endpoint works. But while anyone is downloading an export, every other request to the service — health checks included — takes seconds instead of milliseconds, and the service gets restarted for failing its health check. Explain why one request is able to do that, and tell me what you would change.
+
+**Setup the candidate is given**
+
+> ```js
+> app.get("/api/export", async (req, res) => {
+>   const rows = await db.orders.findAll();          // ~80,000 rows
+>   const csv = rows.map(toCsvLine).join("\n");      // a few seconds of string work
+>   res.type("text/csv").send(csv);
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- One thread runs every request's JavaScript, so work that does not pause holds all of them.
+- The `await` is not the problem — waiting on the database yields; the mapping and joining do not.
+- The health check is behind the same queue, so the service looks dead and is restarted mid-export.
+- Move the work off the thread — a worker thread, a separate process, or a job the request only starts.
+- Streaming the rows out as they arrive avoids building the whole string at all.
+- Measure it rather than guess — the event loop delay is a number you can watch.
+
+**Rubric: One request holding the only thread** (`event-loop-blocking-diagnosis`)
+
+**Says what is blocking and what is not — 40%**
+
+The database call yields; the mapping and joining do not, and that is the difference.
+
+- **0 (absent):** Blames the database, the row count, or the machine being too small.
+- **1 (weak):** Locates the block in the wrong place, in detail — the `await` on the query, the eighty thousand rows in memory, garbage collection, the response being large.
+- **2 (partial):** Says the work is "heavy" or "synchronous" without separating it from the awaited call.
+- **3 (solid):** Says the mapping and the join run without pausing, so nothing else on the thread can run until they finish.
+- **4 (excellent):** As 3, and says the `await` above them is exactly the counter-example — waiting on I/O releases the thread, computing does not, and `async` does not change that.
+
+**Connects it to the restart — 25%**
+
+The health check queues behind the same work, so the service is declared dead and killed mid-export.
+
+- **0 (absent):** Treats the restart as unrelated.
+- **1 (weak):** Explains the restart with something else — memory pressure, an out-of-memory kill, a crash in the export.
+- **2 (partial):** Says other requests are slow without reaching the health check.
+- **3 (solid):** Says the health check is a request like any other and waits behind the export, so the platform concludes the process is unhealthy.
+- **4 (excellent):** As 3, and notices the loop it creates — the export never finishes, because it is killed each time it is nearly done.
+
+**Moves the work off the thread — 35%**
+
+A worker thread, a separate process, or a job the request only starts — and streaming instead of building a string.
+
+- **0 (absent):** No change, or a faster machine.
+- **1 (weak):** Keeps the work on the thread and rearranges it — a promise around the same loop, `setImmediate` between rows, `async` on the map function.
+- **2 (partial):** Says to "use worker threads" or "make it a job" without saying what the request then returns.
+- **3 (solid):** Puts the work somewhere that is not the request thread, and says what the endpoint returns instead.
+- **4 (excellent):** As 3, and offers streaming as the cheaper answer — rows written out as they arrive, so nothing large is ever held or built.
+
+> **The drafter is unsure about:** **Version-sensitive: checked against nodejs.org on 2026-09-22 (Node v26).** `worker_threads` is stable and the API docs call Workers useful for CPU-intensive JavaScript — but Node's own "Don't Block the Event Loop" guide is stale and never names it, still pointing at C++ addons, an abandoned npm package, child processes and cluster. **Credit a worker thread or a separate process equally**; partitioning and the stream APIs are recommended on both pages. A full-stack candidate is also offered `js-async-ordering`, which is the same single thread seen from the browser — please check the two do not feel like one question asked twice. I think they do not: that one is about a frame that never paints, this one is about other people's requests, and the fix is different in kind. The other thing to weigh: is the health-check detail a gift or the point? I have made it the point, because "and then it gets restarted" is what turns this from slow into an outage.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 27. node-async-error-never-caught
+
+**technical** · difficulty 2/5 · roles: backend, fullstack · intern-junior, mid · topic: Reliability and failure handling (error handling) · stacks: nodejs, react-node, nextjs
+
+**The interviewer asks**
+
+> When the database is unavailable this route does not return the 500 it looks like it should — the request just hangs until it times out, and the error shows up in the process log with nobody's name on it. Talk me through what happens to the error, and how you would write it.
+
+**Setup the candidate is given**
+
+> ```js
+> app.post("/api/orders", (req, res) => {
+>   try {
+>     createOrder(req.body).then((order) => res.status(201).json(order));
+>   } catch (err) {
+>     res.status(500).json({ code: "order_failed" });
+>   }
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- `createOrder` returns immediately; the `try` block has already finished before the work fails.
+- A rejected promise is not an exception the surrounding `try` can see.
+- Nothing handles the rejection, so nothing ever writes a response and the client waits.
+- `await` inside an `async` handler puts the failure back where the `catch` can see it.
+- A `.catch` on the chain does the same thing without `async`.
+- An error handler at the framework level is what stops the next route having the same hole.
+
+**Rubric: An error that never reached the handler** (`async-error-path-diagnosis`)
+
+**Says where the error goes — 40%**
+
+The `try` block has finished before the promise rejects, so its `catch` can never see it.
+
+- **0 (absent):** Believes the `catch` runs and blames what is inside it.
+- **1 (weak):** A confident wrong account — that the `catch` fires and `res` has already been sent, that the error is swallowed by the promise library, that `createOrder` needs its own try/catch inside.
+- **2 (partial):** Says the error is "not caught" without saying why this `catch` cannot catch it.
+- **3 (solid):** Says the call returns a promise immediately, so the `try` is over before the failure happens and a rejection is not an exception it can see.
+- **4 (excellent):** As 3, and notes the success path works for the same reason it fails — `.then` is the only thing attached, and there is no `.catch` beside it.
+
+**Says why the request hangs — 25%**
+
+Nothing writes a response on the failure path, so the client waits for a timeout.
+
+- **0 (absent):** Does not address the hang.
+- **1 (weak):** Attributes it elsewhere — the database connection not being released, a deadlock, the server being blocked.
+- **2 (partial):** Says "no response is sent" without saying which path failed to send it.
+- **3 (solid):** Says the only `res` call is inside `.then`, so a rejection leaves the request with nothing written and the client waits.
+- **4 (excellent):** As 3, and says what the caller sees and does next — a timeout, then very possibly the same order submitted again.
+
+**Writes it so failures have a path — 35%**
+
+`await` inside an `async` handler, or a `.catch` — and something at the framework level for the next route.
+
+- **0 (absent):** No change, or logging added.
+- **1 (weak):** Adds something that does not restore the path — a `.finally`, a process-level rejection handler, a `try`/`catch` moved inside `createOrder`.
+- **2 (partial):** Says to "use async/await" without saying what the `catch` then sees.
+- **3 (solid):** Makes the handler `async` and awaits the call, so the rejection becomes an exception the `catch` handles, or attaches a `.catch` that responds.
+- **4 (excellent):** As 3, and puts an error handler where every route inherits it, because this is a shape that will be written again and one missing `catch` should not hang a request.
+
+> **The drafter is unsure about:** Kept at intern-junior because it is a shape a self-taught Node developer writes early and keeps writing — the `try`/`catch` looks like it covers the call. The rubric's level 1 on criterion 1 is written for the confident wrong answer I expect most often: that the `catch` does fire and the problem is the missing `await` on `res`. Is the "hangs until it times out" detail too much of a hint that no response is written?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 28. node-state-between-requests
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Concurrency and race conditions (request-scoped state) · stacks: nodejs, react-node, nextjs
+
+**The interviewer asks**
+
+> This works perfectly in development and, in production, users occasionally get an email addressed to somebody else. Tell me how that happens, why testing it by hand would almost never show it, and what you would change.
+
+**Setup the candidate is given**
+
+> ```js
+> let currentUser = null;
+>
+> app.use(async (req, res, next) => {
+>   currentUser = await loadUser(req.headers.authorization);
+>   next();
+> });
+>
+> app.post("/api/invite", async (req, res) => {
+>   await sendInvite(req.body.email, currentUser.name);
+>   res.status(204).end();
+> });
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The variable belongs to the module, not to the request, so every request shares one.
+- A request that pauses at an `await` can be overtaken, and the value it comes back to is someone else's.
+- Testing by hand sends one request at a time, so nothing ever overlaps.
+- The user belongs on the request — `req.user` — and travels with it.
+- Passing it as an argument to whatever needs it is the version that cannot be got wrong.
+- If something deep in the stack genuinely needs it, that is what request-scoped storage is for, and it is a last resort.
+
+**Rubric: State that belongs to the process, not the request** (`request-state-diagnosis`)
+
+**Finds the shared variable — 40%**
+
+One `currentUser` for the whole process, written by every request that arrives.
+
+- **0 (absent):** Blames the authorisation header, the token, or the email provider.
+- **1 (weak):** A confident wrong mechanism — the middleware running out of order, `loadUser` caching, the single thread making this impossible, a connection pool reusing objects.
+- **2 (partial):** Says the variable is "global" without saying what goes wrong because of it.
+- **3 (solid):** Says every request assigns to the same variable, so the value at any moment belongs to whichever request wrote last.
+- **4 (excellent):** As 3, and says exactly where it goes wrong — the handler reads it after its own `await`, by which time another request has overwritten it.
+
+**Says why testing by hand misses it — 25%**
+
+One request at a time never overlaps, so the variable is always the right one.
+
+- **0 (absent):** Does not address it.
+- **1 (weak):** Explains it with something else — development having fewer users so less data, a different configuration, the email provider batching.
+- **2 (partial):** Says it is "a load issue" without saying what load changes.
+- **3 (solid):** Says nothing overlaps when requests arrive one at a time, so the bug needs two in flight and never appears by hand.
+- **4 (excellent):** As 3, and says how they would show it — two requests fired together for different users, which is a test that can be written.
+
+**Puts the value where the request is — 35%**
+
+On `req`, or passed as an argument — something whose lifetime is the request's.
+
+- **0 (absent):** No change, or a lock around the variable.
+- **1 (weak):** Keeps the module-level variable and defends it — restoring it after the handler, a per-user map keyed by id, reassigning it just before use.
+- **2 (partial):** Says it should be "request-scoped" without saying what that means in this code.
+- **3 (solid):** Attaches the user to the request object and reads it from there, so each request carries its own.
+- **4 (excellent):** As 3, and prefers passing it explicitly to whatever needs it, and treats request-scoped storage as the last resort for code too deep to reach.
+
+> **The drafter is unsure about:** This is the Node bug I would most want a mid candidate to recognise, because the single thread makes it feel impossible until you think about the `await`. The "why would testing by hand not show it" clause carries 25% and is the part that shows whether the candidate understands the interleaving or has recognised the shape. Is it too subtle even at mid? A reviewer who hires Node engineers here will know better than I do.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 29. spring-transaction-did-not-roll-back
+
+**technical** · difficulty 3/5 · roles: backend · mid · topic: Databases and data modelling (transactions) · stacks: java-spring
+
+**The interviewer asks**
+
+> The order is saved even when the payment record fails, although the method that does both is annotated to be transactional. Tell me why the annotation is not doing what it looks like it does here, and how you would fix it.
+
+**Setup the candidate is given**
+
+> ```java
+> @Service
+> public class OrderService {
+>
+>   public void placeOrder(OrderRequest request) {
+>     validate(request);
+>     saveOrderAndPayment(request);
+>   }
+>
+>   @Transactional
+>   public void saveOrderAndPayment(OrderRequest request) {
+>     orderRepository.save(toOrder(request));
+>     paymentRepository.save(toPayment(request));   // throws
+>   }
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The annotation is applied by a proxy wrapped around the bean, not by the method itself.
+- A call from inside the same object goes straight to the method and never passes through the proxy.
+- So no transaction is started, and each save commits on its own.
+- Move the transactional boundary to the method that is called from outside, or put it in another bean.
+- The boundary belongs where the unit of work is, which is usually the entry point rather than the inner method.
+- Injecting a self reference so the call goes through the proxy also works, and is worth asking where the unit of work really begins.
+
+**Rubric: A transaction annotation that did nothing** (`spring-transaction-diagnosis`)
+
+**Says why the annotation did not apply — 45%**
+
+The behaviour comes from a proxy around the bean; a call from inside the object never goes through it.
+
+- **0 (absent):** Believes the annotation applies and blames the exception type or the repository.
+- **1 (weak):** A confident wrong cause — that the exception is checked so nothing rolls back, that the propagation is wrong, that the repositories each open their own transaction and that is the whole story.
+- **2 (partial):** Says self-invocation is the problem without saying what mechanism it bypasses.
+- **3 (solid):** Says the annotation is applied by a proxy, and an internal call reaches the method directly, so no transaction is ever started.
+- **4 (excellent):** As 3, and says what would have been observable — the same method called from another bean would work, which is why it looks intermittent to whoever wrote it.
+
+**Puts the boundary where the work is — 35%**
+
+Annotate what is called from outside, or move the inner method to another bean.
+
+- **0 (absent):** No change, or a try/catch with manual cleanup.
+- **1 (weak):** Fixes it without the proxy ever being involved — a manual transaction, a `catch` that deletes the order, the annotation moved onto the repository methods.
+- **2 (partial):** Says to "move the annotation" without saying to what, or reaches for `AopContext.currentProxy()`, which the documentation singles out as the one to avoid.
+- **3 (solid):** Makes the call cross the proxy — the boundary moved to the method called from outside, the inner method moved to another bean, or a self reference injected.
+- **4 (excellent):** As 3, and prefers the refactor to the self reference, because it puts the boundary around the whole unit of work — usually the entry point, not the innermost save.
+
+**Knows what a transaction is being asked to cover — 20%**
+
+What must succeed or fail together, and what must not be inside it.
+
+- **0 (absent):** Not addressed.
+- **1 (weak):** Would widen it to the whole request, or annotate every method, as a way of being safe.
+- **2 (partial):** Says both saves belong together without saying what else does not.
+- **3 (solid):** Says the two writes are one unit, and that anything a database cannot undo does not belong inside it.
+- **4 (excellent):** As 3, and names the cost of a boundary that is too wide — a connection and locks held across a slow call, which is the next outage.
+
+> **The drafter is unsure about:** **Version-sensitive: Spring's proxy-based `@Transactional`, checked against docs.spring.io on 2026-09-22 (Spring Framework 7.0).** Self-invocation bypassing the proxy still holds — "only external method calls coming in through the proxy are intercepted". **A correction for graders:** the documentation ranks three fixes, and self-injection is one it documents as an alternative, not one it warns against; only `AopContext.currentProxy()` is "highly discouraged", and the `@Transactional` page itself points at AspectJ mode. A candidate who reaches for a self reference is not wrong, and the rubric credits it. This is the single most common Spring bug in code I would expect to see here, and it is unfair to ask any other variant, which is why it is tagged. Is a mid candidate in this market likely to have met it, or does it belong at a level we do not offer?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 30. spring-default-error-body
+
+**technical** · difficulty 2/5 · roles: backend · intern-junior, mid · topic: API design (error responses) · stacks: java-spring
+
+**The interviewer asks**
+
+> This is what a mobile client receives when it posts a sign-up with a bad email address, from a service that has switched on Spring Boot's message and stack-trace settings. Tell me what is wrong with sending this, what the client can and cannot do with it, and what you would send instead.
+
+**Setup the candidate is given**
+
+> ```json
+> {
+>   "timestamp": "2026-09-21T14:02:11.332+00:00",
+>   "status": 400,
+>   "error": "Bad Request",
+>   "trace": "org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public...",
+>   "message": "Validation failed for object='signUpRequest'. Error count: 1",
+>   "path": "/api/signup"
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The status is right and nothing else in it is for a client.
+- The client cannot tell which field was wrong, so it cannot mark the field.
+- The stack trace names internal classes and the framework version, which is information we are giving away.
+- `message` is English prose that will be rewritten by the next upgrade — nothing should branch on it.
+- Send a stable code, and a list of the fields that failed with what was wrong about each.
+- The shape should be the same for every error in the API, not whatever each layer happens to throw.
+
+**Rubric: What a framework's default error tells a client** (`framework-error-body-judgement`)
+
+**Says what the client cannot do with it — 35%**
+
+Nothing identifies the field, so the app cannot mark anything or branch on anything.
+
+- **0 (absent):** Sees nothing wrong; there is a message and a status.
+- **1 (weak):** Names the wrong deficiency confidently — that the message is not user-friendly enough, that it needs translating, that the client should show `message` to the user.
+- **2 (partial):** Says it is "not useful" without saying what the client needed and did not get.
+- **3 (solid):** Says nothing names the field that failed, so the app can only show a generic error and cannot mark the input.
+- **4 (excellent):** As 3, and says why branching on `message` is not an option either — it is prose, and it changes when the framework does.
+
+**Sees what is being given away — 30%**
+
+A stack trace naming internal classes and the framework is information a client never needs.
+
+- **0 (absent):** Does not notice the trace, or treats it as helpful.
+- **1 (weak):** Would keep it for debugging — in a header, behind a flag, for staff accounts — described as a reasonable compromise.
+- **2 (partial):** Says the trace "should not be there" with no account of what it costs.
+- **3 (solid):** Says it names internal classes and the framework version, which narrows what an attacker has to guess, and that none of it helps the client.
+- **4 (excellent):** As 3, and separates the two audiences: the trace belongs in the log against a request id, and the client gets the id.
+
+**Says what to send instead — 35%**
+
+A stable code, the fields that failed, and one shape for the whole API.
+
+- **0 (absent):** No alternative, or "a nicer message".
+- **1 (weak):** Fixes it by configuration alone — turning the trace off — and leaves a body the client still cannot branch on.
+- **2 (partial):** Names a code or field errors, without the other, or without saying what stays the same across endpoints.
+- **3 (solid):** A stable code per error plus the failing fields and what was wrong with each, in a shape every endpoint uses.
+- **4 (excellent):** As 3, and says this has to be enforced somewhere rather than written per controller, or the next exception escapes as the default again.
+
+> **The drafter is unsure about:** **Version-sensitive: Spring Boot's error body, checked against docs.spring.io on 2026-09-22 (Spring Boot 4.1).** The `{timestamp, status, error, path}` shape holds, but `trace`, `message` and `errors` are **off by default** and the keys are omitted entirely — so this is what a service that switched them on returns, not an out-of-the-box body, and the prompt now says so. In Boot 4.0 those properties also moved from `server.error.*` to `spring.web.error.*`. Tagged `java-spring` because the body is recognisably Spring's and a candidate on another stack would be reading unfamiliar output for no reason; the general version is `api-error-shape`. Is a service with those settings on realistic enough to build a question round, or would you rather it used the real default and asked only what is missing from it?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 31. python-blocking-call-in-async
+
+**technical** · difficulty 3/5 · roles: backend · mid · topic: Concurrency and race conditions (async and blocking calls) · stacks: python-backend
+
+**The interviewer asks**
+
+> This endpoint is declared async, and under any real load the whole service slows down — including endpoints that do nothing at all. Explain what the `async` is and is not buying here, and tell me what you would change.
+
+**Setup the candidate is given**
+
+> ```python
+> @app.get("/api/rates")
+> async def rates() -> dict[str, float]:
+>     response = requests.get("https://provider.example/rates", timeout=5)
+>     return response.json()
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- `async def` puts the function on the event loop; it does not make what is inside it asynchronous.
+- `requests` blocks the thread, so the loop cannot run anything else until it returns.
+- Five seconds of that and every other request waits, whatever it was going to do.
+- Use a client that awaits — `httpx`, `aiohttp` — so the loop is free while the call is in flight.
+- Or keep the blocking call and run it in a thread, which is the right answer for a library that has no async version.
+- A plain `def` endpoint would have been safer than a lying `async def`, because the framework would have used a thread.
+
+**Rubric: A blocking call inside an async handler** (`async-blocking-diagnosis`)
+
+**Says what `async` did and did not do — 40%**
+
+It put the function on the event loop; it did not make the call inside it asynchronous.
+
+- **0 (absent):** Believes the handler is asynchronous because it is declared so.
+- **1 (weak):** A confident wrong mechanism — that the provider is slow and needs a shorter timeout, that the server needs more workers, that the GIL is the constraint, that `async def` needs an `await` added in front of the call to work.
+- **2 (partial):** Says the call is "blocking" without connecting it to the loop.
+- **3 (solid):** Says the function runs on the event loop and the library holds the thread, so the loop cannot run anything else for the duration.
+- **4 (excellent):** As 3, and says why unrelated endpoints are affected — they share the loop, so a call that never yields stops all of them, not just this one.
+
+**Fixes it in a way that yields — 35%**
+
+An awaiting client, or the blocking call moved off the loop.
+
+- **0 (absent):** No change, or a longer timeout.
+- **1 (weak):** Keeps `requests` on the loop and changes something around it — `await` in front of it, a thread pool the code never actually uses, caching the response.
+- **2 (partial):** Says to "use an async client" without saying what changes about the loop.
+- **3 (solid):** Uses a client that awaits, so the loop is free while the call is in flight — or runs the blocking call in a thread deliberately.
+- **4 (excellent):** As 3, and knows which to choose: the async client when one exists, the thread when the library has no async version and rewriting it is not on offer.
+
+**Knows the framework was offering a safer default — 25%**
+
+A plain `def` endpoint is run in a threadpool; the `async def` is what put it on the loop.
+
+- **0 (absent):** Not addressed.
+- **1 (weak):** Believes `async def` is always the faster or more correct choice, and says so as a rule.
+- **2 (partial):** Mentions that `def` and `async def` differ without saying how.
+- **3 (solid):** Says a plain `def` path operation is run in a threadpool, so the same code in a `def` would not have blocked the loop.
+- **4 (excellent):** As 3, and draws the rule from it — declare `async def` only when what is inside actually awaits, because the declaration is a promise the framework believes.
+
+> **The drafter is unsure about:** **Version-sensitive: FastAPI's handling of `def` versus `async def` endpoints, checked against fastapi.tiangolo.com on 2026-09-22.** A plain `def` path operation is still run in a threadpool, which is what makes the last answer key point true and is the part most candidates have not internalised. The snippet is FastAPI-shaped; a Django candidate on this variant would still recognise the mistake, but is `python-backend` covering both Django and FastAPI in one variant stretching it? That is a `roles.yaml` question as much as a question-bank one.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 32. django-save-overwrote-a-change
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Concurrency and race conditions (lost updates) · stacks: python-backend, django-react
+
+**The interviewer asks**
+
+> Support update a customer's phone number, and a minute later it is back to the old one. The only other thing touching that record is this view, which marks the account as verified. Explain how this code could be putting the old number back, and what you would write instead.
+
+**Setup the candidate is given**
+
+> ```python
+> def verify(request, pk):
+>     customer = Customer.objects.get(pk=pk)   # read at 14:02
+>     # ... a slow call to the verification provider ...
+>     customer.is_verified = True
+>     customer.save()                          # written at 14:03
+>     return redirect("customers")
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- `save()` writes every field on the instance, not only the one that changed.
+- The instance holds the values as they were when it was read, a minute before.
+- So the phone number changed in between is written back to what it was.
+- Save only the field that changed, or update the row directly without reading it first.
+- The slow call in the middle is what makes the window wide enough to hit.
+- Reading it again after the slow call narrows the window and does not close it.
+
+**Rubric: A save that wrote back what it read** (`stale-write-diagnosis`)
+
+**Says what `save()` writes — 40%**
+
+Every field on the instance, from the values it held when it was read.
+
+- **0 (absent):** Blames the support tool, a cache, or a replica.
+- **1 (weak):** A confident wrong cause — the support update not committing, a signal or a callback resetting the field, the form posting a blank phone number, a replica lagging.
+- **2 (partial):** Says the object is "stale" without saying what `save()` then does with it.
+- **3 (solid):** Says `save()` writes all the fields on the instance, and the instance holds the values from the earlier read, so the old number goes back.
+- **4 (excellent):** As 3, and says nothing errors and nothing is logged, because both writes were perfectly valid — which is why it looks like the support tool is broken.
+
+**Says what made the window wide — 20%**
+
+A slow external call between the read and the write is what turns a millisecond into a minute.
+
+- **0 (absent):** Does not address it.
+- **1 (weak):** Attributes the minute to something else — a queue, a transaction held open, the database being slow.
+- **2 (partial):** Notes the call is in the middle without saying what that changes.
+- **3 (solid):** Says the instance is held across the provider call, so the gap between reading and writing is as long as that call takes.
+- **4 (excellent):** As 3, and says this is why it is reproducible rather than rare — unlike a millisecond race, a minute is easy to land in.
+
+**Writes only what changed — 40%**
+
+Name the field, or update the row without reading it first.
+
+- **0 (absent):** No change, or telling support to re-enter it.
+- **1 (weak):** Narrows the window instead of closing it — re-reading the instance after the provider call, moving the call earlier, a retry — described as the fix.
+- **2 (partial):** Says to "only save that field" without saying how.
+- **3 (solid):** Saves with the field named, or updates the row directly so nothing is read into the application first.
+- **4 (excellent):** As 3, and says which of the two they would pick here and why — and that re-reading before saving still leaves a gap, it is only a smaller one.
+
+> **The drafter is unsure about:** **Version-sensitive: Django's `Model.save()` and `update_fields`, checked against docs.djangoproject.com on 2026-09-22.** Saving all fields by default still holds. Tagged rather than general because the behaviour is a property of this ORM — a Spring or Rails candidate would answer a different question about the same symptom, and the general version is `the-counter-that-lost-updates`. Are those two far enough apart for a candidate offered both?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 33. laravel-mass-assignment
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · intern-junior, mid · topic: Authentication and authorisation (input handling) · stacks: php-laravel, laravel-vue
+
+**The interviewer asks**
+
+> A user has given themselves an administrator account through the public sign-up form, and the form on the website has only three fields. Tell me how that was possible, what the fix is, and what else you would check in the codebase afterwards.
+
+**Setup the candidate is given**
+
+> ```php
+> class User extends Model
+> {
+>     protected $guarded = [];
+> }
+>
+> // RegisterController
+> public function store(Request $request)
+> {
+>     $user = User::create($request->all());
+>     return redirect()->route('dashboard');
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The request is whatever was posted, not whatever the form shows — anyone can add a field.
+- An unguarded model — `$guarded = []`, or `#[Unguarded]` in current Laravel — means every column may be written, including the role.
+- Validate and take only the fields the action is allowed to set, rather than passing the request through.
+- Name what may be filled on the model as well, so the next caller cannot do it either.
+- Anything that decides permissions should not be settable from a request at all.
+- Then look for every other place the same pattern was used, because it is rarely only one.
+
+**Rubric: Letting a request decide which columns to write** (`mass-assignment-diagnosis`)
+
+**Says how the extra field arrived — 40%**
+
+The request is whatever was posted; the form is not a constraint on it.
+
+- **0 (absent):** Concludes someone with access changed it in the database.
+- **1 (weak):** A confident wrong route in — an SQL injection, a stolen admin session, the front-end validation being bypassed as the whole story, a seeded account.
+- **2 (partial):** Says the request contained a role field, without saying why that was possible.
+- **3 (solid):** Says anyone can post any field, and an empty `$guarded` means every column may be filled, so a posted role is written.
+- **4 (excellent):** As 3, and says nothing in the code had to be wrong for this to work — it is the framework doing exactly what it was told.
+
+**Takes only what the action may set — 35%**
+
+Validate, and pass named fields — not the request.
+
+- **0 (absent):** No change, or removing the role column from the response.
+- **1 (weak):** Guards the wrong layer with confidence — hiding the field in the form, validating on the client, checking for a role field in middleware, or listing every column that must not be written rather than the few that may.
+- **2 (partial):** Names the guard or the validator — `$fillable`, `#[Fillable]`, `validated()` — without saying which fields or why those.
+- **3 (solid):** Validates the request and passes only the fields sign-up is allowed to set, and names what may be filled on the model as well.
+- **4 (excellent):** As 3, and says anything that decides permissions should not be settable from a request at all, whatever the guard list says.
+
+**Assumes it is not the only one — 25%**
+
+A pattern used once is used everywhere; the next step is finding the rest.
+
+- **0 (absent):** Fixes this controller and stops.
+- **1 (weak):** Says they would "be careful in future", or add it to the code review checklist.
+- **2 (partial):** Says there may be others without a way of finding them.
+- **3 (solid):** Searches for the same pattern across the codebase, and checks which models have no guard at all.
+- **4 (excellent):** As 3, and treats the account that was created as an incident — it is found, removed, and what it did while it had the role is checked.
+
+> **The drafter is unsure about:** **Version-sensitive: Eloquent mass assignment, checked against laravel.com on 2026-09-22 (Laravel 13). The behaviour holds and the documented syntax has moved:** Laravel 13 documents PHP attributes — `#[Fillable([...])]`, `#[Guarded]`, `#[Unguarded]` — and no longer shows the `$fillable`/`$guarded` properties, though the upgrade guide lists no breaking change, so they still work. The snippet is deliberately left in the property form, which is what an existing codebase looks like; a candidate who answers in the attribute form is right and is credited equally. Laravel is very widely used in agency and product work here and the blueprint warned this is the variant a JavaScript drafter neglects, so this is the most important of the two. Kept at intern-junior because the mechanism — the request is not the form — is the single most valuable thing a junior PHP developer can be told. Is `$guarded = []` a fair thing to put in front of them, or is it too obviously wrong to discriminate?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 34. laravel-worker-running-old-code
+
+**scenario** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Background and queued work (deploying workers) · stacks: php-laravel, laravel-vue
+
+**The interviewer asks**
+
+> You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong result for hours. The web side of the same deploy was correct immediately. Tell me what was happening, and what you would put in place so it cannot happen again.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The worker is a long-running process that loaded the code once, when it started.
+- A deploy replaces the files; it does not replace a process that is already running.
+- The web side is correct because each request is served by a process that picks up the new code.
+- Restart the workers as part of the deploy — that is what `queue:restart` is for.
+- Jobs already queued carry the old payload, which is a separate problem from the old code.
+- Something should show which version each worker is running, or the next person debugs the same thing.
+
+**Rubric: A long-running process that missed the deploy** (`worker-deploy-diagnosis`)
+
+**Says why the worker kept the old code — 40%**
+
+It loaded the application once when it started, and a deploy does not restart it.
+
+- **0 (absent):** Blames the deploy, a cache, or the code not having been pushed.
+- **1 (weak):** A confident wrong cause — an opcode or config cache, the jobs having been serialised with the old class, the deploy having skipped the worker's directory, a stale branch.
+- **2 (partial):** Says the worker "needs restarting" without saying why it kept working with the old code.
+- **3 (solid):** Says the worker is one long-lived process holding the application in memory, so replacing the files on disk changes nothing it is running.
+- **4 (excellent):** As 3, and contrasts it with the web side, where each request is served by a process that picks up the new files — which is why one was right and the other was not.
+
+**Restarts it as part of deploying — 35%**
+
+The deploy ends by telling the workers to finish and exit.
+
+- **0 (absent):** No change; would restart by hand when it is noticed.
+- **1 (weak):** Restarts in a way that loses work or does not take — killing the process outright, restarting before the files are in place, clearing the cache instead.
+- **2 (partial):** Says to "restart the workers" without saying what puts it in the deploy.
+- **3 (solid):** Puts the restart in the deploy itself, using the graceful signal so a job in flight is finished rather than cut off.
+- **4 (excellent):** As 3, and says what the process manager then has to do — bring the worker back — because a graceful stop that nothing restarts is an outage of a different kind.
+
+**Makes the next person's version visible — 25%**
+
+Something should say which version each worker is running.
+
+- **0 (absent):** Not addressed.
+- **1 (weak):** Would add a comment, a runbook note, or remember next time.
+- **2 (partial):** Says it should be "monitored" without saying what would be visible.
+- **3 (solid):** Logs or reports the version each worker is running, so a mismatch is a thing that can be seen rather than deduced.
+- **4 (excellent):** As 3, and notes the jobs already in the queue carry the old payload, which the restart does not fix and which needs its own decision.
+
+> **The drafter is unsure about:** **Version-sensitive: `php artisan queue:restart` and worker lifecycle, checked against laravel.com on 2026-09-22.** This is an operations question as much as a Laravel one, and that is deliberate — a Laravel developer here is usually the one deploying. The risk is that it needs a candidate who has deployed a queue worker at all; the prompt supplies the whole situation, and criterion 1 can be answered from "a process that started before the deploy" without ever having run one — does that hold?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 35. go-the-error-nobody-checked
+
+**technical** · difficulty 2/5 · roles: backend · intern-junior, mid · topic: Reliability and failure handling (error handling) · stacks: golang
+
+**The interviewer asks**
+
+> When the database is unreachable this handler returns 200 and a customer with an empty name and a zero balance, and nothing is logged. Tell me what the code does when the call fails, why it ends up looking like success, and how you would write it.
+
+**Setup the candidate is given**
+
+> ```go
+> func GetCustomer(w http.ResponseWriter, r *http.Request) {
+>     customer, _ := store.FindCustomer(r.Context(), chi.URLParam(r, "id"))
+>     json.NewEncoder(w).Encode(customer)
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- The error is discarded, so the failure is not visible anywhere in this function.
+- The returned value is the zero value of the type, which serialises as a real-looking customer.
+- The handler writes 200 because nothing told it otherwise, and the client cannot tell.
+- Check the error, and return a status that says what happened.
+- Not-found and the database being down deserve different answers to the client.
+- Wrap or log it with enough context to say which call failed, so the next person is not reading a bare message.
+
+**Rubric: An error that was discarded** (`ignored-error-diagnosis`)
+
+**Says what happens when the call fails — 40%**
+
+The error is thrown away and the value returned is the zero value of the type.
+
+- **0 (absent):** Believes the handler would fail or panic.
+- **1 (weak):** A confident wrong account — that the customer would be nil and the encoder would panic, that the handler returns 500 because the encoder errors, that the discard only applies to a not-found.
+- **2 (partial):** Says the error is ignored without saying what the value then is.
+- **3 (solid):** Says the error is assigned to the blank identifier and the returned struct is its zero value — empty strings, zero numbers.
+- **4 (excellent):** As 3, and says that is why it looks like success: a zero-value struct serialises into a complete, plausible-looking customer.
+
+**Says why the client cannot tell — 25%**
+
+Nothing sets a status, so the response is a 200 carrying a record that does not exist.
+
+- **0 (absent):** Does not address the status.
+- **1 (weak):** Believes the status reflects the failure somehow — that the empty body would be caught, that the encoder sets it, that a middleware would notice.
+- **2 (partial):** Says the status is wrong without saying what it should have been.
+- **3 (solid):** Says writing to the response without setting a status sends 200, so a failure is indistinguishable from an empty record.
+- **4 (excellent):** As 3, and separates the two cases the client needs to tell apart — a customer that does not exist and a database that is unreachable are not the same answer.
+
+**Handles it, and says which failure it was — 35%**
+
+Check the error, choose a status, and give the log enough to locate the call.
+
+- **0 (absent):** No change, or logging the error and continuing.
+- **1 (weak):** Checks the error and collapses every case into one — a 500 for everything, or a 404 for everything — described as sufficient.
+- **2 (partial):** Says to check the error without saying what the handler then does.
+- **3 (solid):** Checks it, distinguishes not-found from a failure to reach the store, and returns a status for each.
+- **4 (excellent):** As 3, and wraps or logs it with which call failed and for which id, so the next person reading the log is not looking at a bare message.
+
+> **The drafter is unsure about:** The one Go question, and the blueprint says a variant with one question is a variant we are not really serving — so a reviewer's first job here is to decide whether `golang` earns a second or comes off `roles.yaml`. I chose explicit error handling over goroutines and channels because it is the discipline the language is actually about and the one a candidate coming from PHP or Node most often carries bad habits into. The zero-value point is what makes it a Go question rather than a general one — is that the right thing to build the one Go question on?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 36. dotnet-blocking-on-async
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Concurrency and race conditions (async and blocking calls) · stacks: dotnet, dotnet-react
+
+**The interviewer asks**
+
+> This controller action is fine under test and fine with a few users. Past a certain amount of traffic the whole application slows down and requests start timing out, and the CPU is not busy. Explain what this line is doing to the application, and how you would write it.
+
+**Setup the candidate is given**
+
+> ```csharp
+> [HttpGet("rates")]
+> public IActionResult GetRates()
+> {
+>     var rates = _ratesClient.GetRatesAsync().Result;
+>     return Ok(rates);
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- `.Result` holds the thread until the call finishes, instead of releasing it while it waits.
+- Every concurrent request holds one, so the pool runs out and new requests wait for a thread.
+- The CPU is idle because the threads are not working — they are waiting.
+- The pool grows slowly, which is why it gets worse over minutes rather than failing outright.
+- Make the action `async Task<IActionResult>` and `await` the call, so the thread goes back while it waits.
+- It has to be awaited all the way down; one blocking call anywhere in the path brings it back.
+
+**Rubric: Blocking a thread to wait for an async call** (`sync-over-async-diagnosis`)
+
+**Says what the thread is doing — 40%**
+
+It is held, not working, until the call returns — so the pool drains under concurrency.
+
+- **0 (absent):** Blames the client library, the provider, or the machine.
+- **1 (weak):** Names the classic deadlock — the synchronisation context, `.Result` deadlocking — which is the old framework's failure and not this one's. It is the most widely repeated wrong answer here.
+- **2 (partial):** Says `.Result` is "blocking" without saying what runs out.
+- **3 (solid):** Says the thread is held while it waits instead of being returned, so concurrent requests exhaust the pool and new ones queue for a thread.
+- **4 (excellent):** As 3, and explains the idle CPU — the threads are not computing, they are waiting, so the machine looks unloaded while the application is stuck.
+
+**Says why it gets worse gradually — 25%**
+
+The pool adds threads slowly, so the queue grows before the capacity does.
+
+- **0 (absent):** Does not address it.
+- **1 (weak):** Attributes the slope to something else — a memory leak, connections accumulating, the provider degrading under load.
+- **2 (partial):** Says it "gets worse with traffic" without connecting it to the pool.
+- **3 (solid):** Says the pool grows only gradually when it runs short, so arriving requests wait even though threads will eventually be added.
+- **4 (excellent):** As 3, and says what that looks like from outside — latency climbing over minutes and then timeouts, rather than a clean failure.
+
+**Awaits it properly, all the way down — 35%**
+
+`async Task<IActionResult>` and `await`, and no blocking call left anywhere in the path.
+
+- **0 (absent):** No change, or a larger minimum thread count as the fix.
+- **1 (weak):** Keeps the blocking call and works around it — `ConfigureAwait(false)`, `GetAwaiter().GetResult()`, raising the pool minimum — presented as the correct fix.
+- **2 (partial):** Says to "make it async" without saying what the thread then does.
+- **3 (solid):** Makes the action `async Task<IActionResult>` and awaits the call, so the thread is returned to the pool while waiting.
+- **4 (excellent):** As 3, and says it has to be awaited the whole way down, because one blocking call anywhere in the path puts the behaviour back.
+
+> **The drafter is unsure about:** **Version-sensitive: ASP.NET Core thread-pool behaviour for sync-over-async, checked against learn.microsoft.com (rule CA2007, and the ASP.NET Core best-practices page) on 2026-09-22.** This matters: in ASP.NET Core request handling there is no synchronisation context, so `.Result` does **not** produce the classic deadlock it did on the .NET Framework — it starves the thread pool instead, which is the framing the current guidance uses. One caveat for a grader: **Blazor does have a synchronisation context**, so a candidate who says "it depends which part of ASP.NET Core" is ahead of the question, not behind it. The prompt is written around starvation for that reason, and a candidate who answers "deadlock" is describing the old framework. The rubric scores that at level 2 rather than wrong, because it is the answer most of the internet still gives. Generous, or correct?
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 37. rails-callback-that-did-too-much
+
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Background and queued work (side effects) · stacks: ruby-rails
+
+**The interviewer asks**
+
+> An overnight import of four thousand vendors sent four thousand emails and took two hours, and the tests for anything that touches a vendor are slow and occasionally fail. This is the model. Tell me what is causing all three of those, and what you would change.
+
+**Setup the candidate is given**
+
+> ```ruby
+> class Vendor < ApplicationRecord
+>   after_save :send_welcome_email
+>   after_save :sync_to_search_index
+>
+>   private
+>
+>   def send_welcome_email
+>     VendorMailer.welcome(self).deliver_now
+>   end
+> end
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- Saving a vendor for any reason sends an email, so anything that saves in bulk sends in bulk.
+- `deliver_now` is done inside the save, so the import waits for the mail server four thousand times.
+- Tests are slow and fragile for the same reason — every saved record does real work.
+- The email belongs to signing a vendor up, not to the record being written.
+- Move it to whatever actually creates a vendor, or at least to a background job.
+- A callback is for keeping the record consistent with itself, not for reaching outside it.
+
+**Rubric: Side effects attached to saving a record** (`model-callback-judgement`)
+
+**Traces all three symptoms to one cause — 40%**
+
+The import, the two hours and the slow tests are the same callback firing on every save.
+
+- **0 (absent):** Treats them as three separate problems.
+- **1 (weak):** Gives each a plausible separate cause — the import needing batching, the mailer needing a faster provider, the tests needing better fixtures — and never reaches the callback.
+- **2 (partial):** Identifies the callback for one of the three, usually the emails.
+- **3 (solid):** Says any save fires both callbacks, so a bulk import sends in bulk, waits for the mail server each time, and makes every test that saves a vendor do real work.
+- **4 (excellent):** As 3, and notes the record does not know why it is being saved — a correction to a spelling sends a welcome email exactly as a new signup does.
+
+**Gets it out of the save — 35%**
+
+The work leaves the callback, or at least stops happening inside the transaction.
+
+- **0 (absent):** No change, or a flag on the import to skip callbacks.
+- **1 (weak):** Narrows when it fires rather than moving it — `after_create` instead of `after_save`, a conditional on the record, an environment check that disables it in tests.
+- **2 (partial):** Says to "use a background job" without saying what that changes about the import or the tests.
+- **3 (solid):** Enqueues instead of delivering inline, so the save no longer waits for the mail server.
+- **4 (excellent):** As 3, and moves the decision to whatever actually signs a vendor up, because enqueuing four thousand emails is still four thousand emails nobody meant to send.
+
+**Says what a callback is for — 25%**
+
+Keeping the record consistent with itself, not reaching outside it.
+
+- **0 (absent):** Treats callbacks as the normal place for this work.
+- **1 (weak):** States a rule that is really the fix — "callbacks should be asynchronous", "use `deliver_later` in callbacks" — or that callbacks should never be used at all.
+- **2 (partial):** Says callbacks are "overused" without a line between what belongs and what does not.
+- **3 (solid):** Says a callback should do things to the record itself, and anything that touches the outside world belongs to the action that caused the save.
+- **4 (excellent):** As 3, and gives the test that decides it — whether the behaviour should happen for every save from every caller, including a console session and an import.
+
+> **The drafter is unsure about:** **Version-sensitive: Active Record callbacks and `deliver_now` versus `deliver_later`, checked against guides.rubyonrails.org on 2026-09-22.** The one Rails question, so the same decision applies as for Go: a second, or the variant comes off `roles.yaml`. I chose this because "put it in a callback" is the habit Rails most encourages and most regrets, and because the three symptoms in the prompt all come from one cause, which makes it a good conversation rather than a definition. Is `deliver_later` alone a complete answer? I have it at level 3 and moving the call out of the callback at level 4.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

@@ -19,7 +19,7 @@ rubrics:
         weight: 25
         levels:
           "0": Concludes the line did not run, or that the code is wrong.
-          "1": A story about the writes rather than about painting — too quick to see, the second line overwriting the first, the two assignments batched together so only the last survived — however confidently told.
+          "1": A story about the writes rather than about painting — too quick to see, the second line overwriting the first, the two assignments batched together so only the last survived.
           "2": Says the screen did not update, without saying why the update never reached it.
           "3": Says the text was set but the browser never painted between the two assignments.
           "4": As 3, and says what was on screen for those two seconds instead — whatever the tap found there.
@@ -30,7 +30,7 @@ rubrics:
         weight: 45
         levels:
           "0": Treats drawing the page as something that happens independently of the code.
-          "1": A mechanism that is not this one — the browser batching updates for performance, rendering on another thread, `textContent` being asynchronous — however precisely it is put.
+          "1": A mechanism that is not this one — the browser batching updates for performance, rendering on another thread, `textContent` being asynchronous.
           "2": Says the thread is busy, without connecting that to when the page can be drawn.
           "3": Says the same thread runs the handler and paints, so no frame can be produced until the handler returns.
           "4": As 3, and extends it to the rest of the page — the tap that goes unanswered, the scroll that stalls — because they wanted the same thread.
@@ -52,7 +52,7 @@ rubrics:
         weight: 40
         levels:
           "0": Sees nothing wrong, or blames the data.
-          "1": Puts the fault somewhere it is not — the `if`, the property name, an empty array — whether guessed at or argued in detail.
+          "1": Puts the fault somewhere it is not — the `if`, the property name, an empty array — whether guessed at or worked through.
           "2": Notices that `openJobs` returns nothing, without saying what the inner `return` does instead — or gives that `return` a behaviour it does not have and makes the missing assignment the whole of the bug.
           "3": Says the `return` ends the arrow function and the outer one falls off the end, so the caller gets `undefined`.
           "4": As 3, and says the loop itself runs correctly — nothing is broken except what is done with the result.
@@ -61,7 +61,7 @@ rubrics:
         weight: 30
         levels:
           "0": Treats `forEach` as interchangeable with any other loop.
-          "1": Gives `forEach` a behaviour it does not have — that the `return` skips to the next item and is otherwise fine, that it stops the loop, that it collects what is returned — however confidently.
+          "1": Gives `forEach` a behaviour it does not have — that the `return` skips to the next item and is otherwise fine, that it stops the loop, that it collects what is returned.
           "2": Says `forEach` "does not return anything" without connecting that to the callback's value.
           "3": Says `forEach` ignores what the callback gives back, and is there for side effects.
           "4": As 3, and separates it from the methods whose whole purpose is the value the callback returns.
@@ -94,7 +94,7 @@ rubrics:
         weight: 40
         levels:
           "0": No error handling at all.
-          "1": Relies on the request rejecting — a `try`/`catch` only, or a confident claim that `fetch` throws on a 404 or a 500.
+          "1": Relies on the request rejecting — a `try`/`catch` only, or the claim that `fetch` throws on a 404 or a 500.
           "2": Checks the status, but treats every failure the same way.
           "3": Checks `response.ok`, and separates "the request failed" from "the server said no".
           "4": As 3, and distinguishes statuses that deserve different handling (401 vs 404 vs 500).
@@ -117,7 +117,7 @@ rubrics:
         levels:
           "0": No decision, or "put it in a global store" with no reasoning.
           "1": Picks a place but cannot say why that one.
-          "2": Lifts higher than necessary, or reaches for a global store first — including a confident case for the store built on a claim about re-renders that this tree does not support.
+          "2": Lifts higher than necessary, or reaches for a global store first — including a case for the store built on a claim about re-renders that this tree does not support.
           "3": Lifts to the nearest component that needs it, and says why there.
           "4": As 3, and recognises the kind of state it is (server data, UI state, or a URL concern).
       - dimension: Avoids duplicating the same fact
@@ -384,7 +384,7 @@ rubrics:
         description: Wrapping, space reserved for what may not arrive, and sizes the content can flow inside.
         weight: 35
         levels:
-          "0": No technique, or fixed sizes that assume the sample data — including a confident set of them that would clip the content instead.
+          "0": No technique, or fixed sizes that assume the sample data — including a specific set of them that would clip the content instead.
           "1": Would fix each case as it is reported.
           "2": One technique, applied narrowly.
           "3": Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
@@ -393,7 +393,7 @@ rubrics:
         description: Deliberately trying the worst content available rather than the sample you built against.
         weight: 25
         levels:
-          "0": Nothing left to test — the sample data is assumed representative, or the geometry is presented as a guarantee.
+          "0": Nothing left to test — the sample data is assumed representative, or the geometry is treated as a guarantee.
           "1": Would wait for a bug report.
           "2":
             Says they would "test with different data" without saying which.
@@ -442,7 +442,7 @@ rubrics:
         description: That a timeout says nothing about whether the server acted — the commonest wrong assumption here.
         weight: 35
         levels:
-          "0": Assumes a timeout means the payment did not happen — plainly, or argued in detail from what the connection did.
+          "0": Assumes a timeout means the payment did not happen — plainly, or from an account of what the connection did.
           "1": Says the request "failed" and moves on to retrying it.
           "2": Notices the uncertainty when prompted but does not build for it.
           "3": Says that the charge may have gone through and that the client has no way to know.
@@ -905,7 +905,7 @@ rubrics:
         weight: 30
         levels:
           "0": Forces a refresh and stops.
-          "1": Forces a refresh with no alternative — acknowledged as not ideal, or aimed confidently at a cause this code does not have.
+          "1": Forces a refresh with no alternative — acknowledged as not ideal, or aimed at a cause this code does not have.
           "2": Replaces the value in this case without a general rule.
           "3": Assigns a new value so the change is visible, and explains why that is enough.
           "4": As 3, and says that needing to force a check usually means the real cause is still there.
