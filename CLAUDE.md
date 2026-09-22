@@ -125,6 +125,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 
 ### Data access
 - Only the API connects to Postgres; Prisma owns the schema and migrations (ADR-0004).
+- **Read every generated migration before applying it, and delete anything that undoes hand-written SQL.**
+  Prisma cannot see the objects it does not model, so it proposes `DROP INDEX questions_embedding_hnsw`
+  in migrations that never touch `questions` — it has done so three times. Generate with
+  `prisma migrate dev --create-only`, edit, then apply. Dropping it breaks nothing visibly: duplicate
+  search just becomes a sequential scan, and only `content-schema.int.spec.ts` notices. The partial
+  unique index `tracks_one_published_per_role_level` is the other hand-written object at risk.
 - The worker receives what it needs in requests (e.g. a session bundle at session start) and emits typed events
   (turns, latency samples, AI-call records) that the API persists idempotently. Ephemeral engine state lives in Redis.
 

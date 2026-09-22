@@ -33,9 +33,27 @@ describe("content schema", () => {
     expect(column?.type).toBe(`vector(${EMBEDDING_DIMENSIONS})`);
   });
 
+  /*
+   * This is the test that catches the mistake this project makes most often. Prisma cannot see an
+   * index over an `Unsupported` column, so **every** `prisma migrate dev` that touches `questions`
+   * — and some that do not — generates `DROP INDEX questions_embedding_hnsw`, which has to be
+   * deleted by hand before the migration is applied (CLAUDE.md §5, `tasks/lessons.md`). It has
+   * happened in three migrations so far. Without the index, duplicate detection still *works*, so
+   * nothing else in the suite notices: it just scans the whole table and gets slower as the bank
+   * grows.
+   *
+   * Checked by hand on 2026-09-22 by dropping the index in `readi_test` and running this file:
+   * this test failed and the other three passed.
+   */
   it("indexes those embeddings for cosine distance with HNSW", async () => {
     const [index] = await prisma.$queryRaw<{ indexdef: string }[]>`
       SELECT indexdef FROM pg_indexes WHERE indexname = 'questions_embedding_hnsw'`;
+    // Asserted before the shape, so a missing index fails with what actually went wrong rather
+    // than with "undefined is not a string".
+    expect(
+      index,
+      "questions_embedding_hnsw is missing: a migration dropped it — see CLAUDE.md §5",
+    ).toBeDefined();
     expect(index?.indexdef).toContain("USING hnsw");
     expect(index?.indexdef).toContain("vector_cosine_ops");
   });

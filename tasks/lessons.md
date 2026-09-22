@@ -119,12 +119,16 @@
   surfaced as a nonsense error in an untouched component (`TextLink` props "not assignable to
   IntrinsicAttributes"). A full install fixed it. A duplicated `@types/*` is the usual cause of a
   type error in code nobody edited — check for two versions before debugging the component.
-- Prisma proposes dropping the hand-written HNSW index in **every** migration that touches
-  `questions` (M2 phase 5). It cannot see an index on an `Unsupported` column, so
-  `DROP INDEX questions_embedding_hnsw` appears at the top of each generated migration and, if it
-  ships, turns near-duplicate search into a sequential scan with nothing failing. Read every
-  generated migration for statements that undo hand-written SQL before applying it — the rule
-  generalises to any index, constraint or trigger Prisma does not model.
+- **After every `prisma migrate dev`, read the generated SQL and delete any `DROP INDEX
+questions_embedding_hnsw` before applying it.** Prisma cannot see an index on an `Unsupported`
+  column, so it proposes dropping the HNSW index in migrations that have nothing to do with
+  `questions` — it did so in `content_seed_managed`, `content_review_state` and again in M2.5's
+  `catalogue_roles_levels_stacks`, which only adds three tables. If it ships, near-duplicate search
+  becomes a sequential scan and **nothing fails**: the search still returns the right answers, just
+  slower as the bank grows. `content-schema.int.spec.ts` is the only thing that notices, and it is
+  the reason that test exists — verified on 2026-09-22 by dropping the index in `readi_test` and
+  watching that one test fail. Use `--create-only`, edit, then apply. The rule generalises to any
+  index, constraint or trigger Prisma does not model.
 - Generated types reach the web app through a **built** workspace package (M2 phase 5). After
   `pnpm gen:contracts`, `packages/api-client/src/generated/schema.ts` is current but `dist` is not,
   so `apps/web` typechecks against the old shapes and the errors read as if the contract change
