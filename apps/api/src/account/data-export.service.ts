@@ -58,6 +58,7 @@ export class DataExportService {
         include: {
           targetRole: { select: { slug: true } },
           targetLevel: { select: { slug: true } },
+          targetStack: { select: { slug: true } },
         },
       }),
       this.prisma.consentRecord.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
@@ -122,8 +123,9 @@ export class DataExportService {
       profile: profile && {
         target_role: profile.targetRole.slug,
         level: profile.targetLevel.slug,
+        target_stack: profile.targetStack?.slug ?? null,
         years_experience: profile.yearsExperience,
-        stack: profile.stack,
+        technologies: profile.technologies,
         target_company_type: profile.targetCompanyType,
         target_date: profile.targetDate?.toISOString().slice(0, 10) ?? null,
         onboarding_completed_at: profile.onboardingCompletedAt?.toISOString() ?? null,

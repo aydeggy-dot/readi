@@ -21,14 +21,16 @@ const DOCX_BYTES = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3, 4, 5, 6]);
 /** Minted per run: the catalogue is content, and the test database is never seeded (ADR-0015). */
 let pair: CataloguePair;
 
-const profileFor = () => ({
+const profileFor = (overrides: Record<string, unknown> = {}) => ({
   name: "Ada",
   target_role: pair.roleSlug,
   level: pair.levelSlug,
   years_experience: 3,
-  stack: ["Go"],
+  target_stack: pair.stackSlug,
+  technologies: ["Go"],
   target_company_type: "remote_foreign",
   target_date: null,
+  ...overrides,
 });
 
 describe("CV upload and parsing", () => {
@@ -93,6 +95,22 @@ describe("CV upload and parsing", () => {
     expect((await http()[method](path).send({})).status).toBe(401);
   });
 
+  it("sends no stack label for a candidate who chose no variant", async () => {
+    // Null is a real answer, not a missing one (ADR-0015): the prompt then says nothing about a
+    // stack rather than naming one nobody picked. The field still travels, so the worker's
+    // contract does not change shape between two candidates.
+    const { cookie } = await signUpWithEmail(app);
+    await http()
+      .put("/api/me/profile")
+      .set("cookie", cookie)
+      .send(profileFor({ target_stack: null }));
+    const uploadId = await upload(cookie, PDF_BYTES);
+    await http().post("/api/me/cv").set("cookie", cookie).send({ upload_id: uploadId });
+    await settled(cookie);
+
+    expect(worker.requests.at(-1)).toMatchObject({ stack_label: null });
+  });
+
   it("starts empty and needs a profile before uploading", async () => {
     const { cookie } = await candidate(false);
     expect((await getCv(cookie)).status).toBe("none");
@@ -136,10 +154,18 @@ describe("CV upload and parsing", () => {
       content_type: PDF,
       target_role_label: pair.roleName,
       level_label: pair.levelName,
+      stack_label: pair.stackName,
     });
     expect(Buffer.from(sent?.file_base64 ?? "", "base64")).toEqual(Buffer.from(PDF_BYTES));
     expect(Object.keys(sent ?? {}).sort()).toEqual(
-      ["content_type", "file_base64", "level_label", "request_id", "target_role_label"].sort(),
+      [
+        "content_type",
+        "file_base64",
+        "level_label",
+        "request_id",
+        "stack_label",
+        "target_role_label",
+      ].sort(),
     );
 
     const calls = await prisma.aiCallLog.findMany({ where: { userId } });

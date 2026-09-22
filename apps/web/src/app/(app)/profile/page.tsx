@@ -28,6 +28,7 @@ export default async function ProfilePage() {
    */
   const role = careerRoles.find((candidate) => candidate.slug === profile?.target_role);
   const level = role?.level_options.find((option) => option.slug === profile?.level);
+  const stack = role?.stacks.find((option) => option.slug === profile?.target_stack);
 
   return (
     <>
@@ -45,10 +46,16 @@ export default async function ProfilePage() {
               value={String(profile.years_experience)}
             />
             <Row
-              label={t("profile.fields.stack")}
+              label={t("profile.fields.targetStack")}
+              // A retired variant keeps its place on the profile that chose it, named by its slug
+              // when the catalogue no longer carries it — the same rule as the role and the level.
+              value={stack?.name ?? profile.target_stack ?? notSet}
+            />
+            <Row
+              label={t("profile.fields.technologies")}
               value={
                 <ul className="flex flex-wrap gap-2">
-                  {profile.stack.map((item) => (
+                  {profile.technologies.map((item) => (
                     <li
                       key={item}
                       className="rounded-md bg-secondary px-3 py-1 text-base font-bold text-secondary-foreground"

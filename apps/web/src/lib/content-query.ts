@@ -25,6 +25,7 @@ export interface ContentQuery {
    */
   role?: string;
   level?: string;
+  stack?: string;
   type?: (typeof QUESTION_TYPES)[number];
   topic_id?: string;
   cursor?: string;
@@ -63,6 +64,7 @@ export function contentListQuery(params: SearchParams): ContentQuery {
     q: q ? q.slice(0, 100) : undefined,
     role: slug(params.role),
     level: slug(params.level),
+    stack: slug(params.stack),
     type: oneOf(params.type, QUESTION_TYPES),
     topic_id: topicId && UUID.test(topicId) ? topicId : undefined,
     cursor: cursor || undefined,
@@ -72,7 +74,13 @@ export function contentListQuery(params: SearchParams): ContentQuery {
 /** Whether anything is narrowing the list, so "nothing here" can say which kind of nothing. */
 export function isFiltered(query: ContentQuery): boolean {
   return Boolean(
-    query.status ?? query.q ?? query.role ?? query.level ?? query.type ?? query.topic_id,
+    query.status ??
+    query.q ??
+    query.role ??
+    query.level ??
+    query.stack ??
+    query.type ??
+    query.topic_id,
   );
 }
 

@@ -43,7 +43,8 @@ const profileFor = () => ({
   target_role: pair.roleSlug,
   level: pair.levelSlug,
   years_experience: 3,
-  stack: ["Go"],
+  target_stack: null,
+  technologies: ["Go"],
   target_company_type: "remote_foreign",
   target_date: null,
 });
@@ -157,7 +158,7 @@ describe("data export and account deletion (ADR-0011)", () => {
         phone_number: null,
       });
       expect(data.user.image).toBeNull(); // set by Google sign-in; absent for email accounts
-      expect(data.profile).toMatchObject({ target_role: pair.roleSlug, stack: ["Go"] });
+      expect(data.profile).toMatchObject({ target_role: pair.roleSlug, technologies: ["Go"] });
       expect(data.cv).toMatchObject({ status: "parsed", content_type: PDF, parsed: PARSED });
       expect(data.consents).toHaveLength(CONSENT_TYPES.length);
       expect(data.consents.find((c) => c.type === "marketing")?.granted).toBe(false);

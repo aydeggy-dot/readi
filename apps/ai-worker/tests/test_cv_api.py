@@ -13,13 +13,14 @@ from tests.cv_files import CV_LINES, make_pdf
 EXTRACTION = CvExtraction(skills=["React"], projects=[], experience=[], gaps=[])
 
 
-def body() -> dict[str, str]:
+def body() -> dict[str, str | None]:
     return {
         "request_id": str(uuid.uuid4()),
         "content_type": "application/pdf",
         "file_base64": base64.b64encode(make_pdf(CV_LINES)).decode(),
         "target_role_label": "Frontend engineer",
         "level_label": "Mid-level",
+        "stack_label": None,
     }
 
 

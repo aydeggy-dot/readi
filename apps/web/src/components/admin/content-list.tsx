@@ -26,6 +26,7 @@ export interface FilterFields {
   status?: boolean;
   role?: boolean;
   level?: boolean;
+  stack?: boolean;
   type?: boolean;
   topic?: boolean;
 }
@@ -37,6 +38,7 @@ export function ContentFilters({
   topics = [],
   roles = [],
   levels = [],
+  stacks = [],
 }: {
   action: string;
   query: ContentQuery;
@@ -45,13 +47,19 @@ export function ContentFilters({
   /** The catalogue to filter by, drafts included: the CMS lists content before it goes out. */
   roles?: readonly CatalogueOption[];
   levels?: readonly CatalogueOption[];
+  stacks?: readonly CatalogueOption[];
 }) {
-  const selects = [fields.status, fields.type, fields.role, fields.level, fields.topic].filter(
-    Boolean,
-  ).length;
+  const selects = [
+    fields.status,
+    fields.type,
+    fields.role,
+    fields.level,
+    fields.stack,
+    fields.topic,
+  ].filter(Boolean).length;
   // Open when one of them is already narrowing the list, so a short list always explains itself.
   const narrowed = Boolean(
-    query.status ?? query.type ?? query.role ?? query.level ?? query.topic_id,
+    query.status ?? query.type ?? query.role ?? query.level ?? query.stack ?? query.topic_id,
   );
 
   return (
@@ -117,6 +125,16 @@ export function ContentFilters({
                 label={t("admin.content.filters.level")}
                 value={query.level}
                 options={levels.map((level) => ({ value: level.slug, label: level.name }))}
+              />
+            )}
+            {/* Tagged for this stack — not "what a candidate on it would be offered", which
+                would also include every general question (ADR-0015). */}
+            {fields.stack && (
+              <FilterSelect
+                name="stack"
+                label={t("admin.content.filters.stack")}
+                value={query.stack}
+                options={stacks.map((stack) => ({ value: stack.slug, label: stack.name }))}
               />
             )}
             {fields.topic && (

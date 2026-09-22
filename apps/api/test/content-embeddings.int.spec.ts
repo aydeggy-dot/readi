@@ -37,6 +37,7 @@ describe("question embeddings", () => {
         slug: `embed-${short()}`,
         roles: ["frontend"],
         levels: ["mid"],
+        stacks: [],
         type: "technical",
         topic_id: topicId,
         subtopic: null,
@@ -214,6 +215,7 @@ describe("question embeddings", () => {
       include: {
         roles: { include: { role: { select: { slug: true } } } },
         levels: { include: { level: { select: { slug: true } } } },
+        stacks: { include: { stack: { select: { slug: true } } } },
       },
     });
     const rewritten = `Second wording, entirely different. ${short()}`;
@@ -225,6 +227,7 @@ describe("question embeddings", () => {
         slug: question.slug,
         roles: question.roles.map((link) => link.role.slug),
         levels: question.levels.map((link) => link.level.slug),
+        stacks: question.stacks.map((link) => link.stack.slug),
         type: question.type,
         topic_id: question.topicId,
         subtopic: question.subtopic,
@@ -256,6 +259,7 @@ describe("question embeddings", () => {
         slug: `embed-draft-${short()}`,
         roles: ["frontend"],
         levels: ["mid"],
+        stacks: [],
         type: "technical",
         topic_id: topicId,
         subtopic: null,

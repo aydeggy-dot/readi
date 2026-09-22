@@ -18,9 +18,9 @@ backend/, qa/          the same three files, as skeletons
 review/                generated review pages — do not edit by hand
 ```
 
-Files refer to each other **by slug**: a question names its `topic`, its `rubric`, its `roles` and
-its `levels`, a track names its `role`, its `level` and its `topics`, and a role names its `levels`
-and `stacks`. The importer resolves those to database ids, and fails with the file name if a slug
+Files refer to each other **by slug**: a question names its `topic`, its `rubric`, its `roles`, its
+`levels` and — when it is specific to them — its `stacks`, a track names its `role`, its `level`
+and its `topics`, and a role names its `levels` and `stacks`. The importer resolves those to database ids, and fails with the file name if a slug
 is not defined anywhere. The catalogue is imported first, because a role cannot name a level that
 does not exist yet.
 
@@ -50,6 +50,13 @@ questions[2].ideal_points: expected array`.
   been through the file.
 - **`reviewer_notes` is required on every question**, and "nothing to flag" is a legitimate answer.
   An empty field usually means nobody looked.
+- **`stacks:` on a question is a narrowing, so it is left out by default.** No `stacks` key means
+  the question is general to its roles and everyone preparing for them is asked it; listing stacks
+  means only candidates on one of those variants ever see it (ADR-0015). The test is whether the
+  question would be unfair or meaningless to someone on another variant — a snippet of JSX is,
+  "how would you decide what to test" is not. Two of the fourteen seeded questions are tagged
+  today, both React ones in `frontend/`; a candidate who chose no variant at all gets the general
+  set only.
 - **Rubric weights must total 100**, with 3–5 criteria and a descriptor for each level 0–4.
 - Slugs are permanent: the importer matches on them. Renaming one creates a second item.
 

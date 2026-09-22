@@ -35,8 +35,11 @@ test("email sign-up through onboarding to home", async ({ page }) => {
     await page.getByRole("textbox", { name: "What should we call you?" }).fill("Ada Obi");
     await page.getByRole("radio", { name: "Backend engineer" }).check();
     await page.getByRole("radio", { name: "Mid-level" }).check();
+    // The picker starts on the role's default variant; this candidate says otherwise (ADR-0015).
+    await expect(page.getByRole("radio", { name: "Node.js (Express / NestJS)" })).toBeChecked();
+    await page.getByRole("radio", { name: "Go", exact: true }).check();
     await page.getByRole("spinbutton", { name: "Years of professional experience" }).fill("3");
-    await page.getByRole("textbox", { name: "Your main stack" }).fill("Go");
+    await page.getByRole("textbox", { name: "What do you work with?" }).fill("Go");
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("radio", { name: "Remote role at a foreign company" }).check();
     await page.getByRole("button", { name: "Continue" }).click();
@@ -72,6 +75,8 @@ test("email sign-up through onboarding to home", async ({ page }) => {
     await expect(page.getByText(email, { exact: false }).first()).toBeVisible();
     await page.screenshot({ path: "e2e/.artifacts/profile-360.png", fullPage: true });
     await expect(page.getByText("Backend engineer")).toBeVisible();
+    // The variant it kept is the one that was chosen, not the one it started on.
+    await expect(page.getByText("Interviewing for")).toBeVisible();
     await expect(page.getByText("Ready", { exact: true })).toBeVisible();
     // Onboarding is finished, so the app stops redirecting to its steps.
     await page.goto("/onboarding");

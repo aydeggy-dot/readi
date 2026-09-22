@@ -29,6 +29,7 @@ const questionInput = () => ({
   slug: "react-profiler-slow-page",
   roles: ["frontend" as const],
   levels: ["mid" as const],
+  stacks: [] as string[],
   type: "technical" as const,
   topic_id: TOPIC_ID,
   subtopic: null,
@@ -110,6 +111,21 @@ describe("questions", () => {
     for (const patch of [{ roles: [] }, { levels: [] }, { ideal_points: [] }]) {
       expect(QuestionInput.safeParse({ ...questionInput(), ...patch }).success).toBe(false);
     }
+  });
+
+  /*
+   * Stacks are the one list that may be empty, and that is not laxity — it is the rule. No tags
+   * means general to the role, which is what most questions are; the narrowing is what has to be
+   * chosen deliberately (ADR-0015).
+   */
+  it("takes no stacks, which is how a question stays general to its role", () => {
+    expect(QuestionInput.safeParse({ ...questionInput(), stacks: [] }).success).toBe(true);
+    expect(QuestionInput.safeParse({ ...questionInput(), stacks: ["java-spring"] }).success).toBe(
+      true,
+    );
+    expect(QuestionInput.safeParse({ ...questionInput(), stacks: ["Java Spring"] }).success).toBe(
+      false,
+    );
   });
 
   it("keeps difficulty inside 1–5", () => {

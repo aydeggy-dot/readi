@@ -5,17 +5,27 @@ const valid = {
   name: "Ada",
   target_role: "frontend",
   level: "intern-junior",
+  target_stack: "react-typescript",
   years_experience: 1,
-  stack: ["React", "TypeScript"],
+  technologies: ["React", "TypeScript"],
   target_company_type: "remote_foreign",
   target_date: "2026-12-01",
 };
 
 describe("profile contracts", () => {
   it("accepts a complete profile and trims text", () => {
-    const parsed = UpdateProfileRequest.parse({ ...valid, name: "  Ada ", stack: [" React "] });
+    const parsed = UpdateProfileRequest.parse({
+      ...valid,
+      name: "  Ada ",
+      technologies: [" React "],
+    });
     expect(parsed.name).toBe("Ada");
-    expect(parsed.stack).toEqual(["React"]);
+    expect(parsed.technologies).toEqual(["React"]);
+  });
+
+  it("takes no stack at all: not every candidate has chosen a variant", () => {
+    const parsed = UpdateProfileRequest.parse({ ...valid, target_stack: null });
+    expect(parsed.target_stack).toBeNull();
   });
 
   it("allows no target date", () => {
@@ -35,8 +45,10 @@ describe("profile contracts", () => {
     ["a blank name", { name: "   " }],
     ["negative experience", { years_experience: -1 }],
     ["fractional experience", { years_experience: 1.5 }],
-    ["an empty stack", { stack: [] }],
-    ["a blank stack item", { stack: ["React", " "] }],
+    ["an empty technologies list", { technologies: [] }],
+    ["a blank technology", { technologies: ["React", " "] }],
+    ["a stack slug with spaces", { target_stack: "Java Spring" }],
+    ["an omitted stack — null is how 'none' is said", { target_stack: undefined }],
     ["a timestamp instead of a date", { target_date: "2026-12-01T00:00:00Z" }],
   ])("rejects %s", (_label, patch) => {
     expect(UpdateProfileRequest.safeParse({ ...valid, ...patch }).success).toBe(false);

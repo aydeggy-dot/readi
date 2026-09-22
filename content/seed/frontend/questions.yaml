@@ -64,6 +64,7 @@ questions:
   - slug: react-state-placement
     roles: [frontend]
     levels: [intern-junior, mid]
+    stacks: [react-typescript, nextjs]
     type: technical
     topic: react-state
     subtopic: lifting state
@@ -83,10 +84,15 @@ questions:
       "Put it in the URL" is the answer I would most like to hear, but it may be unreasonable at
       intern level and it is not in the top level descriptor. Should it be? Also: is asking for the
       *cost* of the decision (30% of the score) fair on someone who has only worked on small apps?
+      Tagged React + Next.js: the prompt reads framework-neutral, but the ideal points and the
+      rubric are about lifting state and prop drilling, so a Vue or Angular candidate would be
+      answering a slightly different question. Should the tag stay, or should the question be
+      rewritten to be genuinely general?
 
   - slug: react-unnecessary-effect
     roles: [frontend]
     levels: [intern-junior, mid]
+    stacks: [react-typescript, nextjs]
     type: technical
     topic: react-state
     subtopic: effects
@@ -117,7 +123,9 @@ questions:
       This is the clearest "one right answer" question in the bank, which makes it good for
       calibration but weak at separating a solid candidate from an excellent one. The excellence
       descriptors lean on naming the rule and on memoisation — is that the right bar, or would you
-      rather see them notice the one-frame-stale UI?
+      rather see them notice the one-frame-stale UI? Tagged React + Next.js: the candidate is
+      shown JSX with `useState` and `useEffect`, so it would be meaningless to anyone on Vue,
+      Angular or vanilla JS.
 
   - slug: css-overflow-at-360
     roles: [frontend]

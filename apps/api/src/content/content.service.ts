@@ -57,6 +57,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { cursorWhere, paginate } from "./content-cursor";
 import { sameContent } from "./content-diff";
 import { checkTransition, publishNeedsReview } from "./content-workflow";
+import { stackFilter } from "./question-eligibility";
 import { QuestionEmbeddingsService } from "./question-embeddings.service";
 import {
   careerLevelContent,
@@ -849,6 +850,10 @@ export class ContentService {
           query.topic_id ? { topicId: query.topic_id } : {},
           query.role ? { roles: { some: { role: { slug: query.role } } } } : {},
           query.level ? { levels: { some: { level: { slug: query.level } } } } : {},
+          // Tagged for this stack, which is not the same question as "offered to a candidate on
+          // it": the CMS is asking what has been written for Java / Spring, and a general question
+          // is not part of that answer.
+          query.stack ? { stacks: { some: { stack: { slug: query.stack } } } } : {},
           this.questionSearch(query.q),
         ],
       },
@@ -902,6 +907,7 @@ export class ContentService {
         // makes removing a role from a question possible at all.
         await tx.questionCareerRole.deleteMany({ where: { questionId: id } });
         await tx.questionCareerLevel.deleteMany({ where: { questionId: id } });
+        await tx.questionStack.deleteMany({ where: { questionId: id } });
         const row = await tx.question.update({
           where: { id },
           data: {
@@ -1333,14 +1339,26 @@ export class ContentService {
       }
     }
     if (entity === "stacks") {
-      const roles = await this.prisma.careerRoleStack.count({
-        where: { stackId: current.id, role: { status: "published" } },
-      });
-      if (roles > 0) {
+      /*
+       * Retiring a stack out from under a published question would make it unreachable: it is
+       * tagged, so it is offered only to candidates on this variant, and nobody can still be on a
+       * variant that no role offers. A profile pointing here is the same failure one step closer
+       * to a person.
+       */
+      const [roles, questions, profiles] = await Promise.all([
+        this.prisma.careerRoleStack.count({
+          where: { stackId: current.id, role: { status: "published" } },
+        }),
+        this.prisma.question.count({
+          where: { status: "published", stacks: { some: { stackId: current.id } } },
+        }),
+        this.prisma.profile.count({ where: { targetStackId: current.id } }),
+      ]);
+      if (roles > 0 || questions > 0 || profiles > 0) {
         throw new ApiError(
           HttpStatus.CONFLICT,
           "stack_in_use",
-          "a published role still offers this stack",
+          "a published role, a published question or a candidate's profile still uses this stack",
         );
       }
     }
@@ -1453,7 +1471,7 @@ export class ContentService {
     user: AuthenticatedUser,
     query: CandidatePracticeQuery,
   ): Promise<CandidatePracticeResponse> {
-    const { roleId, levelId } = await this.audience(user.id, {});
+    const { roleId, levelId, stackId } = await this.audience(user.id, {});
     const questions = await this.prisma.question.findMany({
       where: {
         status: "published",
@@ -1461,6 +1479,9 @@ export class ContentService {
         rubric: { status: "published" },
         roles: { some: { roleId } },
         levels: { some: { levelId } },
+        // General to the role, or tagged for this candidate's variant (ADR-0015). The rule is in
+        // `question-eligibility.ts`, where M3's question selection reads it too.
+        ...stackFilter(stackId),
         ...(query.topic ? { topic: { slug: query.topic } } : {}),
       },
       include: { topic: true },
@@ -1494,20 +1515,27 @@ export class ContentService {
   private async audience(
     userId: string,
     query: CandidateTrackQuery,
-  ): Promise<{ roleId: string; levelId: string }> {
+  ): Promise<{ roleId: string; levelId: string; stackId: string | null }> {
     const asked = await Promise.all([
       query.role ? this.resolveRole(query.role) : null,
       query.level ? this.resolveLevel(query.level) : null,
     ]);
     let [roleId, levelId] = asked;
-    if (!roleId || !levelId) {
-      const profile = await this.prisma.profile.findUnique({
-        where: { userId },
-        select: { targetRoleId: true, targetLevelId: true },
-      });
-      roleId ??= profile?.targetRoleId ?? null;
-      levelId ??= profile?.targetLevelId ?? null;
-    }
+    /*
+     * The stack comes from the profile alone, and only the profile: the track query has no `stack`
+     * to ask with, and null here is a meaningful answer rather than a missing one — it means "this
+     * candidate has no variant", which the stack rule reads as "general questions only". Reading
+     * the profile whenever the role or level is unresolved, or whenever a stack could exist, keeps
+     * that a single lookup.
+     */
+    let stackId: string | null = null;
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { targetRoleId: true, targetLevelId: true, targetStackId: true },
+    });
+    roleId ??= profile?.targetRoleId ?? null;
+    levelId ??= profile?.targetLevelId ?? null;
+    stackId = profile?.targetStackId ?? null;
     if (!roleId || !levelId) {
       throw new ApiError(
         HttpStatus.BAD_REQUEST,
@@ -1515,7 +1543,7 @@ export class ContentService {
         "finish onboarding, or ask for a role and level",
       );
     }
-    return { roleId, levelId };
+    return { roleId, levelId, stackId };
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -1558,6 +1586,20 @@ export class ContentService {
       select: { id: true, slug: true },
     });
     return this.orderedIds(slugs, rows, "role_not_found", "role");
+  }
+
+  /**
+   * A question's stacks. Empty is the ordinary case — no tags means general to the role
+   * (`question-eligibility.ts`) — so this resolves nothing rather than refusing.
+   */
+  private async resolveStacks(slugs: readonly string[]): Promise<string[]> {
+    if (slugs.length === 0) return [];
+    this.assertDistinct(slugs, "stacks", "a stack may be listed only once");
+    const rows = await this.prisma.stack.findMany({
+      where: { slug: { in: [...slugs] } },
+      select: { id: true, slug: true },
+    });
+    return this.orderedIds(slugs, rows, "stack_not_found", "stack");
   }
 
   private async resolveLevels(slugs: readonly string[]): Promise<string[]> {
@@ -1654,13 +1696,15 @@ export class ContentService {
 
   /** A question's catalogue links, resolved from slugs, ready to `create` in either direction. */
   private async questionLinks(input: QuestionInput) {
-    const [roleIds, levelIds] = await Promise.all([
+    const [roleIds, levelIds, stackIds] = await Promise.all([
       this.resolveRoles(input.roles),
       this.resolveLevels(input.levels),
+      this.resolveStacks(input.stacks),
     ]);
     return {
       roles: { create: roleIds.map((roleId) => ({ roleId })) },
       levels: { create: levelIds.map((levelId) => ({ levelId })) },
+      stacks: { create: stackIds.map((stackId) => ({ stackId })) },
     };
   }
 

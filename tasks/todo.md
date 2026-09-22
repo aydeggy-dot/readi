@@ -716,3 +716,76 @@ Postgres enums are gone. Roles and levels are content everywhere now, and adding
 **Deliberately not in this phase** (phase 4): `QuestionStack`, `Profile.targetStackId`,
 `Profile.stack` → `technologies`, the stack eligibility predicate, the onboarding stack picker,
 `stacks:` on seeded questions, and `stack_label` on `CvParseRequest`.
+
+## M2.5 phase 4 — the stack dimension (done 2026-09-22)
+
+A question can now be written for a stack variant, a candidate can say which one they are
+interviewing for, and the two meet in one rule that M3's question selection will reuse.
+
+- [x] **`question-eligibility.ts`: the rule, written once.** `isOfferedToStack` (pure) and
+      `stackFilter` (the Prisma fragment) sit next to each other because they are two expressions
+      of one rule and the way they fail is by drifting apart —
+      `question-eligibility.spec.ts` asserts the truth table over the predicate and
+      `content-stacks.int.spec.ts` runs the same table against the database
+- [x] **A candidate who chose no variant gets the general questions only.** The alternative —
+      show them everything — means handing a Node developer Spring code because nobody said which
+      they use. The onboarding picker starts on the role's default, so arriving with no stack is a
+      deliberate "not sure yet". Asserted in both specs, and in CLAUDE.md §5
+- [x] Migration `20260922183000_question_stacks_and_profile_stack`, **hand-written**: Prisma
+      proposed `DROP COLUMN "stack", ADD COLUMN "technologies"` — a rename written as data loss,
+      which would have emptied the technologies list of every onboarded candidate. Tested on a
+      copy of the dev database first (2 profiles, both kept their rows); the HNSW and partial
+      unique indexes checked present afterwards. `profiles.target_stack_id` FK is `RESTRICT`, not
+      Prisma's default `SET NULL`: a variant a candidate chose is not cleared behind their back
+- [x] Contracts: `QuestionInput.stacks` (**no `.min(1)`** — empty is the common case, and it means
+      general), `QuestionListItem.stacks`, `ContentListQuery.stack`, `SeedQuestion.stacks`,
+      `Profile.target_stack` + `stack` → `technologies`, `CvParseRequest.stack_label` (nullable)
+- [x] API: question CRUD and version projection carry stacks; the CMS list filters by "tagged for
+      this stack" (not "who would be offered it" — a different question with a different answer);
+      `audience()` grew the stack M3 will read; `stack_in_use` widened from "a published role
+      offers it" to published questions and candidates' profiles
+- [x] Worker: `stack_label` wrapped as data in `cv_parse.v2.md` and absent when null. **v2 was
+      edited rather than bumped to v3**: the plan specified one bump carrying both the labels and
+      the stack line, phase 3 pulled the label half forward, and v2 has never been released
+- [x] Web: the onboarding stack picker (role's default preselected, "Not sure yet" last),
+      `technologies` renamed through the form, the profile page, the CMS question editor's third
+      checkbox row and the stack filter, copy, `ChoiceGroup` gained a `hint`
+- [x] Seed: `stacks: [react-typescript, nextjs]` on the two React questions, with
+      `reviewer_notes` asking the expert whether each tag is right; `README.md` says when to tag
+      and `REVIEW.md` asks it as a fifth question; the review pages show the tags
+- [x] Checks: lint, typecheck, `pnpm test` (329 API, 117 web, 85 shared-types, 56 ui, 3
+      api-client, 77 pytest), `pnpm test:e2e` (7 passed, 5 skipped by design), `pnpm build`,
+      `pnpm db:seed` twice (2 questions updated, then nothing)
+- [x] Walked by hand at 360px: the picker follows the role and re-defaults, a deliberate
+      "Not sure yet" survives a reopen, the CMS shows 19 stacks with two ticked and no page
+      overflow, and — on real seeded content — a React candidate is offered the two React
+      questions while an Angular candidate and an undecided one are offered neither
+
+**Decisions taken in the phase, for the owner to confirm:**
+
+- **The plan said "`stacks:` tags on the seeded backend and QA banks", and that was the wrong
+  place.** None of those six questions is stack-specific: "what would you test and how do you know
+  the list is enough" is the same question on Cypress and on Selenium. The two questions that
+  genuinely are specific live in the **frontend** bank — one shows JSX with `useState` and
+  `useEffect`, the other is scored on lifting state and prop drilling. Those are tagged; nothing
+  else is. Writing new stack-specific questions is a planned job with its own plan
+  (`docs/plans/content-catalogue-banks.md`, "round two"), not something to improvise here.
+- **The technologies field lost its one-tap suggestions.** They were the role's stack _variants_,
+  which phase 3 used as a stand-in — "Manual / exploratory testing" is not a technology, and with
+  a real variant picker directly above it the free-text field is now "anything else you know".
+  It could earn suggestions back as a content field on `Stack` if the owner wants them.
+- **A retired variant stays on the profile that chose it** and is shown by its slug once the
+  catalogue stops carrying it — the same rule the role and the level already follow.
+
+**Fixed on the way:** `profile-errors.ts` mapped API error _codes_ (`role_not_found`, …) that
+`ProfilesService` has never raised — it answers the profile form with **field errors**, by design,
+so every one of those messages was unreachable and a stale catalogue showed "check this field".
+It now maps field names, and the three catalogue fields say which choice went stale.
+
+**Dev database, left as it is deliberately:** the catalogue is published (2 levels, 19 stacks, 3
+roles) and three frontend questions with their rubrics are published, because that is what the
+walkthrough above needed and what `content/seed/REVIEW.md` says developer databases are for.
+`p4-stack-check@example.com` (password `correct horse battery staple`) was created for it and
+**demoted back to `candidate`**; it joins `phase4-check@example.com` and
+`cms-catalogue-check@example.com` in the test accounts to remove at the end of the milestone.
+`aydeggy5@gmail.com` keeps its admin role.

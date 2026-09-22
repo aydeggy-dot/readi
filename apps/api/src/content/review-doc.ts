@@ -113,7 +113,10 @@ function renderQuestion(
   out.push(
     `**${question.type.replace("_", " ")}** · difficulty ${question.difficulty}/5 · ` +
       `${question.levels.join(", ")} · topic: ${topic?.name ?? question.topic}` +
-      (question.subtopic ? ` (${question.subtopic})` : ""),
+      (question.subtopic ? ` (${question.subtopic})` : "") +
+      // Named only when there are any: "stacks: —" on twelve of fourteen questions would be
+      // noise, and the absence is the ordinary case (ADR-0015).
+      (question.stacks.length > 0 ? ` · stacks: ${question.stacks.join(", ")}` : ""),
   );
   out.push("");
   out.push("**The interviewer asks**");

@@ -35,7 +35,8 @@ const profileFor = (overrides: Record<string, unknown> = {}) => ({
   target_role: pair.roleSlug,
   level: pair.levelSlug,
   years_experience: 1,
-  stack: ["React", "TypeScript", "react"],
+  target_stack: null,
+  technologies: ["React", "TypeScript", "react"],
   target_company_type: "remote_foreign",
   target_date: null,
   ...overrides,
@@ -89,7 +90,7 @@ describe("profile, consent and onboarding", () => {
   });
 
   describe("profile", () => {
-    it("is 404 before it exists, then saves, dedupes the stack and sets the name", async () => {
+    it("is 404 before it exists, then saves, dedupes technologies and sets the name", async () => {
       const cookie = await signUp();
       const missing = await http().get("/api/me/profile").set("cookie", cookie);
       expect(missing.status).toBe(404);
@@ -99,7 +100,7 @@ describe("profile, consent and onboarding", () => {
       expect(saved.status).toBe(200);
       expect(ProfileResponse.parse(saved.body)).toMatchObject({
         ...profileFor(),
-        stack: ["React", "TypeScript"],
+        technologies: ["React", "TypeScript"],
       });
 
       const read = await http().get("/api/me/profile").set("cookie", cookie);
@@ -118,7 +119,7 @@ describe("profile, consent and onboarding", () => {
         .send(
           profileFor({
             level: secondLevelSlug,
-            stack: ["Playwright"],
+            technologies: ["Playwright"],
             target_date: "2099-01-31",
           }),
         );
@@ -126,7 +127,7 @@ describe("profile, consent and onboarding", () => {
       expect(updated.body).toMatchObject({
         level: secondLevelSlug,
         target_role: pair.roleSlug,
-        stack: ["Playwright"],
+        technologies: ["Playwright"],
         target_date: "2099-01-31",
       });
     });

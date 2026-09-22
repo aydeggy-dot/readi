@@ -32,7 +32,9 @@ setup("seed and publish the catalogue", async () => {
   grantRole(email, "admin");
 
   // The cookie from sign-up already carries the new role on its next request.
-  for (const entity of ["career-levels", "career-roles"] as const) {
+  // Stacks are published too: a candidate is offered only published variants, so without this the
+  // onboarding form would draw the stack picker empty (ADR-0015).
+  for (const entity of ["career-levels", "stacks", "career-roles"] as const) {
     const list = await api.get(`/api/admin/content/${entity}`, { params: { limit: 100 } });
     expect(list.ok(), await list.text()).toBeTruthy();
     const { items } = (await list.json()) as { items: { id: string; status: string }[] };
@@ -55,8 +57,14 @@ setup("seed and publish the catalogue", async () => {
 
   const offered = await api.get("/api/content/career-roles");
   expect(offered.ok()).toBeTruthy();
-  const { roles } = (await offered.json()) as { roles: { level_options: unknown[] }[] };
+  const { roles } = (await offered.json()) as {
+    roles: { level_options: unknown[]; stacks: unknown[] }[];
+  };
   expect(roles.length, "the candidate catalogue is empty after setup").toBeGreaterThan(0);
   expect(roles.every((role) => role.level_options.length > 0)).toBe(true);
+  expect(
+    roles.some((role) => role.stacks.length > 0),
+    "no role offers a stack",
+  ).toBe(true);
   await api.dispose();
 });

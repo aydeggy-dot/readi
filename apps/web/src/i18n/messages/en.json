@@ -189,9 +189,12 @@
     "targetRole": "Which role are you preparing for?",
     "level": "Your level",
     "yearsExperience": "Years of professional experience",
-    "stack": "Your main stack",
-    "stackHint": "The languages, frameworks and tools you use most.",
-    "stackPlaceholder": "For example React",
+    "targetStack": "Which stack are you interviewing for?",
+    "targetStackHint": "We use it to pick questions written for that stack. Choose “Not sure yet” and you get the questions that apply whatever you use.",
+    "noStack": "Not sure yet",
+    "technologies": "What do you work with?",
+    "technologiesHint": "The languages, frameworks and tools you use most.",
+    "technologiesPlaceholder": "For example React",
     "targetCompanyType": "What kind of company are you aiming for?",
     "targetDate": "Interview date (optional)",
     "targetDateHint": "If you already have an interview scheduled.",
@@ -200,14 +203,14 @@
     "levelAfterRole": "Choose a role first — every role is hired at its own levels.",
     "levelNone": "This role has no levels to choose from just yet. Please check back shortly.",
     "errors": {
-      "stackRequired": "Add at least one item.",
-      "stackMax": "You can add up to {max} items.",
+      "technologiesRequired": "Add at least one item.",
+      "technologiesMax": "You can add up to {max} items.",
       "yearsRange": "Enter a whole number from 0 to {max}.",
       "datePast": "Choose today or a later date.",
-      "stackDuplicate": "{item} is already on the list.",
+      "technologiesDuplicate": "{item} is already on the list.",
       "roleGone": "That role is no longer on offer. Please pick another one.",
       "levelGone": "That level is no longer on offer. Please pick another one.",
-      "levelNotOffered": "That role is not hired at that level. Please pick a level it offers."
+      "stackGone": "That stack is no longer on offer for this role. Please pick another one."
     }
   },
   "companyTypes": {
@@ -282,7 +285,8 @@
       "targetRole": "Target role",
       "level": "Level",
       "yearsExperience": "Years of experience",
-      "stack": "Main stack",
+      "targetStack": "Interviewing for",
+      "technologies": "Works with",
       "targetCompanyType": "Target company",
       "targetDate": "Interview date"
     },
@@ -342,7 +346,8 @@
       },
       "catalogue": {
         "noRoles": "No roles yet. Add one under Roles first.",
-        "noLevels": "No levels yet. Add one under Levels first."
+        "noLevels": "No levels yet. Add one under Levels first.",
+        "noStacks": "No stacks yet. Add one under Stacks first."
       },
       "filters": {
         "legend": "Filter",
@@ -351,6 +356,7 @@
         "status": "Status",
         "role": "Role",
         "level": "Level",
+        "stack": "Stack",
         "type": "Type",
         "topic": "Topic",
         "any": "Any",
@@ -404,7 +410,7 @@
         "roleHasNoPublishedLevel": "Publish one of the role's levels first, or a candidate would be offered a role with nothing to choose.",
         "roleInUse": "Published content or a candidate's profile still uses this role, so it cannot be withdrawn.",
         "levelInUse": "A published role still offers this level. Retire the role, or take the level off it first.",
-        "stackInUse": "A published role still offers this stack. Retire the role, or take the stack off it first.",
+        "stackInUse": "A published role, a published question or a candidate's profile still uses this stack, so it cannot be withdrawn.",
         "oneDefaultStack": "Only one stack can be the default."
       },
       "transition": {
@@ -455,6 +461,8 @@
         "roles": "Roles",
         "rolesHint": "A question may suit more than one role.",
         "levels": "Levels",
+        "stacks": "Stacks",
+        "stacksHint": "Leave every box clear unless the question is specific to those stacks — tagging narrows who is ever asked it. An untagged question goes to everyone preparing for its roles.",
         "topic": "Topic",
         "subtopic": "Subtopic",
         "subtopicHint": "Optional, freer than the topic: 'useEffect', 'index design'.",

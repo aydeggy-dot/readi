@@ -97,6 +97,12 @@ export const SeedQuestion = z
     /** Catalogue role and level slugs, from `roles.yaml` and `levels.yaml` (ADR-0015). */
     roles: z.array(Slug).min(1).max(CONTENT_LIMITS.questionRoles),
     levels: z.array(Slug).min(1).max(CONTENT_LIMITS.questionLevels),
+    /**
+     * Stack slugs, from `stacks.yaml` — **omit it unless the question is genuinely specific to
+     * those variants** (ADR-0015). No `stacks:` means general to the role, which is what most
+     * questions are; tagging a general question narrows who is ever asked it.
+     */
+    stacks: z.array(Slug).max(CONTENT_LIMITS.questionStacks).default([]),
     type: QuestionType,
     /** A topic's slug, from `topics.yaml`. */
     topic: slug(),

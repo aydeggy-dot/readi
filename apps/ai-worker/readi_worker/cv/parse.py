@@ -113,6 +113,15 @@ class CvParser:
             # the only one where editable content becomes an instruction.
             target_role_block=as_data(request.target_role_label, "target_role"),
             level_block=as_data(request.level_label, "level"),
+            # Absent when the candidate has chosen no variant, or their role offers none. The
+            # template then says nothing about a stack rather than naming one nobody picked.
+            # `.root` because a *nullable* constrained string generates as a Pydantic RootModel
+            # rather than a plain `str` — the same shape as `AiCallRecord.error_code`.
+            stack_block=(
+                as_data(request.stack_label.root, "stack")
+                if request.stack_label is not None
+                else ""
+            ),
         )
         user = render(
             "cv_parse_input", PROMPT_VERSION, cv_text_block=as_data(extracted.text, "cv_text")

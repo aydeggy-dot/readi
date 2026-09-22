@@ -21,8 +21,14 @@ export const PASSWORD_LIMITS = { minLength: 10, maxLength: 128 } as const;
 export const PROFILE_LIMITS = {
   nameMaxLength: 80,
   yearsExperienceMax: 50,
-  stackMaxItems: 15,
-  stackItemMaxLength: 40,
+  /**
+   * The free-text list of what the candidate knows — `technologies`, not `stack` (ADR-0015). The
+   * curated variant they are interviewing for is `target_stack`, a catalogue slug; these two were
+   * both called "stack" until M2.5, which is how a field meaning "React, Docker, Postgres" and a
+   * field meaning "React + TypeScript" ended up sharing a name.
+   */
+  technologiesMaxItems: 15,
+  technologyMaxLength: 40,
 } as const;
 
 /** Consent types (spec §4.1, CLAUDE.md "Data & privacy"). */
@@ -210,6 +216,12 @@ export const CONTENT_LIMITS = {
    */
   questionRoles: 6,
   questionLevels: 4,
+  /**
+   * How many stack variants one question may be tagged for. No tags at all is the common case and
+   * means "general to the role"; the cap is here because a question offered to eight of a role's
+   * variants is, in practice, a general question with a list attached.
+   */
+  questionStacks: 8,
 } as const;
 
 /**

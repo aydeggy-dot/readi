@@ -162,6 +162,16 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   GET route, with the endpoint list read from the OpenAPI document. Never weaken that test to make another pass.
 - Only `published` content reaches a candidate, and dependencies count: a lesson also needs its track
   published, a question its rubric (ADR-0014).
+- **A question with no stack tags is general to its role; with tags it is offered only to candidates
+  on one of them** (ADR-0015). The rule lives in `apps/api/src/content/question-eligibility.ts` as a
+  pure predicate *and* the Prisma filter that must agree with it — M3's question selection reuses
+  both rather than rewriting either. A candidate who has chosen no variant gets the general set
+  only, which is why the onboarding picker starts on the role's default (`is_default`). Tag only
+  what would be unfair or meaningless on another variant: a React snippet, not "how would you
+  decide what to test".
+- The profile has **two** stack-shaped fields and they mean different things: `target_stack` is the
+  catalogue variant being interviewed for (a slug, nullable), `technologies` is free text describing
+  what the candidate knows. They were both called "stack" until M2.5.
 - Every content mutation is one transaction — the row, its `content_versions` snapshot and its audit entry.
   A snapshot is written only when the content actually changed; the audit entry carries statuses and
   versions, never prose.

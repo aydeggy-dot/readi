@@ -57,6 +57,7 @@ const bySlug = { orderBy: { slug: Prisma.SortOrder.asc } };
 export const questionLinkInclude = {
   roles: { orderBy: { role: bySlug.orderBy }, include: { role: { select: { slug: true } } } },
   levels: { orderBy: { level: bySlug.orderBy }, include: { level: { select: { slug: true } } } },
+  stacks: { orderBy: { stack: bySlug.orderBy }, include: { stack: { select: { slug: true } } } },
 } satisfies Prisma.QuestionInclude;
 
 export const questionInclude = {
@@ -137,6 +138,7 @@ export const toQuestion = (row: QuestionRow): Question => ({
   slug: row.slug,
   roles: row.roles.map((link) => link.role.slug),
   levels: row.levels.map((link) => link.level.slug),
+  stacks: row.stacks.map((link) => link.stack.slug),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,
@@ -244,6 +246,7 @@ export const toQuestionListItem = (
   type: row.type,
   roles: row.roles.map((link) => link.role.slug),
   levels: row.levels.map((link) => link.level.slug),
+  stacks: row.stacks.map((link) => link.stack.slug),
   difficulty: row.difficulty,
   topic: toTopic(row.topic),
   rubric_slug: row.rubric.slug,
@@ -292,6 +295,7 @@ export const canonicalQuestionInput = (input: QuestionInput): QuestionInput => (
   ...input,
   roles: [...input.roles].sort(),
   levels: [...input.levels].sort(),
+  stacks: [...input.stacks].sort(),
 });
 
 /** What a track's own editor edits — the shape an update sends, for comparing like with like. */
@@ -342,6 +346,7 @@ export const questionContent = (row: QuestionRow): QuestionInput => ({
   slug: row.slug,
   roles: row.roles.map((link) => link.role.slug),
   levels: row.levels.map((link) => link.level.slug),
+  stacks: row.stacks.map((link) => link.stack.slug),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,

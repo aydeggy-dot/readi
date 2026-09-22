@@ -8,7 +8,7 @@ import type {
 import { invalidFields } from "@readi/api-client";
 import { PROFILE_LIMITS, TARGET_COMPANY_TYPES } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { ErrorAlert } from "@/components/ui/error-alert";
@@ -19,13 +19,22 @@ import { TagInput } from "@/components/ui/tag-input";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
-import { profileErrorMessage } from "@/lib/profile-errors";
+import { isCatalogueField, profileFieldMessage } from "@/lib/profile-errors";
 
-type Values = Omit<UpdateProfileRequest, "years_experience" | "target_date"> & {
+type Values = Omit<UpdateProfileRequest, "years_experience" | "target_date" | "target_stack"> & {
   // Form inputs hold strings; converted on submit.
   years_experience: string;
   target_date: string;
+  /**
+   * A radio group's value is a string, and "I have not chosen a variant" is one of its options —
+   * so null travels through the form as this sentinel and becomes null again on submit. A slug
+   * cannot collide with it: `SLUG_PATTERN` allows no spaces (ADR-0015).
+   */
+  target_stack: string;
 };
+
+/** The "not sure yet" radio. Not a slug, and could not be one. */
+const NO_STACK = "no stack";
 
 /**
  * The career profile (spec §4.1), used in onboarding and on the profile page.
@@ -65,7 +74,8 @@ export function ProfileForm({
       target_role: initial?.target_role ?? "",
       level: initial?.level ?? "",
       years_experience: initial ? String(initial.years_experience) : "",
-      stack: initial?.stack ?? [],
+      target_stack: initial?.target_stack ?? NO_STACK,
+      technologies: initial?.technologies ?? [],
       target_company_type: initial?.target_company_type,
       target_date: initial?.target_date ?? "",
     },
@@ -86,34 +96,51 @@ export function ProfileForm({
     if (chosen && !offered.split(" ").includes(chosen)) setValue("level", "");
   }, [offered, getValues, setValue]);
 
+  /*
+   * The stack is the same story with one difference: a level has no sensible default and a stack
+   * does — the role names the variant its picker starts on (`is_default`, ADR-0015). So choosing
+   * a role sets the stack to that default, and a candidate who agrees with it has nothing to do.
+   *
+   * It keys off the role *changing*, not off the current value being invalid, and that is the
+   * whole subtlety. "Not sure yet" is a legitimate answer, and it is not one of the role's
+   * options — so a rule of "replace anything the role does not offer" would overwrite it every
+   * time the edit form was opened, turning a deliberate answer into the default behind the
+   * candidate's back.
+   */
+  const stackOptions = role?.stacks ?? [];
+  const defaultStack = stackOptions.find((option) => option.is_default)?.slug ?? NO_STACK;
+  const lastRole = useRef(initial?.target_role ?? "");
+  useEffect(() => {
+    if (lastRole.current === roleSlug) return;
+    lastRole.current = roleSlug;
+    setValue("target_stack", defaultStack);
+  }, [roleSlug, defaultStack, setValue]);
+
   const onSubmit = handleSubmit(async (values) => {
     setFailure(undefined);
     const body: UpdateProfileRequest = {
       ...values,
       years_experience: Number(values.years_experience),
+      target_stack: values.target_stack === NO_STACK ? null : values.target_stack,
       target_date: values.target_date || null,
     };
     try {
       const { error, response } = await browserApi.PUT("/api/me/profile", { body });
       if (response.status === 400) {
-        // The catalogue moved under the form: say which choice went stale, not "check this field".
-        const stale = profileErrorMessage(error);
-        if (stale) {
-          setFailure({ message: stale, signedOut: false });
-          return;
-        }
         const fields = invalidFields(error);
         for (const field of fields) {
           if (field in body) {
-            setError(field as keyof Values, {
-              message:
-                field === "target_date"
-                  ? t("profileForm.errors.datePast")
-                  : t("common.errors.invalidField"),
-            });
+            setError(field as keyof Values, { message: profileFieldMessage(field) });
           }
         }
-        if (fields.length === 0) setFailure(apiFailure(response.status));
+        /*
+         * A catalogue choice the API refuses is not a typo — the role, level or variant moved
+         * while this page was open. The field is marked, and the alert at the top says so too,
+         * because on a phone the refused radio group may be off screen.
+         */
+        const stale = fields.find(isCatalogueField);
+        if (stale) setFailure({ message: profileFieldMessage(stale), signedOut: false });
+        else if (fields.length === 0) setFailure(apiFailure(response.status));
         return;
       }
       if (!response.ok) {
@@ -205,29 +232,48 @@ export function ProfileForm({
         )}
       </Field>
 
+      {/*
+        The variant the interview is for (ADR-0015). Drawn only when the role offers variants —
+        most roles do, but a role with none is legitimate, and an empty picker asks a question
+        that has no answers. "Not sure yet" is always last: it is a real choice, and what it
+        costs (general questions only) is said in the hint rather than left to be discovered.
+      */}
+      {stackOptions.length > 0 && (
+        <ChoiceGroup
+          name="target_stack"
+          legend={t("profileForm.targetStack")}
+          hint={t("profileForm.targetStackHint")}
+          options={[
+            ...stackOptions.map((option) => ({ value: option.slug, label: option.name })),
+            { value: NO_STACK, label: t("profileForm.noStack") },
+          ]}
+          error={errors.target_stack?.message}
+          inputProps={register("target_stack", { required })}
+        />
+      )}
+
       <Field
-        id="stack"
-        label={t("profileForm.stack")}
-        hint={t("profileForm.stackHint")}
-        error={errors.stack?.message}
+        id="technologies"
+        label={t("profileForm.technologies")}
+        hint={t("profileForm.technologiesHint")}
+        error={errors.technologies?.message}
       >
         {(describedBy) => (
           <Controller
             control={control}
-            name="stack"
+            name="technologies"
             rules={{
               validate: (value) =>
-                value.length > 0 ? true : t("profileForm.errors.stackRequired"),
+                value.length > 0 ? true : t("profileForm.errors.technologiesRequired"),
             }}
             render={({ field, fieldState }) => (
               <TagInput
-                id="stack"
+                id="technologies"
                 value={field.value}
                 onChange={field.onChange}
-                placeholder={t("profileForm.stackPlaceholder")}
-                maxItems={PROFILE_LIMITS.stackMaxItems}
-                maxLength={PROFILE_LIMITS.stackItemMaxLength}
-                suggestions={role?.stacks.map((option) => option.name) ?? []}
+                placeholder={t("profileForm.technologiesPlaceholder")}
+                maxItems={PROFILE_LIMITS.technologiesMaxItems}
+                maxLength={PROFILE_LIMITS.technologyMaxLength}
                 invalid={fieldState.invalid}
                 describedBy={describedBy}
               />

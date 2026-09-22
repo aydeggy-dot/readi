@@ -15,6 +15,7 @@ const request: CvParseRequest = {
   file_base64: "JVBERi0=",
   target_role_label: "Backend engineer",
   level_label: "Mid-level",
+  stack_label: "Java / Spring",
 };
 
 const response: CvParseResponse = {

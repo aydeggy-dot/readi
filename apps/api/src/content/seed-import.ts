@@ -434,6 +434,10 @@ export class SeedImporter {
             orderBy: { level: { slug: "asc" } },
             include: { level: { select: { slug: true } } },
           },
+          stacks: {
+            orderBy: { stack: { slug: "asc" } },
+            include: { stack: { select: { slug: true } } },
+          },
         },
       });
       if (!existing) {
@@ -445,6 +449,7 @@ export class SeedImporter {
         slug: existing.slug,
         roles: existing.roles.map((link) => link.role.slug),
         levels: existing.levels.map((link) => link.level.slug),
+        stacks: existing.stacks.map((link) => link.stack.slug),
         type: existing.type,
         topic_id: existing.topicId,
         subtopic: existing.subtopic,
@@ -458,7 +463,8 @@ export class SeedImporter {
         report.questions,
         question.slug,
         existing,
-        // Roles and levels are sets: a file listing them in a different order is not a change.
+        // Roles, levels and stacks are sets: a file listing them in a different order is not a
+        // change.
         () =>
           Promise.resolve(
             sameContent(canonicalQuestionInput(current), canonicalQuestionInput(input)),
@@ -664,6 +670,12 @@ export class SeedImporter {
           this.catalogueSlug(file, "career_levels", slug, `question ${question.slug}`),
         ),
       ),
+      // Usually empty: a question with no stacks is general to its role (ADR-0015).
+      stacks: await Promise.all(
+        question.stacks.map((slug) =>
+          this.catalogueSlug(file, "stacks", slug, `question ${question.slug}`),
+        ),
+      ),
       type: question.type,
       topic_id: await this.topicId(file, question.topic),
       subtopic: question.subtopic,
@@ -724,20 +736,27 @@ export class SeedImporter {
    */
   private async catalogueSlug(
     file: string,
-    kind: "career_roles" | "career_levels",
+    kind: "career_roles" | "career_levels" | "stacks",
     slug: string,
     usedBy: string,
   ): Promise<string> {
-    const found =
-      kind === "career_roles"
-        ? await this.prisma.careerRole.findUnique({ where: { slug }, select: { id: true } })
-        : await this.prisma.careerLevel.findUnique({ where: { slug }, select: { id: true } });
+    const found = await this.catalogueRow(kind, slug);
     if (found || this.defined[kind].has(slug)) return slug;
-    const noun = kind === "career_roles" ? "role" : "level";
+    const noun = { career_roles: "role", career_levels: "level", stacks: "stack" }[kind];
     throw new SeedReferenceError(
       file,
       `${usedBy} names ${noun} ${slug}, which no seed file defines`,
     );
+  }
+
+  private async catalogueRow(
+    kind: "career_roles" | "career_levels" | "stacks",
+    slug: string,
+  ): Promise<{ id: string } | null> {
+    const where = { where: { slug }, select: { id: true } };
+    if (kind === "career_roles") return this.prisma.careerRole.findUnique(where);
+    if (kind === "career_levels") return this.prisma.careerLevel.findUnique(where);
+    return this.prisma.stack.findUnique(where);
   }
 
   private async topicId(file: string, slug: string): Promise<string> {

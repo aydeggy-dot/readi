@@ -25,7 +25,12 @@ import type { PrismaService } from "../src/prisma/prisma.service";
  * borrow — minting is not merely tidier here, it is the only thing that works.
  */
 
-/** A role and the one level it offers, both published, with slugs nothing else will use. */
+/**
+ * A role, the one level it offers and the one stack variant it offers — all published, with slugs
+ * nothing else will use. The stack is minted whether or not a spec cares: a role that offers a
+ * variant is the ordinary case, and a question tagged with none of them is still general, so
+ * specs that predate the stack dimension behave exactly as they did (ADR-0015).
+ */
 export interface CataloguePair {
   roleId: string;
   roleSlug: string;
@@ -33,6 +38,9 @@ export interface CataloguePair {
   levelId: string;
   levelSlug: string;
   levelName: string;
+  stackId: string;
+  stackSlug: string;
+  stackName: string;
 }
 
 export async function seedCataloguePair(
@@ -44,6 +52,9 @@ export async function seedCataloguePair(
   const level = await prisma.careerLevel.create({
     data: { slug: `fixture-level-${id}`, name: `Fixture level ${id}`, rank: 20, status },
   });
+  const stack = await prisma.stack.create({
+    data: { slug: `fixture-stack-${id}`, name: `Fixture stack ${id}`, status },
+  });
   const role = await prisma.careerRole.create({
     data: {
       slug: `fixture-role-${id}`,
@@ -52,6 +63,7 @@ export async function seedCataloguePair(
       supportedQuestionTypes: ["technical", "scenario", "behavioral"],
       status,
       levels: { create: [{ levelId: level.id, position: 0 }] },
+      stacks: { create: [{ stackId: stack.id, position: 0, isDefault: true }] },
     },
   });
   return {
@@ -61,6 +73,9 @@ export async function seedCataloguePair(
     levelId: level.id,
     levelSlug: level.slug,
     levelName: level.name,
+    stackId: stack.id,
+    stackSlug: stack.slug,
+    stackName: stack.name,
   };
 }
 
@@ -72,10 +87,12 @@ export async function removeCataloguePair(
   // is the point — see `role_in_use`). Test users outlive their specs, so their profiles go here.
   await prisma.profile.deleteMany({ where: { targetRoleId: pair.roleId } });
   await prisma.careerRoleLevel.deleteMany({ where: { roleId: pair.roleId } });
+  await prisma.careerRoleStack.deleteMany({ where: { roleId: pair.roleId } });
   await prisma.careerRole.deleteMany({ where: { id: pair.roleId } });
   await prisma.careerLevel.deleteMany({ where: { id: pair.levelId } });
+  await prisma.stack.deleteMany({ where: { id: pair.stackId } });
   await prisma.contentVersion.deleteMany({
-    where: { entityId: { in: [pair.roleId, pair.levelId] } },
+    where: { entityId: { in: [pair.roleId, pair.levelId, pair.stackId] } },
   });
 }
 
@@ -241,32 +258,41 @@ export async function removeContent(prisma: PrismaService, fixture: ContentFixtu
   await removeCataloguePair(prisma, fixture.catalogue);
 }
 
-/** Gives a signed-in test user the profile the candidate reads default to. */
+/**
+ * Gives a signed-in test user the profile the candidate reads default to. `stack` is optional and
+ * defaults to none — which, under the stack rule, means general questions only.
+ */
 export async function giveProfile(
   prisma: PrismaService,
   email: string,
   role: string,
   level: string,
+  stack?: string,
 ): Promise<string> {
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   // Slugs in, ids out: the fixture takes what the wire takes, so a spec reads the way the API
   // does. `findUniqueOrThrow` is the point — a typo'd slug fails here, not silently later.
-  const [targetRole, targetLevel] = await Promise.all([
+  const [targetRole, targetLevel, targetStack] = await Promise.all([
     prisma.careerRole.findUniqueOrThrow({ where: { slug: role }, select: { id: true } }),
     prisma.careerLevel.findUniqueOrThrow({ where: { slug: level }, select: { id: true } }),
+    stack ? prisma.stack.findUniqueOrThrow({ where: { slug: stack }, select: { id: true } }) : null,
   ]);
+  const target = {
+    targetRoleId: targetRole.id,
+    targetLevelId: targetLevel.id,
+    targetStackId: targetStack?.id ?? null,
+  };
   await prisma.profile.upsert({
     where: { userId: user.id },
     create: {
       userId: user.id,
-      targetRoleId: targetRole.id,
-      targetLevelId: targetLevel.id,
+      ...target,
       yearsExperience: 2,
-      stack: ["TypeScript"],
+      technologies: ["TypeScript"],
       targetCompanyType: "local_startup",
       onboardingCompletedAt: new Date(),
     },
-    update: { targetRoleId: targetRole.id, targetLevelId: targetLevel.id },
+    update: target,
   });
   return user.id;
 }

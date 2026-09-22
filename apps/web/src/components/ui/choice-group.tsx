@@ -6,6 +6,7 @@ import { FieldError } from "./field";
 export function ChoiceGroup<T extends string>({
   name,
   legend,
+  hint,
   options,
   error,
   columns = 1,
@@ -13,6 +14,8 @@ export function ChoiceGroup<T extends string>({
 }: {
   name: string;
   legend: string;
+  /** One line under the legend, for a choice whose consequence is not obvious from its label. */
+  hint?: string;
   options: readonly { value: T; label: string }[];
   error?: string;
   columns?: 1 | 2;
@@ -20,9 +23,17 @@ export function ChoiceGroup<T extends string>({
   inputProps: Omit<React.ComponentProps<"input">, "type" | "value">;
 }) {
   const errorId = error ? `${name}-error` : undefined;
+  const hintId = hint ? `${name}-hint` : undefined;
+  // Both, in reading order, so a screen reader hears what the group is for before what is wrong.
+  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
   return (
-    <fieldset className="flex flex-col gap-2" aria-describedby={errorId}>
+    <fieldset className="flex flex-col gap-2" aria-describedby={describedBy}>
       <legend className="mb-2 font-bold text-heading">{legend}</legend>
+      {hint && (
+        <p id={hintId} className="-mt-1 mb-1 text-base text-muted-foreground">
+          {hint}
+        </p>
+      )}
       <div className={cn("grid gap-2", columns === 2 && "sm:grid-cols-2")}>
         {options.map((option) => (
           <label

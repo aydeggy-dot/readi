@@ -6,7 +6,7 @@ import { ReviewPanel } from "@/components/admin/review-panel";
 import { TransitionPanel } from "@/components/admin/transition-panel";
 import { VersionHistory } from "@/components/admin/version-history";
 import { t } from "@/i18n";
-import { roleAndLevelChoices } from "@/lib/catalogue-choices";
+import { roleAndLevelChoices, stackChoices } from "@/lib/catalogue-choices";
 import { requireContentEditor, serverApi } from "@/lib/session";
 
 export const metadata: Metadata = { title: t("admin.content.sections.questions") };
@@ -15,11 +15,12 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
   const me = await requireContentEditor();
   const { id } = await params;
   const api = await serverApi();
-  const [question, topics, rubrics, catalogue] = await Promise.all([
+  const [question, topics, rubrics, catalogue, stacks] = await Promise.all([
     api.GET("/api/admin/content/questions/{id}", { params: { path: { id } } }),
     api.GET("/api/admin/content/topics"),
     api.GET("/api/admin/content/rubrics", { params: { query: { limit: 100 } } }),
     roleAndLevelChoices(),
+    stackChoices(),
   ]);
   if (!question.data) notFound();
 
@@ -39,6 +40,7 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
         rubrics={rubrics.data?.items ?? []}
         roles={catalogue.roles}
         levels={catalogue.levels}
+        stacks={stacks.stacks}
         readOnly={question.data.status === "published" && me.role !== "admin"}
       />
       <ReviewPanel

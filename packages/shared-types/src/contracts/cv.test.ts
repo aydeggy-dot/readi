@@ -62,6 +62,7 @@ describe("cv contracts", () => {
       file_base64: Buffer.from("%PDF-1.7").toString("base64"),
       target_role_label: "Frontend engineer",
       level_label: "Mid-level",
+      stack_label: null,
     };
     expect(CvParseRequest.safeParse(request).success).toBe(true);
     expect(CvParseRequest.safeParse({ ...request, file_base64: "not base64!" }).success).toBe(

@@ -175,6 +175,16 @@ export const QuestionInput = z.object({
    */
   roles: z.array(Slug).min(1).max(CONTENT_LIMITS.questionRoles),
   levels: z.array(Slug).min(1).max(CONTENT_LIMITS.questionLevels),
+  /**
+   * Which stack variants this question is for, by slug — and **empty means general** (ADR-0015).
+   * A question with no stacks is offered to everyone preparing for its role; one with stacks is
+   * offered only to candidates on one of them. So this list is not "which stacks does it apply
+   * to" but "which stacks would it be unfair or meaningless outside of": a React code snippet is
+   * tagged, a question about where state should live is not.
+   *
+   * No `.min(1)`, and deliberately: the empty array is the common case, not a missing value.
+   */
+  stacks: z.array(Slug).max(CONTENT_LIMITS.questionStacks),
   type: QuestionType,
   topic_id: z.uuid(),
   subtopic: z.string().trim().min(1).max(CONTENT_LIMITS.subtopicMaxLength).nullable(),
@@ -296,6 +306,10 @@ export const ContentListQuery = z.object({
   q: z.string().trim().min(1).max(CONTENT_LIMITS.searchMaxLength).optional(),
   role: Slug.optional(),
   level: Slug.optional(),
+  /** Questions tagged for this stack. Not "questions a candidate on it would be offered" — that
+   * is the eligibility rule, which also lets general questions through; this is the CMS asking
+   * "what have we written for Java / Spring". */
+  stack: Slug.optional(),
   type: QuestionType.optional(),
   topic_id: z.uuid().optional(),
   cursor: z.string().min(1).max(CONTENT_LIMITS.cursorMaxLength).optional(),
@@ -369,6 +383,7 @@ export const QuestionListItem = z
     type: QuestionType,
     roles: z.array(Slug),
     levels: z.array(Slug),
+    stacks: z.array(Slug),
     difficulty: z.int().min(DIFFICULTY_RANGE.min).max(DIFFICULTY_RANGE.max),
     topic: Topic,
     rubric_slug: slug(),

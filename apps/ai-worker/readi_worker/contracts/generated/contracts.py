@@ -15,6 +15,10 @@ class ErrorCode(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
 
+class StackLabel(RootModel[str]):
+    root: str = Field(..., max_length=140, min_length=1)
+
+
 class CvParseRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -32,6 +36,7 @@ class CvParseRequest(BaseModel):
     )
     target_role_label: str = Field(..., max_length=140, min_length=1)
     level_label: str = Field(..., max_length=140, min_length=1)
+    stack_label: StackLabel | None
 
 
 class Technology(RootModel[str]):

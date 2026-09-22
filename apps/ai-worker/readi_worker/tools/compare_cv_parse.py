@@ -83,7 +83,7 @@ def _row(run: Run) -> str:
 
 
 async def _compare_file(
-    path: Path, parsers: dict[str, CvParser], role: str, level: str
+    path: Path, parsers: dict[str, CvParser], role: str, level: str, stack: str | None
 ) -> list[Run]:
     data = await asyncio.to_thread(path.read_bytes)
     request = CvParseRequest.model_validate(
@@ -93,15 +93,17 @@ async def _compare_file(
             "file_base64": base64.b64encode(data).decode(),
             "target_role_label": role,
             "level_label": level,
+            "stack_label": stack,
         }
     )
     responses = await asyncio.gather(*(p.parse(request) for p in parsers.values()))
     return [Run(model, r) for model, r in zip(parsers, responses, strict=True)]
 
 
-def _report(results: list[tuple[Path, list[Run]]], role: str, level: str) -> str:
+def _report(results: list[tuple[Path, list[Run]]], role: str, level: str, stack: str | None) -> str:
     lines = [f"# CV parse comparison — {datetime.now(UTC):%Y-%m-%d %H:%M} UTC", ""]
-    lines += [f"Target: {role} / {level}. Contains CV data: keep local, delete when done.", ""]
+    target = f"{role} / {level}" + (f" / {stack}" if stack else "")
+    lines += [f"Target: {target}. Contains CV data: keep local, delete when done.", ""]
     for path, runs in results:
         lines += [f"## {path.name}", ""]
         for run in runs:
@@ -127,6 +129,9 @@ async def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--role", default="Frontend engineer")
     # Free text, not a choice: roles and levels are catalogue content now (ADR-0015).
     parser.add_argument("--level", default="Intern / Junior")
+    # The stack variant, when comparing how much it sharpens the gaps. Omitted by default, which
+    # is what a candidate who skipped the question sends.
+    parser.add_argument("--stack", default=None)
     parser.add_argument("--max-files", type=int, default=20)
     args = parser.parse_args(argv)
 
@@ -156,7 +161,7 @@ async def main(argv: list[str] | None = None) -> int:
         for index, path in enumerate(files, start=1):
             print(f"\n[{index}/{len(files)}] {path.name}")
             print(header)
-            runs = await _compare_file(path, parsers, args.role, args.level)
+            runs = await _compare_file(path, parsers, args.role, args.level, args.stack)
             for run in runs:
                 print(_row(run))
             if len(runs) >= 2:
@@ -180,7 +185,7 @@ async def main(argv: list[str] | None = None) -> int:
 
     REPORT_DIR.mkdir(exist_ok=True)
     report = REPORT_DIR / f"report-{datetime.now(UTC):%Y%m%d-%H%M%S}.md"
-    report.write_text(_report(results, args.role, args.level))
+    report.write_text(_report(results, args.role, args.level, args.stack))
     print(f"\nFull results: {report}\n(Contains CV data: keep it local and delete it when done.)")
     return 0
 

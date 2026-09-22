@@ -701,8 +701,9 @@ export interface components {
             name: string;
             target_role: string;
             level: string;
+            target_stack: string | null;
             years_experience: number;
-            stack: string[];
+            technologies: string[];
             target_company_type: components["schemas"]["TargetCompanyType_Output"];
             /** Format: date */
             target_date: string | null;
@@ -715,8 +716,9 @@ export interface components {
             name: string;
             target_role: string;
             level: string;
+            target_stack: string | null;
             years_experience: number;
-            stack: string[];
+            technologies: string[];
             target_company_type: components["schemas"]["TargetCompanyType"];
             /** Format: date */
             target_date: string | null;
@@ -1316,6 +1318,7 @@ export interface components {
             type: components["schemas"]["QuestionType_Output"];
             roles: string[];
             levels: string[];
+            stacks: string[];
             difficulty: number;
             topic: {
                 slug: string;
@@ -1359,6 +1362,7 @@ export interface components {
             slug: string;
             roles: string[];
             levels: string[];
+            stacks: string[];
             type: components["schemas"]["QuestionType"];
             /** Format: uuid */
             topic_id: string;
@@ -1374,6 +1378,7 @@ export interface components {
             slug: string;
             roles: string[];
             levels: string[];
+            stacks: string[];
             type: components["schemas"]["QuestionType_Output"];
             /** Format: uuid */
             topic_id: string;
@@ -1506,8 +1511,9 @@ export interface components {
             profile: {
                 target_role: string;
                 level: string;
+                target_stack: string | null;
                 years_experience: number;
-                stack: string[];
+                technologies: string[];
                 target_company_type: components["schemas"]["TargetCompanyType_Output"];
                 /** Format: date */
                 target_date: string | null;
@@ -2171,6 +2177,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2282,6 +2289,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2393,6 +2401,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2504,6 +2513,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2665,6 +2675,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2771,6 +2782,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;
@@ -2875,6 +2887,7 @@ export interface operations {
                 q?: string;
                 role?: string;
                 level?: string;
+                stack?: string;
                 type?: components["schemas"]["QuestionType"];
                 topic_id?: string;
                 cursor?: string;

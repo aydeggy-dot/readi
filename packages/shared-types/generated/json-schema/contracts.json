@@ -194,6 +194,18 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 140
+        },
+        "stack_label": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 140
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -201,7 +213,8 @@
         "content_type",
         "file_base64",
         "target_role_label",
-        "level_label"
+        "level_label",
+        "stack_label"
       ],
       "additionalProperties": false
     },

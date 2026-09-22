@@ -45,7 +45,7 @@ async function fillProfile(page: Page, name: string): Promise<void> {
   await page.getByRole("radio", { name: "Backend engineer" }).check();
   await page.getByRole("radio", { name: "Mid-level" }).check();
   await page.getByRole("spinbutton", { name: "Years of professional experience" }).fill("3");
-  await page.getByRole("textbox", { name: "Your main stack" }).fill("Go");
+  await page.getByRole("textbox", { name: "What do you work with?" }).fill("Go");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("radio", { name: "Remote role at a foreign company" }).check();
   await page.getByRole("button", { name: "Continue" }).click();

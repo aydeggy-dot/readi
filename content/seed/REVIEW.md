@@ -30,7 +30,7 @@ Please read the generated pages rather than the YAML unless you would rather not
 Each page puts a question, the answer key and all five level descriptors of its rubric in one
 place, with tick boxes. They print, and they render on GitHub.
 
-## The four things we are asking
+## The five things we are asking
 
 **1. Would a real interviewer ask this, at this level?**
 Not "is it a fair question" — "have you asked it, or heard it asked, of someone at this stage?" A
@@ -50,6 +50,14 @@ confidently", that is a defect — tell us, and if you can, say what the real di
 
 **4. Is anything factually wrong or out of date?**
 Tools, versions and idioms move. The lessons in each track need the same eye.
+
+**5. Where a question names a stack, is that right — and where none is named, should one be?**
+A question can be tagged for particular stacks ("React + TypeScript", "Java / Spring"), and the
+heading says so when it is. A tag is a narrowing: only candidates interviewing for that variant are
+ever asked it, and everyone else loses the question. Two are tagged today, both React ones, because
+they show React code. The mistake in both directions costs something — tagging a general question
+shrinks what most candidates practise, and leaving a framework-specific one untagged hands a Vue
+developer a React snippet — so say which you think each one is.
 
 ## How to send it back
 

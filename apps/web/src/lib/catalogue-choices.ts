@@ -1,3 +1,4 @@
+import type { StackListItem } from "@readi/shared-types";
 import { CONTENT_LIMITS } from "@readi/shared-types/constants";
 import { serverApi } from "@/lib/session";
 
@@ -18,9 +19,9 @@ export async function catalogueChoices() {
   const query = { limit: CONTENT_LIMITS.pageSize.max };
   const [levels, stacks] = await Promise.all([
     api.GET("/api/admin/content/career-levels", { params: { query } }),
-    api.GET("/api/admin/content/stacks", { params: { query } }),
+    stackChoices(),
   ]);
-  if (!levels.data || !stacks.data) throw new Error("GET the catalogue for the role editor failed");
+  if (!levels.data) throw new Error("GET the catalogue for the role editor failed");
 
   /*
    * The lists arrive in the CMS's order — most recently edited first — which is right for a list
@@ -30,9 +31,28 @@ export async function catalogueChoices() {
    */
   return {
     levels: [...levels.data.items].sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name)),
-    stacks: [...stacks.data.items].sort((a, b) => a.name.localeCompare(b.name)),
+    stacks: stacks.stacks,
     /** The page size, when there is more than one page of either; null when everything fits. */
-    capped: levels.data.next_cursor || stacks.data.next_cursor ? CONTENT_LIMITS.pageSize.max : null,
+    capped: levels.data.next_cursor || stacks.capped ? CONTENT_LIMITS.pageSize.max : null,
+  };
+}
+
+/**
+ * The stacks a question can be tagged for, by name (ADR-0015) — the role editor's stack half, and
+ * the question editor's whole need, so it is written once.
+ *
+ * `capped` matters here for the same reason it does there: a catalogue with more than one page of
+ * stacks would start hiding choices, and a save would drop what the form never showed.
+ */
+export async function stackChoices(): Promise<{ stacks: StackListItem[]; capped: boolean }> {
+  const api = await serverApi();
+  const stacks = await api.GET("/api/admin/content/stacks", {
+    params: { query: { limit: CONTENT_LIMITS.pageSize.max } },
+  });
+  if (!stacks.data) throw new Error("GET the stacks for the CMS failed");
+  return {
+    stacks: [...stacks.data.items].sort((a, b) => a.name.localeCompare(b.name)),
+    capped: stacks.data.next_cursor !== null,
   };
 }
 

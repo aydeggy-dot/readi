@@ -140,8 +140,15 @@ model Profile {
   targetRole            CareerRole        @relation(fields: [targetRoleId], references: [id])
   targetLevelId         String            @map("target_level_id") @db.Uuid
   targetLevel           CareerLevel       @relation(fields: [targetLevelId], references: [id])
+  /// The stack variant they are interviewing for, when they have chosen one (ADR-0015). Nullable:
+  /// a role need not offer any, and "I have not decided" is a real answer. It decides which
+  /// stack-tagged questions they are offered — see `question-eligibility.ts`.
+  targetStackId         String?           @map("target_stack_id") @db.Uuid
+  targetStack           Stack?            @relation(fields: [targetStackId], references: [id], onDelete: Restrict)
   yearsExperience       Int               @map("years_experience")
-  stack                 String[]
+  /// What the candidate says they know, free text. Not `targetStackId`, which is the catalogue
+  /// variant they are interviewing for; both were called "stack" until M2.5.
+  technologies          String[]
   targetCompanyType     TargetCompanyType @map("target_company_type")
   /// A calendar date, not a timestamp.
   targetDate            DateTime?         @map("target_date") @db.Date
@@ -161,6 +168,7 @@ model Profile {
 
   @@index([targetRoleId])
   @@index([targetLevelId])
+  @@index([targetStackId])
   @@map("profiles")
 }
 
@@ -433,6 +441,9 @@ model Stack {
 
   roles CareerRoleStack[]
 
+  questions QuestionStack[]
+  profiles  Profile[]
+
   @@index([status])
   @@index([updatedAt, id])
   @@map("stacks")
@@ -488,33 +499,33 @@ model Topic {
 /// A programme for one role and level. At most one may be published per (role, level) — enforced
 /// by a partial unique index in the migration, so the candidate API always finds exactly one.
 model Track {
-  id                String          @id @default(uuid()) @db.Uuid
-  slug              String          @unique
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
   /// The catalogue role and level this track is for (ADR-0015). A track is still keyed by the
   /// pair — the stack dimension is on questions and on the profile, not here (M2.5 decision 4).
-  roleId            String          @map("role_id") @db.Uuid
-  role              CareerRole      @relation(fields: [roleId], references: [id])
-  levelId           String          @map("level_id") @db.Uuid
-  level             CareerLevel     @relation(fields: [levelId], references: [id])
+  roleId            String        @map("role_id") @db.Uuid
+  role              CareerRole    @relation(fields: [roleId], references: [id])
+  levelId           String        @map("level_id") @db.Uuid
+  level             CareerLevel   @relation(fields: [levelId], references: [id])
   title             String
   summary           String?
-  status            ContentStatus   @default(draft)
-  version           Int             @default(1)
+  status            ContentStatus @default(draft)
+  version           Int           @default(1)
   /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
-  seedManaged       Boolean         @default(false) @map("seed_managed")
-  createdByUserId   String?         @map("created_by_user_id") @db.Uuid
-  publishedAt       DateTime?       @map("published_at") @db.Timestamptz(6)
+  seedManaged       Boolean       @default(false) @map("seed_managed")
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(6)
   /// True when `/content/seed` imported this row from a file whose `author` is `ai_draft` — a
   /// model wrote it and no person has vouched for it yet (ADR-0014 decision 6). Cleared by the
   /// explicit "mark as reviewed" action, or by a re-import from a file that says `author: human`.
   /// A content edit does NOT clear it: a typo fix is not a review of the whole item.
-  aiDraftUnreviewed Boolean         @default(false) @map("ai_draft_unreviewed")
+  aiDraftUnreviewed Boolean       @default(false) @map("ai_draft_unreviewed")
   /// Who marked it reviewed, and when. A plain uuid with no foreign key, tombstoned on erasure
   /// like the other authorship columns (ADR-0011).
-  reviewedByUserId  String?         @map("reviewed_by_user_id") @db.Uuid
-  reviewedAt        DateTime?       @map("reviewed_at") @db.Timestamptz(6)
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   modules Module[]
   topics  TrackTopic[]
@@ -649,37 +660,37 @@ model RubricCriterion {
 }
 
 model Question {
-  id                String            @id @default(uuid()) @db.Uuid
-  slug              String            @unique
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
   type              QuestionType
-  topicId           String            @map("topic_id") @db.Uuid
-  topic             Topic             @relation(fields: [topicId], references: [id])
+  topicId           String        @map("topic_id") @db.Uuid
+  topic             Topic         @relation(fields: [topicId], references: [id])
   subtopic          String?
   /// 1–5 (spec §6.1).
   difficulty        Int
   prompt            String
   context           String?
-  rubricId          String            @map("rubric_id") @db.Uuid
-  rubric            Rubric            @relation(fields: [rubricId], references: [id])
+  rubricId          String        @map("rubric_id") @db.Uuid
+  rubric            Rubric        @relation(fields: [rubricId], references: [id])
   /// ANSWER KEY: what a strong answer covers. Never included in a candidate-facing response.
-  idealPoints       String[]          @map("ideal_points")
-  status            ContentStatus     @default(draft)
-  version           Int               @default(1)
+  idealPoints       String[]      @map("ideal_points")
+  status            ContentStatus @default(draft)
+  version           Int           @default(1)
   /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
-  seedManaged       Boolean           @default(false) @map("seed_managed")
-  createdByUserId   String?           @map("created_by_user_id") @db.Uuid
-  publishedAt       DateTime?         @map("published_at") @db.Timestamptz(6)
+  seedManaged       Boolean       @default(false) @map("seed_managed")
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(6)
   /// True when `/content/seed` imported this row from a file whose `author` is `ai_draft` — a
   /// model wrote it and no person has vouched for it yet (ADR-0014 decision 6). Cleared by the
   /// explicit "mark as reviewed" action, or by a re-import from a file that says `author: human`.
   /// A content edit does NOT clear it: a typo fix is not a review of the whole item.
-  aiDraftUnreviewed Boolean           @default(false) @map("ai_draft_unreviewed")
+  aiDraftUnreviewed Boolean       @default(false) @map("ai_draft_unreviewed")
   /// Who marked it reviewed, and when. A plain uuid with no foreign key, tombstoned on erasure
   /// like the other authorship columns (ADR-0011).
-  reviewedByUserId  String?           @map("reviewed_by_user_id") @db.Uuid
-  reviewedAt        DateTime?         @map("reviewed_at") @db.Timestamptz(6)
-  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   /// pgvector, 1024 dimensions (ADR-0006). Prisma cannot read or write this type, so every
   /// query that touches it lives in question-embeddings.repository.ts as raw SQL.
@@ -694,6 +705,11 @@ model Question {
   /// full-stack track costs almost no new content.
   roles  QuestionCareerRole[]
   levels QuestionCareerLevel[]
+
+  /// Which stack variants this question is for — and **no rows means general to its role**
+  /// (ADR-0015). Tagging is how a Spring candidate and a Node candidate stop being asked the
+  /// same thing; not tagging is how most questions stay available to everyone.
+  stacks QuestionStack[]
 
   @@index([status])
   @@index([topicId])
@@ -725,6 +741,20 @@ model QuestionCareerLevel {
   @@id([questionId, levelId])
   @@index([levelId])
   @@map("question_career_levels")
+}
+
+/// A question tagged for a stack variant. An **absent** row is the meaningful state here: a
+/// question with no rows at all is general to its role, so this table says "only these", never
+/// "also these" (ADR-0015).
+model QuestionStack {
+  questionId String   @map("question_id") @db.Uuid
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  stackId    String   @map("stack_id") @db.Uuid
+  stack      Stack    @relation(fields: [stackId], references: [id])
+
+  @@id([questionId, stackId])
+  @@index([stackId])
+  @@map("question_stacks")
 }
 
 /// A candidate's report about a question (spec §6.1). Personal to them: it cascades on deletion.

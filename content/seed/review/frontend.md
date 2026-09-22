@@ -146,7 +146,7 @@ Timeouts, a request that never returns, retries, and what is safe to retry.
 
 ### 3. react-state-placement
 
-**technical** · difficulty 3/5 · intern-junior, mid · topic: React state and data flow (lifting state)
+**technical** · difficulty 3/5 · intern-junior, mid · topic: React state and data flow (lifting state) · stacks: react-typescript, nextjs
 
 **The interviewer asks**
 
@@ -192,7 +192,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 - **3 (solid):** Names the real cost of their choice and when it would push them to a different one.
 - **4 (excellent):** As 3, and gives the signal they would watch for to change the decision later.
 
-> **The drafter is unsure about:** "Put it in the URL" is the answer I would most like to hear, but it may be unreasonable at intern level and it is not in the top level descriptor. Should it be? Also: is asking for the _cost_ of the decision (30% of the score) fair on someone who has only worked on small apps?
+> **The drafter is unsure about:** "Put it in the URL" is the answer I would most like to hear, but it may be unreasonable at intern level and it is not in the top level descriptor. Should it be? Also: is asking for the _cost_ of the decision (30% of the score) fair on someone who has only worked on small apps? Tagged React + Next.js: the prompt reads framework-neutral, but the ideal points and the rubric are about lifting state and prop drilling, so a Vue or Angular candidate would be answering a slightly different question. Should the tag stay, or should the question be rewritten to be genuinely general?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -203,7 +203,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 
 ### 4. react-unnecessary-effect
 
-**technical** · difficulty 3/5 · intern-junior, mid · topic: React state and data flow (effects)
+**technical** · difficulty 3/5 · intern-junior, mid · topic: React state and data flow (effects) · stacks: react-typescript, nextjs
 
 **The interviewer asks**
 
@@ -263,7 +263,7 @@ Removes the state and the effect, computing the value where it is used.
 - **3 (solid):** Computes during render; the state and the effect both disappear.
 - **4 (excellent):** As 3, and says when memoising would be justified — and that it usually is not.
 
-> **The drafter is unsure about:** This is the clearest "one right answer" question in the bank, which makes it good for calibration but weak at separating a solid candidate from an excellent one. The excellence descriptors lean on naming the rule and on memoisation — is that the right bar, or would you rather see them notice the one-frame-stale UI?
+> **The drafter is unsure about:** This is the clearest "one right answer" question in the bank, which makes it good for calibration but weak at separating a solid candidate from an excellent one. The excellence descriptors lean on naming the rule and on memoisation — is that the right bar, or would you rather see them notice the one-frame-stale UI? Tagged React + Next.js: the candidate is shown JSX with `useState` and `useEffect`, so it would be meaningless to anyone on Vue, Angular or vanilla JS.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
