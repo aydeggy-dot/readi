@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { isOfferedToStack, stackFilter } from "./question-eligibility";
 
-const SPRING = "11111111-1111-4111-8111-111111111111";
-const NODE = "22222222-2222-4222-8222-222222222222";
+/** Exported with the table below, so the integration test can map them onto its own two stacks. */
+export const SPRING = "11111111-1111-4111-8111-111111111111";
+export const NODE = "22222222-2222-4222-8222-222222222222";
 
 /**
- * The truth table the rule is defined by. `question-catalogue.int.spec.ts` runs the same table
- * against the database through `stackFilter`, so the predicate and the query cannot drift apart
- * without one of the two failing.
+ * The truth table the rule is defined by. `apps/api/test/content-stacks.int.spec.ts` **imports this
+ * table** and runs it against the database through `stackFilter`, so the predicate and the query
+ * cannot drift apart without one of the two failing, and a row added here is exercised by both.
  */
 export const STACK_RULE: { question: string[]; candidate: string | null; offered: boolean }[] = [
   { question: [], candidate: null, offered: true },
@@ -42,8 +43,10 @@ describe("the stack rule", () => {
   });
 
   it("asks for general questions or the candidate's own when one was chosen", () => {
+    // `AND`-wrapped on purpose, so that spreading the fragment next to another `where` clause does
+    // not let one of the two `OR`s overwrite the other. M3 composes this with a fallback of its own.
     expect(stackFilter(SPRING)).toEqual({
-      OR: [{ stacks: { none: {} } }, { stacks: { some: { stackId: SPRING } } }],
+      AND: [{ OR: [{ stacks: { none: {} } }, { stacks: { some: { stackId: SPRING } } }] }],
     });
   });
 });

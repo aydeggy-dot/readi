@@ -4,7 +4,7 @@ status: draft
 
 questions:
   - slug: api-error-shape
-    roles: [backend]
+    roles: [backend, fullstack]
     levels: [mid]
     type: technical
     topic: api-design
@@ -27,7 +27,7 @@ questions:
       it the kind of distinction that only reads as knowledge because it is obscure?
 
   - slug: n-plus-one-diagnosis
-    roles: [backend]
+    roles: [backend, fullstack]
     levels: [mid]
     type: technical
     topic: databases
@@ -50,7 +50,7 @@ questions:
       about the local machine?
 
   - slug: incident-you-contributed-to
-    roles: [backend, frontend, qa]
+    roles: [backend, frontend, qa, fullstack]
     levels: [mid]
     type: behavioral
     topic: collaboration

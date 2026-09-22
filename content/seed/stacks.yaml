@@ -89,3 +89,22 @@ stacks:
   - slug: performance-testing
     name: Performance testing (k6 / JMeter)
     summary: null
+
+  # Full-stack. Two of the six variants are rows that already exist — `nextjs`, which is a
+  # full-stack framework as much as a frontend one, and `ruby-rails`, which has always been the
+  # whole application. A stack belongs to as many roles as offer it.
+  - slug: react-node
+    name: React + Node
+    summary: null
+
+  - slug: django-react
+    name: Django + React
+    summary: null
+
+  - slug: laravel-vue
+    name: Laravel + Vue
+    summary: null
+
+  - slug: dotnet-react
+    name: .NET + React
+    summary: null

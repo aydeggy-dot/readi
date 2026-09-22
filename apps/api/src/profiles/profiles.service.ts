@@ -88,7 +88,13 @@ export class ProfilesService {
       where: { slug: roleSlug, status: "published" },
       select: {
         id: true,
-        levels: { where: { level: { slug: levelSlug } }, select: { levelId: true } },
+        // Published, like the stack below: a role may already list a level whose own row is still
+        // a draft — an admin puts next quarter's "senior" on the role before the level goes out —
+        // and until it does, nobody may prepare at it.
+        levels: {
+          where: { level: { slug: levelSlug, status: "published" } },
+          select: { levelId: true },
+        },
         // A stack is only offered *by a role*, so it is resolved in the same query, against the
         // same role, and published: "Java / Spring" is not a choice a frontend candidate can
         // make, even though the row exists.

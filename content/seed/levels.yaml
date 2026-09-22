@@ -17,3 +17,13 @@ career_levels:
     name: Mid-level
     summary: Roughly two to five years. Interviews test judgement — trade-offs, debugging, and owning a feature end to end.
     rank: 20
+
+  # `senior` exists as a row and **no role offers it** — deliberately. A senior interview turns on
+  # system design (a question type we do not have and a surface the spec defers to P2), on rubric
+  # dimensions the junior/mid rubrics do not contain (scope, influence, mentoring), and on longer
+  # sessions. Offer it from a role, and publish it, when that content exists: an empty level in the
+  # picker is worse than no level at all. See `tasks/todo.md` § Carried forward.
+  - slug: senior
+    name: Senior
+    summary: Five years or more. Interviews test system design, the trade-offs behind your decisions, and how you carry other people with you.
+    rank: 30

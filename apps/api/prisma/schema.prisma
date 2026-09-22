@@ -136,10 +136,14 @@ model Profile {
   /// foreign keys, not enums: adding a role is a content task. `onDelete` is left at the default
   /// (restrict) on purpose — a role a candidate is preparing for cannot be deleted out from under
   /// them, and the CMS retires content rather than deleting it.
+  /// `Restrict` spelled out on all three, although it is already Prisma's default for a required
+  /// relation: making one of these nullable later would silently flip the generated SQL to
+  /// `SET NULL`, and a deleted role would blank every candidate's choice with nothing in the diff
+  /// that looks dangerous (M2.5 review, 2026-09-22).
   targetRoleId          String            @map("target_role_id") @db.Uuid
-  targetRole            CareerRole        @relation(fields: [targetRoleId], references: [id])
+  targetRole            CareerRole        @relation(fields: [targetRoleId], references: [id], onDelete: Restrict)
   targetLevelId         String            @map("target_level_id") @db.Uuid
-  targetLevel           CareerLevel       @relation(fields: [targetLevelId], references: [id])
+  targetLevel           CareerLevel       @relation(fields: [targetLevelId], references: [id], onDelete: Restrict)
   /// The stack variant they are interviewing for, when they have chosen one (ADR-0015). Nullable:
   /// a role need not offer any, and "I have not decided" is a real answer. It decides which
   /// stack-tagged questions they are offered — see `question-eligibility.ts`.

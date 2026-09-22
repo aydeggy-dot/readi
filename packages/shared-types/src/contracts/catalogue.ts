@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { CATALOGUE_LIMITS, CONTENT_LIMITS, QUESTION_TYPES, SLUG_PATTERN } from "../constants.js";
+import { CATALOGUE_LIMITS, CONTENT_LIMITS, QUESTION_TYPES } from "../constants.js";
 import { ContentStatus, QuestionType } from "./content.js";
+import { Slug, distinctSlugs } from "./slug.js";
 
 /**
  * The catalogue: **career roles, career levels and stacks as content** (ADR-0015).
@@ -21,18 +22,14 @@ import { ContentStatus, QuestionType } from "./content.js";
  *    contracts (ADR-0014) — never an admin shape with fields omitted.
  */
 
-const slug = () =>
-  z
-    .string()
-    .min(1)
-    .max(CONTENT_LIMITS.slugMaxLength)
-    .regex(new RegExp(SLUG_PATTERN), "lowercase words joined by single hyphens");
+// `Slug` itself, not a fourth copy of its pattern: `slug.ts` exists to be the one definition.
+const slug = () => Slug;
 
 const title = () => z.string().trim().min(1).max(CONTENT_LIMITS.titleMaxLength);
 const summary = () => z.string().trim().min(1).max(CONTENT_LIMITS.summaryMaxLength).nullable();
 
 /** Nothing may be listed twice: the join tables key on the pair, and a duplicate is a typo. */
-const distinct = (ids: readonly string[]): boolean => new Set(ids).size === ids.length;
+const distinct = distinctSlugs;
 
 // -----------------------------------------------------------------------------------------------
 // Career levels. The ladder a role is hired at; `rank` orders them against each other.

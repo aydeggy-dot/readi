@@ -11,6 +11,7 @@ import type {
 } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SPRING, STACK_RULE } from "../src/content/question-eligibility.spec";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
 import {
@@ -155,6 +156,43 @@ describe("the stack dimension", () => {
   });
 
   describe("what a candidate is offered", () => {
+    /*
+     * The same truth table the pure predicate is tested against, imported rather than restated, so
+     * that a row added to `STACK_RULE` is exercised through the database too. That is what stops
+     * `isOfferedToStack` and `stackFilter` — two expressions of one rule — from drifting apart,
+     * and the claim that they cannot was only a comment until this test imported the table
+     * (M2.5 review, 2026-09-22).
+     *
+     * The table names two abstract stacks; here they are this spec's two real ones. A question
+     * tagged with neither is general.
+     */
+    it("runs the whole stack rule against the database", async () => {
+      const stackFor = (id: string | null): string | undefined =>
+        id === null ? undefined : id === SPRING ? pair.stackSlug : otherStackSlug;
+      const tagsFor = (ids: readonly string[]): string[] => ids.map((id) => stackFor(id) as string);
+
+      // One published question per distinct tag set in the table, then one candidate per row.
+      const bySignature = new Map<string, string>();
+      for (const row of STACK_RULE) {
+        const signature = [...row.question].sort().join("+");
+        if (!bySignature.has(signature)) {
+          const question = await publishQuestion(tagsFor(row.question));
+          bySignature.set(signature, question.slug);
+        }
+      }
+
+      for (const row of STACK_RULE) {
+        const slug = bySignature.get([...row.question].sort().join("+")) as string;
+        const offered = await practiceFor(stackFor(row.candidate));
+        expect(
+          offered.includes(slug),
+          `question tagged [${tagsFor(row.question).join(", ")}] for a candidate on ${
+            stackFor(row.candidate) ?? "no stack"
+          }`,
+        ).toBe(row.offered);
+      }
+    });
+
     it("follows the stack rule: general always, tagged only to its own", async () => {
       const general = await publishQuestion([]);
       const mine = await publishQuestion([pair.stackSlug]);

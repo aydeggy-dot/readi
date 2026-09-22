@@ -7,6 +7,7 @@ import type {
   QuestionType,
   StackListItem,
 } from "@readi/shared-types";
+import { invalidFields } from "@readi/api-client";
 import { CONTENT_LIMITS, QUESTION_TYPES } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,6 +25,17 @@ import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { contentErrorMessage } from "@/lib/content-errors";
 import { orderedForRole } from "@/lib/catalogue-order";
+
+/** Wire field name → the form control that holds it, for a validation 400's field paths. */
+const FIELD_OF: Record<string, keyof Values | undefined> = {
+  slug: "slug",
+  name: "name",
+  summary: "summary",
+  position: "position",
+  supported_question_types: "questionTypes",
+  levels: "levels",
+  stacks: "stacks",
+};
 
 interface Values {
   slug: string;
@@ -70,6 +82,7 @@ export function CareerRoleForm({
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     defaultValues: {
@@ -116,6 +129,19 @@ export function CareerRoleForm({
           })
         : await browserApi.POST("/api/admin/content/career-roles", { body });
       if (!data) {
+        /*
+         * A validation 400 lists the field paths that failed, and the form marks them rather than
+         * showing one unattached "Check this field" above thirty inputs (ADR-0012, CLAUDE.md §6).
+         * The slug pattern and the catalogue caps are enforced by the contract alone, so this is
+         * the usual way this form fails.
+         */
+        if (response.status === 400) {
+          const marked = invalidFields(error)
+            .map((field) => FIELD_OF[field])
+            .filter((field): field is keyof Values => field !== undefined);
+          for (const field of marked) setError(field, { message: t("common.errors.invalidField") });
+          if (marked.length > 0) return;
+        }
         const message = contentErrorMessage(error);
         setFailure(
           message
@@ -216,7 +242,7 @@ export function CareerRoleForm({
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
             {QUESTION_TYPES.map((type) => (
               <li key={type}>
-                <label className="flex items-center gap-2 text-base">
+                <label className="flex min-h-11 items-center gap-2 text-base">
                   <input
                     type="checkbox"
                     value={type}
@@ -241,7 +267,7 @@ export function CareerRoleForm({
             <ul className="divide-y divide-border">
               {levelRows.map((level) => (
                 <li key={level.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
-                  <label className="flex flex-1 items-center gap-2 text-base">
+                  <label className="flex min-h-11 flex-1 items-center gap-2 text-base">
                     <input
                       type="checkbox"
                       value={level.id}
@@ -266,9 +292,25 @@ export function CareerRoleForm({
             <p className="text-base text-muted-foreground">{t("admin.content.role.noStacks")}</p>
           ) : (
             <ul className="divide-y divide-border">
+              {/*
+                No default is a legitimate state — the candidate then has to choose — and a native
+                radio cannot be unchecked, so without this row an editor who ticked one Default
+                could never take it back (M2.5 review, 2026-09-22).
+              */}
+              <li className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
+                <label className="flex min-h-11 flex-1 items-center gap-2 text-base text-muted-foreground">
+                  <input
+                    type="radio"
+                    value=""
+                    className="size-4 accent-primary"
+                    {...register("defaultStack")}
+                  />
+                  {t("admin.content.role.noDefault")}
+                </label>
+              </li>
               {stackRows.map((stack) => (
                 <li key={stack.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
-                  <label className="flex flex-1 items-center gap-2 text-base">
+                  <label className="flex min-h-11 flex-1 items-center gap-2 text-base">
                     <input
                       type="checkbox"
                       value={stack.id}
@@ -282,7 +324,7 @@ export function CareerRoleForm({
                     A radio group, not a second checkbox: only one stack can be the default, and a
                     radio is the control that says so before the API has to.
                   */}
-                  <label className="flex items-center gap-2 text-base text-muted-foreground">
+                  <label className="flex min-h-11 items-center gap-2 text-base text-muted-foreground">
                     <input
                       type="radio"
                       value={stack.id}

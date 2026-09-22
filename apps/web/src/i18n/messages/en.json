@@ -10,7 +10,7 @@
     "inTheOpen": "Readi is being built in the open. Today you can set up your profile and CV; mock interviews, feedback reports and study plans are on the way.",
     "getStarted": "Start free",
     "logIn": "Log in",
-    "freeNote": "Free plan: 3 text mock interviews every month. Frontend, backend and QA.",
+    "freeNote": "Free plan: 3 text mock interviews every month. Frontend, backend, QA and full-stack.",
     "example": {
       "caption": "Example feedback from a frontend mock interview",
       "question": "Interviewer: a product page is slow on older Android phones. What would you do?",
@@ -43,7 +43,7 @@
     },
     "audience": {
       "heading": "Who it’s for",
-      "body": "Frontend, backend and QA engineers, from intern to mid-level. If you are getting ready for your first technical interview, or aiming for a remote role abroad, the questions meet you where you are."
+      "body": "Frontend, backend, QA and full-stack engineers, from intern to mid-level. If you are getting ready for your first technical interview, or aiming for a remote role abroad, the questions meet you where you are."
     },
     "cost": {
       "heading": "What it costs",
@@ -409,9 +409,16 @@
         "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first.",
         "roleHasNoPublishedLevel": "Publish one of the role's levels first, or a candidate would be offered a role with nothing to choose.",
         "roleInUse": "Published content or a candidate's profile still uses this role, so it cannot be withdrawn.",
-        "levelInUse": "A published role still offers this level. Retire the role, or take the level off it first.",
+        "levelInUse": "A published role, a published track, a published question or a candidate's profile still uses this level, so it cannot be withdrawn.",
         "stackInUse": "A published role, a published question or a candidate's profile still uses this stack, so it cannot be withdrawn.",
-        "oneDefaultStack": "Only one stack can be the default."
+        "roleGone": "That role is not in the catalogue any more. Choose another.",
+        "levelGone": "That level is not in the catalogue any more. Choose another.",
+        "stackGone": "That stack is not in the catalogue any more. Choose another.",
+        "questionHasNoPublishedRole": "Every role this question is written for is still a draft, so no candidate could be asked it. Publish one of them first.",
+        "questionHasNoPublishedLevel": "Every level this question is written for is still a draft, so no candidate could be asked it. Publish one of them first.",
+        "questionHasNoPublishedStack": "Every stack this question is tagged for is still a draft, so no candidate could be asked it. Publish one of them, or take the tags off to make the question general.",
+        "cursorInvalid": "That page link is stale. Go back to the first page and try again.",
+        "versionNotFound": "That version is not in the history any more."
       },
       "transition": {
         "legend": "Workflow",
@@ -573,8 +580,8 @@
         "stacksHint": "Leave them all unticked for a role with no variants. The default is where the candidate's picker starts.",
         "noStacks": "No stacks yet. Add one under Stacks first.",
         "default": "Default",
-        "unpublished": "Not published yet",
-        "catalogueCapped": "Showing the first {count}. Search the Levels and Stacks lists for the rest."
+        "catalogueCapped": "Showing the first {count}. Search the Levels and Stacks lists for the rest.",
+        "noDefault": "No default — the candidate chooses"
       },
       "level": {
         "name": "Name",

@@ -61,6 +61,65 @@ describe("reading a seed file", () => {
   });
 });
 
+/*
+ * A role written in a file must obey the same rules as a role written in the CMS. The importer
+ * builds a `CareerRoleInput` out of `SeedCareerRole` and hands it to `ContentService`, which does
+ * not re-parse — so anything only `CareerRoleInput` enforces, the files could break silently
+ * (M2.5 review, 2026-09-22).
+ */
+describe("a role in a seed file", () => {
+  const role = (stacks: string) => `
+version: 1
+author: ai_draft
+status: draft
+career_roles:
+  - slug: a-role
+    name: A role
+    summary: null
+    position: 0
+    supported_question_types: [technical]
+    levels: [mid]
+    stacks:
+${stacks}
+`;
+
+  it("accepts one default stack, and none", () => {
+    expect(
+      loadSeedSource("roles.yaml", role("      - { stack: one, default: true }")).problems,
+    ).toEqual([]);
+    expect(
+      loadSeedSource("roles.yaml", role("      - { stack: one, default: false }")).problems,
+    ).toEqual([]);
+  });
+
+  it("refuses two default stacks, because the picker starts in one place", () => {
+    const { problems } = loadSeedSource(
+      "roles.yaml",
+      role("      - { stack: one, default: true }\n      - { stack: two, default: true }"),
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]?.message).toContain("only one stack can be the default");
+  });
+
+  it("refuses the same stack twice", () => {
+    const { problems } = loadSeedSource(
+      "roles.yaml",
+      role("      - { stack: one, default: true }\n      - { stack: one, default: false }"),
+    );
+    expect(problems[0]?.message).toContain("a stack may be listed only once");
+  });
+
+  it("refuses the same level twice", () => {
+    const source = role("      - { stack: one, default: true }").replace(
+      "levels: [mid]",
+      "levels: [mid, mid]",
+    );
+    expect(loadSeedSource("roles.yaml", source).problems[0]?.message).toContain(
+      "a level may be listed only once",
+    );
+  });
+});
+
 describe("the seed corpus we ship", () => {
   it("is valid against the contract, every file", () => {
     const { files, problems } = loadSeedDirectory(SEED_ROOT, resolve(__dirname, "../../../.."));

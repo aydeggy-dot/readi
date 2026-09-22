@@ -18,7 +18,13 @@ export function orderedForRole<T extends { id: string }>(
   const ordered: T[] = [];
   for (const id of chosen) {
     const row = byId.get(id);
-    // A row the list did not return (retired, or past the first page) is simply not offered here.
+    /*
+     * A row the list did not return is simply not offered here — which today means only "past the
+     * first page", since `catalogueChoices` asks for every status. That case is real: the editor
+     * says so (`admin.content.role.catalogueCapped`), but saying so does not stop the save from
+     * dropping the link, so a catalogue past 100 rows needs the pager, not just the warning. See
+     * `tasks/todo.md`.
+     */
     if (row && !taken.has(id)) {
       ordered.push(row);
       taken.add(id);

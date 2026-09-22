@@ -137,8 +137,14 @@ test("an admin adds a role to the catalogue, and a candidate is offered it", asy
     await admin.goto("/admin/content/levels");
     await admin.getByRole("link", { name: LEVEL_NAME }).click();
     await confirm(admin, "Retire");
+    /*
+     * The refusal is explained in the CMS's own words, not the server's (ADR-0012). Matched on the
+     * clause that names the level rather than on the whole sentence: the copy lists all four things
+     * that can hold a level (a published role, track or question, or a candidate's profile), and
+     * the list is the sort of thing that grows.
+     */
     await expect(
-      admin.getByText("A published role still offers this level", { exact: false }),
+      admin.getByText("still uses this level, so it cannot be withdrawn", { exact: false }),
     ).toBeVisible();
   });
 

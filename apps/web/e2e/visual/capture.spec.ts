@@ -48,6 +48,14 @@ const SCREENS = [
   ["26-content-lessons", "/admin/content/lessons", "expert"],
   ["27-content-tracks", "/admin/content/tracks", "expert"],
   ["28-content-topics", "/admin/content/topics", "expert"],
+  // The catalogue (M2.5, ADR-0015). The role editor is the widest form in the CMS — every level
+  // and every stack, each with a Default radio — so 360px is worth a picture of.
+  ["29-content-roles", "/admin/content/roles", "expert"],
+  ["30-content-role-new", "/admin/content/roles/new", "expert"],
+  ["31-content-levels", "/admin/content/levels", "expert"],
+  ["32-content-level-new", "/admin/content/levels/new", "expert"],
+  ["33-content-stacks", "/admin/content/stacks", "expert"],
+  ["34-content-stack-new", "/admin/content/stacks/new", "expert"],
 ] as const satisfies ReadonlyArray<readonly [string, string, StateKey | null]>;
 
 /** 360px is the narrowest width we support; 1280px is where the desktop layout applies. */
@@ -73,7 +81,15 @@ async function fillProfile(page: Page, name: string): Promise<void> {
   await page.getByRole("radio", { name: "Backend engineer" }).check();
   await page.getByRole("radio", { name: "Mid-level" }).check();
   await page.getByRole("spinbutton", { name: "Years of professional experience" }).fill("3");
-  await page.getByRole("textbox", { name: "Your main stack" }).fill("Go");
+  /*
+   * The variant the candidate is interviewing for, and then the free-text list of what else they
+   * know — two different fields since M2.5 (ADR-0015). This step named "Your main stack", which
+   * stopped existing when `stack` became `technologies`, and nothing noticed for two phases
+   * because this spec only runs when `E2E_SCREENSHOTS` is set. A screen it cannot reach is a
+   * screen it cannot photograph, so the captures are only as current as this function.
+   */
+  await page.getByRole("radio", { name: "Go", exact: true }).check();
+  await page.getByRole("textbox", { name: "What do you work with?" }).fill("Go");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("radio", { name: "Remote role at a foreign company" }).check();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -137,6 +153,13 @@ test.describe("visual review", () => {
   test(`every screen at ${VIEWPORTS.map((v) => `${v.width}px`).join(" and ")}, light and dark`, async ({
     browser,
   }) => {
+    /*
+     * 34 screens × 2 widths × 2 themes is 136 full-page screenshots, and the whole run takes about
+     * two and a half minutes. The ceiling is this high because the failure it guards against is a
+     * *hang* — a locator in `seedAccounts` that will never match, which is how this spec spent
+     * twenty minutes producing nothing when a field was renamed under it. A generous timeout costs
+     * nothing on a run that is skipped unless `E2E_SCREENSHOTS` is set.
+     */
     test.setTimeout(20 * 60 * 1000);
     const states = await seedAccounts(browser);
     const dir = `${OUT}/${label ?? "unlabelled"}`;

@@ -55,9 +55,24 @@ export const rubricInclude = {
 const bySlug = { orderBy: { slug: Prisma.SortOrder.asc } };
 
 export const questionLinkInclude = {
-  roles: { orderBy: { role: bySlug.orderBy }, include: { role: { select: { slug: true } } } },
-  levels: { orderBy: { level: bySlug.orderBy }, include: { level: { select: { slug: true } } } },
-  stacks: { orderBy: { stack: bySlug.orderBy }, include: { stack: { select: { slug: true } } } },
+  /*
+   * `status` alongside the slug because publishing a question has to know whether the catalogue
+   * rows it is tagged with are published themselves: a question tagged only with a draft stack is
+   * offered to nobody, since nobody may choose that variant (`assertPublishable`). Only the slug
+   * reaches the wire.
+   */
+  roles: {
+    orderBy: { role: bySlug.orderBy },
+    include: { role: { select: { slug: true, status: true } } },
+  },
+  levels: {
+    orderBy: { level: bySlug.orderBy },
+    include: { level: { select: { slug: true, status: true } } },
+  },
+  stacks: {
+    orderBy: { stack: bySlug.orderBy },
+    include: { stack: { select: { slug: true, status: true } } },
+  },
 } satisfies Prisma.QuestionInclude;
 
 export const questionInclude = {
@@ -342,11 +357,19 @@ export const rubricContent = (row: RubricRow): RubricInput => ({
   })),
 });
 
+/*
+ * The read side of the same set rule. The database orders these by slug, and the input side sorts
+ * with JavaScript's `.sort()` — two collations that agree today for every slug we ship, and not by
+ * anything stronger than coincidence: glibc's `en_US.UTF-8` ignores a hyphen at the primary weight
+ * and UTF-16 code units do not, so `vue-x` / `vuen` would order differently in the two. Sorting
+ * here as well makes both sides one comparison, and the idempotency test that caught the original
+ * ordering bug stays meaningful (M2.5 review, 2026-09-22).
+ */
 export const questionContent = (row: QuestionRow): QuestionInput => ({
   slug: row.slug,
-  roles: row.roles.map((link) => link.role.slug),
-  levels: row.levels.map((link) => link.level.slug),
-  stacks: row.stacks.map((link) => link.stack.slug),
+  roles: row.roles.map((link) => link.role.slug).sort(),
+  levels: row.levels.map((link) => link.level.slug).sort(),
+  stacks: row.stacks.map((link) => link.stack.slug).sort(),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,

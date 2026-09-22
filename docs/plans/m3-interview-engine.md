@@ -1,6 +1,8 @@
 # M3 — Interview engine (text mode) + the diagnostic
 
-Branch: `feat/m3-interview-engine`, cut from `main` at `833e3fa` (M2 merged).
+Branch: `feat/m3-interview-engine`, cut from **`main` once M2.5 is merged** — not from `833e3fa`,
+which this plan originally named and which predates the catalogue this plan now depends on
+entirely.
 
 ## Context
 
@@ -19,7 +21,7 @@ Four owner decisions taken at planning (2026-09-22):
 |---|---|
 | How interviewer text reaches the browser | **SSE, whole-turn frames.** Each turn is one schema-validated object; token streaming waits for M5, where voice latency needs it |
 | What the candidate sees when a session ends | **The real processing screen** (polling, the `cv-panel.tsx` pattern) over an honest "scoring arrives next" state, above the full transcript |
-| Session lengths at MVP | **15 and 30 minutes only.** 45 waits until the question bank supports it (8 frontend / 5 backend / 5 QA today) |
+| Session lengths at MVP | **15 and 30 minutes only.** 45 waits until the question bank supports it (8 frontend / 3 backend / 3 QA today, plus full-stack sharing 11 of those without a bank of its own) |
 | `LLM_MODEL_INTERVIEWER` | **`claude-sonnet-5`** — one price row shared with CV parsing; ≈2–4¢ per 30-minute text mock |
 
 ## Carried forward, answered
@@ -138,15 +140,24 @@ Reused, not rebuilt: `RedisRateLimiter`, `AuditService.record(entry, tx)`, `AiCa
 ## Data model
 
 ```
-InterviewSession   user_id → User (cascade: transcripts are personal data), role, level, type,
-                   mode(text), persona(friendly), is_diagnostic, planned_minutes, state, status,
-                   started_at, ends_at, ended_at?, last_activity_at, selection_seed,
+InterviewSession   user_id → User (cascade: transcripts are personal data),
+                   career_role_id → CareerRole, career_level_id → CareerLevel, stack_id? → Stack,
+                   role_version, level_version, stack_version?,   -- the catalogue is content too
+                   type, mode(text), persona(friendly), is_diagnostic, planned_minutes, state,
+                   status, started_at, ends_at, ended_at?, last_activity_at, selection_seed,
                    prompt_versions Json, model_config Json, engine_snapshot Json?
 InterviewSessionQuestion  session_id (cascade), position, question_id, question_version,
                    rubric_id, rubric_version, snapshot Json   -- the pinned content
 SessionTurn        session_id (cascade), seq, speaker, state, session_question_id?, follow_up_index?,
                    text, started_ms, ended_ms, stt_confidence?   -- @@unique([session_id, seq])
 ```
+
+The role, level and stack are FKs **and** pinned versions: they are versioned content since ADR-0015,
+so renaming a role after a session must not change what that session's report says it was. The pinning
+test extends to "rename the role afterwards; the report still says what it said". Contracts carry
+slugs, not ids, and reference `Slug` from `packages/shared-types/src/contracts/slug.ts` — its own
+file precisely so that `content.ts`, `seed.ts`, `profiles.ts` and `cv.ts` can share it.
+`TargetRole` and `ExperienceLevel` no longer exist.
 
 `snapshot` carries the answer key, so it never leaves the API: candidate shapes are separate schemas
 (`CandidateSessionQuestion` = position, prompt, context, type, topic) and
@@ -168,7 +179,10 @@ still reading its route list from the OpenAPI document.
 ## Question selection
 
 Pure and deterministic given `selection_seed` (`apps/api/src/interviews/question-selection.ts`):
-published questions whose **rubric is also published**, filtered by role/level/type, excluding those seen
+published questions whose **rubric is also published**, filtered by role/level/type **and stack** —
+eligibility is role matches, level matches, and (no stack tags OR a stack tag matching the session's
+stack), which is `isOfferedToStack` / `stackFilter` in `apps/api/src/content/question-eligibility.ts`
+(ADR-0015), **reused rather than rewritten** — excluding those seen
 in the last 3 sessions (configurable), weighted toward weak topics — the input exists now and is empty
 until M4 supplies evaluations — and falling back to the **least-recently-seen** questions when too few
 remain (kickoff #16). Unit-tested against a fixed seed.
@@ -178,6 +192,9 @@ remain (kickoff #16). Unit-tested against a fixed seed.
 Ordered so each phase makes the next one reviewable (the M2 lesson), stopping after each for the owner.
 
 **Phase 1 — contracts, schema, sessions and selection (API only, no LLM).**
+Interview specs **mint their own catalogue rows** rather than extending the old `(role, level)`
+pair-ownership scheme in `content-fixtures.ts` — that scheme existed because the enum had six pairs
+and four were taken, and M2.5 deleted it.
 Contracts + constants; Prisma models and one migration; `InterviewsModule` with create/list/get; the
 pinning bundle; seeded selection with its unit tests; rate limits; the stale-session sweep; integration
 tests including the pinning test and the widened answer-key test.
@@ -192,10 +209,12 @@ interview", "reveal the ideal answer").
 **Phase 3 — wiring.**
 `advanceInterview` on `AiWorkerClient`; the SSE route and its frame contract; idempotent turn
 persistence; `ai_call_log` rows carrying the session id; resume after a Redis miss; end-early and
-abandon; ADR-0015.
+abandon; **ADR-0016** (M2.5 took 0015).
 
 **Phase 4 — the web.**
-Practice list and setup; the chat screen; the end-interview confirm (the two-click pattern from
+Practice list and setup (role, level and stack from `GET /api/content/career-roles`, published only,
+defaulting to the profile; the types offered are the role's `supported_question_types`, so the
+"preset mixed session" is mixed **per that role**); the chat screen; the end-interview confirm (the two-click pattern from
 `transition-panel.tsx`, not a modal at 360px); the processing/completion screen; the diagnostic CTA on
 `/home`; the phone tab bar; `interview-errors.ts`; the `interview` i18n namespace.
 

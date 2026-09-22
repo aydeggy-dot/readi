@@ -2,9 +2,10 @@
 # and the stack variants it is interviewed for.
 #
 # Which roles come next, and why, is `docs/role-catalogue.md`. Wave 1 is frontend, backend, QA and
-# full-stack; full-stack is deliberately **not** in this file, because it needs the many-to-many
-# question↔role link that arrives in M2.5 phase 3 — adding it through the CMS, with no code change
-# and no migration, is this milestone's acceptance criterion.
+# full-stack. Full-stack was added in M2.5 phase 5 as the milestone's acceptance proof: a fourth
+# role, with its levels and its variants, arriving as content — this file, four rows in
+# `stacks.yaml`, a second role tag on the questions that transfer, and an admin pressing Publish.
+# No code change and no migration.
 #
 # `supported_question_types` is what a session for this role may contain (M3 reads it). QA carries
 # `test_design` because a QA interview is largely "here is a feature — how would you test it?".
@@ -55,3 +56,21 @@ career_roles:
       - { stack: api-testing, default: false }
       - { stack: appium, default: false }
       - { stack: performance-testing, default: false }
+
+  # Full-stack owns a feature end to end, so its bank is the frontend and backend questions that
+  # transfer plus the boundary questions neither side asks. It has no directory of its own and no
+  # track yet: the boundary questions and the track are the question-bank pass
+  # (`docs/plans/content-catalogue-banks.md`), not something to improvise here.
+  - slug: fullstack
+    name: Full-stack engineer
+    summary: Owns a feature end to end — the screen, the API behind it, and the data underneath.
+    position: 3
+    supported_question_types: [technical, scenario, behavioral]
+    levels: [intern-junior, mid]
+    stacks:
+      - { stack: react-node, default: true }
+      - { stack: nextjs, default: false }
+      - { stack: django-react, default: false }
+      - { stack: laravel-vue, default: false }
+      - { stack: ruby-rails, default: false }
+      - { stack: dotnet-react, default: false }

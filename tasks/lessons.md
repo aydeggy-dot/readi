@@ -234,3 +234,70 @@ unit tests around it: it failed on real content, in the one shape a fixture woul
 comparison, not just the one you happen to control. And note which collections are genuinely ordered
 — a role's stacks _are_ their order, because that is the order a candidate sees in the picker — so
 the fix is per-field judgement, not a blanket sort.
+
+## Test the claim by doing the thing, not by reading the code (M2.5 phase 5, 2026-09-22)
+
+The milestone's claim was "adding a role is content, not code". A subagent swept the whole repo for
+hardcoded role slugs and came back clean, which is good evidence and not proof — a grep can only
+find what it knows to look for. Adding the role for real found two things the sweep could not:
+
+- the seed importer refuses to rewrite **published** rows, so three of the eleven questions being
+  tagged were left alone and named, and the tagging needed `--force` or the CMS. That is the rule
+  working, but it is a step nobody had written down in the acceptance criterion;
+- the generated expert-review pages never printed which **roles** a question is for, which only
+  mattered once `REVIEW.md` started asking reviewers to confirm them.
+
+**The rule:** an acceptance criterion phrased as an absence ("no code change") is tested by
+performing the action end to end and then reading `git diff`, not by searching for the thing that
+should not exist. And when the walkthrough does turn up a code change, name it and say why it is not
+the thing the criterion forbids — a claim with an unstated exception is worth nothing.
+
+## A generated file that another tool reformats will churn (M2.5 phase 5, 2026-09-22)
+
+`content:review-doc` writes `*cost*`; Prettier rewrites it to `_cost_`. Both are correct markdown,
+`pnpm lint` checks neither, and the committed pages happened to be in Prettier's dialect because
+somebody had run `pnpm format` after generating last time. So a regeneration produced a diff of
+emphasis markers mixed in with the real change, in a file whose whole purpose is being read by a
+human reviewer.
+
+**The rule:** a generator whose output lives in the repo has to agree with whatever else formats
+that repo — either emit the formatter's dialect, or make running the formatter part of the documented
+command. The second is cheaper and is what `content/seed/README.md` now says.
+
+## A guard's first job is to tell you where the rule was already being broken (M2.5 review, 2026-09-22)
+
+The new rule — a question cannot be published unless at least one of its roles, levels and (if any)
+stacks is published, because otherwise nobody can ever be offered it — broke seven tests in
+`content-embeddings.int.spec.ts` the moment it landed. The spec names `frontend` and `mid` directly.
+Those rows exist in the test database only because a _different_ spec, `content-seed.int.spec.ts`,
+imports the real corpus, which creates them as **drafts**. So the embeddings spec had been publishing
+questions that no candidate could ever have been offered, and it worked only as long as the other
+spec ran first.
+
+Two things worth keeping:
+
+- **A test that names content it does not create is borrowing, and what it borrows can change under
+  it.** Every other spec mints its own catalogue pair (`seedCataloguePair`); this one did not, and
+  the cost was hidden until a rule made it visible. It mints one now.
+- **When a new guard fails existing tests, read the fixtures before weakening the guard.** The
+  temptation is to add an exemption. Here the failures were the guard working: seven questions in a
+  fixture were in exactly the state the rule exists to prevent.
+
+## A test that only runs when asked is a test that rots (M2.5 phase 5, 2026-09-22)
+
+`apps/web/e2e/visual/capture.spec.ts` is skipped unless `E2E_SCREENSHOTS` is set, which is the right
+call — it takes twenty minutes and writes 136 files nobody wants on every CI run. The cost showed up
+the first time it was asked for in three phases: its `fillProfile` still typed into a field labelled
+"Your main stack", which stopped existing in phase 4 when `Profile.stack` became `technologies`. The
+run did not fail fast; it waited on a locator that would never appear and died on its own timeout,
+having written nothing.
+
+Two things to keep:
+
+- **When a milestone renames a field, grep the skipped specs too.** `pnpm test:e2e` being green says
+  nothing about the specs it skipped. The phase-4 checklist would have caught this with one
+  `grep -rn "main stack" apps/web/e2e`.
+- **The screens a capture cannot reach are the screens it cannot photograph.** A visual suite whose
+  seeding is out of date silently narrows to whatever it can still get to — here, nothing at all,
+  which at least failed loudly. A partial failure would have been worse: a "before/after" review of
+  a subset nobody noticed had shrunk.

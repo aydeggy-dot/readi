@@ -226,6 +226,7 @@ export function QuestionForm({
         </div>
 
         <CatalogueChecks
+          name="roles"
           legend={t("admin.content.question.roles")}
           hint={t("admin.content.question.rolesHint")}
           options={roles}
@@ -235,6 +236,7 @@ export function QuestionForm({
         />
 
         <CatalogueChecks
+          name="levels"
           legend={t("admin.content.question.levels")}
           options={levels}
           empty={t("admin.content.catalogue.noLevels")}
@@ -248,6 +250,7 @@ export function QuestionForm({
           it (ADR-0015). Tagging narrows the audience, so the hint says so before the tick.
         */}
         <CatalogueChecks
+          name="stacks"
           legend={t("admin.content.question.stacks")}
           hint={t("admin.content.question.stacksHint")}
           options={stacks}
@@ -427,6 +430,7 @@ export function QuestionForm({
  * what this replaces — and the fourth would have been written by copying the third.
  */
 function CatalogueChecks({
+  name,
   legend,
   hint,
   options,
@@ -434,6 +438,8 @@ function CatalogueChecks({
   error,
   inputProps,
 }: {
+  /** Names the error text, so it is attached to the group rather than orphaned in the DOM. */
+  name: string;
   legend: string;
   hint?: string;
   options: readonly CatalogueOption[];
@@ -442,20 +448,23 @@ function CatalogueChecks({
   error?: string;
   inputProps: Omit<React.ComponentProps<"input">, "type" | "value">;
 }) {
+  const errorId = error ? `${name}-error` : undefined;
   return (
-    <fieldset className="flex flex-col gap-2">
+    <fieldset className="flex flex-col gap-2" aria-describedby={errorId}>
       <legend className="mb-1 font-bold text-heading">{legend}</legend>
       {hint && <p className="-mt-1 mb-1 text-base text-muted-foreground">{hint}</p>}
       {options.length === 0 ? (
         <p className="text-base text-muted-foreground">{empty}</p>
       ) : (
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-x-4">
           {options.map((option) => (
-            <label key={option.slug} className="flex items-center gap-2 text-base">
+            <label key={option.slug} className="flex min-h-11 items-center gap-2 text-base">
               <input
                 type="checkbox"
                 value={option.slug}
                 className="size-4 accent-primary"
+                aria-invalid={error ? true : undefined}
+                aria-errormessage={errorId}
                 {...inputProps}
               />
               {option.name}
@@ -463,7 +472,7 @@ function CatalogueChecks({
           ))}
         </div>
       )}
-      <FieldError message={error} />
+      <FieldError id={errorId} message={error} />
     </fieldset>
   );
 }

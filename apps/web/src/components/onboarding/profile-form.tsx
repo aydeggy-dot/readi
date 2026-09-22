@@ -87,8 +87,10 @@ export function ProfileForm({
   /*
    * A level belongs to the role that offers it, so changing the role changes the ladder. A level
    * the new role is not hired at has to go with it: its radio is no longer drawn, so leaving the
-   * value behind would submit a choice nobody can see, and the API would answer
-   * `level_not_offered_for_role` about a field the form looks happy with.
+   * value behind would submit a choice nobody can see, and the API would answer with a **field
+   * error** on `level` ("that role is not hired at that level") about a field the form looks happy
+   * with. `ProfilesService` answers this form in field errors, never in codes — see
+   * `profile-errors.ts`.
    */
   const offered = levelOptions.map((option) => option.slug).join(" ");
   useEffect(() => {

@@ -656,6 +656,74 @@ rather than letting a save drop what it never showed — `admin.content.role.cat
 - M10: PNG PWA icons (192/512, maskable), Lighthouse pass (landing page ships ~180 KB gzip JS today).
 - M10: Sentry source-map upload (`@sentry/cli` build script is denied until then).
 
+- **M3 — a "not listed / other" path for a candidate whose variant we do not offer.** The picker
+  offers the role's variants and "Not sure yet", and "Not sure yet" means _general questions only_
+  (ADR-0015). A candidate who writes Svelte, or Spring Boot when the list says "Java / Spring", has
+  nowhere honest to land: choosing a variant that is not theirs buys them the wrong questions, and
+  choosing nothing buys them a thinner set with no explanation of why. Decide it in M3, when question
+  selection is written — whether "Other" is a third state carrying a free-text note that never touches
+  eligibility, or "Not sure yet" renamed and explained on the setup screen, and what the screen tells
+  the candidate they are getting either way. It is as much a content gap as a code one: the right
+  answer is often "add the variant", so whatever we build should make it easy to tell us which one.
+
+- **M7 (content), shape decided in M3 — the role-agnostic content nobody owns yet.** Two pieces apply
+  to every role in the catalogue and belong to none of the banks:
+  - **The candidate's own questions at the end.** M3 has a `CANDIDATE_QUESTIONS` state and the spec
+    promises "lightweight feedback" there (§4.3), with nothing behind it — no rubric, no guidance, no
+    lesson. Decide in M3 what that feedback is scored against; write the content with the banks.
+  - **Salary negotiation.** Spec §2 names it as a mid-level switcher's need and nothing in the product
+    answers it. It is a lesson track, not a question bank, and `Track` is keyed by role and level, so
+    role-agnostic content has no home today: it needs either a catalogue entry that means "any role" or
+    a second kind of track. Decide the shape before writing the content, not after.
+
+- **Before M3's plan is final — should the coding round move earlier?** Spec §4.3 tags the coding
+  interview (Monaco + Judge0) **[P2]** and `docs/plans/m3-interview-engine.md` leaves it out. But it is
+  the round candidates most often fail for frontend, backend and full-stack — three of the four launch
+  roles — and `docs/role-catalogue.md` rates all three "Most" rather than "Full" _because of it_. A
+  text interviewer that never asks anyone to write code prepares two rounds out of three and should not
+  pretend otherwise (product principle 1). Against moving it: a sandbox or Judge0 is infrastructure we
+  do not run yet, Monaco would be the heaviest thing on a mobile-first product (lazy-loaded, but still),
+  and code is not the answer shape M4's evaluator is being built around. This is a milestone re-order,
+  so it is the owner's call, and it is cheaper to take before M3 plans than after M4 has assumed every
+  answer is prose.
+
+- **M7, or the question-bank pass — one-tap technology suggestions, as a content field on `Stack`.**
+  M2.5 phase 4 deleted `stack-suggestions.ts`, because its suggestions were the role's _variants_ and
+  the picker above the field now offers exactly those. The free-text `technologies` field ("anything
+  else you know") lost its chips with it, and is bare typing on a phone. Bring them back where they
+  belong: a `suggested_technologies` list on each `Stack` row — Node.js (Express / NestJS) → Express,
+  NestJS, PostgreSQL, Redis, Jest — seeded from `stacks.yaml`, editable in the CMS, and drawn as tap
+  targets under the field for whichever variant the candidate picked. Content, not code, so adding one
+  stays a content change (ADR-0015). Natural home: `docs/plans/content-catalogue-banks.md`, which is
+  already going to write the stack rows properly.
+
+- **M10 — the landing page enumerates the roles in prose, and goes stale on every new one.**
+  `messages/en.json` says "Frontend, backend, QA and full-stack" in the free-plan line and in the
+  "Who it's for" paragraph, and an image caption says "a frontend mock interview". Adding full-stack
+  was content everywhere except there, where it was a copy edit — which is the right trade today
+  (marketing prose reads better than a generated list) but is worth revisiting before launch, when
+  the catalogue is longer and the copy is the owner's. Either generate the list from the published
+  catalogue, or write copy that does not enumerate ("every role we cover, from intern to mid-level").
+
+- **Senior: the level row exists, the interview behind it does not.** `senior` (rank 30) is in
+  `levels.yaml` as of M2.5 phase 5, as a **draft** that no role offers — so no candidate can choose it,
+  which is the point: the row was the cheap half, and adding it now proves the catalogue claim while
+  the content is still unwritten. What is left is not "write harder questions":
+  - **Question types.** A senior interview turns on **system design** and on trade-offs argued out
+    loud. `system_design` is not in `QUESTION_TYPES`, and the surface it needs (Excalidraw + vision
+    review) is **[P2]** in spec §4.3. Until then a senior track would be missing its centre.
+  - **Rubrics.** Seniority is scored on judgement, scope and influence — leading without authority,
+    mentoring, saying no to work, owning an outcome past your own commits. Those are dimensions the
+    junior/mid rubrics do not contain, not higher bars on the ones they do.
+  - **Session length.** 15 minutes cannot hold a design discussion; senior sessions are longer, which
+    touches the time budget, the question budget and the voice-minute allowance (spec §4.6).
+  - **Readiness.** See the M6 item above — the `technical`/`behavioral`/`communication` split is a
+    junior-to-mid engineering shape, and "leadership" does not fit in it.
+
+  So: the level row lands in M2.5 (done), the bank and rubrics land with the question-bank pass, and
+  the level is **offered by a role and published only when its content exists** — an empty level in the
+  picker is worse than no level at all.
+
 ## Repository
 
 - Done (owner, 2026-09-19): the old Windows `origin` was removed; `origin` is now the private GitHub repo
@@ -789,3 +857,247 @@ walkthrough above needed and what `content/seed/REVIEW.md` says developer databa
 **demoted back to `candidate`**; it joins `phase4-check@example.com` and
 `cms-catalogue-check@example.com` in the test accounts to remove at the end of the milestone.
 `aydeggy5@gmail.com` keeps its admin role.
+
+## M2.5 phase 5 — the proof, the ADR and the docs (done 2026-09-22)
+
+The milestone's claim is "adding a role is content". Phase 5 tested that claim by adding one, and
+then wrote down what the previous four phases decided.
+
+### The acceptance proof — a fourth role, added as content
+
+- [x] **Full-stack engineer is in the catalogue, and no code changed and no migration ran.** Four
+      rows in `stacks.yaml` (React + Node, Django + React, Laravel + Vue, .NET + React — Next.js
+      and Ruby on Rails are the rows frontend and backend already offer), one block in `roles.yaml`
+      with its two levels and six variants, `pnpm db:seed`, then an admin publishing the stacks and
+      the role in `/admin/content` at 360px. `git diff` over `apps/` for the role itself: nothing
+- [x] **Eleven of the fourteen seeded questions carry `fullstack` as a second role** — the eight
+      frontend and three backend ones. The three QA questions do not: a QA interview is not part of
+      a full-stack interview. No question was copied; the many-to-many link is the whole point
+- [x] The two React questions also gained the **React + Node** variant, so the stack rule can be
+      seen working on a real role: a full-stack candidate on React + Node is offered them, one on
+      Laravel + Vue is not
+- [x] **Walked by hand at 360px**, signed in as a candidate: the onboarding picker offers four roles;
+      choosing Full-stack draws its six variants in the role's order with React + Node preselected
+      and "Not sure yet" last; `GET /api/content/practice` for a **mid, React + Node** candidate
+      returns four questions — `api-error-shape` and `n-plus-one-diagnosis` from the backend bank and
+      both React ones from the frontend bank, which is the argument for the role in one response —
+      and the same candidate switched to **Laravel + Vue** is offered the two backend ones only
+- [x] The three questions already published in the dev database were left alone by the importer and
+      **named** in its report, exactly as ADR-0014 decision 7 says; `pnpm db:seed -- --force` was the
+      way through. On a production database the honest path is the other one the report offers:
+      edit them in `/admin/content` as an admin, which is an audited act against a person's name
+
+**The one thing full-stack does not have: a track.** `GET /api/content/track` answers
+`track_not_found` for a full-stack candidate, because tracks are keyed by role and level and nobody
+has written one. That is content, not a defect — the track and the boundary questions are
+`docs/plans/content-catalogue-banks.md` — but it is the one place the role is visibly thinner than
+the three it was built from.
+
+### The `senior` level
+
+- [x] `senior` (rank 30) added to `levels.yaml` as a **draft that no role offers**, so no candidate
+      can choose it. The row is the cheap half; the interview behind it (system design, rubric
+      dimensions for scope and influence, a longer session) is not written. Recorded under
+      § Carried forward with what it will take
+
+### Docs
+
+- [x] **ADR-0015** — nine decisions, five alternatives considered, and §9 records the acceptance
+      proof above
+- [x] `docs/role-catalogue.md` re-checked against what shipped: wave 1 is in the catalogue now, the
+      stack lists match the seeded slugs and their defaults, full-stack stops being a recommendation
+      and states what it actually has, and the levels note says `senior` exists but is offered by
+      nobody
+- [x] `PRODUCT_SPEC.md` §3 (four roles; roles/levels/stacks are content), §4.1 (`target_stack` and
+      `technologies` are two different fields), §4.2 (the stack rule), §4.3 (setup reads the
+      catalogue; selection filters by stack), §6.1 (the three entities, the five join tables, the
+      rewritten `Profile`, `Track` and `Question`)
+- [x] `CLAUDE.md` §5 — the catalogue rule, including "if a new role needs a code change, that is a
+      bug in the code rather than a step in the task"
+- [x] `content/seed/README.md` (a role needs no directory; a second role tag costs nothing) and
+      `REVIEW.md` (a **sixth** question for the experts: does this question belong to full-stack too?)
+- [x] `docs/PROMPTS.md` — a new M2.5 entry, and the M3 prompt corrected: stack in selection, the
+      catalogue on the setup screen, version pinning that now includes role/level/stack, labels not
+      keys to the worker, per-role interview types, and the transport ADR renumbered to **0016**
+- [x] `docs/plans/m3-interview-engine.md` brought onto the catalogue — the ten edits the M2.5 plan
+      listed under "What the saved M3 plan must change", applied now rather than left for M3 to trip over
+- [x] Landing copy: "Frontend, backend and QA" is four roles now, in two places
+
+**One code change in this phase, and it is not the role's.** The generated review pages never named
+which roles a question is for, and REVIEW.md now asks the experts to confirm exactly that — so
+`review-doc.ts` prints `roles: …` in each question's heading, with a unit test
+(`review-doc.spec.ts`, the first for that file). The catalogue did not need it; the new reviewer
+question did.
+
+**Also learned:** `content:review-doc` does not emit Prettier's markdown (`*cost*` vs `_cost_`), so
+regenerating without running `pnpm format` afterwards churns the diff. The README's command block
+says so now.
+
+### The verification checklist for this milestone
+
+Run from a clean clone of `feat/m2.5-roles`, with the compose services up
+(`docker compose -f infra/docker-compose.yml up -d`) and no `pnpm dev` running:
+
+```bash
+pnpm install
+pnpm db:migrate                         # every migration applies to an empty database
+pnpm lint && pnpm typecheck
+pnpm check:contracts                    # Zod → Pydantic and OpenAPI → api-client, no drift
+pnpm test                               # 667: 331 API, 117 web, 85 shared-types, 56 ui, 3 api-client, 77 pytest
+pnpm test:e2e                           # 7 passed, 5 skipped by design
+pnpm db:seed && pnpm db:seed            # the second run reports everything unchanged
+pnpm --filter @readi/api content:review-doc && pnpm format   # regenerates with no diff
+pnpm build
+```
+
+Then, by hand — this is the milestone's actual claim, so it is worth doing once:
+
+1. Publish the catalogue in `/admin/content` (the importer never publishes): the three levels you
+   want, the stacks, then the roles. A role refuses to publish until one of its levels is published.
+2. Sign up, choose **Full-stack engineer**, and check the picker offers its six variants with
+   React + Node preselected and "Not sure yet" last.
+3. `GET /api/content/practice` as that candidate; switch the profile to **Laravel + Vue** and call it
+   again. The two React questions should disappear and nothing else should change.
+4. Try to retire `intern-junior` while a published role offers it. It must refuse (`level_in_use`),
+   with copy rather than the server's English.
+5. Add a role of your own invention through the CMS alone — no files — and see it in onboarding.
+   If any step of that needs a code change or a migration, the milestone has not met its criterion.
+
+### Test accounts to remove when you are done with this branch
+
+The dev database has accumulated nine accounts; **one of them, `you@example.com`, is an admin** — it
+came from the example in `CLAUDE.md` §4 being run verbatim, and it is worth removing before anything
+is ever exposed beyond localhost.
+
+```bash
+PGPASSWORD=readi psql -h 127.0.0.1 -p 15432 -U readi -d readi -c "
+  DELETE FROM users WHERE email <> 'aydeggy5@gmail.com';"
+```
+
+Every table that holds personal data cascades from `users` (sessions, accounts, profiles,
+consent_records, content_flags), so that is a complete removal of their data. What it does **not** do
+is the real thing: `eraseUser` (ADR-0011) also replaces the user's id with a tombstone id in the rows
+that are kept on purpose — `audit_logs`, `ai_call_log`, `content_versions.changed_by`,
+`published_by_user_id` — and a raw `DELETE` leaves those columns holding a uuid that no longer
+resolves. On a developer's database that is harmless and the audit trail stays readable. If you would
+rather exercise the real path, sign in as each account and use **Profile → Account → Delete**, which
+soft-deletes with a 7-day grace period and lets the hourly sweep erase it properly.
+
+`aydeggy5@gmail.com` keeps its admin role either way.
+
+## M2.5 milestone review (2026-09-22)
+
+Four reviewers over the whole milestone (`git diff 833e3fa`): authorization and privacy, schema and
+migrations, contracts and the worker, the web and the docs. Findings below; everything not listed as
+"fixed" is recorded here on purpose rather than quietly dropped.
+
+### Fixed in this phase
+
+- **A candidate could set their profile to an _unpublished_ level.** `resolveTarget` checked the role
+  for `published` and the stack for `published`, and the level not at all — while its own docstring
+  claimed all three. Reachable the moment a role lists a level before the level goes out, which is
+  the normal way a ladder is extended and exactly what `senior` now is. Fixed with a test that
+  fails without the fix (`content-catalogue.int.spec.ts`).
+- **Publishing a question whose catalogue tags are all still drafts made it invisible to everyone.**
+  Nobody can choose a draft variant, so a question tagged only with one is published, looks published
+  in the CMS, and is asked of nobody — the M2 rubric failure on three new axes. `assertPublishable`
+  now refuses with `question_has_no_published_role` / `_level` / `_stack` (at least one published per
+  axis, since a second tag on the same axis still reaches someone).
+  The guard immediately found seven questions in `content-embeddings.int.spec.ts`'s own fixture in
+  exactly that state — published against the draft `frontend` / `mid` rows that
+  `content-seed.int.spec.ts` leaves behind. That spec mints its own published pair now, like every
+  other one. See `tasks/lessons.md`.
+- **Three error codes the CMS could receive had no copy** (`role_not_found`, `level_not_found`,
+  `stack_not_found` — the "you named a catalogue row that is gone" 400s), so the editor saw "Check
+  this field" with no field marked, against ADR-0012 and against ADR-0015's own words. Fixed, and
+  `content-errors.test.ts` now **reads the codes out of the API's source** and fails on any that is
+  unmapped — which immediately found two more (`content_cursor_invalid`, `content_version_not_found`).
+- **`stackFilter` returned a bare top-level `OR`.** M3 is told to reuse it and its selection has an
+  `OR` of its own; spreading both into one `where` would have silently dropped one. Now `AND`-wrapped.
+- **The claim that the predicate and the filter "cannot drift apart" was only a comment** — and it
+  named a file that does not exist. `content-stacks.int.spec.ts` now imports `STACK_RULE` and runs
+  the whole table through the database, so a row added to it exercises both.
+- **The seed files could break rules only the HTTP contract enforced.** `SeedCareerRole` now carries
+  `CareerRoleInput`'s four refines, so two `default: true` stacks in `roles.yaml` are a validation
+  failure with a file and a line instead of a picker that starts wherever the query felt like.
+- **The role editor could not express "no default"**, although the contract calls it legitimate and a
+  native radio cannot be unchecked. Added the row, and the two catalogue forms now mark the fields a
+  validation 400 names instead of showing one unattached banner.
+- **The visual capture spec had been broken since phase 4 and nobody knew**, because it is skipped
+  unless `E2E_SCREENSHOTS` is set. `fillProfile` still typed into "Your main stack", a label that
+  stopped existing when `Profile.stack` became `technologies` — so the run hung on a locator that
+  would never appear and died on its own timeout with zero screenshots written. Fixed, and it now
+  chooses a stack variant as well, so the captured onboarding screens show the picker in use. The
+  general lesson is in `tasks/lessons.md`: a spec that only runs on request is a spec that rots,
+  and the screens it cannot reach are the screens it cannot photograph.
+- **Accessibility:** the stack picker's radios and the question editor's catalogue checkboxes carry
+  `aria-invalid` and an `aria-errormessage` pointing at error text that was previously orphaned in
+  the DOM; the CMS checkbox and radio rows are `min-h-11` rather than a 24px line of text.
+- **The leak test exercised `/api/content/career-roles` with nothing to find** — no marker can appear
+  in that payload, and `level_options` is named to miss the field-name check, so an empty response
+  would have passed. It now asserts the role, its level and its variant come back, and
+  `answer-key.ts` records why that one rename was honest.
+- **Erasure**: the account spec's profiles all left `target_stack` null, so the one `RESTRICT`
+  foreign key M2.5 added was never exercised, and the "eraseUser acts on what it lists" test covered
+  a rubric only — two of twenty tombstoned columns. Both widened.
+- **Smaller:** `questionContent` sorts the read side as well as the write side (the database's
+  collation and JavaScript's `.sort()` agree for today's slugs by coincidence, not by rule);
+  `Profile.targetRoleId` / `targetLevelId` spell out `onDelete: Restrict`, verified to produce no SQL
+  drift; `catalogue.ts` and `seed.ts` use the shared `Slug` and `distinctSlugs` instead of three more
+  copies of the same pattern; the onboarding e2e asserts the **chosen** variant rather than the row
+  label, which it would have passed on either way; `/api/content/career-roles` and the six admin
+  catalogue routes joined the documented-route list; two dead copy keys removed; the visual capture
+  covers the six new CMS screens (136 shots, about two and a half minutes).
+
+### Recorded, not fixed — each needs a decision or a milestone
+
+- **Before any deploy onto a database with rows: `20260922145408_catalogue_switch` needs catalogue
+  rows that only `pnpm db:seed` creates, and `db:seed` cannot run between two migrations.** On a
+  fresh database the backfill is vacuous and passes, which is CI and which is why this is not
+  blocking. On a database that already has a profile or a track it aborts — correctly, but with no
+  way forward, and Prisma writes a failed row into `_prisma_migrations` that blocks every later
+  `migrate deploy` until someone runs `prisma migrate resolve --rolled-back` by hand. **Do not fix by
+  editing the applied migration** — that changes its checksum and breaks every developer's history.
+  Either add a later migration that inserts the five known enum values as drafts before anything
+  needs them, or make `e2e-prepare.ts` drop and recreate, and write the recovery into a runbook.
+  Whoever deploys first owns this.
+- **Removing a level or a stack from a role silently invalidates the profiles that chose it.**
+  Retiring is refused while something uses it; un-linking is a plain content edit with no check. The
+  candidate keeps a `target_level_id` the catalogue no longer offers, and finds out only when they
+  next save their profile and are made to re-pick a level they never changed. Is un-linking supposed
+  to be refused like retiring, or to migrate the affected profiles, or to be allowed with a warning
+  that says how many candidates it will affect? A product decision, not a bug fix.
+- **A catalogue past 100 levels or stacks would drop a role's links on save.** The editor warns
+  (`catalogueCapped`) but the save still rebuilds the links from the rows it drew. Comments in
+  `catalogue-choices.ts` and `catalogue-order.ts` now say so; the fix is a pager in the role editor,
+  worth building when the catalogue is big enough to need one (wave 2 at the earliest).
+- **`catalogue.spec.ts` leaves its role, level and stack behind on every run.** The e2e database is
+  at 11 roles, 10 levels and 30 stacks after a handful of runs, against 4 / 3 / 23 of real content —
+  visible in the `m2.5` screenshots as a role editor full of "Principal 26663b18" and
+  "Elixir / Phoenix 376f9648". Harmless today and it makes the captures noisy; it stops being
+  harmless at 100 rows, where `catalogueCapped` fires and the save-drops-links bug above becomes
+  reachable in the e2e itself. The spec publishes its role, so the rows cannot simply be deleted at
+  the end — retire the role first, or give the e2e database a reset between runs (`e2e-prepare.ts`
+  creates it only if missing, which is the same knot as the migration item above).
+- **Two missing indexes**, both cheap and neither urgent: `tracks(level_id)` (the `level_in_use`
+  guard and the FK check both scan) and `questions(rubric_id)` (pre-existing; `candidatePractice`
+  joins through it). Add them when a migration is being written for another reason.
+- **`as_data` neutralises only the exact lower-case tag.** A staff-written label containing
+  `</TARGET_ROLE>` passes through un-defanged. Labels are staff-only, capped at 140 characters, and
+  the system prompt tells the model to ignore instructions inside them, so this is depth rather than
+  a hole — but the helper is advertised as complete and is not.
+- **`cv_parse_input.v2.md` is a version number with no change behind it**, because `parse.py` uses
+  one `PROMPT_VERSION` for two templates. Give them independent constants before either is released.
+- **M10: the landing page has grown to 241 KB / 2.8 s on Slow 4G**, from 169 KB / 2.3 s at the D1
+  baseline (`98bb8fd`). Neither M2 nor M2.5 touched that page, so it is shared-chunk growth. It is
+  inside the budget the e2e asserts, and it belongs with the message-catalogue item above.
+- **Untested new logic**, all of it in `apps/web` where there is still no component testing library
+  (a decision deferred to M10, above): `catalogue-choices.ts` (the `capped` flag and the sort rules),
+  `profile-errors.ts` (rewritten in phase 4 precisely because the previous version mapped codes
+  nothing raised), and `profile-form.tsx`'s `lastRole` ref, which is what stops the edit form
+  overwriting a deliberate "Not sure yet" every time it is opened. The last one silently rewrites a
+  candidate's answer when it breaks, and is the strongest argument for the testing library.
+- **Nine CMS page loads now make five API calls where they made two**, because every editor fetches
+  the catalogue its pickers draw from. All server-side and inside `Promise.all`, so no client
+  waterfall — but `serverApi()` is not `cache()`d, unlike `getMe`, so a page that calls both
+  `roleAndLevelChoices()` and `catalogueChoices()` fetches the levels twice.

@@ -75,8 +75,16 @@ test("email sign-up through onboarding to home", async ({ page }) => {
     await expect(page.getByText(email, { exact: false }).first()).toBeVisible();
     await page.screenshot({ path: "e2e/.artifacts/profile-360.png", fullPage: true });
     await expect(page.getByText("Backend engineer")).toBeVisible();
-    // The variant it kept is the one that was chosen, not the one it started on.
-    await expect(page.getByText("Interviewing for")).toBeVisible();
+    /*
+     * The variant it kept is the one that was chosen, not the one it started on. Asserting the
+     * **value** matters: the row label "Interviewing for" is drawn whatever the answer, so the old
+     * assertion passed just as happily when the picker's default (Node.js) had been saved over the
+     * candidate's choice (M2.5 review, 2026-09-22).
+     */
+    const chosenStack = page
+      .locator("dt", { hasText: "Interviewing for" })
+      .locator("xpath=following-sibling::dd");
+    await expect(chosenStack).toHaveText("Go");
     await expect(page.getByText("Ready", { exact: true })).toBeVisible();
     // Onboarding is finished, so the app stops redirecting to its steps.
     await page.goto("/onboarding");

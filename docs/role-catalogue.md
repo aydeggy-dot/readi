@@ -1,8 +1,14 @@
 # The role catalogue
 
 **Status: wave order decided by the owner, 2026-09-22.** This is a planning document, not content.
-Nothing here is published, and no question bank exists for any role below except the three we shipped
-drafts for in M2. A content expert should review any role before we write its bank.
+
+**Wave 1 is now in the catalogue** (M2.5, 2026-09-22): frontend, backend, QA and full-stack are
+`career_roles` rows with their levels and their stack variants, and `docs/adr/0015` records why they
+are content rather than an enum. They arrive from `content/seed` as **drafts** — the importer never
+publishes, so a freshly seeded database has a catalogue no candidate can see until an admin publishes
+it in `/admin/content` (ADR-0014 decision 5). The drafts are also marked `ai_draft_unreviewed`, which
+production refuses to publish at all until an expert has been through them. Everything from wave 2
+down is still planning only: no row, no bank.
 
 The owner's decisions on 2026-09-22: launch content is **frontend, backend, QA and full-stack**;
 **data analyst moves to wave 2** and may not launch until there is a SQL practice surface;
@@ -27,10 +33,13 @@ contacts; when that comes back, supersede this section with what they said.
 
 ## How to read the tables
 
-- **Levels** — the ladder we would offer. `intern_junior` and `mid` are what M2 models today; `senior`
-  is listed where the role is commonly hired at that level in this market.
-- **Stacks** — the variant dimension M2.5 introduces. A question is either general to the role or
-  tagged to one or more stacks.
+- **Levels** — the ladder we would offer. `intern-junior` and `mid` are seeded and offered by every
+  wave-1 role; `senior` is listed below wherever the role is commonly hired at that level here, and
+  exists as a **draft row that no role offers yet** — the content behind it (system design, rubric
+  dimensions for scope and influence, longer sessions) is not written. See `tasks/todo.md`.
+- **Stacks** — the variant dimension M2.5 introduced (ADR-0015). A question is either general to the
+  role, and everyone preparing for it is asked it, or tagged to one or more stacks and asked only of
+  candidates on one of them. A candidate who picks "Not sure yet" is offered the general set only.
 - **Interview types** — from `QUESTION_TYPES` today (`behavioral`, `technical`, `scenario`,
   `test_design`) plus the two the spec defers to P2: **coding** (Monaco + Judge0) and **system design**
   (Excalidraw + vision review).
@@ -52,52 +61,54 @@ costs almost nothing.
 | | |
 |---|---|
 | **What it is** | Builds what runs in the browser: interfaces, state, performance on the devices people actually own. |
-| **Levels** | intern_junior, mid, senior |
-| **Stacks** | React + TypeScript · Next.js · Vue / Nuxt · Angular · vanilla JS + a CSS framework |
+| **Levels** | intern-junior, mid, senior |
+| **Stacks** | React + TypeScript *(default)* · Next.js · Vue / Nuxt · Angular · Vanilla JS + a CSS framework |
 | **Core topics** | JavaScript fundamentals (event loop, async) · React state and rendering · CSS layout · browser rendering and performance · web networking and HTTP · accessibility · frontend testing · debugging · collaboration |
 | **Interview types** | technical · scenario · behavioral · *(P2)* coding · *(P2)* component/UI design discussion |
 | **Beyond M3** | A code editor for the "build this component" round. |
 | **Fit** | **Most** — concepts, debugging walkthroughs and behavioral rounds are all conversation. |
-| **Content today** | 8 drafted questions, 3 modules, 6 lessons (`content/seed/frontend`). |
+| **Content today** | 8 drafted questions, 3 modules, 6 lessons (`content/seed/frontend`). Two are tagged React + TypeScript / Next.js / React + Node; the other six are general. |
 
 ### Backend Engineer
 
 | | |
 |---|---|
 | **What it is** | APIs, data, and the services behind them. The most-requested hire in this market, local and remote. |
-| **Levels** | intern_junior, mid, senior |
-| **Stacks** | Node.js (Express/NestJS) · Java / Spring · Python (Django / FastAPI) · PHP / Laravel · Go · .NET · Ruby on Rails |
+| **Levels** | intern-junior, mid, senior |
+| **Stacks** | Node.js (Express / NestJS) *(default)* · Java / Spring · Python (Django / FastAPI) · PHP / Laravel · Go · .NET · Ruby on Rails |
 | **Core topics** | HTTP and API design · databases and SQL · indexing and transactions · caching · queues and async work · authentication and authorisation · concurrency · error handling · testing · observability · system design basics |
 | **Interview types** | technical · scenario · behavioral · *(P2)* coding · *(P2)* system design |
 | **Beyond M3** | A code editor; a diagram surface for the design round. |
 | **Fit** | **Most** |
-| **Content today** | 3 drafted questions (2 technical, 1 shared behavioral) — the thinnest of the three. |
+| **Content today** | 3 drafted questions (2 technical, 1 shared behavioral) — the thinnest of the three. All three are general to the role; none is stack-tagged. |
 
 ### QA Engineer
 
 | | |
 |---|---|
 | **What it is** | Designs the tests, finds what breaks, and says clearly why it matters. |
-| **Levels** | intern_junior, mid, senior |
-| **Stacks** | Manual / exploratory · Selenium + Java · Cypress · Playwright · API testing (Postman / RestAssured) · Appium (mobile) · performance (k6 / JMeter) |
+| **Levels** | intern-junior, mid, senior |
+| **Stacks** | Manual / exploratory testing *(default)* · Selenium + Java · Cypress · Playwright · API testing (Postman / RestAssured) · Appium (mobile) · Performance testing (k6 / JMeter) |
 | **Core topics** | Test design techniques · risk-based testing · bug reporting · API testing · automation fundamentals · CI and test pipelines · exploratory testing · test data management |
 | **Interview types** | test_design · scenario · behavioral · technical |
 | **Beyond M3** | Almost nothing. A QA interview is mostly "here is a feature — how would you test it?", which is exactly what our engine does. |
 | **Fit** | **Full** — the best fit on this entire list. |
-| **Content today** | 3 drafted questions. |
+| **Content today** | 3 drafted questions, all general to the role. None of the seven QA variants has a question written for it yet. |
 
-### Full-stack Engineer — *recommended addition*
+### Full-stack Engineer — *added 2026-09-22*
 
 | | |
 |---|---|
 | **What it is** | Owns a feature end to end. The most advertised title in Nigerian job posts, and the default shape of a startup hire. |
-| **Levels** | intern_junior, mid, senior |
-| **Stacks** | React + Node · Next.js · Django + React · Laravel + Vue · Rails · .NET + React |
+| **Levels** | intern-junior, mid, senior |
+| **Stacks** | React + Node *(default)* · Next.js · Django + React · Laravel + Vue · Ruby on Rails · .NET + React. Next.js and Ruby on Rails are the same rows frontend and backend already offer — a stack belongs to as many roles as offer it |
 | **Core topics** | The frontend and backend core topics, plus: where logic belongs, data flow across the boundary, deployment basics, working without a specialist beside you |
 | **Interview types** | technical · scenario · behavioral · *(P2)* coding · *(P2)* system design |
 | **Beyond M3** | Same as frontend and backend. |
 | **Fit** | **Most** |
-| **Content cost** | **Near zero, and this is the argument for it.** Once M2.5 makes the question↔role link many-to-many, a full-stack track is mostly existing frontend and backend questions tagged with a second role, plus a handful of boundary questions. No new bank. |
+| **Content cost** | **Near zero, and that was the argument for it — which held.** |
+| **Content today** | **11 questions, none of them new**: the eight frontend and three backend questions that genuinely transfer, each carrying `fullstack` as a second role. The two React ones also gained the React + Node variant, so a full-stack candidate on that stack is asked them and one on Laravel + Vue is not. **No track yet**, so `GET /api/content/track` answers `track_not_found` for a full-stack candidate — the track and the boundary questions (where logic belongs, data flow across the boundary, deploying a whole feature, working without a specialist beside you) are the question-bank pass, `docs/plans/content-catalogue-banks.md`. |
+| **How it was added** | Four rows in `stacks.yaml`, one block in `roles.yaml`, a second role tag on eleven questions, `pnpm db:seed`, and an admin pressing Publish in `/admin/content`. **No code change and no migration** — this was M2.5's acceptance criterion, and it is recorded in ADR-0015 §9. |
 
 ### On data analyst at launch
 
@@ -167,8 +178,8 @@ wave, not an afterthought at the end of it.
 
 ## The wave order, and why
 
-1. **Wave 1 — Frontend, Backend, QA, Full-stack.** Three have drafted banks; the fourth is a tagging
-   exercise once M2.5 lands. Together they cover the majority of what this market advertises.
+1. **Wave 1 — Frontend, Backend, QA, Full-stack.** Three have drafted banks; the fourth was a tagging
+   exercise, done in M2.5. Together they cover the majority of what this market advertises.
 2. **Wave 2 — Data Analyst, AI/LLM Engineer, DevOps/Cloud, Mobile.** Each needs one new bank and its own
    expert reviewer. AI/LLM sits ahead of DevOps and Mobile by the owner's decision: it is the only role
    on the list where the conversation *is* the whole interview and where essentially no prep content

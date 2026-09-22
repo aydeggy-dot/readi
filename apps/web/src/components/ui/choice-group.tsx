@@ -48,6 +48,11 @@ export function ChoiceGroup<T extends string>({
               type="radio"
               value={option.value}
               className="size-4 accent-primary"
+              // On the inputs as well as the fieldset: `aria-describedby` on a `<fieldset>` is
+              // announced unreliably, and this group's only failure — a catalogue choice that went
+              // stale — would otherwise reach a screen-reader user silently.
+              aria-invalid={error ? true : undefined}
+              aria-errormessage={errorId}
               {...inputProps}
             />
             <span>{option.label}</span>

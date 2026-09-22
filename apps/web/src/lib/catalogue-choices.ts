@@ -12,7 +12,9 @@ import { serverApi } from "@/lib/session";
  *
  * Both lists are capped at one page. That is far above the per-role limits (8 levels, 20 stacks),
  * but a catalogue that outgrows it would start hiding choices, so `capped` is returned and the
- * editor says so rather than letting a save remove what it never showed.
+ * editor **says so**. It does not prevent it: a save rebuilds the role's links from the rows the
+ * form drew, so a link past the first page would still be dropped. Warning first, pager when the
+ * catalogue is big enough to need one — tracked in `tasks/todo.md`.
  */
 export async function catalogueChoices() {
   const api = await serverApi();

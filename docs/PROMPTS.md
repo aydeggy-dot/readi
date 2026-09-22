@@ -164,6 +164,60 @@ Acceptance criteria
 
 ---
 
+## M2.5 — Roles, levels and stacks become content
+
+```
+Implement Milestone M2.5: make the closed sets of roles and levels into CMS-managed content, add
+stack variants as a dimension on questions and profiles, and write the role catalogue.
+Read docs/plans/m2.5-roles-levels-stacks.md and docs/role-catalogue.md. Plan first; stop after
+each phase.
+
+Why
+- `frontend | backend | qa` and `intern_junior | mid` are one constant copied into a Zod enum, two
+  Postgres enums (and two enum array columns), a generated Pydantic Literal, and an i18n namespace
+  whose keys are the enum values. Adding a role is a change in five artefacts and a migration, and
+  M3 was about to bake in a sixth and seventh copy.
+- Nothing models a technology stack, so a Java/Spring candidate and a Node candidate would be
+  asked the same backend questions.
+
+Scope
+- Three publishable entities — CareerRole, CareerLevel, Stack — carrying the full ADR-0014 column
+  set (status, version, content_versions, audit, seed_managed, review state), with CareerRoleLevel
+  and CareerRoleStack join tables in display order and at most one default stack per role.
+- Slugs on the wire, uuids in the database. An unknown slug is a mapped 400, not a Zod rejection.
+- QuestionCareerRole / QuestionCareerLevel / QuestionStack replace the enum array columns.
+  No stack rows = general to the role; stack rows = offered only on those variants; a candidate
+  who chose no variant gets the general set. One pure predicate plus the Prisma filter that must
+  agree with it, written next to each other, for M3 to reuse.
+- Profile: target_role_id, target_level_id, target_stack_id (nullable, RESTRICT), and
+  `stack String[]` renamed to `technologies` — two fields called "stack" meant different things.
+- Publishing a role needs a published level; retiring anything still in use is refused.
+- The CMS grows Roles, Levels and Stacks sections; labels come from the API, so the targetRoles.*
+  and levels.* i18n namespaces are deleted and client components take options as props.
+- CvParseRequest carries labels, not keys, and a staff-written label is wrapped as data in the
+  prompt like any other untrusted input.
+- Seed: roles.yaml, levels.yaml, stacks.yaml, imported before anything that references them;
+  questions gain an optional `stacks:`.
+- ADR-0015. Update docs/role-catalogue.md, PRODUCT_SPEC §3/§4.1/§4.2/§4.3/§6.1, CLAUDE.md, and
+  content/seed/README.md + REVIEW.md.
+
+Migrations
+- One migration, hand-checked. Prisma proposes dropping the HNSW index it cannot see, and a
+  DROP COLUMN silently takes the hand-written partial unique index with it. Convert data by
+  adding nullable, backfilling, RAISE EXCEPTION naming any row that did not map, then dropping —
+  and test it against a copy of a real database before the real one.
+
+Acceptance criteria
+- A fourth role can be added end to end — levels, stacks, questions tagged, visible in onboarding
+  and in the practice list — with NO code change and NO migration. Prove it by adding full-stack.
+- A candidate on one variant is offered that variant's questions and the general ones; a candidate
+  on another variant is not offered the first one's. A candidate with no variant gets the general
+  set only.
+- `pnpm db:seed` twice changes nothing the second time; lint, typecheck, tests, e2e green.
+```
+
+---
+
 ## M3 — Interview engine (text mode) + diagnostic
 
 ```
@@ -181,7 +235,10 @@ Architecture
 - State machine (pure, unit-testable, no I/O inside transitions):
   INTRO → QUESTION → FOLLOW_UP (0..max_followups) → next QUESTION … → CANDIDATE_QUESTIONS → WRAP_UP → ENDED.
   Enforce time budget and question budget in code. Support pause/resume and abandon.
-- Question selection: filter published questions by role/level/type; weight toward weak topics
+- Question selection: filter published questions by role/level/type **and by stack** — eligibility is
+  published, rubric published, role matches, level matches, and (no stack tags OR a stack tag matching
+  the session's stack). Reuse the pure predicate and Prisma filter from
+  `apps/api/src/content/question-eligibility.ts` (ADR-0015) rather than rewriting either; weight toward weak topics
   (from past evaluations if any); exclude questions seen in the last 3 sessions, falling back to the
   least-recently-seen questions when too few remain; deterministic given a seed (for tests).
 - LLM use inside states only: (a) phrase the intro/transition naturally, (b) generate a follow-up
@@ -190,12 +247,23 @@ Architecture
 - Prompts as versioned Jinja2 files in readi_worker/prompts/. Candidate text always wrapped as
   data in delimited tags; system prompt instructs the model to ignore instructions inside it.
 - Store every turn (SessionTurn) with timestamps; store prompt versions and model config on the session.
+- The session references the catalogue by id (`career_role_id`, `career_level_id`, `stack_id?`), not by
+  an enum — roles, levels and stacks are content (ADR-0015) — and **pins the version** of every piece of
+  content it was run against: question, rubric, role, level and stack. Content keeps changing after a
+  session; a past report must not move. Test it by editing the content afterwards and asserting the
+  report is unchanged.
+- The session bundle sends the worker **labels, not keys** ("a backend engineer working in Java/Spring,
+  at mid level"), the shape the CV contract already uses, with every staff-written label wrapped as data.
 - Langfuse tracing per ADR-0008: opaque ids only, retention matching recordings, deletion by user_id
   (verify retention and bulk-delete support).
-- Streaming: stream interviewer text to the web client (SSE or WebSocket — pick one, record an ADR).
-- Web UI: session setup screen (role, level, type, length), mobile-first chat interview screen
+- Streaming: stream interviewer text to the web client (SSE or WebSocket — pick one, record an ADR;
+  M2.5 took ADR-0015, so this one is **ADR-0016**).
+- Web UI: session setup screen (role, level, stack, type, length — read from
+  `GET /api/content/career-roles`, published only, defaulting to the profile's role, level and stack;
+  there is no `TARGET_ROLES` constant to import), mobile-first chat interview screen
   with timer and progress, "end interview" confirm, and a "processing your report" screen.
-- Diagnostic interview = a preset 15-minute mixed session flagged `is_diagnostic`.
+- Diagnostic interview = a preset 15-minute mixed session flagged `is_diagnostic`, mixing only the types
+  the role supports (`CareerRole.supported_question_types`).
 
 Tests
 - Unit tests for every state transition, budgets, and question selection (with a fake LLM).

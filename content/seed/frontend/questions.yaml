@@ -8,7 +8,7 @@ status: draft
 
 questions:
   - slug: js-async-ordering
-    roles: [frontend]
+    roles: [frontend, fullstack]
     levels: [intern-junior, mid]
     type: technical
     topic: javascript-fundamentals
@@ -38,7 +38,7 @@ questions:
       ("connects it to the user") the right way to stop it being trivia?
 
   - slug: fetch-failure-states
-    roles: [frontend]
+    roles: [frontend, fullstack]
     levels: [intern-junior]
     type: technical
     topic: web-networking
@@ -62,9 +62,9 @@ questions:
       that is objectively right or wrong?
 
   - slug: react-state-placement
-    roles: [frontend]
+    roles: [frontend, fullstack]
     levels: [intern-junior, mid]
-    stacks: [react-typescript, nextjs]
+    stacks: [react-typescript, nextjs, react-node]
     type: technical
     topic: react-state
     subtopic: lifting state
@@ -87,12 +87,14 @@ questions:
       Tagged React + Next.js: the prompt reads framework-neutral, but the ideal points and the
       rubric are about lifting state and prop drilling, so a Vue or Angular candidate would be
       answering a slightly different question. Should the tag stay, or should the question be
-      rewritten to be genuinely general?
+      rewritten to be genuinely general? It now also carries React + Node, so a full-stack
+      candidate on that variant is asked it — is that right, or does a full-stack interview ask
+      this differently, about where the selection lives once a server is involved?
 
   - slug: react-unnecessary-effect
-    roles: [frontend]
+    roles: [frontend, fullstack]
     levels: [intern-junior, mid]
-    stacks: [react-typescript, nextjs]
+    stacks: [react-typescript, nextjs, react-node]
     type: technical
     topic: react-state
     subtopic: effects
@@ -123,12 +125,13 @@ questions:
       This is the clearest "one right answer" question in the bank, which makes it good for
       calibration but weak at separating a solid candidate from an excellent one. The excellence
       descriptors lean on naming the rule and on memoisation — is that the right bar, or would you
-      rather see them notice the one-frame-stale UI? Tagged React + Next.js: the candidate is
-      shown JSX with `useState` and `useEffect`, so it would be meaningless to anyone on Vue,
-      Angular or vanilla JS.
+      rather see them notice the one-frame-stale UI? Tagged React + Next.js and React + Node:
+      the candidate is shown JSX with `useState` and `useEffect`, so it would be meaningless to
+      anyone on Vue, Angular or vanilla JS — but it reads the same for a full-stack candidate
+      writing that component as for a frontend one.
 
   - slug: css-overflow-at-360
-    roles: [frontend]
+    roles: [frontend, fullstack]
     levels: [intern-junior]
     type: technical
     topic: css-layout
@@ -153,7 +156,7 @@ questions:
       belong in the top descriptor?
 
   - slug: slow-page-on-3g
-    roles: [frontend]
+    roles: [frontend, fullstack]
     levels: [intern-junior, mid]
     type: scenario
     topic: browser-rendering
@@ -178,7 +181,7 @@ questions:
       tell those two apart?
 
   - slug: stuck-and-asked-for-help
-    roles: [frontend, backend, qa]
+    roles: [frontend, backend, qa, fullstack]
     levels: [intern-junior]
     type: behavioral
     topic: collaboration
@@ -202,7 +205,7 @@ questions:
       sound like a trap?
 
   - slug: feedback-on-your-code
-    roles: [frontend, backend, qa]
+    roles: [frontend, backend, qa, fullstack]
     levels: [intern-junior, mid]
     type: behavioral
     topic: collaboration

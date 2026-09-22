@@ -1276,6 +1276,47 @@ export class ContentService {
           "publish the question's rubric first",
         );
       }
+      /*
+       * A question is only as published as the catalogue rows it is tagged with. Nobody may choose
+       * a draft role, level or variant (`ProfilesService.resolveTarget`), so a question tagged only
+       * with drafts is published, looks published in the CMS, and is asked of **nobody** — the
+       * exact failure the M2 handover recorded for rubrics, on three new axes (ADR-0015).
+       *
+       * At least one published row per axis, not all of them: a question tagged for two variants
+       * where one is still a draft reaches the candidates on the other, which is fine. Stacks are
+       * checked only when the question has any, because none means general to its roles.
+       */
+      const unreachable = (
+        [
+          [
+            "roles",
+            question.roles.map((link) => link.role.status),
+            "question_has_no_published_role",
+          ],
+          [
+            "levels",
+            question.levels.map((link) => link.level.status),
+            "question_has_no_published_level",
+          ],
+          [
+            "stacks",
+            question.stacks.map((link) => link.stack.status),
+            "question_has_no_published_stack",
+          ],
+        ] as const
+      ).find(
+        ([axis, statuses, _code]) =>
+          (axis !== "stacks" || statuses.length > 0) &&
+          !statuses.some((status) => status === "published"),
+      );
+      if (unreachable) {
+        const [axis, , code] = unreachable;
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          code,
+          `publish at least one of the question's ${axis} first`,
+        );
+      }
     }
     if (entity === "tracks") {
       const track = await this.findTrackOrFail(current.id);

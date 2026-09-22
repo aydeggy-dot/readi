@@ -23,7 +23,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 ### 1. api-error-shape
 
-**technical** · difficulty 3/5 · mid · topic: API design (error handling)
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: API design (error handling)
 
 **The interviewer asks**
 
@@ -80,7 +80,7 @@ Field-level detail for validation; no stack traces, SQL or internal identifiers.
 
 ### 2. n-plus-one-diagnosis
 
-**technical** · difficulty 3/5 · mid · topic: Databases and data modelling (query performance)
+**technical** · difficulty 3/5 · roles: backend, fullstack · mid · topic: Databases and data modelling (query performance)
 
 **The interviewer asks**
 
@@ -137,7 +137,7 @@ A fix proportionate to the cause, aware of what it costs elsewhere.
 
 ### 3. incident-you-contributed-to
 
-**behavioral** · difficulty 3/5 · mid · topic: Working with a team (incidents)
+**behavioral** · difficulty 3/5 · roles: backend, frontend, qa, fullstack · mid · topic: Working with a team (incidents)
 
 **The interviewer asks**
 

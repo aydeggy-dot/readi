@@ -149,6 +149,9 @@ describe("the catalogue: career roles, levels and stacks", () => {
   });
 
   afterAll(async () => {
+    // A role cannot be deleted while a candidate is preparing for it — the FK is `restrict`, which
+    // is `role_in_use` doing its job. Test users outlive their spec, so their profiles go first.
+    await prisma.profile.deleteMany({ where: { targetRoleId: { in: roles } } });
     await prisma.careerRole.deleteMany({ where: { id: { in: roles } } });
     await prisma.careerLevel.deleteMany({ where: { id: { in: levels } } });
     await prisma.stack.deleteMany({ where: { id: { in: stacks } } });
@@ -385,6 +388,63 @@ describe("the catalogue: career roles, levels and stacks", () => {
 
     it("turns away a visitor with no session", async () => {
       expect((await http().get("/api/content/career-roles")).status).toBe(401);
+    });
+
+    /*
+     * The other half of the test above. Hiding a draft level from the picker is not enough: the
+     * profile endpoint takes a slug, and a candidate who sends one the picker never drew must be
+     * refused too. The level is the field this was missed on — the role and the stack were both
+     * checked for `published` from the start, and the level was not (M2.5 review, 2026-09-22).
+     */
+    it("refuses a profile at a level the role offers but has not published", async () => {
+      const { role, level } = await publishedRole();
+      const draftLevel = await createLevel(admin, { rank: 40 });
+      await http()
+        .put(`/api/admin/content/career-roles/${role.id}`)
+        .set(as(admin))
+        .send({
+          slug: role.slug,
+          name: role.name,
+          summary: role.summary,
+          position: role.position,
+          supported_question_types: role.supported_question_types,
+          levels: [level.id, draftLevel.id],
+          stacks: [],
+        })
+        .expect(200);
+
+      const { cookie } = await signUpWithEmail(app, uniqueEmail());
+      const response = await http()
+        .put("/api/me/profile")
+        .set(as(cookie))
+        .send({
+          name: "Ada",
+          target_role: role.slug,
+          level: draftLevel.slug,
+          target_stack: null,
+          years_experience: 2,
+          technologies: ["Go"],
+          target_company_type: "local_startup",
+          target_date: null,
+        });
+      expect(response.status).toBe(400);
+      expect(JSON.stringify(response.body)).toContain("level");
+
+      // And the published one still works, so the fix refused the right thing.
+      const ok = await http()
+        .put("/api/me/profile")
+        .set(as(cookie))
+        .send({
+          name: "Ada",
+          target_role: role.slug,
+          level: level.slug,
+          target_stack: null,
+          years_experience: 2,
+          technologies: ["Go"],
+          target_company_type: "local_startup",
+          target_date: null,
+        });
+      expect(ok.status).toBe(200);
     });
   });
 });

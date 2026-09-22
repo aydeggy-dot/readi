@@ -1,5 +1,6 @@
 "use client";
 
+import { invalidFields } from "@readi/api-client";
 import type { CareerLevel, CareerLevelInput, Stack, StackInput } from "@readi/shared-types";
 import { CATALOGUE_LIMITS, CONTENT_LIMITS } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,9 @@ import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { contentErrorMessage } from "@/lib/content-errors";
+
+/** The fields this form holds; a 400 naming anything else falls through to the banner. */
+const FIELDS = new Set(["slug", "name", "summary", "rank"]);
 
 interface Values {
   slug: string;
@@ -50,6 +54,7 @@ export function CatalogueForm({
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     defaultValues: {
@@ -75,6 +80,15 @@ export function CatalogueForm({
         rank: Number(values.rank) || 0,
       });
       if (!data) {
+        // A validation 400 names its fields, and the form marks them (ADR-0012). Neither slug
+        // syntax nor the length caps are checked here, so this is the usual failure.
+        if (response.status === 400) {
+          const marked = invalidFields(error).filter((field): field is keyof Values =>
+            FIELDS.has(field),
+          );
+          for (const field of marked) setError(field, { message: t("common.errors.invalidField") });
+          if (marked.length > 0) return;
+        }
         const message = contentErrorMessage(error);
         setFailure(
           message

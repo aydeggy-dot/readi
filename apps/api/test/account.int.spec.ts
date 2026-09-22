@@ -38,12 +38,18 @@ const SUPPORT_EMAIL = "help@readi.example";
 /** Minted per run: the catalogue is content, and the test database is never seeded (ADR-0015). */
 let pair: CataloguePair;
 
+/*
+ * `target_stack` is set, not null: `profiles.target_stack_id` is the one `ON DELETE RESTRICT`
+ * foreign key M2.5 added, and erasure has to work through it (it does — the restriction is on
+ * deleting the *stack*, and erasure deletes the user, cascading to the profile). Every profile in
+ * this file left it null until the M2.5 review asked whether that path was ever exercised.
+ */
 const profileFor = () => ({
   name: "Ada Obi",
   target_role: pair.roleSlug,
   level: pair.levelSlug,
   years_experience: 3,
-  target_stack: null,
+  target_stack: pair.stackSlug,
   technologies: ["Go"],
   target_company_type: "remote_foreign",
   target_date: null,
@@ -373,6 +379,20 @@ describe("data export and account deletion (ADR-0011)", () => {
           changedByUserId: userId,
         },
       });
+      /*
+       * And a catalogue row, because M2.5 added six authorship columns on three entities the test
+       * above never touched — a rubric alone proves only that two of the twenty tombstoned columns
+       * are acted on (M2.5 review, 2026-09-22).
+       */
+      const authoredStack = await prisma.stack.create({
+        data: {
+          slug: `erase-stack-${randomUUID().slice(0, 8)}`,
+          name: "A variant somebody added before they left",
+          createdByUserId: userId,
+          reviewedByUserId: userId,
+          reviewedAt: new Date(),
+        },
+      });
 
       await endGracePeriod(userId);
 
@@ -418,6 +438,9 @@ describe("data export and account deletion (ADR-0011)", () => {
           where: { entityId: authored.id, changedByUserId: tombstone },
         }),
       ).toBe(1);
+      const keptStack = await prisma.stack.findUniqueOrThrow({ where: { id: authoredStack.id } });
+      expect(keptStack.createdByUserId).toBe(tombstone);
+      expect(keptStack.reviewedByUserId).toBe(tombstone);
       await prisma.rubric.delete({ where: { id: authored.id } });
 
       // The email address is free again.
