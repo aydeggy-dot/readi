@@ -363,20 +363,29 @@ model Topic {
 /// A programme for one role and level. At most one may be published per (role, level) — enforced
 /// by a partial unique index in the migration, so the candidate API always finds exactly one.
 model Track {
-  id              String          @id @default(uuid()) @db.Uuid
-  slug            String          @unique
-  role            TargetRole
-  level           ExperienceLevel
-  title           String
-  summary         String?
-  status          ContentStatus   @default(draft)
-  version         Int             @default(1)
+  id                String          @id @default(uuid()) @db.Uuid
+  slug              String          @unique
+  role              TargetRole
+  level             ExperienceLevel
+  title             String
+  summary           String?
+  status            ContentStatus   @default(draft)
+  version           Int             @default(1)
   /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
-  seedManaged     Boolean         @default(false) @map("seed_managed")
-  createdByUserId String?         @map("created_by_user_id") @db.Uuid
-  publishedAt     DateTime?       @map("published_at") @db.Timestamptz(6)
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  seedManaged       Boolean         @default(false) @map("seed_managed")
+  createdByUserId   String?         @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?       @map("published_at") @db.Timestamptz(6)
+  /// True when `/content/seed` imported this row from a file whose `author` is `ai_draft` — a
+  /// model wrote it and no person has vouched for it yet (ADR-0014 decision 6). Cleared by the
+  /// explicit "mark as reviewed" action, or by a re-import from a file that says `author: human`.
+  /// A content edit does NOT clear it: a typo fix is not a review of the whole item.
+  aiDraftUnreviewed Boolean         @default(false) @map("ai_draft_unreviewed")
+  /// Who marked it reviewed, and when. A plain uuid with no foreign key, tombstoned on erasure
+  /// like the other authorship columns (ADR-0011).
+  reviewedByUserId  String?         @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?       @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   modules Module[]
   topics  TrackTopic[]
@@ -421,25 +430,34 @@ model Module {
 }
 
 model Lesson {
-  id               String        @id @default(uuid()) @db.Uuid
-  moduleId         String        @map("module_id") @db.Uuid
-  module           Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  slug             String        @unique
-  title            String
+  id                String        @id @default(uuid()) @db.Uuid
+  moduleId          String        @map("module_id") @db.Uuid
+  module            Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  slug              String        @unique
+  title             String
   /// Markdown. Rendered on the server for candidates; the admin preview renders it in the browser.
-  body             String
-  topicId          String?       @map("topic_id") @db.Uuid
-  topic            Topic?        @relation(fields: [topicId], references: [id])
-  position         Int
-  estimatedMinutes Int?          @map("estimated_minutes")
-  status           ContentStatus @default(draft)
-  version          Int           @default(1)
+  body              String
+  topicId           String?       @map("topic_id") @db.Uuid
+  topic             Topic?        @relation(fields: [topicId], references: [id])
+  position          Int
+  estimatedMinutes  Int?          @map("estimated_minutes")
+  status            ContentStatus @default(draft)
+  version           Int           @default(1)
   /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
-  seedManaged      Boolean       @default(false) @map("seed_managed")
-  createdByUserId  String?       @map("created_by_user_id") @db.Uuid
-  publishedAt      DateTime?     @map("published_at") @db.Timestamptz(6)
-  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  seedManaged       Boolean       @default(false) @map("seed_managed")
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(6)
+  /// True when `/content/seed` imported this row from a file whose `author` is `ai_draft` — a
+  /// model wrote it and no person has vouched for it yet (ADR-0014 decision 6). Cleared by the
+  /// explicit "mark as reviewed" action, or by a re-import from a file that says `author: human`.
+  /// A content edit does NOT clear it: a typo fix is not a review of the whole item.
+  aiDraftUnreviewed Boolean       @default(false) @map("ai_draft_unreviewed")
+  /// Who marked it reviewed, and when. A plain uuid with no foreign key, tombstoned on erasure
+  /// like the other authorship columns (ADR-0011).
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([moduleId, position])
   @@index([status])
@@ -449,17 +467,26 @@ model Lesson {
 
 /// How an answer is scored (spec §6.1). A rubric may serve several questions.
 model Rubric {
-  id              String        @id @default(uuid()) @db.Uuid
-  slug            String        @unique
-  name            String
-  status          ContentStatus @default(draft)
-  version         Int           @default(1)
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
+  name              String
+  status            ContentStatus @default(draft)
+  version           Int           @default(1)
   /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
-  seedManaged     Boolean       @default(false) @map("seed_managed")
-  createdByUserId String?       @map("created_by_user_id") @db.Uuid
-  publishedAt     DateTime?     @map("published_at") @db.Timestamptz(6)
-  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  seedManaged       Boolean       @default(false) @map("seed_managed")
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(6)
+  /// True when `/content/seed` imported this row from a file whose `author` is `ai_draft` — a
+  /// model wrote it and no person has vouched for it yet (ADR-0014 decision 6). Cleared by the
+  /// explicit "mark as reviewed" action, or by a re-import from a file that says `author: human`.
+  /// A content edit does NOT clear it: a typo fix is not a review of the whole item.
+  aiDraftUnreviewed Boolean       @default(false) @map("ai_draft_unreviewed")
+  /// Who marked it reviewed, and when. A plain uuid with no foreign key, tombstoned on erasure
+  /// like the other authorship columns (ADR-0011).
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   criteria  RubricCriterion[]
   questions Question[]
@@ -487,30 +514,39 @@ model RubricCriterion {
 }
 
 model Question {
-  id              String            @id @default(uuid()) @db.Uuid
-  slug            String            @unique
-  roles           TargetRole[]
-  levels          ExperienceLevel[]
-  type            QuestionType
-  topicId         String            @map("topic_id") @db.Uuid
-  topic           Topic             @relation(fields: [topicId], references: [id])
-  subtopic        String?
+  id                String            @id @default(uuid()) @db.Uuid
+  slug              String            @unique
+  roles             TargetRole[]
+  levels            ExperienceLevel[]
+  type              QuestionType
+  topicId           String            @map("topic_id") @db.Uuid
+  topic             Topic             @relation(fields: [topicId], references: [id])
+  subtopic          String?
   /// 1–5 (spec §6.1).
-  difficulty      Int
-  prompt          String
-  context         String?
-  rubricId        String            @map("rubric_id") @db.Uuid
-  rubric          Rubric            @relation(fields: [rubricId], references: [id])
+  difficulty        Int
+  prompt            String
+  context           String?
+  rubricId          String            @map("rubric_id") @db.Uuid
+  rubric            Rubric            @relation(fields: [rubricId], references: [id])
   /// ANSWER KEY: what a strong answer covers. Never included in a candidate-facing response.
-  idealPoints     String[]          @map("ideal_points")
-  status          ContentStatus     @default(draft)
-  version         Int               @default(1)
+  idealPoints       String[]          @map("ideal_points")
+  status            ContentStatus     @default(draft)
+  version           Int               @default(1)
   /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
-  seedManaged     Boolean           @default(false) @map("seed_managed")
-  createdByUserId String?           @map("created_by_user_id") @db.Uuid
-  publishedAt     DateTime?         @map("published_at") @db.Timestamptz(6)
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  seedManaged       Boolean           @default(false) @map("seed_managed")
+  createdByUserId   String?           @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?         @map("published_at") @db.Timestamptz(6)
+  /// True when `/content/seed` imported this row from a file whose `author` is `ai_draft` — a
+  /// model wrote it and no person has vouched for it yet (ADR-0014 decision 6). Cleared by the
+  /// explicit "mark as reviewed" action, or by a re-import from a file that says `author: human`.
+  /// A content edit does NOT clear it: a typo fix is not a review of the whole item.
+  aiDraftUnreviewed Boolean           @default(false) @map("ai_draft_unreviewed")
+  /// Who marked it reviewed, and when. A plain uuid with no foreign key, tombstoned on erasure
+  /// like the other authorship columns (ADR-0011).
+  reviewedByUserId  String?           @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?         @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   /// pgvector, 1024 dimensions (ADR-0006). Prisma cannot read or write this type, so every
   /// query that touches it lives in question-embeddings.repository.ts as raw SQL.

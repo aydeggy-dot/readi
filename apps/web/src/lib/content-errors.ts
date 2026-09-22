@@ -14,6 +14,8 @@ const MESSAGES: Record<string, () => string> = {
   track_already_published: () => t("admin.content.errors.trackAlreadyPublished"),
   content_transition_forbidden: () => t("admin.content.errors.transitionForbidden"),
   content_transition_invalid: () => t("admin.content.errors.transitionInvalid"),
+  content_unreviewed_ai_draft: () => t("admin.content.errors.unreviewedAiDraft"),
+  content_not_unreviewed: () => t("admin.content.errors.notUnreviewed"),
   track_not_found: () => t("admin.content.errors.notFound"),
   lesson_not_found: () => t("admin.content.errors.notFound"),
   question_not_found: () => t("admin.content.errors.notFound"),

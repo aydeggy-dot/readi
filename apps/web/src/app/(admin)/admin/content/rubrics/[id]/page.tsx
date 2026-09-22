@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EditorHeading } from "@/components/admin/editor-heading";
 import { RubricForm } from "@/components/admin/rubric-form";
+import { ReviewPanel } from "@/components/admin/review-panel";
 import { TransitionPanel } from "@/components/admin/transition-panel";
 import { VersionHistory } from "@/components/admin/version-history";
 import { t } from "@/i18n";
@@ -24,8 +25,15 @@ export default async function RubricPage({ params }: { params: Promise<{ id: str
         backHref="/admin/content/rubrics"
         status={data.status}
         seedManaged={data.seed_managed}
+        aiDraftUnreviewed={data.ai_draft_unreviewed}
       />
       <RubricForm rubric={data} />
+      <ReviewPanel
+        entity="rubrics"
+        id={data.id}
+        aiDraftUnreviewed={data.ai_draft_unreviewed}
+        reviewedAt={data.reviewed_at}
+      />
       <TransitionPanel entity="rubrics" id={data.id} status={data.status} role={me.role} />
       <VersionHistory entity="rubrics" id={data.id} version={data.version} />
     </>

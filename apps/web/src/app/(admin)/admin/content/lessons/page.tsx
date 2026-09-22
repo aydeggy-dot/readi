@@ -49,6 +49,7 @@ export default async function LessonsPage({
             subtitle={lesson.slug}
             status={lesson.status}
             seedManaged={lesson.seed_managed}
+            aiDraftUnreviewed={lesson.ai_draft_unreviewed}
             updatedAt={lesson.updated_at}
           />
         ))}

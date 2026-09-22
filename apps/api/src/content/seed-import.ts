@@ -11,7 +11,7 @@ import type {
 } from "@readi/shared-types";
 import { PrismaService } from "../prisma/prisma.service";
 import { sameContent } from "./content-diff";
-import { ContentService, SEED_ACTOR } from "./content.service";
+import { type Actor, ContentService, seedActor } from "./content.service";
 import type { LoadedSeedFile } from "./seed-loader";
 
 /**
@@ -21,7 +21,8 @@ import type { LoadedSeedFile } from "./seed-loader";
  *
  * - **It writes through `ContentService`**, exactly as the CMS does, so a seeded change produces
  *   the same version snapshot and the same audit row as a change made by a person — as the system,
- *   with no name attached (`SEED_ACTOR`).
+ *   with no name attached, carrying the file's `author` so the rows it writes say whether a
+ *   person has vouched for them (ADR-0014 decisions 5 and 6).
  * - **It is idempotent.** An item whose content has not changed is not written at all, so running
  *   `pnpm db:seed` twice leaves no second version, no audit row and no new timestamp. That is the
  *   milestone's acceptance criterion.
@@ -94,6 +95,14 @@ export class SeedImporter {
     private readonly options: SeedOptions = {},
   ) {}
 
+  /**
+   * The actor for the file being imported. It carries that file's `author`, which is what decides
+   * whether the rows it writes are marked as unreviewed AI drafts (ADR-0014 decision 6) — so it
+   * changes as the importer moves from one file to the next, and every write below uses it rather
+   * than a shared constant.
+   */
+  private actor: Actor = seedActor("ai_draft");
+
   /** The note every seeded edit carries, so the history says where it came from. */
   private get note(): string {
     return this.options.force ? "seed import (forced)" : "seed import";
@@ -139,11 +148,19 @@ export class SeedImporter {
       for (const topic of data.topics ?? []) this.defined.topics.add(topic.slug);
       for (const rubric of data.rubrics ?? []) this.defined.rubrics.add(rubric.slug);
     }
-    for (const { data } of files) await this.importTopics(data, report);
-    for (const { data } of files) await this.importRubrics(data, report);
-    for (const { file, data } of files) await this.importQuestions(file, data, report);
-    for (const { file, data } of files) await this.importTrack(file, data, report);
+    for (const { data } of files) await this.forFile(data, () => this.importTopics(data, report));
+    for (const { data } of files) await this.forFile(data, () => this.importRubrics(data, report));
+    for (const { file, data } of files)
+      await this.forFile(data, () => this.importQuestions(file, data, report));
+    for (const { file, data } of files)
+      await this.forFile(data, () => this.importTrack(file, data, report));
     return report;
+  }
+
+  /** Runs one pass over one file with that file's authorship in force. */
+  private async forFile(data: SeedFile, pass: () => Promise<void>): Promise<void> {
+    this.actor = seedActor(data.author);
+    await pass();
   }
 
   // -------------------------------------------------------------------------------------------
@@ -157,7 +174,7 @@ export class SeedImporter {
       };
       const existing = await this.prisma.topic.findUnique({ where: { slug: topic.slug } });
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createTopic(SEED_ACTOR, input);
+        if (!this.options.dryRun) await this.content.createTopic(this.actor, input);
         report.topics.created += 1;
         continue;
       }
@@ -171,7 +188,7 @@ export class SeedImporter {
         topic.slug,
         existing,
         () => Promise.resolve(sameContent(current, input)),
-        () => this.content.updateTopic(SEED_ACTOR, existing.id, input),
+        () => this.content.updateTopic(this.actor, existing.id, input),
       );
     }
   }
@@ -185,7 +202,7 @@ export class SeedImporter {
       };
       const existing = await this.prisma.rubric.findUnique({ where: { slug: rubric.slug } });
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createRubric(SEED_ACTOR, input);
+        if (!this.options.dryRun) await this.content.createRubric(this.actor, input);
         report.rubrics.created += 1;
         continue;
       }
@@ -194,7 +211,7 @@ export class SeedImporter {
         rubric.slug,
         existing,
         async () => sameContent(await this.rubricContentOf(existing.id), input),
-        () => this.content.updateRubric(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+        () => this.content.updateRubric(existing.id, input, { actor: this.actor, note: this.note }),
       );
     }
   }
@@ -204,7 +221,7 @@ export class SeedImporter {
       const input = await this.questionInput(file, question);
       const existing = await this.prisma.question.findUnique({ where: { slug: question.slug } });
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createQuestion(SEED_ACTOR, input);
+        if (!this.options.dryRun) await this.content.createQuestion(this.actor, input);
         report.questions.created += 1;
         continue;
       }
@@ -227,7 +244,7 @@ export class SeedImporter {
         existing,
         () => Promise.resolve(sameContent(current, input)),
         () =>
-          this.content.updateQuestion(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+          this.content.updateQuestion(existing.id, input, { actor: this.actor, note: this.note }),
       );
     }
   }
@@ -261,7 +278,7 @@ export class SeedImporter {
         report.modules.created += 1;
         if (!this.options.dryRun) {
           moduleId = (
-            await this.content.createModule(trackId, input, { actor: SEED_ACTOR, note: this.note })
+            await this.content.createModule(trackId, input, { actor: this.actor, note: this.note })
           ).id;
         }
       } else {
@@ -277,7 +294,7 @@ export class SeedImporter {
           existing,
           () => Promise.resolve(sameContent(current, input)),
           () =>
-            this.content.updateModule(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+            this.content.updateModule(existing.id, input, { actor: this.actor, note: this.note }),
         );
       }
       // A module the CMS owns still has lessons the files may own, so they are considered either way.
@@ -303,7 +320,7 @@ export class SeedImporter {
         estimated_minutes: lesson.estimated_minutes,
       };
       if (!existing) {
-        if (!this.options.dryRun) await this.content.createLesson(SEED_ACTOR, moduleId, input);
+        if (!this.options.dryRun) await this.content.createLesson(this.actor, moduleId, input);
         report.lessons.created += 1;
         continue;
       }
@@ -320,7 +337,7 @@ export class SeedImporter {
         lesson.slug,
         existing,
         () => Promise.resolve(sameContent(current, input)),
-        () => this.content.updateLesson(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+        () => this.content.updateLesson(existing.id, input, { actor: this.actor, note: this.note }),
       );
     }
   }
@@ -350,7 +367,7 @@ export class SeedImporter {
     if (!existing) {
       report.tracks.created += 1;
       if (this.options.dryRun) return null;
-      return (await this.content.createTrack(SEED_ACTOR, input)).id;
+      return (await this.content.createTrack(this.actor, input)).id;
     }
     const current = {
       slug: existing.slug,
@@ -365,7 +382,7 @@ export class SeedImporter {
       track.slug,
       existing,
       () => Promise.resolve(sameContent(sortTopics(current), sortTopics(input))),
-      () => this.content.updateTrack(existing.id, input, { actor: SEED_ACTOR, note: this.note }),
+      () => this.content.updateTrack(existing.id, input, { actor: this.actor, note: this.note }),
     );
     return existing.id;
   }

@@ -382,7 +382,9 @@
         "trackAlreadyPublished": "Another track is already published for this role and level.",
         "transitionForbidden": "That move is not yours to make.",
         "transitionInvalid": "This item is not in a state that allows that move.",
-        "notFound": "That item no longer exists."
+        "notFound": "That item no longer exists.",
+        "unreviewedAiDraft": "A model drafted this and nobody has marked it reviewed, so it cannot be published here. Have an expert review it, or publish it anyway if you are certain.",
+        "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft."
       },
       "transition": {
         "legend": "Workflow",
@@ -395,7 +397,9 @@
         "confirmRetire": "Retire this? Candidates stop seeing it immediately.",
         "confirmPublish": "Publish this? Candidates can see it as soon as you do.",
         "done": "Now: {status}.",
-        "nothing": "Nothing to do from here."
+        "nothing": "Nothing to do from here.",
+        "publishAnyway": "Publish without a review",
+        "confirmUnreviewed": "This is an unreviewed AI draft. Publishing it puts words no expert has checked in front of candidates, and it is recorded against your name."
       },
       "versions": {
         "title": "History",
@@ -511,6 +515,16 @@
         "descriptionHint": "One line, for the people writing content.",
         "rename": "Rename",
         "created": "Topic added."
+      },
+      "review": {
+        "badge": "AI draft, unreviewed",
+        "badgeHint": "A model drafted this and nobody has marked it reviewed. It can be published here for development, but in production publishing it is refused until someone has.",
+        "legend": "Expert review",
+        "lead": "A model drafted this. Mark it reviewed once you have read it and stand behind it — the question, its answer key and every level descriptor of its rubric.",
+        "action": "Mark as reviewed",
+        "confirm": "Mark this reviewed? It records your name against it, and it is what lets it be published in production.",
+        "done": "Marked reviewed.",
+        "reviewedOn": "Reviewed on {date}."
       }
     }
   },

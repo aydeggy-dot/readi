@@ -19,6 +19,8 @@ import {
 import {
   ContentEntityPath,
   ContentListQuery,
+  ContentReviewRequest,
+  ContentReviewResponse,
   ContentTransitionRequest,
   ContentTransitionResponse,
   ContentVersionResponse,
@@ -73,6 +75,8 @@ class RubricListResponseDto extends createZodDto(RubricListResponse) {}
 class QuestionInputDto extends createZodDto(QuestionInput) {}
 class QuestionDto extends createZodDto(Question) {}
 class QuestionListResponseDto extends createZodDto(QuestionListResponse) {}
+class ContentReviewRequestDto extends createZodDto(ContentReviewRequest) {}
+class ContentReviewResponseDto extends createZodDto(ContentReviewResponse) {}
 class ContentTransitionRequestDto extends createZodDto(ContentTransitionRequest) {}
 class ContentTransitionResponseDto extends createZodDto(ContentTransitionResponse) {}
 class ContentVersionsResponseDto extends createZodDto(ContentVersionsResponse) {}
@@ -331,7 +335,8 @@ export class ContentAdminController {
     description:
       "Wrong status (`content_transition_invalid`), or a publish rule refuses: " +
       "`rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, " +
-      "`track_already_published`",
+      "`track_already_published`, or in production an unreviewed AI draft " +
+      "(`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`)",
   })
   transition(
     @CurrentUser() user: AuthenticatedUser,
@@ -339,6 +344,27 @@ export class ContentAdminController {
     @Body() body: ContentTransitionRequestDto,
   ): Promise<ContentTransitionResponse> {
     return this.content.transition(user, params.entity, params.id, body);
+  }
+
+  /**
+   * Records that a person has read a model's draft and stands behind it (ADR-0014 decision 6).
+   * Open to a content expert as well as an admin: reviewing content is exactly an expert's job,
+   * and publishing it afterwards is still the admin's.
+   */
+  @Post(":entity/:id/reviewed")
+  @HttpCode(HttpStatus.OK)
+  @ZodSerializerDto(ContentReviewResponseDto)
+  @ApiOkResponse({ type: ContentReviewResponseDto.Output })
+  @ApiConflictResponse({
+    description:
+      "Nothing to review — it was not an AI draft, or already is (`content_not_unreviewed`)",
+  })
+  markReviewed(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: EntityParamsDto,
+    @Body() body: ContentReviewRequestDto,
+  ): Promise<ContentReviewResponse> {
+    return this.content.markReviewed(user, params.entity, params.id, body);
   }
 
   /** Every recorded version of one entity, newest first. */

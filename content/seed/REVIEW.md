@@ -4,6 +4,21 @@ Everything under `content/seed` was **drafted by a model**. It is marked `status
 `author: ai_draft`, no candidate can see it, and nothing publishes it automatically. Your review is
 what decides whether any of it is worth using.
 
+> **Nothing here reaches a real candidate until you have been through it.**
+>
+> While we are building, this content gets published in a developer's own database so the interview
+> engine has something to run against — that is what it is for, and it costs nothing, because the
+> only people looking are us.
+>
+> **In production it is different, and the code enforces it.** Every item imported from these files
+> is marked in the database as an unreviewed AI draft, and the live system **refuses to publish**
+> anything still carrying that mark. It clears in one of two ways: someone presses **Mark as
+> reviewed** in the CMS, or these files come back with `author: human` and are re-imported. An
+> admin can override the refusal deliberately, and doing so is recorded against their name in the
+> audit log — it is a door with a lock and a logbook, not a formality (ADR-0014 decision 6).
+>
+> So: take the time you need. Nothing ships past you by accident.
+
 Please read the generated pages rather than the YAML unless you would rather not:
 
 | Role                                 | Page                                       |
@@ -74,6 +89,11 @@ For this first round we edit the seed files, regenerate these review pages, and 
 importer only writes what actually changed, so a second pass over one question does not disturb
 anything else. Content only reaches candidates when an admin publishes it in the CMS — a deliberate
 action, taken after this review, never by an import.
+
+When you send a question back marked good, we do one of two things with it: set `author: human` in
+the file and re-import, or press **Mark as reviewed** on it in the CMS. Either one records that a
+person has vouched for it and lets it be published in production. Until then the CMS shows it with
+an **AI draft, unreviewed** tag, and the live system will not publish it.
 
 After that, the CMS is where the content lives (ADR-0014). The rule is simple and the tooling
 enforces it:

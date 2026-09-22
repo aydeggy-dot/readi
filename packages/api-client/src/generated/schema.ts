@@ -436,6 +436,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/content/{entity}/{id}/reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ContentAdminController_markReviewed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/content/{entity}/{id}/versions": {
         parameters: {
             query?: never;
@@ -788,6 +804,9 @@ export interface components {
             version: number;
             module_count: number;
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -851,11 +870,17 @@ export interface components {
                     status: components["schemas"]["ContentStatus_Output"];
                     version: number;
                     seed_managed: boolean;
+                    ai_draft_unreviewed: boolean;
+                    /** Format: date-time */
+                    reviewed_at: string | null;
                     /** Format: date-time */
                     updated_at: string;
                 }[];
             }[];
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -890,6 +915,9 @@ export interface components {
                 status: components["schemas"]["ContentStatus_Output"];
                 version: number;
                 seed_managed: boolean;
+                ai_draft_unreviewed: boolean;
+                /** Format: date-time */
+                reviewed_at: string | null;
                 /** Format: date-time */
                 updated_at: string;
             }[];
@@ -906,6 +934,9 @@ export interface components {
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -937,6 +968,9 @@ export interface components {
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -949,6 +983,9 @@ export interface components {
             version: number;
             criteria_count: number;
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -998,6 +1035,9 @@ export interface components {
             version: number;
             criteria: components["schemas"]["RubricCriterion_Output"][];
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -1020,6 +1060,9 @@ export interface components {
             status: components["schemas"]["ContentStatus_Output"];
             version: number;
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -1095,11 +1138,17 @@ export interface components {
                 version: number;
                 criteria: components["schemas"]["RubricCriterion_Output"][];
                 seed_managed: boolean;
+                ai_draft_unreviewed: boolean;
+                /** Format: date-time */
+                reviewed_at: string | null;
                 /** Format: date-time */
                 updated_at: string;
             };
             embedding_model: string | null;
             seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -1108,6 +1157,8 @@ export interface components {
         ContentTransitionRequestDto: {
             transition: components["schemas"]["ContentTransition"];
             note: string | null;
+            /** @default false */
+            acknowledge_unreviewed: boolean;
         };
         /** @enum {string} */
         ContentEntityPath_Output: "tracks" | "lessons" | "questions" | "rubrics";
@@ -1120,6 +1171,21 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             duplicates: components["schemas"]["DuplicateMatch_Output"][];
+        };
+        ContentReviewRequestDto: {
+            note: string | null;
+        };
+        ContentReviewResponseDto_Output: {
+            entity: components["schemas"]["ContentEntityPath_Output"];
+            /** Format: uuid */
+            id: string;
+            /** @constant */
+            ai_draft_unreviewed: false;
+            /** Format: date-time */
+            reviewed_at: string;
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
         };
         ContentVersionSummary_Output: {
             version: number;
@@ -2342,7 +2408,40 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published` */
+            /** @description Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_markReviewed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity: components["schemas"]["ContentEntityPath"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContentReviewRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentReviewResponseDto_Output"];
+                };
+            };
+            /** @description Nothing to review — it was not an AI draft, or already is (`content_not_unreviewed`) */
             409: {
                 headers: {
                     [name: string]: unknown;

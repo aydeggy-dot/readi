@@ -1,6 +1,11 @@
 import type { ContentStatus } from "@readi/shared-types";
 import { describe, expect, it } from "vitest";
-import { availableTransitions, checkTransition, isCandidateVisible } from "./content-workflow";
+import {
+  availableTransitions,
+  checkTransition,
+  isCandidateVisible,
+  publishNeedsReview,
+} from "./content-workflow";
 
 const STATUSES: ContentStatus[] = ["draft", "in_review", "published", "retired"];
 
@@ -83,6 +88,22 @@ describe("the content workflow", () => {
     expect(availableTransitions("published", "admin")).toEqual(["retire"]);
     expect(availableTransitions("published", "content_expert")).toEqual([]);
     expect(availableTransitions("draft", "candidate")).toEqual([]);
+  });
+
+  describe("the unreviewed AI draft guard (ADR-0014 decision 6)", () => {
+    it("refuses only in production, and only an unreviewed draft nobody has acknowledged", () => {
+      expect(publishNeedsReview("production", true, false)).toBe(true);
+      // The override: an admin has decided, and the audit entry says so.
+      expect(publishNeedsReview("production", true, true)).toBe(false);
+      // A person wrote it, or someone has vouched for it.
+      expect(publishNeedsReview("production", false, false)).toBe(false);
+    });
+
+    it("never refuses outside production, so M3 can be built on the seeded drafts", () => {
+      for (const environment of ["development", "test"]) {
+        expect(publishNeedsReview(environment, true, false)).toBe(false);
+      }
+    });
   });
 
   it("shows candidates published content and nothing else", () => {

@@ -48,9 +48,9 @@ describe("seeding content", () => {
     const directory = mkdtempSync(join(tmpdir(), "readi-seed-"));
     const slug = `seedtest-${Date.now()}`;
 
-    const file = (prompt: string, rubricName = "Seed test rubric") => `
+    const file = (prompt: string, rubricName = "Seed test rubric", author = "ai_draft") => `
 version: 1
-author: ai_draft
+author: ${author}
 status: draft
 topics:
   - slug: ${slug}-topic
@@ -83,8 +83,8 @@ questions:
     reviewer_notes: Written by a test; nothing here needs an expert.
 `;
 
-    const write = (prompt: string, rubricName?: string) => {
-      writeFileSync(join(directory, "seed.yaml"), file(prompt, rubricName));
+    const write = (prompt: string, rubricName?: string, author?: string) => {
+      writeFileSync(join(directory, "seed.yaml"), file(prompt, rubricName, author));
       return loadSeedDirectory(directory, directory).files;
     };
 
@@ -241,8 +241,16 @@ questions:
     it("still updates an item an admin has published", async () => {
       const rubric = await prisma.rubric.findUniqueOrThrow({ where: { slug: `${slug}-rubric` } });
       const admin = { id: randomUUID(), role: "admin" as const };
-      await content.transition(expert, "rubrics", rubric.id, { transition: "submit", note: null });
-      await content.transition(admin, "rubrics", rubric.id, { transition: "publish", note: null });
+      await content.transition(expert, "rubrics", rubric.id, {
+        transition: "submit",
+        note: null,
+        acknowledge_unreviewed: false,
+      });
+      await content.transition(admin, "rubrics", rubric.id, {
+        transition: "publish",
+        note: null,
+        acknowledge_unreviewed: false,
+      });
       expect(
         (await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } })).seedManaged,
       ).toBe(true);
@@ -255,6 +263,44 @@ questions:
       const after = await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } });
       expect(after.name).toBe("A renamed rubric");
       expect(after.status).toBe("published");
+    });
+
+    it("marks what a model drafted, and unmarks it when the file says a person wrote it", async () => {
+      // `author: ai_draft` — the state the whole shipped corpus is in (ADR-0014 decision 6).
+      await new SeedImporter(prisma, content).import(write("What does the event loop do?"));
+      const drafted = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(drafted.aiDraftUnreviewed).toBe(true);
+      expect(drafted.reviewedAt).toBeNull();
+
+      // An expert reviews the bank in the YAML and says so. A re-import clears the mark.
+      await new SeedImporter(prisma, content).import(
+        write("What does the event loop actually do?", undefined, "human"),
+      );
+      const reviewed = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(reviewed.aiDraftUnreviewed).toBe(false);
+    });
+
+    it("re-marks a question whose text a model has redrafted, and forgets the stale review", async () => {
+      await new SeedImporter(prisma, content).import(write("First wording.", undefined, "human"));
+      const id = (await prisma.question.findUniqueOrThrow({ where: { slug: `${slug}-question` } }))
+        .id;
+      await prisma.question.update({
+        where: { id },
+        data: { reviewedAt: new Date(), reviewedByUserId: randomUUID() },
+      });
+
+      await new SeedImporter(prisma, content).import(
+        write("Second wording, drafted again.", undefined, "ai_draft"),
+      );
+      const row = await prisma.question.findUniqueOrThrow({ where: { id } });
+      expect(row.aiDraftUnreviewed).toBe(true);
+      // The review was of words this import replaced, so it no longer stands.
+      expect(row.reviewedAt).toBeNull();
+      expect(row.reviewedByUserId).toBeNull();
     });
 
     it("refuses a reference nothing defines, naming the file", async () => {
@@ -287,6 +333,9 @@ questions:
       expect(questions).toHaveLength(slugs.length);
       expect(questions.every((question) => question.status === "draft")).toBe(true);
       expect(questions.every((question) => question.createdByUserId === null)).toBe(true);
+      // Every file in /content/seed says `author: ai_draft`, so nothing here may be published
+      // in production until an expert has been through it (ADR-0014 decision 6).
+      expect(questions.every((question) => question.aiDraftUnreviewed)).toBe(true);
     });
 
     /**

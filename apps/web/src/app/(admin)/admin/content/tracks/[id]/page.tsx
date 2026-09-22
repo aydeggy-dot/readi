@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EditorHeading } from "@/components/admin/editor-heading";
 import { ModulePanel } from "@/components/admin/module-panel";
 import { TrackForm } from "@/components/admin/track-form";
+import { ReviewPanel } from "@/components/admin/review-panel";
 import { TransitionPanel } from "@/components/admin/transition-panel";
 import { VersionHistory } from "@/components/admin/version-history";
 import { t } from "@/i18n";
@@ -28,9 +29,16 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         backHref="/admin/content/tracks"
         status={track.data.status}
         seedManaged={track.data.seed_managed}
+        aiDraftUnreviewed={track.data.ai_draft_unreviewed}
       />
       <TrackForm track={track.data} topics={topics.data?.topics ?? []} />
       <ModulePanel track={track.data} topics={topics.data?.topics ?? []} />
+      <ReviewPanel
+        entity="tracks"
+        id={track.data.id}
+        aiDraftUnreviewed={track.data.ai_draft_unreviewed}
+        reviewedAt={track.data.reviewed_at}
+      />
       <TransitionPanel
         entity="tracks"
         id={track.data.id}

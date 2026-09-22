@@ -168,6 +168,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   --force` overwrites them and takes them back. A status transition is not an edit, so publishing
   seeded content leaves it under the files. `seed_managed` is written in `ContentService` alone,
   from `Actor.source` (`SEED_ACTOR`), and never by a transition.
+- **A model's draft never reaches candidates in production unreviewed** (ADR-0014 decision 6). The
+  four publishable entities carry `ai_draft_unreviewed` (set by the importer from each seed file's
+  `author`), `reviewed_by_user_id` and `reviewed_at`. Publishing a marked item is refused
+  **only when `NODE_ENV=production`** (`content_unreviewed_ai_draft`), unless the admin publishing
+  it passes `acknowledge_unreviewed`, which the audit entry records. Dev, test and e2e never
+  refuse, so M3 is built against the seeded drafts. The mark is cleared by the explicit
+  `POST /api/admin/content/:entity/:id/reviewed` (content expert or admin, versioned and audited)
+  or by a re-import from a file saying `author: human` — **never by saving an edit**, because a
+  typo fix is not a review. A new publishable entity must carry these columns.
 
 ### Prompts
 - Prompts live in versioned files: `apps/ai-worker/readi_worker/prompts/<name>.v<N>.md` (Jinja2 templates).

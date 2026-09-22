@@ -7,7 +7,7 @@ import {
 } from "@readi/shared-types/constants";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { StatusBadge, SeedBadge } from "@/components/admin/badges";
+import { DraftBadge, StatusBadge, SeedBadge } from "@/components/admin/badges";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -202,6 +202,7 @@ export function ContentRow({
   subtitle,
   status,
   seedManaged,
+  aiDraftUnreviewed,
   meta,
   updatedAt,
 }: {
@@ -211,6 +212,8 @@ export function ContentRow({
   subtitle?: string;
   status?: ContentStatus;
   seedManaged: boolean;
+  /** ADR-0014 decision 6: a model drafted it and nobody has vouched for it. */
+  aiDraftUnreviewed: boolean;
   /** Short facts about the item: its type, its topic, how many criteria it has. */
   meta?: string[];
   updatedAt: string;
@@ -230,6 +233,7 @@ export function ContentRow({
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-muted-foreground">
         {status && <StatusBadge status={status} />}
+        <DraftBadge aiDraftUnreviewed={aiDraftUnreviewed} />
         <SeedBadge seedManaged={seedManaged} />
         {meta?.map((fact) => (
           <span key={fact}>{fact}</span>

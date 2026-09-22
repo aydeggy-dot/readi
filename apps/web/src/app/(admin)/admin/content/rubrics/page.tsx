@@ -45,6 +45,7 @@ export default async function RubricsPage({
             subtitle={rubric.slug}
             status={rubric.status}
             seedManaged={rubric.seed_managed}
+            aiDraftUnreviewed={rubric.ai_draft_unreviewed}
             meta={[t("admin.content.list.criteria", { count: rubric.criteria_count })]}
             updatedAt={rubric.updated_at}
           />

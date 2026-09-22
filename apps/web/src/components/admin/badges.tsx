@@ -39,3 +39,25 @@ export function SeedBadge({ seedManaged }: { seedManaged: boolean }) {
     </span>
   );
 }
+
+/**
+ * A model drafted this and nobody has vouched for it (ADR-0014 decision 6). It sits next to the
+ * status because it qualifies it: a `draft` that a person wrote and a `draft` a model wrote are
+ * not the same thing to whoever is deciding whether to publish it.
+ *
+ * The words carry the meaning, as everywhere else here. The colours are the vetted accent/primary
+ * pair the `in_review` status already uses; only the border differs, in the annotation orange, so
+ * the two are told apart by shape rather than by a new colour nobody has contrast-checked.
+ */
+export function DraftBadge({ aiDraftUnreviewed }: { aiDraftUnreviewed: boolean }) {
+  if (!aiDraftUnreviewed) return null;
+  return (
+    <span
+      data-testid="ai-draft-unreviewed"
+      title={t("admin.content.review.badgeHint")}
+      className="inline-flex items-center rounded-sm border border-pen bg-accent px-2 py-0.5 text-sm font-bold text-primary"
+    >
+      {t("admin.content.review.badge")}
+    </span>
+  );
+}

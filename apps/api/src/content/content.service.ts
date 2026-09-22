@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import {
   type CandidateLessonResponse,
   type CandidatePracticeQuery,
@@ -8,6 +8,8 @@ import {
   type ContentEntityPath,
   type ContentEntityType,
   type ContentListQuery,
+  type ContentReviewRequest,
+  type ContentReviewResponse,
   type ContentStatus,
   type ContentTransitionRequest,
   type ContentTransitionResponse,
@@ -27,6 +29,7 @@ import {
   type Rubric,
   type RubricInput,
   type RubricListResponse,
+  type SeedAuthor,
   type TargetRole,
   type Topic,
   type TopicInput,
@@ -38,12 +41,14 @@ import {
 } from "@readi/shared-types";
 import { AuditService } from "../audit/audit.service";
 import type { AuthenticatedUser } from "../auth/auth.service";
+import type { Env } from "../config/env";
+import { ENV } from "../config/env.module";
 import { Prisma } from "../generated/prisma/client";
 import { ApiError, fieldError } from "../http/api-error";
 import { PrismaService } from "../prisma/prisma.service";
 import { cursorWhere, paginate } from "./content-cursor";
 import { sameContent } from "./content-diff";
-import { checkTransition } from "./content-workflow";
+import { checkTransition, publishNeedsReview } from "./content-workflow";
 import { QuestionEmbeddingsService } from "./question-embeddings.service";
 import {
   lessonContent,
@@ -100,6 +105,9 @@ const ENTITY_TYPE: Readonly<Record<ContentEntityPath, ContentEntityType>> = {
   rubrics: "rubric",
 };
 
+/** What the version history says about a review that came with no note of its own. */
+const REVIEW_NOTE = "marked reviewed";
+
 const contains = (q: string) => ({ contains: q, mode: Prisma.QueryMode.insensitive });
 
 const isPrismaError = (error: unknown, code: string): boolean =>
@@ -117,13 +125,28 @@ export interface Actor {
   id: string | null;
   role: AuthenticatedUser["role"];
   source?: "cms" | "seed";
+  /**
+   * Only meaningful with `source: "seed"`: the `author` of the file being imported, which is the
+   * file's claim about whether a person has vouched for these words (ADR-0014 decision 6).
+   */
+  drafted?: SeedAuthor;
 }
 
 /** The CLIs. An admin's authority, nobody's name. */
 export const SYSTEM_ACTOR: Actor = { id: null, role: "admin" };
 
-/** The seed importer: the same authority, and `/content/seed`'s claim on what it writes. */
-export const SEED_ACTOR: Actor = { ...SYSTEM_ACTOR, source: "seed" };
+/** The seed importer writing one file, carrying that file's `author`. */
+export const seedActor = (author: SeedAuthor): Actor => ({
+  ...SYSTEM_ACTOR,
+  source: "seed",
+  drafted: author,
+});
+
+/**
+ * The seed importer with nothing claimed about authorship. That counts as an AI draft: an import
+ * that does not say a person wrote it is the case the guard exists for.
+ */
+export const SEED_ACTOR: Actor = seedActor("ai_draft");
 
 const actorType = (actor: Actor) => (actor.id ? "admin" : "system");
 
@@ -132,6 +155,35 @@ const actorType = (actor: Actor) => (actor.id ? "admin" : "system");
  * transition: publishing seeded content is not a claim on its words (ADR-0014 decision 5).
  */
 const ownership = (actor: Actor) => ({ seedManaged: actor.source === "seed" });
+
+/**
+ * Ownership **plus review state**, for the four entities that can be published (ADR-0014
+ * decision 6). Only the importer writes the review state, from the file's `author`:
+ *
+ * - `ai_draft` marks the row unreviewed and clears any earlier review, because the review was of
+ *   words this write is replacing;
+ * - `human` clears the mark — the file now says a person stands behind it.
+ *
+ * A CMS write deliberately leaves all of it alone. Clearing the mark on a save would mean a
+ * perfect draft needed a fake edit to be approved, and a one-word typo fix counted as reviewing
+ * the whole question and its rubric. Review is its own action, `markReviewed`.
+ */
+const authorship = (
+  actor: Actor,
+): {
+  seedManaged: boolean;
+  aiDraftUnreviewed?: boolean;
+  reviewedAt?: null;
+  reviewedByUserId?: null;
+} => {
+  if (actor.source !== "seed") return ownership(actor);
+  const unreviewed = actor.drafted !== "human";
+  return {
+    ...ownership(actor),
+    aiDraftUnreviewed: unreviewed,
+    ...(unreviewed ? { reviewedAt: null, reviewedByUserId: null } : {}),
+  };
+};
 
 /** What a mutation needs to record itself: who, what changed, and why. */
 interface ChangeContext {
@@ -145,6 +197,7 @@ export class ContentService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly embeddings: QuestionEmbeddingsService,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   // ---------------------------------------------------------------------------------------------
@@ -235,7 +288,7 @@ export class ContentService {
           title: input.title,
           summary: input.summary,
           createdByUserId: actor.id,
-          ...ownership(actor),
+          ...authorship(actor),
           topics: {
             create: sortTopics(input.topics).map((link) => ({
               topicId: link.topic_id,
@@ -272,7 +325,7 @@ export class ContentService {
             title: input.title,
             summary: input.summary,
             version: { increment: 1 },
-            ...ownership(context.actor),
+            ...authorship(context.actor),
             topics: {
               create: sortTopics(input.topics).map((link) => ({
                 topicId: link.topic_id,
@@ -409,7 +462,7 @@ export class ContentService {
           position: input.position,
           estimatedMinutes: input.estimated_minutes,
           createdByUserId: actor.id,
-          ...ownership(actor),
+          ...authorship(actor),
         },
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
@@ -439,7 +492,7 @@ export class ContentService {
             position: input.position,
             estimatedMinutes: input.estimated_minutes,
             version: { increment: 1 },
-            ...ownership(context.actor),
+            ...authorship(context.actor),
           },
         });
         await this.recordUpdate(tx, context.actor, "lesson", row.id, row.status, row.version);
@@ -480,7 +533,7 @@ export class ContentService {
           slug: input.slug,
           name: input.name,
           createdByUserId: actor.id,
-          ...ownership(actor),
+          ...authorship(actor),
           criteria: { create: this.criteriaRows(input) },
         },
         include: rubricInclude,
@@ -511,7 +564,7 @@ export class ContentService {
             slug: input.slug,
             name: input.name,
             version: { increment: 1 },
-            ...ownership(context.actor),
+            ...authorship(context.actor),
             criteria: { create: this.criteriaRows(input) },
           },
           include: rubricInclude,
@@ -554,7 +607,7 @@ export class ContentService {
   async createQuestion(actor: Actor, input: QuestionInput): Promise<Question> {
     const question = await this.prisma.question
       .create({
-        data: { ...this.questionRow(input), createdByUserId: actor.id, ...ownership(actor) },
+        data: { ...this.questionRow(input), createdByUserId: actor.id, ...authorship(actor) },
         include: questionInclude,
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
@@ -579,7 +632,7 @@ export class ContentService {
           data: {
             ...this.questionRow(input),
             version: { increment: 1 },
-            ...ownership(context.actor),
+            ...authorship(context.actor),
           },
           include: questionInclude,
         });
@@ -622,7 +675,8 @@ export class ContentService {
           );
     }
     const to = check.rule.to;
-    if (to === "published") await this.assertPublishable(entity, current);
+    if (to === "published")
+      await this.assertPublishable(entity, current, body.acknowledge_unreviewed);
 
     const context: ChangeContext = { actor, note: body.note };
     const updated = await this.prisma
@@ -651,7 +705,14 @@ export class ContentService {
             targetType: ENTITY_TYPE[entity],
             targetId: id,
             before: { status: current.status, version: current.version },
-            after: { status: row.status, version: row.version },
+            after: {
+              status: row.status,
+              version: row.version,
+              // Only recorded when it actually mattered, so a search for it finds real overrides.
+              ...(to === "published" && current.aiDraftUnreviewed
+                ? { acknowledged_unreviewed: true }
+                : {}),
+            },
           },
           tx,
         );
@@ -686,6 +747,74 @@ export class ContentService {
     };
   }
 
+  /**
+   * Records that a person has read a model's draft and stands behind it (ADR-0014 decision 6).
+   *
+   * Deliberately its own action rather than a side effect of saving an edit: clearing the mark on
+   * a save would mean a draft that needed no changes had to be edited to be approved, and a
+   * one-word typo fix counted as reviewing the whole question and its rubric.
+   *
+   * It is versioned and audited like a transition — the version row carries who and when — but it
+   * refuses when there is nothing to review, so a second click never churns the history.
+   */
+  async markReviewed(
+    actor: Actor,
+    entity: ContentEntityPath,
+    id: string,
+    body: ContentReviewRequest,
+  ): Promise<ContentReviewResponse> {
+    const current = await this.loadForTransition(entity, id);
+    if (!current.aiDraftUnreviewed) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "content_not_unreviewed",
+        "this item is not an unreviewed AI draft",
+      );
+    }
+
+    const context: ChangeContext = { actor, note: body.note ?? REVIEW_NOTE };
+    const reviewedAt = new Date();
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await this.writeSnapshot(tx, ENTITY_TYPE[entity], current, current.content, context);
+      const data = {
+        aiDraftUnreviewed: false,
+        reviewedAt,
+        reviewedByUserId: actor.id,
+        version: { increment: 1 },
+      };
+      const row =
+        entity === "tracks"
+          ? await tx.track.update({ where: { id }, data })
+          : entity === "lessons"
+            ? await tx.lesson.update({ where: { id }, data })
+            : entity === "questions"
+              ? await tx.question.update({ where: { id }, data })
+              : await tx.rubric.update({ where: { id }, data });
+      await this.audit.record(
+        {
+          actorType: actorType(actor),
+          actorId: actor.id,
+          action: `content.${ENTITY_TYPE[entity]}.reviewed`,
+          targetType: ENTITY_TYPE[entity],
+          targetId: id,
+          before: { status: current.status, version: current.version, ai_draft_unreviewed: true },
+          after: { status: row.status, version: row.version, ai_draft_unreviewed: false },
+        },
+        tx,
+      );
+      return row;
+    });
+
+    return {
+      entity,
+      id: updated.id,
+      ai_draft_unreviewed: false,
+      reviewed_at: reviewedAt.toISOString(),
+      version: updated.version,
+      updated_at: updated.updatedAt.toISOString(),
+    };
+  }
+
   /** Near-duplicates of a question that may not exist yet (the CMS's question form). */
   duplicateCheck(request: DuplicateCheckRequest): Promise<DuplicateMatch[]> {
     return this.embeddings.check(request);
@@ -695,7 +824,24 @@ export class ContentService {
   private async assertPublishable(
     entity: ContentEntityPath,
     current: TransitionTarget,
+    acknowledgedUnreviewed: boolean,
   ): Promise<void> {
+    /*
+     * Nothing a model drafted reaches candidates in production until a person has said it is fit
+     * to (ADR-0014 decision 6, CLAUDE.md §7.7). Development, test and the e2e run never refuse:
+     * M3 is built against the seeded drafts, and a guard that blocked that would be turned off.
+     *
+     * The override is an admin's, not an expert's — only an admin can publish at all, so reaching
+     * this line already means the actor had that authority. `transition` records in the audit
+     * entry that it was used.
+     */
+    if (publishNeedsReview(this.env.NODE_ENV, current.aiDraftUnreviewed, acknowledgedUnreviewed)) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "content_unreviewed_ai_draft",
+        "a model drafted this and no one has marked it reviewed",
+      );
+    }
     if (entity === "rubrics") {
       const rubric = await this.findRubricOrFail(current.id);
       if (!weightsTotalCorrectly(rubric.criteria)) {
@@ -1019,7 +1165,13 @@ export class ContentService {
     switch (entity) {
       case "tracks": {
         const row = await this.findTrackOrFail(id);
-        return { id: row.id, status: row.status, version: row.version, content: trackContent(row) };
+        return {
+          id: row.id,
+          status: row.status,
+          version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
+          content: trackContent(row),
+        };
       }
       case "lessons": {
         const row = await this.findLessonOrFail(id);
@@ -1027,6 +1179,7 @@ export class ContentService {
           id: row.id,
           status: row.status,
           version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
           content: lessonContent(row),
         };
       }
@@ -1036,6 +1189,7 @@ export class ContentService {
           id: row.id,
           status: row.status,
           version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
           content: questionContent(row),
         };
       }
@@ -1045,6 +1199,7 @@ export class ContentService {
           id: row.id,
           status: row.status,
           version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
           content: rubricContent(row),
         };
       }
@@ -1057,4 +1212,6 @@ interface TransitionTarget {
   status: ContentStatus;
   version: number;
   content: unknown;
+  /** ADR-0014 decision 6: a model drafted this and nobody has vouched for it yet. */
+  aiDraftUnreviewed: boolean;
 }

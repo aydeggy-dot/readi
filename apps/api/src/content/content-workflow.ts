@@ -51,5 +51,21 @@ export function availableTransitions(status: ContentStatus, role: Role): Content
   );
 }
 
+/**
+ * Whether publishing must be refused because a model drafted this and nobody has vouched for it
+ * (ADR-0014 decision 6, CLAUDE.md §7.7).
+ *
+ * Only production refuses. Development, test and the e2e run publish seeded drafts freely, because
+ * M3 is built against them and a guard that blocked that would simply be turned off. The override
+ * is an admin's deliberate act — only an admin can publish at all — and the audit entry records it.
+ */
+export function publishNeedsReview(
+  nodeEnv: string,
+  aiDraftUnreviewed: boolean,
+  acknowledged: boolean,
+): boolean {
+  return nodeEnv === "production" && aiDraftUnreviewed && !acknowledged;
+}
+
 /** Content a candidate may be shown. Everything else is invisible outside the CMS (ADR-0014). */
 export const isCandidateVisible = (status: ContentStatus): boolean => status === "published";

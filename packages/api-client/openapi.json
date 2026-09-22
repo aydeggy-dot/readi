@@ -1489,7 +1489,58 @@
             "description": "Not yours to make (code `content_transition_forbidden`)"
           },
           "409": {
-            "description": "Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`"
+            "description": "Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`)"
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
+    "/api/admin/content/{entity}/{id}/reviewed": {
+      "post": {
+        "operationId": "ContentAdminController_markReviewed",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/ContentEntityPath"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentReviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentReviewResponseDto_Output"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing to review — it was not an AI draft, or already is (`content_not_unreviewed`)"
           }
         },
         "tags": ["admin-content"]
@@ -2749,6 +2800,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -2765,6 +2825,8 @@
           "version",
           "module_count",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3001,6 +3063,15 @@
                       "seed_managed": {
                         "type": "boolean"
                       },
+                      "ai_draft_unreviewed": {
+                        "type": "boolean"
+                      },
+                      "reviewed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                        "nullable": true
+                      },
                       "updated_at": {
                         "type": "string",
                         "format": "date-time",
@@ -3019,6 +3090,8 @@
                       "status",
                       "version",
                       "seed_managed",
+                      "ai_draft_unreviewed",
+                      "reviewed_at",
                       "updated_at"
                     ],
                     "additionalProperties": false
@@ -3041,6 +3114,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3059,6 +3141,8 @@
           "topics",
           "modules",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3188,6 +3272,15 @@
                 "seed_managed": {
                   "type": "boolean"
                 },
+                "ai_draft_unreviewed": {
+                  "type": "boolean"
+                },
+                "reviewed_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
                 "updated_at": {
                   "type": "string",
                   "format": "date-time",
@@ -3206,6 +3299,8 @@
                 "status",
                 "version",
                 "seed_managed",
+                "ai_draft_unreviewed",
+                "reviewed_at",
                 "updated_at"
               ],
               "additionalProperties": false
@@ -3264,6 +3359,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3279,6 +3383,8 @@
           "status",
           "version",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3398,6 +3504,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3416,6 +3531,8 @@
           "status",
           "version",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3455,6 +3572,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3469,6 +3595,8 @@
           "version",
           "criteria_count",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3670,6 +3798,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3684,6 +3821,8 @@
           "version",
           "criteria",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -3768,6 +3907,15 @@
           "seed_managed": {
             "type": "boolean"
           },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -3786,6 +3934,8 @@
           "status",
           "version",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -4113,6 +4263,15 @@
               "seed_managed": {
                 "type": "boolean"
               },
+              "ai_draft_unreviewed": {
+                "type": "boolean"
+              },
+              "reviewed_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
               "updated_at": {
                 "type": "string",
                 "format": "date-time",
@@ -4127,6 +4286,8 @@
               "version",
               "criteria",
               "seed_managed",
+              "ai_draft_unreviewed",
+              "reviewed_at",
               "updated_at"
             ],
             "additionalProperties": false
@@ -4139,6 +4300,15 @@
           },
           "seed_managed": {
             "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
           },
           "updated_at": {
             "type": "string",
@@ -4165,6 +4335,8 @@
           "rubric",
           "embedding_model",
           "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at",
           "updated_at"
         ],
         "additionalProperties": false
@@ -4184,6 +4356,10 @@
             "minLength": 1,
             "maxLength": 200,
             "nullable": true
+          },
+          "acknowledge_unreviewed": {
+            "default": false,
+            "type": "boolean"
           }
         },
         "required": ["transition", "note"]
@@ -4224,6 +4400,52 @@
           }
         },
         "required": ["entity", "id", "status", "version", "updated_at", "duplicates"],
+        "additionalProperties": false
+      },
+      "ContentReviewRequestDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": ["note"]
+      },
+      "ContentReviewResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/ContentEntityPath_Output"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean",
+            "const": false
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["entity", "id", "ai_draft_unreviewed", "reviewed_at", "version", "updated_at"],
         "additionalProperties": false
       },
       "ContentVersionSummary_Output": {

@@ -1,5 +1,5 @@
 import type { ContentStatus } from "@readi/shared-types";
-import { SeedBadge, StatusBadge } from "@/components/admin/badges";
+import { DraftBadge, SeedBadge, StatusBadge } from "@/components/admin/badges";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Note } from "@/components/ui/margin";
 import { TextLink } from "@/components/ui/text-link";
@@ -16,12 +16,14 @@ export function EditorHeading({
   backHref,
   status,
   seedManaged,
+  aiDraftUnreviewed,
 }: {
   title: string;
   lead?: string;
   backHref: string;
   status?: ContentStatus;
   seedManaged?: boolean;
+  aiDraftUnreviewed?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -29,9 +31,10 @@ export function EditorHeading({
         {t("admin.content.actions.back")}
       </TextLink>
       <PageHeading title={title} lead={lead} />
-      {(status || seedManaged !== undefined) && (
+      {(status || seedManaged !== undefined || aiDraftUnreviewed !== undefined) && (
         <div className="flex flex-wrap items-center gap-3">
           {status && <StatusBadge status={status} />}
+          <DraftBadge aiDraftUnreviewed={aiDraftUnreviewed ?? false} />
           <SeedBadge seedManaged={seedManaged ?? false} />
         </div>
       )}

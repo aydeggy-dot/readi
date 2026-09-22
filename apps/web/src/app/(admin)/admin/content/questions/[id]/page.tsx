@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EditorHeading } from "@/components/admin/editor-heading";
 import { QuestionForm } from "@/components/admin/question-form";
+import { ReviewPanel } from "@/components/admin/review-panel";
 import { TransitionPanel } from "@/components/admin/transition-panel";
 import { VersionHistory } from "@/components/admin/version-history";
 import { t } from "@/i18n";
@@ -28,11 +29,18 @@ export default async function QuestionPage({ params }: { params: Promise<{ id: s
         backHref="/admin/content/questions"
         status={question.data.status}
         seedManaged={question.data.seed_managed}
+        aiDraftUnreviewed={question.data.ai_draft_unreviewed}
       />
       <QuestionForm
         question={question.data}
         topics={topics.data?.topics ?? []}
         rubrics={rubrics.data?.items ?? []}
+      />
+      <ReviewPanel
+        entity="questions"
+        id={question.data.id}
+        aiDraftUnreviewed={question.data.ai_draft_unreviewed}
+        reviewedAt={question.data.reviewed_at}
       />
       <TransitionPanel
         entity="questions"

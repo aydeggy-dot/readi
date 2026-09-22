@@ -73,6 +73,16 @@ export const toTopic = (row: TopicRow): Topic => ({
 const toLevels = (levels: Prisma.JsonValue): RubricInput["criteria"][number]["levels"] =>
   levels as RubricInput["criteria"][number]["levels"];
 
+/**
+ * The review state the CMS shows (ADR-0014 decision 6): whether a model drafted this and nobody
+ * has vouched for it, and when a review was recorded. The reviewer's id stays server-side — the
+ * audit log is where "by whom" belongs.
+ */
+const review = (row: { aiDraftUnreviewed: boolean; reviewedAt: Date | null }) => ({
+  ai_draft_unreviewed: row.aiDraftUnreviewed,
+  reviewed_at: row.reviewedAt ? iso(row.reviewedAt) : null,
+});
+
 export const toRubric = (row: RubricRow): Rubric => ({
   id: row.id,
   slug: row.slug,
@@ -80,6 +90,7 @@ export const toRubric = (row: RubricRow): Rubric => ({
   status: row.status,
   version: row.version,
   seed_managed: row.seedManaged,
+  ...review(row),
   criteria: row.criteria.map((criterion) => ({
     id: criterion.id,
     dimension: criterion.dimension,
@@ -109,6 +120,7 @@ export const toQuestion = (row: QuestionRow): Question => ({
   rubric: toRubric(row.rubric),
   embedding_model: row.embeddingModel,
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 
@@ -124,6 +136,7 @@ export const toLesson = (row: LessonRow): Lesson => ({
   status: row.status,
   version: row.version,
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 
@@ -150,6 +163,7 @@ export const toTrack = (row: TrackRow): Track => ({
   topics: row.topics.map((link) => ({ topic_id: link.topicId, is_core: link.isCore })),
   modules: row.modules.map(toModule),
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 
@@ -168,6 +182,7 @@ export const toTrackListItem = (
   version: row.version,
   module_count: row._count.modules,
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 
@@ -182,6 +197,7 @@ export const toLessonListItem = (
   status: row.status,
   version: row.version,
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 
@@ -201,6 +217,7 @@ export const toQuestionListItem = (
   status: row.status,
   version: row.version,
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 
@@ -214,6 +231,7 @@ export const toRubricListItem = (
   version: row.version,
   criteria_count: row._count.criteria,
   seed_managed: row.seedManaged,
+  ...review(row),
   updated_at: iso(row.updatedAt),
 });
 

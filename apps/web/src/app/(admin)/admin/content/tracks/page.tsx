@@ -49,6 +49,7 @@ export default async function TracksPage({
             subtitle={track.slug}
             status={track.status}
             seedManaged={track.seed_managed}
+            aiDraftUnreviewed={track.ai_draft_unreviewed}
             meta={[
               `${t(`targetRoles.${track.role}`)} · ${t(`levels.${track.level}`)}`,
               t("admin.content.list.modules", { count: track.module_count }),

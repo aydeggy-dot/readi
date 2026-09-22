@@ -392,6 +392,105 @@ describe("admin content API", () => {
     });
   });
 
+  describe("marking a model's draft reviewed (ADR-0014 decision 6)", () => {
+    /**
+     * Only the seed importer marks a row as an unreviewed AI draft, and it writes through
+     * `ContentService`. The tests reach the same state directly, which is also the state the
+     * migration's backfill left every seeded row in.
+     */
+    const asAiDraft = (entityId: string) =>
+      prisma.rubric.update({ where: { id: entityId }, data: { aiDraftUnreviewed: true } });
+
+    it("is an expert's to record, and says who and when", async () => {
+      const rubric = await createRubric(expert);
+      await asAiDraft(rubric.id);
+
+      const response = await http()
+        .post(`/api/admin/content/rubrics/${rubric.id}/reviewed`)
+        .set(as(expert))
+        .send({ note: "read it end to end" });
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        entity: "rubrics",
+        id: rubric.id,
+        ai_draft_unreviewed: false,
+        version: rubric.version + 1,
+      });
+      expect(
+        Date.parse(String((response.body as { reviewed_at: string }).reviewed_at)),
+      ).toBeGreaterThan(0);
+
+      // The reviewer's name is on the row and in the audit log, never in the response.
+      expect(JSON.stringify(response.body)).not.toContain("reviewed_by");
+      const row = await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } });
+      expect(row.aiDraftUnreviewed).toBe(false);
+      expect(row.reviewedByUserId).toEqual(expect.any(String));
+      const entry = await prisma.auditLog.findFirst({
+        where: { action: "content.rubric.reviewed", targetId: rubric.id },
+      });
+      expect(entry?.actorId).toBe(row.reviewedByUserId);
+
+      // And the history carries the reviewer's note, so the version says why.
+      const versions = await http()
+        .get(`/api/admin/content/rubrics/${rubric.id}/versions`)
+        .set(as(expert));
+      expect((versions.body as ContentVersionsResponse).versions[0]).toMatchObject({
+        change_note: "read it end to end",
+      });
+    });
+
+    it("refuses when there is nothing to review, so a second click churns no history", async () => {
+      const rubric = await createRubric(expert);
+      // Written in the CMS by a person: it was never an AI draft.
+      const never = await http()
+        .post(`/api/admin/content/rubrics/${rubric.id}/reviewed`)
+        .set(as(expert))
+        .send({ note: null });
+      expect(never.status).toBe(409);
+      expect(never.body).toMatchObject({ code: "content_not_unreviewed" });
+
+      await asAiDraft(rubric.id);
+      expect(
+        (
+          await http()
+            .post(`/api/admin/content/rubrics/${rubric.id}/reviewed`)
+            .set(as(expert))
+            .send({ note: null })
+        ).status,
+      ).toBe(200);
+      const again = await http()
+        .post(`/api/admin/content/rubrics/${rubric.id}/reviewed`)
+        .set(as(expert))
+        .send({ note: null });
+      expect(again.status).toBe(409);
+    });
+
+    it("is not cleared by editing the content: a typo fix is not a review", async () => {
+      const rubric = await createRubric(expert);
+      await asAiDraft(rubric.id);
+      const edited = await http()
+        .put(`/api/admin/content/rubrics/${rubric.id}`)
+        .set(as(expert))
+        .send({
+          slug: rubric.slug,
+          name: "Performance reasoning, corrected",
+          criteria: rubric.criteria.map(({ id: _id, ...criterion }) => criterion),
+        });
+      expect(edited.status).toBe(200);
+      expect(edited.body).toMatchObject({ ai_draft_unreviewed: true });
+      // The edit did take the row away from the seed files, which is a different question.
+      expect(edited.body).toMatchObject({ seed_managed: false });
+    });
+
+    it("does not refuse publishing outside production", async () => {
+      const rubric = await createRubric(expert);
+      await asAiDraft(rubric.id);
+      await move(expert, "rubrics", rubric.id, "submit");
+      const published = await move(admin, "rubrics", rubric.id, "publish");
+      expect(published.status).toBe(201);
+    });
+  });
+
   describe("writing rules", () => {
     it("refuses a slug that is already taken", async () => {
       const first = await createRubric(expert);

@@ -132,6 +132,18 @@ export type RubricInput = z.infer<typeof RubricInput>;
  */
 const seedManaged = () => z.boolean();
 
+/**
+ * Whether a model drafted this item and nobody has vouched for it yet (ADR-0014 decision 6). Set
+ * by the seed importer from the file's `author`, cleared by the explicit "mark as reviewed"
+ * action or by a re-import from a file that says `author: human` — never by an ordinary edit,
+ * because a typo fix is not a review. In production, publishing one of these is refused unless an
+ * admin acknowledges it. Admin shapes only.
+ */
+const aiDraftUnreviewed = () => z.boolean();
+
+/** When it was marked reviewed, if it ever was. The reviewer's id stays server-side. */
+const reviewedAt = () => z.iso.datetime().nullable();
+
 export const Rubric = z.object({
   id: z.uuid(),
   slug: slug(),
@@ -140,6 +152,8 @@ export const Rubric = z.object({
   version: z.int().min(1),
   criteria: z.array(RubricCriterion),
   seed_managed: seedManaged(),
+  ai_draft_unreviewed: aiDraftUnreviewed(),
+  reviewed_at: reviewedAt(),
   updated_at: z.iso.datetime(),
 });
 export type Rubric = z.infer<typeof Rubric>;
@@ -175,6 +189,8 @@ export const Question = QuestionInput.extend({
   /** Which model produced the stored embedding, so stale vectors can be found (ADR-0006). */
   embedding_model: z.string().min(1).max(60).nullable(),
   seed_managed: seedManaged(),
+  ai_draft_unreviewed: aiDraftUnreviewed(),
+  reviewed_at: reviewedAt(),
   updated_at: z.iso.datetime(),
 });
 export type Question = z.infer<typeof Question>;
@@ -196,6 +212,8 @@ export const Lesson = LessonInput.extend({
   status: ContentStatus,
   version: z.int().min(1),
   seed_managed: seedManaged(),
+  ai_draft_unreviewed: aiDraftUnreviewed(),
+  reviewed_at: reviewedAt(),
   updated_at: z.iso.datetime(),
 });
 export type Lesson = z.infer<typeof Lesson>;
@@ -244,6 +262,8 @@ export const Track = z.object({
   topics: z.array(TrackTopicInput),
   modules: z.array(Module),
   seed_managed: seedManaged(),
+  ai_draft_unreviewed: aiDraftUnreviewed(),
+  reviewed_at: reviewedAt(),
   updated_at: z.iso.datetime(),
 });
 export type Track = z.infer<typeof Track>;
@@ -289,6 +309,8 @@ export const TrackListItem = z
     version: z.int().min(1),
     module_count: z.int().min(0),
     seed_managed: seedManaged(),
+    ai_draft_unreviewed: aiDraftUnreviewed(),
+    reviewed_at: reviewedAt(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "TrackListItem" });
@@ -310,6 +332,8 @@ export const LessonListItem = z
     status: ContentStatus,
     version: z.int().min(1),
     seed_managed: seedManaged(),
+    ai_draft_unreviewed: aiDraftUnreviewed(),
+    reviewed_at: reviewedAt(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "LessonListItem" });
@@ -338,6 +362,8 @@ export const QuestionListItem = z
     status: ContentStatus,
     version: z.int().min(1),
     seed_managed: seedManaged(),
+    ai_draft_unreviewed: aiDraftUnreviewed(),
+    reviewed_at: reviewedAt(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "QuestionListItem" });
@@ -358,6 +384,8 @@ export const RubricListItem = z
     version: z.int().min(1),
     criteria_count: z.int().min(0),
     seed_managed: seedManaged(),
+    ai_draft_unreviewed: aiDraftUnreviewed(),
+    reviewed_at: reviewedAt(),
     updated_at: z.iso.datetime(),
   })
   .meta({ id: "RubricListItem" });
@@ -473,8 +501,34 @@ export type ContentEntityPath = z.infer<typeof ContentEntityPath>;
 export const ContentTransitionRequest = z.object({
   transition: ContentTransition,
   note: z.string().trim().min(1).max(CONTENT_LIMITS.changeNoteMaxLength).nullable(),
+  /**
+   * Publish this item even though a model drafted it and nobody has marked it reviewed
+   * (ADR-0014 decision 6). Only production refuses such a publish, and only an admin can publish
+   * at all, so this is an admin's deliberate override — the audit entry records that it was used.
+   */
+  acknowledge_unreviewed: z.boolean().default(false),
 });
 export type ContentTransitionRequest = z.infer<typeof ContentTransitionRequest>;
+
+/** Body of the "mark as reviewed" endpoint: why, for the version history. */
+export const ContentReviewRequest = z.object({
+  note: z.string().trim().min(1).max(CONTENT_LIMITS.changeNoteMaxLength).nullable(),
+});
+export type ContentReviewRequest = z.infer<typeof ContentReviewRequest>;
+
+/**
+ * What marking an item reviewed returns. The reviewer's id is deliberately absent: the CMS shows
+ * that a review happened and when, and the audit log is where "by whom" belongs.
+ */
+export const ContentReviewResponse = z.object({
+  entity: ContentEntityPath,
+  id: z.uuid(),
+  ai_draft_unreviewed: z.literal(false),
+  reviewed_at: z.iso.datetime(),
+  version: z.int().min(1),
+  updated_at: z.iso.datetime(),
+});
+export type ContentReviewResponse = z.infer<typeof ContentReviewResponse>;
 
 /** A near-duplicate found by cosine similarity on question embeddings (ADR-0006). */
 export const DuplicateMatch = z

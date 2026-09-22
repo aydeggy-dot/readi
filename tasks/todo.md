@@ -462,9 +462,42 @@ alone, every run.
   number field today), and `reviewer_notes` / `author` in the CMS — they have no column, so showing
   them is a migration (noted in phase 4 too).
 
-### Phase 6
+### Phase 6 — verification, docs, handover, and the unreviewed-draft guard
 
-Verification, docs and handover (ADR-0014 now lands in phase 5).
+Owner's ask (2026-09-22): say plainly that seeded drafts may be published in development to build
+M3 but never in production before an expert review, and make production enforce it.
+
+**The decision (ADR-0014 decision 6).** `author: ai_draft` lived only in the YAML, so once content
+was imported nothing could tell a model's draft from a vetted question. `seed_managed` is the wrong
+axis — it says who owns the words, and it stays true after an expert reviews a bank in the YAML, so
+a guard built on it would refuse the reviewed content and wave through a typo fix. The fact needs
+its own column.
+
+- [ ] Migration `content_review_state` on tracks, lessons, questions, rubrics:
+      `ai_draft_unreviewed` (bool, default false), `reviewed_by_user_id` (uuid, no FK),
+      `reviewed_at` (timestamptz). Drop Prisma's proposed `DROP INDEX questions_embedding_hnsw`
+      by hand, as in phase 5
+- [ ] `TOMBSTONED_COLUMNS` gains the four `reviewed_by_user_id` columns (ADR-0011); the schema
+      test in `account.int.spec.ts` is the gate
+- [ ] `Actor.drafted` + `seedActor(author)` in `ContentService`; the importer passes each file's
+      own `author`. A bare `SEED_ACTOR` means authorship unstated, which counts as an AI draft —
+      the conservative default
+- [ ] **Not cleared by a content save.** A perfect draft would need a fake edit to be approved, and
+      a typo fix would count as reviewing the whole question and rubric
+- [ ] `POST /api/admin/content/:entity/:id/reviewed` — the explicit "Mark as reviewed" action, for
+      content_expert and admin. Writes a version snapshot and an audit entry with who and when;
+      409 `content_not_unreviewed` when there is nothing to review, so it never churns a version
+- [ ] Re-import with `author: human` clears the flag; re-import of changed `ai_draft` text sets it
+      again and clears a stale review
+- [ ] The guard in `assertPublishable`: `NODE_ENV=production` only, code
+      `content_unreviewed_ai_draft`, override `acknowledge_unreviewed` on the publish transition
+      (already admin-only) recorded in the audit entry. Never refuses in dev, test or e2e, so M3
+      builds on seeded drafts freely
+- [ ] CMS: "AI draft, unreviewed" chip in the four lists and on each item, the Mark as reviewed
+      button, and publish copy that explains the refusal and offers the override
+- [ ] ADR-0014 decision 6; `content/seed/REVIEW.md` and the handover say the rule in prose
+
+Then: verification, `docs/progress/2026-09-22-m2.md`, and the full milestone review across M2.
 
 ## Carried forward
 

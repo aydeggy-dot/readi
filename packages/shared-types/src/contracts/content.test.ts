@@ -195,11 +195,16 @@ describe("tracks and transitions", () => {
         version: 1,
         criteria: [{ id: TOPIC_ID, ...criterion(RUBRIC_WEIGHT_TOTAL) }],
         seed_managed: false,
+        ai_draft_unreviewed: false,
+        reviewed_at: null,
         updated_at: "2026-09-21T10:00:00.000Z",
       },
       embedding_model: "fake-1",
-      // Written in the CMS, so `/content/seed` no longer overwrites it (ADR-0014 decision 5).
+      // Written in the CMS, so `/content/seed` no longer overwrites it (ADR-0014 decision 5),
+      // and a person wrote it, so there is nothing for an expert to vouch for (decision 6).
       seed_managed: false,
+      ai_draft_unreviewed: false,
+      reviewed_at: null,
       updated_at: "2026-09-21T10:00:00.000Z",
     });
     expect(parsed.success).toBe(true);

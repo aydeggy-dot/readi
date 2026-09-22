@@ -7,6 +7,7 @@ import type {
   DuplicateMatch,
   Role,
 } from "@readi/shared-types";
+import { errorCode } from "@readi/api-client";
 import { availableTransitions, CONTENT_LIMITS } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -46,21 +47,35 @@ export function TransitionPanel({
   const [confirming, setConfirming] = useState<ContentTransition | null>(null);
   const [done, setDone] = useState<ContentStatus | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
+  const [unreviewed, setUnreviewed] = useState(false);
   const [failure, setFailure] = useState<ApiFailure>();
 
   const moves = availableTransitions(status, role);
 
-  const run = async (transition: ContentTransition) => {
+  const run = async (transition: ContentTransition, acknowledgeUnreviewed = false) => {
     setPending(transition);
     setConfirming(null);
     setFailure(undefined);
     setDone(null);
+    setUnreviewed(false);
     try {
       const { data, error, response } = await browserApi.POST(
         "/api/admin/content/{entity}/{id}/transition",
-        { params: { path: { entity, id } }, body: { transition, note: note.trim() || null } },
+        {
+          params: { path: { entity, id } },
+          body: {
+            transition,
+            note: note.trim() || null,
+            acknowledge_unreviewed: acknowledgeUnreviewed,
+          },
+        },
       );
       if (!data) {
+        // The one refusal with a way forward: offer the override rather than only explaining it.
+        if (errorCode(error) === "content_unreviewed_ai_draft") {
+          setUnreviewed(true);
+          return;
+        }
         const message = contentErrorMessage(error);
         setFailure(message ? { message, signedOut: false } : apiFailure(response.status));
         return;
@@ -125,6 +140,21 @@ export function TransitionPanel({
               {t(`admin.content.transition.${confirming}`)}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setConfirming(null)}>
+              {t("common.cancel")}
+            </Button>
+          </div>
+        </Alert>
+      )}
+
+      {unreviewed && (
+        <Alert className="flex flex-col items-start gap-3">
+          <span>{t("admin.content.errors.unreviewedAiDraft")}</span>
+          <span>{t("admin.content.transition.confirmUnreviewed")}</span>
+          <div className="flex gap-3">
+            <Button type="button" onClick={() => void run("publish", true)}>
+              {t("admin.content.transition.publishAnyway")}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setUnreviewed(false)}>
               {t("common.cancel")}
             </Button>
           </div>

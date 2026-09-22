@@ -18,6 +18,11 @@ export const TOMBSTONED_COLUMNS = [
   { table: "rubrics", column: "created_by_user_id" },
   { table: "questions", column: "created_by_user_id" },
   { table: "content_versions", column: "changed_by_user_id" },
+  // Who vouched for a model's draft outlives their account too (ADR-0014 decision 6).
+  { table: "tracks", column: "reviewed_by_user_id" },
+  { table: "lessons", column: "reviewed_by_user_id" },
+  { table: "rubrics", column: "reviewed_by_user_id" },
+  { table: "questions", column: "reviewed_by_user_id" },
 ] as const;
 
 /** Object-storage folder holding a user's files (their CV). */
@@ -65,6 +70,14 @@ export async function eraseUser(
     await tx.lesson.updateMany({ where: authored, data: toTombstone });
     await tx.rubric.updateMany({ where: authored, data: toTombstone });
     await tx.question.updateMany({ where: authored, data: toTombstone });
+    // The same for whoever marked a model's draft reviewed (ADR-0014 decision 6): the review
+    // stands, and only the name behind it goes.
+    const reviewed = { reviewedByUserId: userId };
+    const reviewedByTombstone = { reviewedByUserId: tombstone.id };
+    await tx.track.updateMany({ where: reviewed, data: reviewedByTombstone });
+    await tx.lesson.updateMany({ where: reviewed, data: reviewedByTombstone });
+    await tx.rubric.updateMany({ where: reviewed, data: reviewedByTombstone });
+    await tx.question.updateMany({ where: reviewed, data: reviewedByTombstone });
     await tx.contentVersion.updateMany({
       where: { changedByUserId: userId },
       data: { changedByUserId: tombstone.id },

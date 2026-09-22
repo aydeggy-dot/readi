@@ -55,6 +55,7 @@ export default async function QuestionsPage({
             subtitle={question.topic.name}
             status={question.status}
             seedManaged={question.seed_managed}
+            aiDraftUnreviewed={question.ai_draft_unreviewed}
             meta={[
               t(`admin.content.question.types.${question.type}`),
               t("admin.content.list.difficulty", { value: question.difficulty }),

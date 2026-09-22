@@ -59,6 +59,7 @@ async function main(): Promise<number> {
       new QuestionEmbeddingsRepository(prisma),
       env,
     ),
+    env,
   );
 
   const dryRun = values["dry-run"];

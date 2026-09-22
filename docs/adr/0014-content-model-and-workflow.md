@@ -1,13 +1,19 @@
-# 0014 — Learning content: statuses, version history, the answer key, and the source of truth after import
+# 0014 — Learning content: statuses, version history, the answer key, the source of truth after import, and expert review before production
 
-**Status:** Accepted · **Date:** 2026-09-21
+**Status:** Accepted · **Date:** 2026-09-21 · **Amended:** 2026-09-22 (decision 6)
+
+> CLAUDE.md §7.4 says an accepted ADR is superseded, not edited. Decision 6 is an addition to
+> this one at the owner's request: it answers a question the first five left open rather than
+> changing any of their answers, and splitting it into its own ADR would put the six rules that
+> govern one table in two places. Nothing above it has been altered.
 
 ## Context
 M2 adds the material a mock interview is made of: tracks, modules, lessons, topics, questions and
 rubrics (spec §4.2, §4.8, §6.1). Three groups of people write to it — content experts and admins in
 the CMS, and the seed importer reading `/content/seed` — and one group reads it who must never see
-half of it: candidates. Four questions had to be settled before any of it was built, and a fifth
-came up once the importer and the CMS existed side by side.
+half of it: candidates. Four questions had to be settled before any of it was built, a fifth
+came up once the importer and the CMS existed side by side, and a sixth once the content that had
+been drafted was real enough to be published by accident.
 
 ## Decision
 
@@ -110,6 +116,54 @@ The rule of thumb that follows: **edit the YAML until the first expert review la
 after.** Nothing enforces the order, because nothing needs to — the importer reports what it skipped,
 and `--force` is there for the day the files are deliberately made the truth again.
 
+### 6. A model's draft cannot reach candidates in production until a person has vouched for it
+Everything in `/content/seed` was drafted by a model and carries `author: ai_draft`. That is a
+claim the **files** make; until now it stopped at the importer, which validated it and left it in
+the YAML. Once a row was in the database nothing could tell a model's draft from a question a
+content expert had written and stood behind — so the only thing between an unreviewed draft and a
+candidate was an admin remembering which was which.
+
+`seed_managed` is not that fact and cannot stand in for it. It answers *who owns the words*, and it
+stays `true` after an expert reviews a whole bank in the YAML and re-imports it (decision 5, which
+is exactly the flow `content/seed/REVIEW.md` prescribes for the first round). A guard built on it
+would refuse the reviewed content and wave through anything an admin had typo-fixed in the CMS.
+
+So the four publishable entities carry their own review state:
+
+- **`ai_draft_unreviewed`** — a model wrote this and nobody has vouched for it. The seed importer
+  sets it from the file's `author`, per file: `ai_draft` marks the row, `human` clears it.
+- **`reviewed_by_user_id` / `reviewed_at`** — who recorded the review and when. A plain uuid with
+  no foreign key, tombstoned on erasure like the other authorship columns (decision 4, ADR-0011).
+
+**Publishing in production is refused** for a marked row (`content_unreviewed_ai_draft`), unless
+the publish carries `acknowledge_unreviewed`. Only an admin can publish at all, so the override is
+already an admin's; the audit entry records that it was used, and it is recorded only when it
+actually mattered, so searching for it finds real overrides. **Development, test and the e2e run
+never refuse.** M3 is built against the seeded drafts, and a guard that blocked that would be the
+first thing anyone turned off.
+
+**Marking something reviewed is its own action** (`POST /api/admin/content/:entity/:id/reviewed`),
+open to a content expert as well as an admin — reviewing content is exactly an expert's job, and
+publishing it afterwards is still the admin's. It writes a version snapshot and an audit entry, so
+the history carries who and when, and it refuses when there is nothing to review
+(`content_not_unreviewed`) so a second click never churns the history.
+
+Two things deliberately do **not** clear the mark:
+
+- **Saving an edit.** A draft that needed no changes would otherwise have to be edited before it
+  could be approved, and a one-word typo fix would count as having reviewed the whole question,
+  its answer key and every level descriptor of its rubric. Review is a judgement, not a side
+  effect of typing.
+- **A status transition**, for the same reason it does not move `seed_managed`: publishing is not
+  authorship, and overriding the guard is not a review. A row published under
+  `acknowledge_unreviewed` is still marked, and still shows the CMS's "AI draft, unreviewed" chip.
+
+Re-importing a file that says `author: ai_draft` over text a model has redrafted **re-marks** the
+row and clears any earlier review, because that review was of words the import replaced.
+
+The migration backfills every row `/content/seed` still owns as unreviewed, since `ai_draft` is the
+only author the shipped corpus uses.
+
 ## Consequences
 - The CMS is the only place where content is authored after review. `/content/seed` keeps its value
   as the checked-in, reviewable, diff-able draft of the bank, and as the way a fresh database
@@ -123,6 +177,14 @@ and `--force` is there for the day the files are deliberately made the truth aga
   means adding it to the candidate schema deliberately, and the leak test is the gate.
 - A near-duplicate question is a warning and never a refusal (ADR-0006), so the workflow above is
   never blocked by the embedding provider being unreachable.
+- Content drafted by a model can be published freely in development, which is what M3 needs, and
+  not in production, which is what the product principle needs (CLAUDE.md §7.7). The two are the
+  same code path with one environment check, so the development behaviour is not a separate
+  implementation that could drift.
+- Any new publishable content entity must carry the review columns, or it is publishable in
+  production with no expert having seen it.
+- The guard is only as good as the `author` in the seed files. A file that claims `human`
+  falsely is trusted — the checked-in YAML and its review pages are where that is caught.
 
 ## Alternatives considered
 - **The files stay the source of truth; the CMS is a viewer.** Honest and simple, but it makes the
@@ -139,3 +201,10 @@ and `--force` is there for the day the files are deliberately made the truth aga
   away, which is exactly the accident this decision exists to prevent.
 - **A shadow table per entity** for history: faster typed queries, five times the schema and five
   times the UI.
+- **Clearing the review mark whenever content is saved.** No new action and no new endpoint, but
+  it makes an edit mean "I have read all of this", which is false for a typo fix, and it leaves
+  no way to approve a draft that needed no changes.
+- **Refusing in every environment, with no override.** The strictest reading, and it would have
+  been turned off within a day of starting M3, which is worse than a guard with an audited door.
+- **A CLI that reports published rows whose seed file still says `ai_draft`.** No migration at
+  all, and useful as a release check, but it reports after the fact rather than refusing.
