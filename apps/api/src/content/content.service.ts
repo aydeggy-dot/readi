@@ -5,6 +5,13 @@ import {
   type CandidatePracticeResponse,
   type CandidateTrackQuery,
   type CandidateTrackResponse,
+  type CareerLevel,
+  type CareerLevelInput,
+  type CareerLevelListResponse,
+  type CareerRole,
+  type CareerRoleInput,
+  type CareerRoleListResponse,
+  type CareerRolesResponse,
   type ContentEntityPath,
   type ContentEntityType,
   type ContentListQuery,
@@ -17,7 +24,6 @@ import {
   type ContentVersionsResponse,
   type DuplicateCheckRequest,
   type DuplicateMatch,
-  type ExperienceLevel,
   type Lesson,
   type LessonInput,
   type LessonListResponse,
@@ -30,7 +36,9 @@ import {
   type RubricInput,
   type RubricListResponse,
   type SeedAuthor,
-  type TargetRole,
+  type Stack,
+  type StackInput,
+  type StackListResponse,
   type Topic,
   type TopicInput,
   type TopicsResponse,
@@ -49,12 +57,30 @@ import { PrismaService } from "../prisma/prisma.service";
 import { cursorWhere, paginate } from "./content-cursor";
 import { sameContent } from "./content-diff";
 import { checkTransition, publishNeedsReview } from "./content-workflow";
+import { stackFilter } from "./question-eligibility";
 import { QuestionEmbeddingsService } from "./question-embeddings.service";
 import {
+  careerLevelContent,
+  careerRoleContent,
+  careerRoleInclude,
   lessonContent,
   moduleInclude,
+  publishedCareerRoleInclude,
+  stackContent,
+  toCandidateCareerRole,
+  toCareerLevel,
+  toCareerLevelListItem,
+  toCareerRole,
+  toCareerRoleListItem,
+  toStack,
+  toStackListItem,
+  type CareerLevelRow,
+  type CareerRoleRow,
+  type StackRow,
   questionContent,
+  canonicalQuestionInput,
   questionInclude,
+  questionLinkInclude,
   rubricContent,
   rubricInclude,
   sortTopics,
@@ -77,6 +103,7 @@ import {
   type QuestionRow,
   type RubricRow,
   type TrackRow,
+  trackCatalogueInclude,
   trackInclude,
 } from "./content.mappers";
 
@@ -103,10 +130,16 @@ const ENTITY_TYPE: Readonly<Record<ContentEntityPath, ContentEntityType>> = {
   lessons: "lesson",
   questions: "question",
   rubrics: "rubric",
+  "career-roles": "career_role",
+  "career-levels": "career_level",
+  stacks: "stack",
 };
 
 /** What the version history says about a review that came with no note of its own. */
 const REVIEW_NOTE = "marked reviewed";
+
+/** A role's `levels` or `stacks` naming a row that is not there (ADR-0015). */
+const NO_SUCH_LEVEL_OR_STACK = "no such level or stack";
 
 const contains = (q: string) => ({ contains: q, mode: Prisma.QueryMode.insensitive });
 
@@ -265,6 +298,205 @@ export class ContentService {
   }
 
   // ---------------------------------------------------------------------------------------------
+  // The catalogue: career roles, career levels and stacks (ADR-0015). Publishable content like any
+  // other — the workflow, the version history, the audit trail and the review state below are the
+  // same ones tracks and questions use. Nothing else references them yet: tracks, questions and
+  // profiles move onto the catalogue in M2.5 phase 3.
+
+  async listCareerRoles(query: ContentListQuery): Promise<CareerRoleListResponse> {
+    const rows = await this.prisma.careerRole.findMany({
+      where: {
+        AND: [
+          cursorWhere(query.cursor) ?? {},
+          query.status ? { status: query.status } : {},
+          this.careerRoleSearch(query.q),
+        ],
+      },
+      include: { _count: { select: { levels: true, stacks: true } } },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: query.limit + 1,
+    });
+    const page = paginate(rows, query.limit);
+    return { items: page.items.map(toCareerRoleListItem), next_cursor: page.next_cursor };
+  }
+
+  async getCareerRole(id: string): Promise<CareerRole> {
+    return toCareerRole(await this.findCareerRoleOrFail(id));
+  }
+
+  async createCareerRole(actor: Actor, input: CareerRoleInput): Promise<CareerRole> {
+    const role = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.careerRole.create({
+          data: {
+            ...this.careerRoleRow(input),
+            createdByUserId: actor.id,
+            ...authorship(actor),
+            levels: { create: this.roleLevelRows(input) },
+            stacks: { create: this.roleStackRows(input) },
+          },
+          include: careerRoleInclude,
+        });
+        await this.recordCreation(actor, "career_role", row.id, row.status, tx);
+        return row;
+      })
+      .catch((error: unknown) => this.rethrowWriteError(error, "levels", NO_SUCH_LEVEL_OR_STACK));
+    return toCareerRole(role);
+  }
+
+  async updateCareerRole(
+    id: string,
+    input: CareerRoleInput,
+    context: ChangeContext,
+  ): Promise<{ entity: CareerRole; changed: boolean }> {
+    const current = await this.findCareerRoleOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
+    if (sameContent(careerRoleContent(current), input)) {
+      return { entity: toCareerRole(current), changed: false };
+    }
+    await this.assertLinksRemovable(id, current, input);
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        await this.writeSnapshot(tx, "career_role", current, careerRoleContent(current), context);
+        // The links are parts of the role, not rows with a life of their own, and their order is
+        // the content: replaced wholesale, exactly as a rubric's criteria are.
+        await tx.careerRoleLevel.deleteMany({ where: { roleId: id } });
+        await tx.careerRoleStack.deleteMany({ where: { roleId: id } });
+        const row = await tx.careerRole.update({
+          where: { id },
+          data: {
+            ...this.careerRoleRow(input),
+            version: { increment: 1 },
+            ...authorship(context.actor),
+            levels: { create: this.roleLevelRows(input) },
+            stacks: { create: this.roleStackRows(input) },
+          },
+          include: careerRoleInclude,
+        });
+        await this.recordUpdate(tx, context.actor, "career_role", row.id, row.status, row.version);
+        return row;
+      })
+      .catch((error: unknown) => this.rethrowWriteError(error, "levels", NO_SUCH_LEVEL_OR_STACK));
+    return { entity: toCareerRole(updated), changed: true };
+  }
+
+  async listCareerLevels(query: ContentListQuery): Promise<CareerLevelListResponse> {
+    const rows = await this.prisma.careerLevel.findMany({
+      where: {
+        AND: [
+          cursorWhere(query.cursor) ?? {},
+          query.status ? { status: query.status } : {},
+          this.careerLevelSearch(query.q),
+        ],
+      },
+      include: { _count: { select: { roles: true } } },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: query.limit + 1,
+    });
+    const page = paginate(rows, query.limit);
+    return { items: page.items.map(toCareerLevelListItem), next_cursor: page.next_cursor };
+  }
+
+  async getCareerLevel(id: string): Promise<CareerLevel> {
+    return toCareerLevel(await this.findCareerLevelOrFail(id));
+  }
+
+  async createCareerLevel(actor: Actor, input: CareerLevelInput): Promise<CareerLevel> {
+    const level = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.careerLevel.create({
+          data: { ...input, createdByUserId: actor.id, ...authorship(actor) },
+        });
+        await this.recordCreation(actor, "career_level", row.id, row.status, tx);
+        return row;
+      })
+      .catch((error: unknown) => this.rethrowWriteError(error));
+    return toCareerLevel(level);
+  }
+
+  async updateCareerLevel(
+    id: string,
+    input: CareerLevelInput,
+    context: ChangeContext,
+  ): Promise<{ entity: CareerLevel; changed: boolean }> {
+    const current = await this.findCareerLevelOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
+    if (sameContent(careerLevelContent(current), input)) {
+      return { entity: toCareerLevel(current), changed: false };
+    }
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        await this.writeSnapshot(tx, "career_level", current, careerLevelContent(current), context);
+        const row = await tx.careerLevel.update({
+          where: { id },
+          data: { ...input, version: { increment: 1 }, ...authorship(context.actor) },
+        });
+        await this.recordUpdate(tx, context.actor, "career_level", row.id, row.status, row.version);
+        return row;
+      })
+      .catch((error: unknown) => this.rethrowWriteError(error));
+    return { entity: toCareerLevel(updated), changed: true };
+  }
+
+  async listStacks(query: ContentListQuery): Promise<StackListResponse> {
+    const rows = await this.prisma.stack.findMany({
+      where: {
+        AND: [
+          cursorWhere(query.cursor) ?? {},
+          query.status ? { status: query.status } : {},
+          this.stackSearch(query.q),
+        ],
+      },
+      include: { _count: { select: { roles: true } } },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: query.limit + 1,
+    });
+    const page = paginate(rows, query.limit);
+    return { items: page.items.map(toStackListItem), next_cursor: page.next_cursor };
+  }
+
+  async getStack(id: string): Promise<Stack> {
+    return toStack(await this.findStackOrFail(id));
+  }
+
+  async createStack(actor: Actor, input: StackInput): Promise<Stack> {
+    const stack = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.stack.create({
+          data: { ...input, createdByUserId: actor.id, ...authorship(actor) },
+        });
+        await this.recordCreation(actor, "stack", row.id, row.status, tx);
+        return row;
+      })
+      .catch((error: unknown) => this.rethrowWriteError(error));
+    return toStack(stack);
+  }
+
+  async updateStack(
+    id: string,
+    input: StackInput,
+    context: ChangeContext,
+  ): Promise<{ entity: Stack; changed: boolean }> {
+    const current = await this.findStackOrFail(id);
+    this.assertMayEdit(context.actor, current.status);
+    if (sameContent(stackContent(current), input)) {
+      return { entity: toStack(current), changed: false };
+    }
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        await this.writeSnapshot(tx, "stack", current, stackContent(current), context);
+        const row = await tx.stack.update({
+          where: { id },
+          data: { ...input, version: { increment: 1 }, ...authorship(context.actor) },
+        });
+        await this.recordUpdate(tx, context.actor, "stack", row.id, row.status, row.version);
+        return row;
+      })
+      .catch((error: unknown) => this.rethrowWriteError(error));
+    return { entity: toStack(updated), changed: true };
+  }
+
+  // ---------------------------------------------------------------------------------------------
   // Tracks.
 
   async listTracks(query: ContentListQuery): Promise<TrackListResponse> {
@@ -273,12 +505,12 @@ export class ContentService {
         AND: [
           cursorWhere(query.cursor) ?? {},
           query.status ? { status: query.status } : {},
-          query.role ? { role: query.role } : {},
-          query.level ? { level: query.level } : {},
+          query.role ? { role: { slug: query.role } } : {},
+          query.level ? { level: { slug: query.level } } : {},
           this.trackSearch(query.q),
         ],
       },
-      include: { _count: { select: { modules: true } } },
+      include: { ...trackCatalogueInclude, _count: { select: { modules: true } } },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: query.limit + 1,
     });
@@ -291,13 +523,14 @@ export class ContentService {
   }
 
   async createTrack(actor: Actor, input: TrackInput): Promise<Track> {
+    const [roleId, levelId] = await this.resolveTrackPair(input);
     const track = await this.prisma
       .$transaction(async (tx) => {
         const row = await tx.track.create({
           data: {
             slug: input.slug,
-            role: input.role,
-            level: input.level,
+            roleId,
+            levelId,
             title: input.title,
             summary: input.summary,
             createdByUserId: actor.id,
@@ -328,6 +561,7 @@ export class ContentService {
     if (sameContent(trackInputOf(current), { ...input, topics: sortTopics(input.topics) })) {
       return { entity: toTrack(current), changed: false };
     }
+    const [roleId, levelId] = await this.resolveTrackPair(input);
     const updated = await this.prisma
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "track", current, trackContent(current), context);
@@ -336,8 +570,8 @@ export class ContentService {
           where: { id },
           data: {
             slug: input.slug,
-            role: input.role,
-            level: input.level,
+            roleId,
+            levelId,
             title: input.title,
             summary: input.summary,
             version: { increment: 1 },
@@ -615,12 +849,16 @@ export class ContentService {
           query.status ? { status: query.status } : {},
           query.type ? { type: query.type } : {},
           query.topic_id ? { topicId: query.topic_id } : {},
-          query.role ? { roles: { has: query.role } } : {},
-          query.level ? { levels: { has: query.level } } : {},
+          query.role ? { roles: { some: { role: { slug: query.role } } } } : {},
+          query.level ? { levels: { some: { level: { slug: query.level } } } } : {},
+          // Tagged for this stack, which is not the same question as "offered to a candidate on
+          // it": the CMS is asking what has been written for Java / Spring, and a general question
+          // is not part of that answer.
+          query.stack ? { stacks: { some: { stack: { slug: query.stack } } } } : {},
           this.questionSearch(query.q),
         ],
       },
-      include: { topic: true, rubric: { select: { slug: true } } },
+      include: { ...questionLinkInclude, topic: true, rubric: { select: { slug: true } } },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: query.limit + 1,
     });
@@ -633,10 +871,16 @@ export class ContentService {
   }
 
   async createQuestion(actor: Actor, input: QuestionInput): Promise<Question> {
+    const links = await this.questionLinks(input);
     const question = await this.prisma
       .$transaction(async (tx) => {
         const row = await tx.question.create({
-          data: { ...this.questionRow(input), createdByUserId: actor.id, ...authorship(actor) },
+          data: {
+            ...this.questionRow(input),
+            ...links,
+            createdByUserId: actor.id,
+            ...authorship(actor),
+          },
           include: questionInclude,
         });
         await this.recordCreation(actor, "question", row.id, row.status, tx);
@@ -653,16 +897,23 @@ export class ContentService {
   ): Promise<{ entity: Question; changed: boolean }> {
     const current = await this.findQuestionOrFail(id);
     this.assertMayEdit(context.actor, current.status);
-    if (sameContent(questionContent(current), input)) {
+    if (sameContent(questionContent(current), canonicalQuestionInput(input))) {
       return { entity: toQuestion(current), changed: false };
     }
+    const links = await this.questionLinks(input);
     const updated = await this.prisma
       .$transaction(async (tx) => {
         await this.writeSnapshot(tx, "question", current, questionContent(current), context);
+        // The links are a set, and a set is replaced rather than merged: deleting first is what
+        // makes removing a role from a question possible at all.
+        await tx.questionCareerRole.deleteMany({ where: { questionId: id } });
+        await tx.questionCareerLevel.deleteMany({ where: { questionId: id } });
+        await tx.questionStack.deleteMany({ where: { questionId: id } });
         const row = await tx.question.update({
           where: { id },
           data: {
             ...this.questionRow(input),
+            ...links,
             version: { increment: 1 },
             ...authorship(context.actor),
           },
@@ -699,27 +950,63 @@ export class ContentService {
     tx: Prisma.TransactionClient,
     entity: ContentEntityPath,
     where: { id: string; status?: ContentStatus; version?: number; aiDraftUnreviewed?: boolean },
-    data: Prisma.QuestionUpdateManyMutationInput &
-      Prisma.TrackUpdateManyMutationInput &
-      Prisma.LessonUpdateManyMutationInput &
-      Prisma.RubricUpdateManyMutationInput,
+    data: WorkflowUpdate,
   ): Promise<{ id: string; status: ContentStatus; version: number; updatedAt: Date } | null> {
-    const applied =
-      entity === "tracks"
-        ? await tx.track.updateMany({ where, data })
-        : entity === "lessons"
-          ? await tx.lesson.updateMany({ where, data })
-          : entity === "questions"
-            ? await tx.question.updateMany({ where, data })
-            : await tx.rubric.updateMany({ where, data });
+    const applied = await this.updateManyOf(tx, entity, where, data);
     if (applied.count === 0) return null;
-    return entity === "tracks"
-      ? await tx.track.findUniqueOrThrow({ where: { id: where.id } })
-      : entity === "lessons"
-        ? await tx.lesson.findUniqueOrThrow({ where: { id: where.id } })
-        : entity === "questions"
-          ? await tx.question.findUniqueOrThrow({ where: { id: where.id } })
-          : await tx.rubric.findUniqueOrThrow({ where: { id: where.id } });
+    return await this.rowOf(tx, entity, where.id);
+  }
+
+  /**
+   * The seven publishable entities, in one place each. Written as switches rather than the delegate
+   * itself: a union of Prisma delegates loses the argument types that prove the update is valid.
+   */
+  private updateManyOf(
+    tx: Prisma.TransactionClient,
+    entity: ContentEntityPath,
+    where: { id: string; status?: ContentStatus; version?: number; aiDraftUnreviewed?: boolean },
+    data: WorkflowUpdate,
+  ): Promise<{ count: number }> {
+    switch (entity) {
+      case "tracks":
+        return tx.track.updateMany({ where, data });
+      case "lessons":
+        return tx.lesson.updateMany({ where, data });
+      case "questions":
+        return tx.question.updateMany({ where, data });
+      case "rubrics":
+        return tx.rubric.updateMany({ where, data });
+      case "career-roles":
+        return tx.careerRole.updateMany({ where, data });
+      case "career-levels":
+        return tx.careerLevel.updateMany({ where, data });
+      case "stacks":
+        return tx.stack.updateMany({ where, data });
+    }
+  }
+
+  private rowOf(
+    tx: Prisma.TransactionClient,
+    entity: ContentEntityPath,
+    id: string,
+  ): Promise<{ id: string; status: ContentStatus; version: number; updatedAt: Date }> {
+    const where = { id };
+    switch (entity) {
+      case "tracks":
+        return tx.track.findUniqueOrThrow({ where });
+      case "lessons":
+        return tx.lesson.findUniqueOrThrow({ where });
+      case "questions":
+        return tx.question.findUniqueOrThrow({ where });
+      case "rubrics":
+        return tx.rubric.findUniqueOrThrow({ where });
+      case "career-roles":
+        return tx.careerRole.findUniqueOrThrow({ where });
+      case "career-levels":
+        return tx.careerLevel.findUniqueOrThrow({ where });
+      case "stacks":
+        return tx.stack.findUniqueOrThrow({ where });
+    }
   }
 
   async transition(
@@ -746,6 +1033,7 @@ export class ContentService {
     const to = check.rule.to;
     if (to === "published")
       await this.assertPublishable(entity, current, body.acknowledge_unreviewed);
+    if (to === "retired") await this.assertRetirable(entity, current);
 
     const context: ChangeContext = { actor, note: body.note };
     const updated = await this.prisma
@@ -923,11 +1211,10 @@ export class ContentService {
 
     const marked = review.aiDraftUnreviewed;
     await this.prisma.$transaction(async (tx) => {
-      const where = { id };
-      if (entity === "tracks") await tx.track.update({ where, data: review });
-      else if (entity === "lessons") await tx.lesson.update({ where, data: review });
-      else if (entity === "questions") await tx.question.update({ where, data: review });
-      else await tx.rubric.update({ where, data: review });
+      // Guarded on nothing: the row's mark was just read and this write only reconciles it with
+      // the file. The `updateMany` form below is the one the workflow uses, so one switch serves
+      // both (`rowOf` is not needed here — nothing is returned).
+      await this.updateManyOf(tx, entity, { id }, review);
       await this.audit.record(
         {
           actorType: actorType(actor),
@@ -990,6 +1277,47 @@ export class ContentService {
           "publish the question's rubric first",
         );
       }
+      /*
+       * A question is only as published as the catalogue rows it is tagged with. Nobody may choose
+       * a draft role, level or variant (`ProfilesService.resolveTarget`), so a question tagged only
+       * with drafts is published, looks published in the CMS, and is asked of **nobody** — the
+       * exact failure the M2 handover recorded for rubrics, on three new axes (ADR-0015).
+       *
+       * At least one published row per axis, not all of them: a question tagged for two variants
+       * where one is still a draft reaches the candidates on the other, which is fine. Stacks are
+       * checked only when the question has any, because none means general to its roles.
+       */
+      const unreachable = (
+        [
+          [
+            "roles",
+            question.roles.map((link) => link.role.status),
+            "question_has_no_published_role",
+          ],
+          [
+            "levels",
+            question.levels.map((link) => link.level.status),
+            "question_has_no_published_level",
+          ],
+          [
+            "stacks",
+            question.stacks.map((link) => link.stack.status),
+            "question_has_no_published_stack",
+          ],
+        ] as const
+      ).find(
+        ([axis, statuses, _code]) =>
+          (axis !== "stacks" || statuses.length > 0) &&
+          !statuses.some((status) => status === "published"),
+      );
+      if (unreachable) {
+        const [axis, , code] = unreachable;
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          code,
+          `publish at least one of the question's ${axis} first`,
+        );
+      }
     }
     if (entity === "tracks") {
       const track = await this.findTrackOrFail(current.id);
@@ -998,6 +1326,167 @@ export class ContentService {
           HttpStatus.CONFLICT,
           "track_has_no_modules",
           "a track needs at least one module before it can be published",
+        );
+      }
+    }
+    if (entity === "career-roles") {
+      /*
+       * A role is only as published as its levels: the candidate catalogue shows published levels
+       * only, so a role whose levels are all still drafts would appear in onboarding offering
+       * nothing to choose. Same rule as a question needing its rubric (ADR-0014 decision 4).
+       * Stacks are deliberately not required — a role with no variants is a legitimate role.
+       */
+      const published = await this.prisma.careerRoleLevel.count({
+        where: { roleId: current.id, level: { status: "published" } },
+      });
+      if (published === 0) {
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          "career_role_has_no_published_level",
+          "publish at least one of the role's levels first",
+        );
+      }
+    }
+  }
+
+  /**
+   * What must not still be in use before content is withdrawn (ADR-0015). The M2 handover recorded
+   * the opposite failure for rubrics — retiring one silently hid every published question that
+   * used it — and the catalogue is where that would hurt most: retiring a level would blank the
+   * picker of every role that offers it.
+   */
+  /**
+   * Taking a level or a stack **off a role** is refused while a candidate is preparing for that
+   * role at it — the same rule as retiring one (`assertRetirable`), one step earlier and scoped to
+   * this role (ADR-0015 decision 7).
+   *
+   * Without it the un-link is a plain content edit that quietly invalidates a choice somebody
+   * already made: their `target_level_id` survives, because the foreign key is to the level and not
+   * to the link, so nothing errors — and they find out the next time they open their profile and
+   * are made to re-pick a level they never changed. The refusal carries the number of profiles
+   * affected, because "you cannot do this" is not actionable and "4 candidates are preparing at it"
+   * is: it says what migrating them would involve.
+   *
+   * Scoped to the role on purpose. Retiring a level asks "is anyone, anywhere, using this?";
+   * un-linking asks only "is anyone using it **for this role**?" — a backend candidate at mid level
+   * is no reason for the frontend role to keep offering mid.
+   */
+  private async assertLinksRemovable(
+    roleId: string,
+    current: CareerRoleRow,
+    input: CareerRoleInput,
+  ): Promise<void> {
+    const keptLevels = new Set(input.levels);
+    const removedLevels = current.levels
+      .map((link) => link.levelId)
+      .filter((levelId) => !keptLevels.has(levelId));
+    const keptStacks = new Set(input.stacks.map((link) => link.stack_id));
+    const removedStacks = current.stacks
+      .map((link) => link.stackId)
+      .filter((stackId) => !keptStacks.has(stackId));
+    if (removedLevels.length === 0 && removedStacks.length === 0) return;
+
+    const [levelProfiles, stackProfiles] = await Promise.all([
+      removedLevels.length === 0
+        ? 0
+        : this.prisma.profile.count({
+            where: { targetRoleId: roleId, targetLevelId: { in: removedLevels } },
+          }),
+      removedStacks.length === 0
+        ? 0
+        : this.prisma.profile.count({
+            where: { targetRoleId: roleId, targetStackId: { in: removedStacks } },
+          }),
+    ]);
+    if (levelProfiles > 0) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "role_level_in_use",
+        "candidates are preparing for this role at a level it would stop offering",
+        { profiles: levelProfiles },
+      );
+    }
+    if (stackProfiles > 0) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "role_stack_in_use",
+        "candidates are interviewing for a variant this role would stop offering",
+        { profiles: stackProfiles },
+      );
+    }
+  }
+
+  private async assertRetirable(
+    entity: ContentEntityPath,
+    current: TransitionTarget,
+  ): Promise<void> {
+    if (entity === "career-levels") {
+      // Same rule as a role, and for the same reason: a published track or question offered at
+      // this level, or a candidate preparing at it, is content that would silently lose its rung.
+      const [roles, tracks, questions, profiles] = await Promise.all([
+        this.prisma.careerRoleLevel.count({
+          where: { levelId: current.id, role: { status: "published" } },
+        }),
+        this.prisma.track.count({ where: { levelId: current.id, status: "published" } }),
+        this.prisma.question.count({
+          where: { status: "published", levels: { some: { levelId: current.id } } },
+        }),
+        this.prisma.profile.count({ where: { targetLevelId: current.id } }),
+      ]);
+      if (roles > 0 || tracks > 0 || questions > 0 || profiles > 0) {
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          "level_in_use",
+          "a published role, published content or a candidate's profile still uses this level",
+        );
+      }
+    }
+    if (entity === "stacks") {
+      /*
+       * Retiring a stack out from under a published question would make it unreachable: it is
+       * tagged, so it is offered only to candidates on this variant, and nobody can still be on a
+       * variant that no role offers. A profile pointing here is the same failure one step closer
+       * to a person.
+       */
+      const [roles, questions, profiles] = await Promise.all([
+        this.prisma.careerRoleStack.count({
+          where: { stackId: current.id, role: { status: "published" } },
+        }),
+        this.prisma.question.count({
+          where: { status: "published", stacks: { some: { stackId: current.id } } },
+        }),
+        this.prisma.profile.count({ where: { targetStackId: current.id } }),
+      ]);
+      if (roles > 0 || questions > 0 || profiles > 0) {
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          "stack_in_use",
+          "a published role, a published question or a candidate's profile still uses this stack",
+        );
+      }
+    }
+    /*
+     * A role is in use the moment published content is offered under it, or a candidate is
+     * preparing for it. Retiring it would take the track out of the candidate API and leave every
+     * profile pointing at a role that is no longer offered — the rubric failure from the M2
+     * handover, on the row that would do the most damage.
+     *
+     * Draft content is deliberately not a reason to refuse: content is written against a role
+     * before either goes live, and a half-built role must stay withdrawable.
+     */
+    if (entity === "career-roles") {
+      const [tracks, questions, profiles] = await Promise.all([
+        this.prisma.track.count({ where: { roleId: current.id, status: "published" } }),
+        this.prisma.question.count({
+          where: { status: "published", roles: { some: { roleId: current.id } } },
+        }),
+        this.prisma.profile.count({ where: { targetRoleId: current.id } }),
+      ]);
+      if (tracks > 0 || questions > 0 || profiles > 0) {
+        throw new ApiError(
+          HttpStatus.CONFLICT,
+          "role_in_use",
+          "published content or a candidate's profile still uses this role",
         );
       }
     }
@@ -1050,10 +1539,11 @@ export class ContentService {
     user: AuthenticatedUser,
     query: CandidateTrackQuery,
   ): Promise<CandidateTrackResponse> {
-    const { role, level } = await this.audience(user.id, query);
+    const { roleId, levelId } = await this.audience(user.id, query);
     const track = await this.prisma.track.findFirst({
-      where: { role, level, status: "published" },
+      where: { roleId, levelId, status: "published" },
       include: {
+        ...trackCatalogueInclude,
         topics: { orderBy: { topicId: "asc" } },
         modules: {
           orderBy: [{ position: "asc" }, { slug: "asc" }],
@@ -1084,14 +1574,17 @@ export class ContentService {
     user: AuthenticatedUser,
     query: CandidatePracticeQuery,
   ): Promise<CandidatePracticeResponse> {
-    const { role, level } = await this.audience(user.id, {});
+    const { roleId, levelId, stackId } = await this.audience(user.id, {});
     const questions = await this.prisma.question.findMany({
       where: {
         status: "published",
         // A question is only as published as its rubric: without one, M4 cannot score the answer.
         rubric: { status: "published" },
-        roles: { has: role },
-        levels: { has: level },
+        roles: { some: { roleId } },
+        levels: { some: { levelId } },
+        // General to the role, or tagged for this candidate's variant (ADR-0015). The rule is in
+        // `question-eligibility.ts`, where M3's question selection reads it too.
+        ...stackFilter(stackId),
         ...(query.topic ? { topic: { slug: query.topic } } : {}),
       },
       include: { topic: true },
@@ -1101,27 +1594,152 @@ export class ContentService {
     return { items: questions.map(toCandidatePracticeItem) };
   }
 
-  /** Whose content to show: what was asked for, else what the candidate's profile says. */
+  /**
+   * The catalogue a candidate chooses from: published roles, each with its published levels and
+   * stacks (ADR-0015). This is where onboarding, and from M3 the session setup screen, get their
+   * labels — a role managed in the database has no i18n message key.
+   */
+  async candidateCareerRoles(): Promise<CareerRolesResponse> {
+    const roles = await this.prisma.careerRole.findMany({
+      where: { status: "published" },
+      include: publishedCareerRoleInclude,
+      orderBy: [{ position: "asc" }, { name: "asc" }],
+    });
+    return { roles: roles.map(toCandidateCareerRole) };
+  }
+
+  /**
+   * Whose content to show: what was asked for, else what the candidate's profile says.
+   *
+   * The query carries slugs and the profile carries ids, and both end up as ids — this is the
+   * seam M3 grows a `stack` through, so the two sources are reconciled in one place rather than
+   * at each call site.
+   */
   private async audience(
     userId: string,
     query: CandidateTrackQuery,
-  ): Promise<{ role: TargetRole; level: ExperienceLevel }> {
-    if (query.role && query.level) return { role: query.role, level: query.level };
-    const profile = await this.prisma.profile.findUnique({ where: { userId } });
-    const role = query.role ?? profile?.targetRole;
-    const level = query.level ?? profile?.level;
-    if (!role || !level) {
+  ): Promise<{ roleId: string; levelId: string; stackId: string | null }> {
+    const asked = await Promise.all([
+      query.role ? this.resolveRole(query.role) : null,
+      query.level ? this.resolveLevel(query.level) : null,
+    ]);
+    let [roleId, levelId] = asked;
+    /*
+     * The stack comes from the profile alone, and only the profile: the track query has no `stack`
+     * to ask with, and null here is a meaningful answer rather than a missing one — it means "this
+     * candidate has no variant", which the stack rule reads as "general questions only". Reading
+     * the profile whenever the role or level is unresolved, or whenever a stack could exist, keeps
+     * that a single lookup.
+     */
+    let stackId: string | null = null;
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { targetRoleId: true, targetLevelId: true, targetStackId: true },
+    });
+    roleId ??= profile?.targetRoleId ?? null;
+    levelId ??= profile?.targetLevelId ?? null;
+    stackId = profile?.targetStackId ?? null;
+    if (!roleId || !levelId) {
       throw new ApiError(
         HttpStatus.BAD_REQUEST,
         "profile_required",
         "finish onboarding, or ask for a role and level",
       );
     }
-    return { role, level };
+    return { roleId, levelId, stackId };
   }
 
   // ---------------------------------------------------------------------------------------------
   // Shared internals.
+
+  /*
+   * Slugs on the wire, uuids in the database (ADR-0015). Everything that *writes* a role or level
+   * comes through here, so there is one place where "backend" becomes a row and one error when it
+   * is not one. Reads are different and deliberately so: a list filtered by an unknown slug is an
+   * empty list, not a failure, because a filter is a question and "none" is a valid answer.
+   *
+   * Unpublished is not the same as unknown. A draft role is a real row and the CMS must be able to
+   * tag content with it — that is how a role is built before it goes live. What a *candidate* may
+   * see is enforced where candidate queries are written, by `status: "published"`.
+   */
+  private async resolveRole(slug: string): Promise<string> {
+    const role = await this.prisma.careerRole.findUnique({ where: { slug }, select: { id: true } });
+    if (!role) throw this.noSuchCatalogueRow("role_not_found", "role", slug);
+    return role.id;
+  }
+
+  private async resolveLevel(slug: string): Promise<string> {
+    const level = await this.prisma.careerLevel.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!level) throw this.noSuchCatalogueRow("level_not_found", "level", slug);
+    return level.id;
+  }
+
+  /**
+   * Many slugs in one query, preserving the caller's order — the order a question lists its roles
+   * in is not content (the mapper reads them back sorted by slug), but resolving one-by-one would
+   * be six round trips for a question tagged with six roles.
+   */
+  private async resolveRoles(slugs: readonly string[]): Promise<string[]> {
+    this.assertDistinct(slugs, "roles", "a role may be listed only once");
+    const rows = await this.prisma.careerRole.findMany({
+      where: { slug: { in: [...slugs] } },
+      select: { id: true, slug: true },
+    });
+    return this.orderedIds(slugs, rows, "role_not_found", "role");
+  }
+
+  /**
+   * A question's stacks. Empty is the ordinary case — no tags means general to the role
+   * (`question-eligibility.ts`) — so this resolves nothing rather than refusing.
+   */
+  private async resolveStacks(slugs: readonly string[]): Promise<string[]> {
+    if (slugs.length === 0) return [];
+    this.assertDistinct(slugs, "stacks", "a stack may be listed only once");
+    const rows = await this.prisma.stack.findMany({
+      where: { slug: { in: [...slugs] } },
+      select: { id: true, slug: true },
+    });
+    return this.orderedIds(slugs, rows, "stack_not_found", "stack");
+  }
+
+  private async resolveLevels(slugs: readonly string[]): Promise<string[]> {
+    this.assertDistinct(slugs, "levels", "a level may be listed only once");
+    const rows = await this.prisma.careerLevel.findMany({
+      where: { slug: { in: [...slugs] } },
+      select: { id: true, slug: true },
+    });
+    return this.orderedIds(slugs, rows, "level_not_found", "level");
+  }
+
+  private orderedIds(
+    slugs: readonly string[],
+    rows: readonly { id: string; slug: string }[],
+    code: string,
+    noun: string,
+  ): string[] {
+    const bySlug = new Map(rows.map((row) => [row.slug, row.id]));
+    return slugs.map((slug) => {
+      const id = bySlug.get(slug);
+      if (!id) throw this.noSuchCatalogueRow(code, noun, slug);
+      return id;
+    });
+  }
+
+  private assertDistinct(slugs: readonly string[], field: string, message: string): void {
+    if (new Set(slugs).size !== slugs.length) throw fieldError(field, message);
+  }
+
+  /**
+   * 400, not 404: the request named something that does not exist, and the thing that does not
+   * exist is one field of it. `ApiError`'s code is what the CMS and the onboarding form turn into
+   * copy — they never show this message (ADR-0012).
+   */
+  private noSuchCatalogueRow(code: string, noun: string, slug: string): ApiError {
+    return new ApiError(HttpStatus.BAD_REQUEST, code, `no published or draft ${noun} "${slug}"`);
+  }
 
   private criteriaRows(input: RubricInput) {
     return input.criteria.map((criterion, position) => ({
@@ -1133,11 +1751,34 @@ export class ContentService {
     }));
   }
 
+  private careerRoleRow(input: CareerRoleInput) {
+    return {
+      slug: input.slug,
+      name: input.name,
+      summary: input.summary,
+      position: input.position,
+      supportedQuestionTypes: input.supported_question_types,
+    };
+  }
+
+  // Position comes from the array's order: the order a role lists its levels and stacks in is the
+  // order a candidate sees them in, so the form's order is the content (see `careerRoleContent`).
+  private roleLevelRows(input: CareerRoleInput) {
+    return input.levels.map((levelId, position) => ({ levelId, position }));
+  }
+
+  private roleStackRows(input: CareerRoleInput) {
+    return input.stacks.map((link, position) => ({
+      stackId: link.stack_id,
+      isDefault: link.is_default,
+      position,
+    }));
+  }
+
+  /** The question's own columns. Its roles and levels are join rows — see `questionLinks`. */
   private questionRow(input: QuestionInput) {
     return {
       slug: input.slug,
-      roles: input.roles,
-      levels: input.levels,
       type: input.type,
       topicId: input.topic_id,
       subtopic: input.subtopic,
@@ -1152,6 +1793,24 @@ export class ContentService {
   // Free-text search, without regard to case, over the two columns that identify each row. One
   // helper per entity rather than one built from column names: Prisma's where types are the check
   // that a column exists, and a string array throws that away.
+  private resolveTrackPair(input: TrackInput): Promise<[string, string]> {
+    return Promise.all([this.resolveRole(input.role), this.resolveLevel(input.level)]);
+  }
+
+  /** A question's catalogue links, resolved from slugs, ready to `create` in either direction. */
+  private async questionLinks(input: QuestionInput) {
+    const [roleIds, levelIds, stackIds] = await Promise.all([
+      this.resolveRoles(input.roles),
+      this.resolveLevels(input.levels),
+      this.resolveStacks(input.stacks),
+    ]);
+    return {
+      roles: { create: roleIds.map((roleId) => ({ roleId })) },
+      levels: { create: levelIds.map((levelId) => ({ levelId })) },
+      stacks: { create: stackIds.map((stackId) => ({ stackId })) },
+    };
+  }
+
   private trackSearch(q: string | undefined): Prisma.TrackWhereInput {
     return q ? { OR: [{ slug: contains(q) }, { title: contains(q) }] } : {};
   }
@@ -1167,6 +1826,18 @@ export class ContentService {
   /** A question has no title; its prompt is what a searcher remembers. */
   private questionSearch(q: string | undefined): Prisma.QuestionWhereInput {
     return q ? { OR: [{ slug: contains(q) }, { prompt: contains(q) }] } : {};
+  }
+
+  private careerRoleSearch(q: string | undefined): Prisma.CareerRoleWhereInput {
+    return q ? { OR: [{ slug: contains(q) }, { name: contains(q) }] } : {};
+  }
+
+  private careerLevelSearch(q: string | undefined): Prisma.CareerLevelWhereInput {
+    return q ? { OR: [{ slug: contains(q) }, { name: contains(q) }] } : {};
+  }
+
+  private stackSearch(q: string | undefined): Prisma.StackWhereInput {
+    return q ? { OR: [{ slug: contains(q) }, { name: contains(q) }] } : {};
   }
 
   /**
@@ -1272,14 +1943,39 @@ export class ContentService {
    * Turns the database's refusals into answers the CMS can act on: a slug already taken is a
    * conflict, a reference to something that is not there is a field error.
    */
-  private rethrowWriteError(error: unknown, referenceField?: string): never {
+  private rethrowWriteError(
+    error: unknown,
+    referenceField?: string,
+    referenceMessage = "no such topic or rubric",
+  ): never {
     if (isPrismaError(error, "P2002")) {
       throw new ApiError(HttpStatus.CONFLICT, "content_slug_taken", "that slug is already in use");
     }
     if (isPrismaError(error, "P2003") && referenceField) {
-      throw fieldError(referenceField, "no such topic or rubric");
+      throw fieldError(referenceField, referenceMessage);
     }
     throw error;
+  }
+
+  private async findCareerRoleOrFail(id: string): Promise<CareerRoleRow> {
+    const role = await this.prisma.careerRole.findUnique({
+      where: { id },
+      include: careerRoleInclude,
+    });
+    if (!role) throw this.notFound("career_role_not_found");
+    return role;
+  }
+
+  private async findCareerLevelOrFail(id: string): Promise<CareerLevelRow> {
+    const level = await this.prisma.careerLevel.findUnique({ where: { id } });
+    if (!level) throw this.notFound("career_level_not_found");
+    return level;
+  }
+
+  private async findStackOrFail(id: string): Promise<StackRow> {
+    const stack = await this.prisma.stack.findUnique({ where: { id } });
+    if (!stack) throw this.notFound("stack_not_found");
+    return stack;
   }
 
   private async findTopicOrFail(id: string) {
@@ -1365,9 +2061,51 @@ export class ContentService {
           content: rubricContent(row),
         };
       }
+      case "career-roles": {
+        const row = await this.findCareerRoleOrFail(id);
+        return {
+          id: row.id,
+          status: row.status,
+          version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
+          content: careerRoleContent(row),
+        };
+      }
+      case "career-levels": {
+        const row = await this.findCareerLevelOrFail(id);
+        return {
+          id: row.id,
+          status: row.status,
+          version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
+          content: careerLevelContent(row),
+        };
+      }
+      case "stacks": {
+        const row = await this.findStackOrFail(id);
+        return {
+          id: row.id,
+          status: row.status,
+          version: row.version,
+          aiDraftUnreviewed: row.aiDraftUnreviewed,
+          content: stackContent(row),
+        };
+      }
     }
   }
 }
+
+/**
+ * What a workflow move writes: status, version, and the review columns. The intersection is what
+ * makes one statement valid for every publishable entity — they share these columns exactly.
+ */
+type WorkflowUpdate = Prisma.QuestionUpdateManyMutationInput &
+  Prisma.TrackUpdateManyMutationInput &
+  Prisma.LessonUpdateManyMutationInput &
+  Prisma.RubricUpdateManyMutationInput &
+  Prisma.CareerRoleUpdateManyMutationInput &
+  Prisma.CareerLevelUpdateManyMutationInput &
+  Prisma.StackUpdateManyMutationInput;
 
 interface TransitionTarget {
   id: string;

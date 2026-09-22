@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { dedupeStack, earliestLocalDate } from "./profiles.service";
+import { dedupeTechnologies, earliestLocalDate } from "./profiles.service";
 
-describe("dedupeStack", () => {
+describe("dedupeTechnologies", () => {
   it("keeps the first spelling of each item, ignoring case", () => {
-    expect(dedupeStack(["React", "react", "Node.js", "REACT", "node.js", "Go"])).toEqual([
+    expect(dedupeTechnologies(["React", "react", "Node.js", "REACT", "node.js", "Go"])).toEqual([
       "React",
       "Node.js",
       "Go",

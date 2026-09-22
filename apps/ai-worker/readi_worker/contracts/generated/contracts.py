@@ -15,6 +15,30 @@ class ErrorCode(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
 
+class StackLabel(RootModel[str]):
+    root: str = Field(..., max_length=140, min_length=1)
+
+
+class CvParseRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    request_id: UUID
+    content_type: Literal[
+        "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]
+    file_base64: str = Field(
+        ...,
+        json_schema_extra={"contentEncoding": "base64"},
+        max_length=6990508,
+        min_length=1,
+        pattern="^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$",
+    )
+    target_role_label: str = Field(..., max_length=140, min_length=1)
+    level_label: str = Field(..., max_length=140, min_length=1)
+    stack_label: StackLabel | None
+
+
 class Technology(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
@@ -92,25 +116,6 @@ class CvExperience(BaseModel):
     end: YearMonth | None
     current: bool
     summary: str = Field(..., max_length=600)
-
-
-class CvParseRequest(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    request_id: UUID
-    content_type: Literal[
-        "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ]
-    file_base64: str = Field(
-        ...,
-        json_schema_extra={"contentEncoding": "base64"},
-        max_length=6990508,
-        min_length=1,
-        pattern="^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$",
-    )
-    target_role: Literal["frontend", "backend", "qa"]
-    level: Literal["intern_junior", "mid"]
 
 
 class EmbedResponse(BaseModel):

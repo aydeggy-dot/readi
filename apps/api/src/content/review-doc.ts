@@ -23,6 +23,8 @@ export function buildReviewDoc(
 ): ReviewDoc {
   const rubrics = new Map<string, SeedRubric>();
   const topics = new Map<string, SeedTopic>();
+  /** Role names come from `roles.yaml` now, not a map in this file (ADR-0015). */
+  const roleNames = new Map<string, string>();
   const questions: SeedQuestion[] = [];
   let track: SeedTrack | undefined;
   let author = "ai_draft";
@@ -30,6 +32,7 @@ export function buildReviewDoc(
   for (const { data } of files) {
     for (const rubric of data.rubrics ?? []) rubrics.set(rubric.slug, rubric);
     for (const topic of data.topics ?? []) topics.set(topic.slug, topic);
+    for (const role of data.career_roles ?? []) roleNames.set(role.slug, role.name);
   }
   for (const { file, data } of files) {
     if (!inRole(file, role)) continue;
@@ -41,7 +44,7 @@ export function buildReviewDoc(
   const lessons = (track?.modules ?? []).flatMap((module) => module.lessons);
   const out: string[] = [];
 
-  out.push(`# ${titleOf(role)} — drafted content for expert review`);
+  out.push(`# ${roleNames.get(role) ?? role} — drafted content for expert review`);
   out.push("");
   out.push(
     `**${questions.length} questions**, ${rubricsUsedBy(questions, rubrics).size} rubrics, ` +
@@ -109,8 +112,15 @@ function renderQuestion(
   out.push("");
   out.push(
     `**${question.type.replace("_", " ")}** · difficulty ${question.difficulty}/5 · ` +
+      // Roles, although the page is a role's page: a question usually belongs to more than one,
+      // and REVIEW.md asks the reviewer whether each of these is right — which they cannot answer
+      // without seeing the ones it already has (ADR-0015).
+      `roles: ${question.roles.join(", ")} · ` +
       `${question.levels.join(", ")} · topic: ${topic?.name ?? question.topic}` +
-      (question.subtopic ? ` (${question.subtopic})` : ""),
+      (question.subtopic ? ` (${question.subtopic})` : "") +
+      // Named only when there are any: "stacks: —" on twelve of fourteen questions would be
+      // noise, and the absence is the ordinary case (ADR-0015).
+      (question.stacks.length > 0 ? ` · stacks: ${question.stacks.join(", ")}` : ""),
   );
   out.push("");
   out.push("**The interviewer asks**");
@@ -198,9 +208,6 @@ const quote = (text: string) =>
     .split("\n")
     .map((line) => `> ${line}`.trimEnd())
     .join("\n");
-
-const titleOf = (role: string) =>
-  ({ frontend: "Frontend", backend: "Backend", qa: "QA" })[role] ?? role;
 
 function rubricsUsedBy(
   questions: readonly SeedQuestion[],

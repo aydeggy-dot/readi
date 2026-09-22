@@ -4,6 +4,7 @@ import { ContentFilters, ContentRow, ContentRows, Pager } from "@/components/adm
 import { PageHeading } from "@/components/layout/page-heading";
 import { Button } from "@/components/ui/button";
 import { t } from "@/i18n";
+import { roleAndLevelChoices, slugNames, stackChoices } from "@/lib/catalogue-choices";
 import { contentListQuery, type SearchParams } from "@/lib/content-query";
 import { requireContentEditor, serverApi } from "@/lib/session";
 
@@ -19,11 +20,14 @@ export default async function QuestionsPage({
   await requireContentEditor();
   const query = contentListQuery(await searchParams);
   const api = await serverApi();
-  const [questions, topics] = await Promise.all([
+  const [questions, topics, catalogue, stacks] = await Promise.all([
     api.GET("/api/admin/content/questions", { params: { query } }),
     api.GET("/api/admin/content/topics"),
+    roleAndLevelChoices(),
+    stackChoices(),
   ]);
   if (!questions.data) throw new Error("GET /api/admin/content/questions failed");
+  const roleName = slugNames(catalogue.roles);
 
   return (
     <>
@@ -40,8 +44,11 @@ export default async function QuestionsPage({
       <ContentFilters
         action={PATH}
         query={query}
-        fields={{ status: true, type: true, role: true, level: true, topic: true }}
+        fields={{ status: true, type: true, role: true, level: true, stack: true, topic: true }}
         topics={topics.data?.topics ?? []}
+        roles={catalogue.roles}
+        levels={catalogue.levels}
+        stacks={stacks.stacks}
       />
 
       <ContentRows items={questions.data.items} query={query}>
@@ -59,7 +66,7 @@ export default async function QuestionsPage({
             meta={[
               t(`admin.content.question.types.${question.type}`),
               t("admin.content.list.difficulty", { value: question.difficulty }),
-              question.roles.map((role) => t(`targetRoles.${role}`)).join(", "),
+              question.roles.map(roleName).join(", "),
             ]}
             updatedAt={question.updated_at}
           />

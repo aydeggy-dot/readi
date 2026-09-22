@@ -2,7 +2,8 @@ import { z } from "zod";
 import { ACCOUNT_DELETION } from "../constants.js";
 import { ConsentType } from "./consents.js";
 import { CvContentType, CvParseError, CvStatus, ParsedCv } from "./cv.js";
-import { ExperienceLevel, TargetCompanyType, TargetRole } from "./profiles.js";
+import { TargetCompanyType } from "./profiles.js";
+import { Slug } from "./slug.js";
 import { Role, SignupMethod } from "./users.js";
 
 /** Body of `POST /api/me/deletion`: the user typed the confirmation word (ADR-0011). */
@@ -42,10 +43,11 @@ const ExportUser = z.object({
 });
 
 const ExportProfile = z.object({
-  target_role: TargetRole,
-  level: ExperienceLevel,
+  target_role: Slug,
+  level: Slug,
+  target_stack: Slug.nullable(),
   years_experience: z.int().min(0),
-  stack: z.array(z.string()),
+  technologies: z.array(z.string()),
   target_company_type: TargetCompanyType,
   target_date: z.iso.date().nullable(),
   onboarding_completed_at: z.iso.datetime().nullable(),

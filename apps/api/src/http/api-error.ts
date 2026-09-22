@@ -4,10 +4,20 @@ import { ZodValidationException } from "nestjs-zod";
 /**
  * An error with a stable machine-readable `code` the web app maps to translated copy. The message is
  * for developers and logs; it must never contain personal data.
+ *
+ * `details` is for the few refusals whose copy needs a number — "you cannot take that level off
+ * this role, **4** candidates are preparing at it". It is part of the response body, so the same
+ * rule applies twice over: **counts and ids only, never a name, an email or anything a person
+ * wrote**. The web app still renders its own copy (ADR-0012); `details` only fills the blanks in it.
  */
 export class ApiError extends HttpException {
-  constructor(status: HttpStatus, code: string, message: string) {
-    super({ statusCode: status, code, message }, status);
+  constructor(
+    status: HttpStatus,
+    code: string,
+    message: string,
+    details?: Readonly<Record<string, number>>,
+  ) {
+    super({ statusCode: status, code, message, ...(details ? { details } : {}) }, status);
   }
 }
 

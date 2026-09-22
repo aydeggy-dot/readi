@@ -7,12 +7,6 @@ export const ROLES = ["candidate", "content_expert", "admin"] as const;
 /** How the account was created (spec §6.1 `User.signup_method`). */
 export const SIGNUP_METHODS = ["email", "google", "phone"] as const;
 
-/** Target roles at MVP (spec §3). */
-export const TARGET_ROLES = ["frontend", "backend", "qa"] as const;
-
-/** Experience levels at MVP (spec §3). */
-export const EXPERIENCE_LEVELS = ["intern_junior", "mid"] as const;
-
 /** Target company types (spec §4.1). */
 export const TARGET_COMPANY_TYPES = [
   "local_startup",
@@ -27,8 +21,14 @@ export const PASSWORD_LIMITS = { minLength: 10, maxLength: 128 } as const;
 export const PROFILE_LIMITS = {
   nameMaxLength: 80,
   yearsExperienceMax: 50,
-  stackMaxItems: 15,
-  stackItemMaxLength: 40,
+  /**
+   * The free-text list of what the candidate knows — `technologies`, not `stack` (ADR-0015). The
+   * curated variant they are interviewing for is `target_stack`, a catalogue slug; these two were
+   * both called "stack" until M2.5, which is how a field meaning "React, Docker, Postgres" and a
+   * field meaning "React + TypeScript" ended up sharing a name.
+   */
+  technologiesMaxItems: 15,
+  technologyMaxLength: 40,
 } as const;
 
 /** Consent types (spec §4.1, CLAUDE.md "Data & privacy"). */
@@ -100,7 +100,16 @@ export const CONTENT_STATUSES = ["draft", "in_review", "published", "retired"] a
 export const QUESTION_TYPES = ["behavioral", "technical", "scenario", "test_design"] as const;
 
 /** Entities that carry version history, in `content_versions.entity_type`. */
-export const CONTENT_ENTITY_TYPES = ["track", "module", "lesson", "question", "rubric"] as const;
+export const CONTENT_ENTITY_TYPES = [
+  "track",
+  "module",
+  "lesson",
+  "question",
+  "rubric",
+  "career_role",
+  "career_level",
+  "stack",
+] as const;
 
 /** Why a candidate flagged a question (spec §6.1 `ContentFlag`). */
 export const CONTENT_FLAG_REASONS = [
@@ -199,6 +208,34 @@ export const CONTENT_LIMITS = {
   pageSize: { default: 20, max: 100 },
   /** Keyset cursors are base64url of `{updated_at, id}`; this leaves room for both. */
   cursorMaxLength: 200,
+  /**
+   * How many catalogue roles and levels one question may be offered to (ADR-0015). These used to
+   * be `.max(3)` and `.max(2)` — which were not limits at all, but the cardinalities of the two
+   * enums. With roles as content there is no cardinality to borrow, so these are what they say:
+   * a question serving seven roles is a question that has stopped being about any of them.
+   */
+  questionRoles: 6,
+  questionLevels: 4,
+  /**
+   * How many stack variants one question may be tagged for. No tags at all is the common case and
+   * means "general to the role"; the cap is here because a question offered to eight of a role's
+   * variants is, in practice, a general question with a list attached.
+   */
+  questionStacks: 8,
+} as const;
+
+/**
+ * The catalogue: career roles, the levels each offers, and the technology stacks a candidate can
+ * be interviewed for (ADR-0015). Roles, levels and stacks are content, not enums, so these are
+ * limits on a form rather than a closed set — a role with thirty stacks is a mistake, not a plan.
+ */
+export const CATALOGUE_LIMITS = {
+  /** Levels one role offers, e.g. intern/junior, mid, senior. */
+  roleLevels: 8,
+  /** Stack variants one role offers, e.g. React + TypeScript, Vue / Nuxt. */
+  roleStacks: 20,
+  /** Orders levels against each other; a junior ranks below a senior. Sparse on purpose. */
+  levelRankMax: 1_000,
 } as const;
 
 /**

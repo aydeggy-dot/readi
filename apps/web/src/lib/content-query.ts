@@ -1,8 +1,8 @@
 import {
+  CONTENT_LIMITS,
   CONTENT_STATUSES,
-  EXPERIENCE_LEVELS,
   QUESTION_TYPES,
-  TARGET_ROLES,
+  SLUG_PATTERN,
 } from "@readi/shared-types/constants";
 
 /**
@@ -18,8 +18,14 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 export interface ContentQuery {
   status?: (typeof CONTENT_STATUSES)[number];
   q?: string;
-  role?: (typeof TARGET_ROLES)[number];
-  level?: (typeof EXPERIENCE_LEVELS)[number];
+  /**
+   * Catalogue slugs (ADR-0015). Which roles and levels exist is a fact about the database, not
+   * about this build, so anything shaped like a slug is passed on and the API decides: it answers
+   * an unknown one with an empty list, which is a fair answer to a question nothing matches.
+   */
+  role?: string;
+  level?: string;
+  stack?: string;
   type?: (typeof QUESTION_TYPES)[number];
   topic_id?: string;
   cursor?: string;
@@ -29,6 +35,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const first = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;
+
+const SLUG = new RegExp(SLUG_PATTERN);
+
+/** A slug from the URL, or nothing: a value that could not name a catalogue row is not a filter. */
+const slug = (value: string | string[] | undefined): string | undefined => {
+  const found = first(value);
+  return found && found.length <= CONTENT_LIMITS.slugMaxLength && SLUG.test(found)
+    ? found
+    : undefined;
+};
 
 const oneOf = <T extends string>(
   value: string | string[] | undefined,
@@ -46,8 +62,9 @@ export function contentListQuery(params: SearchParams): ContentQuery {
   return {
     status: oneOf(params.status, CONTENT_STATUSES),
     q: q ? q.slice(0, 100) : undefined,
-    role: oneOf(params.role, TARGET_ROLES),
-    level: oneOf(params.level, EXPERIENCE_LEVELS),
+    role: slug(params.role),
+    level: slug(params.level),
+    stack: slug(params.stack),
     type: oneOf(params.type, QUESTION_TYPES),
     topic_id: topicId && UUID.test(topicId) ? topicId : undefined,
     cursor: cursor || undefined,
@@ -57,7 +74,13 @@ export function contentListQuery(params: SearchParams): ContentQuery {
 /** Whether anything is narrowing the list, so "nothing here" can say which kind of nothing. */
 export function isFiltered(query: ContentQuery): boolean {
   return Boolean(
-    query.status ?? query.q ?? query.role ?? query.level ?? query.type ?? query.topic_id,
+    query.status ??
+    query.q ??
+    query.role ??
+    query.level ??
+    query.stack ??
+    query.type ??
+    query.topic_id,
   );
 }
 

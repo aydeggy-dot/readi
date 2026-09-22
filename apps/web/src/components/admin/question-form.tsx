@@ -2,23 +2,16 @@
 
 import type {
   DuplicateMatch,
-  ExperienceLevel,
   Question,
   QuestionInput,
   QuestionType,
   RubricListItem,
-  TargetRole,
   Topic,
 } from "@readi/shared-types";
 import { invalidFields } from "@readi/api-client";
-import {
-  CONTENT_LIMITS,
-  DIFFICULTY_RANGE,
-  EXPERIENCE_LEVELS,
-  QUESTION_TYPES,
-  TARGET_ROLES,
-} from "@readi/shared-types/constants";
+import { CONTENT_LIMITS, DIFFICULTY_RANGE, QUESTION_TYPES } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
+import type * as React from "react";
 import { useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { DuplicateWarnings } from "@/components/admin/duplicate-warnings";
@@ -33,13 +26,17 @@ import { Note } from "@/components/ui/margin";
 import { t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
+import type { CatalogueOption } from "@/lib/catalogue-choices";
 import { contentErrorMessage } from "@/lib/content-errors";
 
 interface Values {
   slug: string;
   type: QuestionType;
-  roles: TargetRole[];
-  levels: ExperienceLevel[];
+  /** Catalogue slugs (ADR-0015), which is what the question stores. */
+  roles: string[];
+  levels: string[];
+  /** Empty means general to the role, which is what most questions are (ADR-0015). */
+  stacks: string[];
   topic_id: string;
   subtopic: string;
   difficulty: string;
@@ -67,11 +64,18 @@ export function QuestionForm({
   question,
   topics,
   rubrics,
+  roles,
+  levels,
+  stacks,
   readOnly = false,
 }: {
   question: Question | null;
   topics: Topic[];
   rubrics: RubricListItem[];
+  /** The catalogue to tag against, drafts included: a question is written before its role goes out. */
+  roles: readonly CatalogueOption[];
+  levels: readonly CatalogueOption[];
+  stacks: readonly CatalogueOption[];
   /** Published, and the reader is not an admin: the words are theirs to read, not to change. */
   readOnly?: boolean;
 }) {
@@ -92,6 +96,7 @@ export function QuestionForm({
       type: question?.type ?? "technical",
       roles: question?.roles ?? [],
       levels: question?.levels ?? [],
+      stacks: question?.stacks ?? [],
       topic_id: question?.topic_id ?? "",
       subtopic: question?.subtopic ?? "",
       difficulty: String(question?.difficulty ?? 3),
@@ -111,6 +116,7 @@ export function QuestionForm({
     type: values.type,
     roles: values.roles,
     levels: values.levels,
+    stacks: values.stacks,
     topic_id: values.topic_id,
     subtopic: values.subtopic.trim() || null,
     difficulty: Number(values.difficulty),
@@ -219,48 +225,39 @@ export function QuestionForm({
           </Field>
         </div>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 font-bold text-heading">
-            {t("admin.content.question.roles")}
-          </legend>
-          <p className="-mt-1 mb-1 text-base text-muted-foreground">
-            {t("admin.content.question.rolesHint")}
-          </p>
-          <div className="flex flex-wrap gap-4">
-            {TARGET_ROLES.map((role) => (
-              <label key={role} className="flex items-center gap-2 text-base">
-                <input
-                  type="checkbox"
-                  value={role}
-                  className="size-4 accent-primary"
-                  {...register("roles", { validate: (value) => value.length > 0 || required })}
-                />
-                {t(`targetRoles.${role}`)}
-              </label>
-            ))}
-          </div>
-          <FieldError message={errors.roles?.message} />
-        </fieldset>
+        <CatalogueChecks
+          name="roles"
+          legend={t("admin.content.question.roles")}
+          hint={t("admin.content.question.rolesHint")}
+          options={roles}
+          empty={t("admin.content.catalogue.noRoles")}
+          error={errors.roles?.message}
+          inputProps={register("roles", { validate: (value) => value.length > 0 || required })}
+        />
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 font-bold text-heading">
-            {t("admin.content.question.levels")}
-          </legend>
-          <div className="flex flex-wrap gap-4">
-            {EXPERIENCE_LEVELS.map((level) => (
-              <label key={level} className="flex items-center gap-2 text-base">
-                <input
-                  type="checkbox"
-                  value={level}
-                  className="size-4 accent-primary"
-                  {...register("levels", { validate: (value) => value.length > 0 || required })}
-                />
-                {t(`levels.${level}`)}
-              </label>
-            ))}
-          </div>
-          <FieldError message={errors.levels?.message} />
-        </fieldset>
+        <CatalogueChecks
+          name="levels"
+          legend={t("admin.content.question.levels")}
+          options={levels}
+          empty={t("admin.content.catalogue.noLevels")}
+          error={errors.levels?.message}
+          inputProps={register("levels", { validate: (value) => value.length > 0 || required })}
+        />
+
+        {/*
+          Stacks, and the only one of the three that may be left empty — that is what it means:
+          no tags, so the question is general to its role and everyone preparing for it is asked
+          it (ADR-0015). Tagging narrows the audience, so the hint says so before the tick.
+        */}
+        <CatalogueChecks
+          name="stacks"
+          legend={t("admin.content.question.stacks")}
+          hint={t("admin.content.question.stacksHint")}
+          options={stacks}
+          empty={t("admin.content.catalogue.noStacks")}
+          error={errors.stacks?.message}
+          inputProps={register("stacks")}
+        />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Field
@@ -425,5 +422,57 @@ export function QuestionForm({
         </div>
       </fieldset>
     </form>
+  );
+}
+
+/**
+ * One catalogue dimension as a row of checkboxes. Three of them differing only in their legend is
+ * what this replaces — and the fourth would have been written by copying the third.
+ */
+function CatalogueChecks({
+  name,
+  legend,
+  hint,
+  options,
+  empty,
+  error,
+  inputProps,
+}: {
+  /** Names the error text, so it is attached to the group rather than orphaned in the DOM. */
+  name: string;
+  legend: string;
+  hint?: string;
+  options: readonly CatalogueOption[];
+  /** What to say when the catalogue has none of these yet. */
+  empty: string;
+  error?: string;
+  inputProps: Omit<React.ComponentProps<"input">, "type" | "value">;
+}) {
+  const errorId = error ? `${name}-error` : undefined;
+  return (
+    <fieldset className="flex flex-col gap-2" aria-describedby={errorId}>
+      <legend className="mb-1 font-bold text-heading">{legend}</legend>
+      {hint && <p className="-mt-1 mb-1 text-base text-muted-foreground">{hint}</p>}
+      {options.length === 0 ? (
+        <p className="text-base text-muted-foreground">{empty}</p>
+      ) : (
+        <div className="flex flex-wrap gap-x-4">
+          {options.map((option) => (
+            <label key={option.slug} className="flex min-h-11 items-center gap-2 text-base">
+              <input
+                type="checkbox"
+                value={option.slug}
+                className="size-4 accent-primary"
+                aria-invalid={error ? true : undefined}
+                aria-errormessage={errorId}
+                {...inputProps}
+              />
+              {option.name}
+            </label>
+          ))}
+        </div>
+      )}
+      <FieldError id={errorId} message={error} />
+    </fieldset>
   );
 }

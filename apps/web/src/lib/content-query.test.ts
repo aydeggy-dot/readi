@@ -10,6 +10,7 @@ describe("contentListQuery", () => {
         status: "in_review",
         role: "frontend",
         level: "mid",
+        stack: "react-typescript",
         type: "technical",
         topic_id: TOPIC,
         q: "  caching  ",
@@ -19,6 +20,7 @@ describe("contentListQuery", () => {
       status: "in_review",
       role: "frontend",
       level: "mid",
+      stack: "react-typescript",
       type: "technical",
       topic_id: TOPIC,
       q: "caching",
@@ -26,10 +28,19 @@ describe("contentListQuery", () => {
     });
   });
 
+  it("passes a slug it has never heard of on to the API", () => {
+    // Roles and levels are content now (ADR-0015): which ones exist is not a fact this build has.
+    const query = contentListQuery({ role: "devops", level: "staff-plus" });
+    expect(query.role).toBe("devops");
+    expect(query.level).toBe("staff-plus");
+  });
+
   it("drops anything it does not recognise, rather than passing it on", () => {
     const query = contentListQuery({
       status: "deleted",
-      role: "devops",
+      role: "Not A Slug",
+      level: "a".repeat(200),
+      stack: "React + TypeScript",
       type: "riddle",
       topic_id: "not-a-uuid",
       q: "",
@@ -39,6 +50,7 @@ describe("contentListQuery", () => {
       status: undefined,
       role: undefined,
       level: undefined,
+      stack: undefined,
       type: undefined,
       topic_id: undefined,
       q: undefined,

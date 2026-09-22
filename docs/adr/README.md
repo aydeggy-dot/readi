@@ -21,3 +21,4 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0012](0012-web-client-and-session.md) | Web client: generated API client, server-resolved sessions, forms without Zod | Accepted |
 | [0013](0013-visual-identity.md) | Visual identity: the Margin direction, its tokens, fonts and chart rules | Accepted |
 | [0014](0014-content-model-and-workflow.md) | Learning content: statuses, version history, the answer key, the source of truth after import, and expert review before production | Accepted |
+| [0015](0015-roles-levels-stacks-are-content.md) | Roles, levels and stacks are content, and a question can be written for a stack | Accepted |

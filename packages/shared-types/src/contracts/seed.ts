@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { CONTENT_LIMITS, DIFFICULTY_RANGE, SLUG_PATTERN } from "../constants.js";
+import {
+  CATALOGUE_LIMITS,
+  CONTENT_LIMITS,
+  DIFFICULTY_RANGE,
+  QUESTION_TYPES,
+  SLUG_PATTERN,
+} from "../constants.js";
 import { QuestionType, RubricCriterionInput, weightsTotalCorrectly } from "./content.js";
-import { ExperienceLevel, TargetRole } from "./profiles.js";
+import { Slug, distinctSlugs } from "./slug.js";
 
 /**
  * The seed file format: the YAML under `/content/seed` that `pnpm db:seed` imports (spec §4.2).
@@ -38,6 +44,66 @@ export const SeedTopic = z
   .meta({ id: "SeedTopic" });
 export type SeedTopic = z.infer<typeof SeedTopic>;
 
+// -----------------------------------------------------------------------------------------------
+// The catalogue (ADR-0015). Roles, levels and stacks are content now, so they are seeded like
+// content: by slug, as drafts, for the CMS to publish.
+
+export const SeedCareerLevel = z
+  .object({
+    slug: slug(),
+    name: title(),
+    summary: summary(),
+    /** Lowest first, sparse by convention (10, 20, 30…) so a level fits between two others. */
+    rank: z.int().min(0).max(CATALOGUE_LIMITS.levelRankMax),
+  })
+  .meta({ id: "SeedCareerLevel" });
+export type SeedCareerLevel = z.infer<typeof SeedCareerLevel>;
+
+export const SeedStack = z
+  .object({ slug: slug(), name: title(), summary: summary() })
+  .meta({ id: "SeedStack" });
+export type SeedStack = z.infer<typeof SeedStack>;
+
+/**
+ * The same role, written in a file. It must carry `CareerRoleInput`'s rules as well as its shape:
+ * the importer builds a `CareerRoleInput` from this and hands it to `ContentService`, which does
+ * not re-parse — so a rule that lives only on the HTTP contract is a rule the seed files can break
+ * silently. Two `default: true` stacks would make the onboarding picker's starting variant depend
+ * on row order, and nothing in the database forbids it (M2.5 review, 2026-09-22).
+ */
+export const SeedCareerRole = z
+  .object({
+    slug: slug(),
+    name: title(),
+    summary: summary(),
+    position: z.int().min(0).max(999),
+    supported_question_types: z.array(QuestionType).min(1).max(QUESTION_TYPES.length),
+    /** Level slugs, from `levels.yaml`, in the order a candidate should see them. */
+    levels: z.array(slug()).max(CATALOGUE_LIMITS.roleLevels),
+    /** Stack slugs, from `stacks.yaml`; `default` is what the onboarding picker starts on. */
+    stacks: z
+      .array(z.object({ stack: slug(), default: z.boolean() }))
+      .max(CATALOGUE_LIMITS.roleStacks),
+  })
+  .refine((role) => distinctSlugs(role.supported_question_types), {
+    message: "a question type may be listed only once",
+    path: ["supported_question_types"],
+  })
+  .refine((role) => distinctSlugs(role.levels), {
+    message: "a level may be listed only once",
+    path: ["levels"],
+  })
+  .refine((role) => distinctSlugs(role.stacks.map((link) => link.stack)), {
+    message: "a stack may be listed only once",
+    path: ["stacks"],
+  })
+  .refine((role) => role.stacks.filter((link) => link.default).length <= 1, {
+    message: "only one stack can be the default",
+    path: ["stacks"],
+  })
+  .meta({ id: "SeedCareerRole" });
+export type SeedCareerRole = z.infer<typeof SeedCareerRole>;
+
 export const SeedRubric = z
   .object({
     slug: slug(),
@@ -57,8 +123,15 @@ export type SeedRubric = z.infer<typeof SeedRubric>;
 export const SeedQuestion = z
   .object({
     slug: slug(),
-    roles: z.array(TargetRole).min(1).max(3),
-    levels: z.array(ExperienceLevel).min(1).max(2),
+    /** Catalogue role and level slugs, from `roles.yaml` and `levels.yaml` (ADR-0015). */
+    roles: z.array(Slug).min(1).max(CONTENT_LIMITS.questionRoles),
+    levels: z.array(Slug).min(1).max(CONTENT_LIMITS.questionLevels),
+    /**
+     * Stack slugs, from `stacks.yaml` — **omit it unless the question is genuinely specific to
+     * those variants** (ADR-0015). No `stacks:` means general to the role, which is what most
+     * questions are; tagging a general question narrows who is ever asked it.
+     */
+    stacks: z.array(Slug).max(CONTENT_LIMITS.questionStacks).default([]),
     type: QuestionType,
     /** A topic's slug, from `topics.yaml`. */
     topic: slug(),
@@ -107,8 +180,8 @@ export type SeedModule = z.infer<typeof SeedModule>;
 export const SeedTrack = z
   .object({
     slug: slug(),
-    role: TargetRole,
-    level: ExperienceLevel,
+    role: Slug,
+    level: Slug,
     title: title(),
     summary: summary(),
     /** Topic slugs this track covers; `core` ones drive readiness coverage (spec §7). */
@@ -127,6 +200,9 @@ export const SeedFile = z.object({
   version: z.literal(1),
   author: SeedAuthor,
   status: z.literal("draft"),
+  career_levels: z.array(SeedCareerLevel).max(20).optional(),
+  stacks: z.array(SeedStack).max(100).optional(),
+  career_roles: z.array(SeedCareerRole).max(50).optional(),
   topics: z.array(SeedTopic).max(100).optional(),
   rubrics: z.array(SeedRubric).max(100).optional(),
   questions: z.array(SeedQuestion).max(200).optional(),

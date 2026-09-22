@@ -27,10 +27,14 @@ Please read the generated pages rather than the YAML unless you would rather not
 | Backend (skeleton)                   | [`review/backend.md`](review/backend.md)   |
 | QA (skeleton)                        | [`review/qa.md`](review/qa.md)             |
 
+There is no full-stack page, and that is not an oversight: full-stack has no bank of its own. It is
+made of eleven of the questions on the three pages above, each carrying it as a second role — so you
+review them once, where they are, and question 6 below asks the full-stack half of it.
+
 Each page puts a question, the answer key and all five level descriptors of its rubric in one
 place, with tick boxes. They print, and they render on GitHub.
 
-## The four things we are asking
+## The six things we are asking
 
 **1. Would a real interviewer ask this, at this level?**
 Not "is it a fair question" — "have you asked it, or heard it asked, of someone at this stage?" A
@@ -50,6 +54,25 @@ confidently", that is a defect — tell us, and if you can, say what the real di
 
 **4. Is anything factually wrong or out of date?**
 Tools, versions and idioms move. The lessons in each track need the same eye.
+
+**5. Where a question names a stack, is that right — and where none is named, should one be?**
+A question can be tagged for particular stacks ("React + TypeScript", "Java / Spring"), and the
+heading says so when it is. A tag is a narrowing: only candidates interviewing for that variant are
+ever asked it, and everyone else loses the question. Two are tagged today, both React ones, because
+they show React code. The mistake in both directions costs something — tagging a general question
+shrinks what most candidates practise, and leaving a framework-specific one untagged hands a Vue
+developer a React snippet — so say which you think each one is.
+
+**6. Does this question belong to full-stack as well?**
+Full-stack is one of our four launch roles and has **no bank of its own** — it is made of the
+frontend and backend questions that genuinely transfer, each carrying `fullstack` as a second role.
+Eleven of the fourteen do today; the three QA questions do not. The heading on each question says
+which roles it is for. So, per question: would a full-stack interview ask this, or is it specialist
+enough that only a frontend or only a backend candidate should meet it? A wrong "yes" wastes a
+full-stack candidate's practice on something they will never be asked; a wrong "no" leaves the
+role thinner than it should be. The same question applies to the six full-stack variants
+(React + Node, Next.js, Django + React, Laravel + Vue, Ruby on Rails, .NET + React) wherever a
+question is stack-tagged.
 
 ## How to send it back
 

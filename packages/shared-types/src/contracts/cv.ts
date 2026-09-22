@@ -1,11 +1,11 @@
 import { z } from "zod";
 import {
+  CONTENT_LIMITS,
   CV_CONTENT_TYPES,
   CV_MAX_BYTES,
   CV_STATUSES,
   PARSED_CV_LIMITS as L,
 } from "../constants.js";
-import { ExperienceLevel, TargetRole } from "./profiles.js";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 
@@ -144,13 +144,29 @@ export type AiCallRecord = z.infer<typeof AiCallRecord>;
 /** Base64 length of the largest allowed CV. */
 const MAX_CV_BASE64_LENGTH = Math.ceil(CV_MAX_BYTES / 3) * 4;
 
-/** Body of worker `POST /cv/parse`. Carries the file itself (ADR-0004) and minimal context only. */
+/**
+ * Body of worker `POST /cv/parse`. Carries the file itself (ADR-0004) and minimal context only.
+ *
+ * The role, level and stack travel as **labels, not keys** (ADR-0015). The worker only ever turned
+ * a key into prompt prose — `frontend` into "a frontend engineer" — through a hardcoded map that
+ * had to list every enum value. With roles as content there is no enum to exhaust and no key the
+ * worker could recognise, so the API, which holds the catalogue, sends the words: "Backend
+ * engineer", "Mid-level", "Java / Spring". The map and the test that guarded its completeness are
+ * deleted.
+ */
 export const CvParseRequest = z.object({
   request_id: z.uuid(),
   content_type: CvContentType,
   file_base64: z.base64().min(1).max(MAX_CV_BASE64_LENGTH),
-  target_role: TargetRole,
-  level: ExperienceLevel,
+  target_role_label: text(CONTENT_LIMITS.titleMaxLength),
+  level_label: text(CONTENT_LIMITS.titleMaxLength),
+  /**
+   * The variant the candidate is interviewing for, when they have chosen one — it sharpens the
+   * `gaps` a parse reports, since what is missing from a CV depends on the stack it is aimed at.
+   * Null when the role offers no variants or the candidate skipped the question, and the prompt
+   * then simply says nothing about a stack rather than inventing one.
+   */
+  stack_label: text(CONTENT_LIMITS.titleMaxLength).nullable(),
 });
 export type CvParseRequest = z.infer<typeof CvParseRequest>;
 

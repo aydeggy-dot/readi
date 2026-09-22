@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
+import { type CataloguePair, removeCataloguePair, seedCataloguePair } from "./content-fixtures";
 import { FakeAiWorker } from "./fake-ai-worker";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
 
@@ -22,6 +23,13 @@ describe("question embeddings", () => {
   let admin: string;
   let topicId: string;
   let rubricId: string;
+  /*
+   * Its own published role and level. This spec used to name `frontend` and `mid`, which exist in
+   * the test database only because `content-seed.int.spec.ts` imports the real corpus — as
+   * **drafts**. Publishing a question tagged only with draft catalogue rows is refused now
+   * (ADR-0015), and rightly: nobody could ever be offered it.
+   */
+  let pair: CataloguePair;
   const questions: string[] = [];
   const created: string[] = [];
 
@@ -35,8 +43,9 @@ describe("question embeddings", () => {
       .set({ cookie: admin })
       .send({
         slug: `embed-${short()}`,
-        roles: ["frontend"],
-        levels: ["mid"],
+        roles: [pair.roleSlug],
+        levels: [pair.levelSlug],
+        stacks: [],
         type: "technical",
         topic_id: topicId,
         subtopic: null,
@@ -66,6 +75,8 @@ describe("question embeddings", () => {
     worker = new FakeAiWorker();
     app = await createTestApp({ overrides: [[AiWorkerClient, worker]] });
     prisma = app.get(PrismaService);
+
+    pair = await seedCataloguePair(prisma);
 
     const user = await signUpWithEmail(app, uniqueEmail());
     admin = user.cookie;
@@ -118,6 +129,7 @@ describe("question embeddings", () => {
     await prisma.question.deleteMany({ where: { id: { in: questions } } });
     await prisma.rubric.deleteMany({ where: { id: rubricId } });
     await prisma.topic.deleteMany({ where: { id: { in: created } } });
+    if (pair) await removeCataloguePair(prisma, pair);
     await app.close();
   });
 
@@ -209,7 +221,14 @@ describe("question embeddings", () => {
 
   it("re-embeds a published question when its wording changes", async () => {
     const published = await publishQuestion(`First wording. ${short()}`);
-    const question = await prisma.question.findUniqueOrThrow({ where: { id: published.id } });
+    const question = await prisma.question.findUniqueOrThrow({
+      where: { id: published.id },
+      include: {
+        roles: { include: { role: { select: { slug: true } } } },
+        levels: { include: { level: { select: { slug: true } } } },
+        stacks: { include: { stack: { select: { slug: true } } } },
+      },
+    });
     const rewritten = `Second wording, entirely different. ${short()}`;
 
     const response = await http()
@@ -217,8 +236,9 @@ describe("question embeddings", () => {
       .set({ cookie: admin })
       .send({
         slug: question.slug,
-        roles: question.roles,
-        levels: question.levels,
+        roles: question.roles.map((link) => link.role.slug),
+        levels: question.levels.map((link) => link.level.slug),
+        stacks: question.stacks.map((link) => link.stack.slug),
         type: question.type,
         topic_id: question.topicId,
         subtopic: question.subtopic,
@@ -248,8 +268,9 @@ describe("question embeddings", () => {
       .set({ cookie: admin })
       .send({
         slug: `embed-draft-${short()}`,
-        roles: ["frontend"],
-        levels: ["mid"],
+        roles: [pair.roleSlug],
+        levels: [pair.levelSlug],
+        stacks: [],
         type: "technical",
         topic_id: topicId,
         subtopic: null,

@@ -37,8 +37,8 @@ export function TagInput({
     setDraft("");
     if (!item) return;
     // Silence here reads as a broken field: say which rule stopped the item going in.
-    if (has(item)) return setNotice(t("profileForm.errors.stackDuplicate", { item }));
-    if (full) return setNotice(t("profileForm.errors.stackMax", { max: maxItems }));
+    if (has(item)) return setNotice(t("profileForm.errors.technologiesDuplicate", { item }));
+    if (full) return setNotice(t("profileForm.errors.technologiesMax", { max: maxItems }));
     setNotice(undefined);
     onChange([...value, item]);
   }

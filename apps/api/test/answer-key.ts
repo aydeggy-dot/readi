@@ -5,6 +5,12 @@
  * It looks for two things — text that must not appear, and field names that must not exist at any
  * depth. `level` on its own is the candidate's experience level and is theirs to see; `levels` is
  * a rubric's descriptors, which is not.
+ *
+ * **One deliberate exception, and the only acceptable kind.** `CandidateCareerRole` calls its
+ * ladder `level_options` rather than `levels`, because a role's rungs are not a rubric's
+ * descriptors and the regex cannot tell them apart (ADR-0015). That is a rename of something that
+ * genuinely is not answer key; renaming something that *is* to get past this file is the failure
+ * this note exists to make obvious.
  */
 
 const ANSWER_KEY_FIELD = /rubric|criteri|ideal_point|levels|weight/i;

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { ExperienceLevel, TargetRole } from "@readi/shared-types";
 import type { PrismaService } from "../src/prisma/prisma.service";
 
 /**
@@ -16,19 +15,86 @@ import type { PrismaService } from "../src/prisma/prisma.service";
  *   key leaked" apart from "the response was empty".
  *
  * At most one track may be published per (role, level) — a partial unique index (ADR-0014) — and
- * test files run in parallel against one database, so each spec file that publishes a track must
- * own its own pair:
+ * test files run in parallel against one database. Until M2.5 phase 3 that meant a table of which
+ * spec file owned which of the enum's six pairs, because there were only six to go round and four
+ * were taken. **Roles and levels are content now**, so every fixture mints its own pair with
+ * unique slugs (`seedCataloguePair`) and no spec can collide with another. The table is gone, and
+ * so is the reason a new spec had to be added to it.
  *
- * | pair                      | owner                                |
- * | ------------------------- | ------------------------------------ |
- * | (qa, intern_junior)       | `content-schema.int.spec.ts`         |
- * | (frontend, intern_junior) | `content-admin.int.spec.ts`          |
- * | (backend, mid)            | `content.int.spec.ts`                |
- * | (frontend, mid)           | `content-no-answer-key.int.spec.ts`  |
- *
- * `seedPublishedContent` clears its pair first, so a run interrupted halfway leaves no published
- * track behind to block the next one.
+ * The test database is migrated but never seeded, so there is no `frontend` or `mid` row to
+ * borrow — minting is not merely tidier here, it is the only thing that works.
  */
+
+/**
+ * A role, the one level it offers and the one stack variant it offers — all published, with slugs
+ * nothing else will use. The stack is minted whether or not a spec cares: a role that offers a
+ * variant is the ordinary case, and a question tagged with none of them is still general, so
+ * specs that predate the stack dimension behave exactly as they did (ADR-0015).
+ */
+export interface CataloguePair {
+  roleId: string;
+  roleSlug: string;
+  roleName: string;
+  levelId: string;
+  levelSlug: string;
+  levelName: string;
+  stackId: string;
+  stackSlug: string;
+  stackName: string;
+}
+
+export async function seedCataloguePair(
+  prisma: PrismaService,
+  options: { status?: "draft" | "in_review" | "published" | "retired" } = {},
+): Promise<CataloguePair> {
+  const status = options.status ?? "published";
+  const id = randomUUID().slice(0, 8);
+  const level = await prisma.careerLevel.create({
+    data: { slug: `fixture-level-${id}`, name: `Fixture level ${id}`, rank: 20, status },
+  });
+  const stack = await prisma.stack.create({
+    data: { slug: `fixture-stack-${id}`, name: `Fixture stack ${id}`, status },
+  });
+  const role = await prisma.careerRole.create({
+    data: {
+      slug: `fixture-role-${id}`,
+      name: `Fixture role ${id}`,
+      position: 0,
+      supportedQuestionTypes: ["technical", "scenario", "behavioral"],
+      status,
+      levels: { create: [{ levelId: level.id, position: 0 }] },
+      stacks: { create: [{ stackId: stack.id, position: 0, isDefault: true }] },
+    },
+  });
+  return {
+    roleId: role.id,
+    roleSlug: role.slug,
+    roleName: role.name,
+    levelId: level.id,
+    levelSlug: level.slug,
+    levelName: level.name,
+    stackId: stack.id,
+    stackSlug: stack.slug,
+    stackName: stack.name,
+  };
+}
+
+export async function removeCataloguePair(
+  prisma: PrismaService,
+  pair: CataloguePair,
+): Promise<void> {
+  // A role cannot be deleted while a candidate is preparing for it (the FK is `restrict`, which
+  // is the point — see `role_in_use`). Test users outlive their specs, so their profiles go here.
+  await prisma.profile.deleteMany({ where: { targetRoleId: pair.roleId } });
+  await prisma.careerRoleLevel.deleteMany({ where: { roleId: pair.roleId } });
+  await prisma.careerRoleStack.deleteMany({ where: { roleId: pair.roleId } });
+  await prisma.careerRole.deleteMany({ where: { id: pair.roleId } });
+  await prisma.careerLevel.deleteMany({ where: { id: pair.levelId } });
+  await prisma.stack.deleteMany({ where: { id: pair.stackId } });
+  await prisma.contentVersion.deleteMany({
+    where: { entityId: { in: [pair.roleId, pair.levelId, pair.stackId] } },
+  });
+}
 
 export interface ContentFixture {
   topicId: string;
@@ -40,8 +106,11 @@ export interface ContentFixture {
   moduleId: string;
   lessonId: string;
   lessonSlug: string;
-  role: TargetRole;
-  level: ExperienceLevel;
+  /** The minted catalogue pair this fixture's content hangs from. */
+  catalogue: CataloguePair;
+  /** Slugs, as the wire carries them (ADR-0015). */
+  role: string;
+  level: string;
   /** Strings that must never appear in a candidate-facing response. */
   answerKeyMarkers: string[];
   /** Strings a candidate is supposed to see, so an empty response cannot pass for a clean one. */
@@ -49,8 +118,6 @@ export interface ContentFixture {
 }
 
 export interface SeedOptions {
-  role: TargetRole;
-  level: ExperienceLevel;
   /** Defaults to published; pass a status to seed content at an earlier stage of the workflow. */
   status?: "draft" | "in_review" | "published" | "retired";
 }
@@ -59,15 +126,14 @@ const marker = (what: string) => `ANSWERKEY-${what}-${randomUUID()}`;
 
 export async function seedPublishedContent(
   prisma: PrismaService,
-  options: SeedOptions,
+  options: SeedOptions = {},
 ): Promise<ContentFixture> {
-  const { role, level } = options;
   const status = options.status ?? "published";
   const id = randomUUID().slice(0, 8);
 
-  // This spec file owns this (role, level) pair. Only a *published* track can block it (the
-  // partial unique index), and only a published one is cleared — the seeded drafts stay.
-  await prisma.track.deleteMany({ where: { role, level, status: "published" } });
+  // A pair of this fixture's own: nothing else can publish a track against it, so the partial
+  // unique index is never contended and no spec has to be told which pair it may use.
+  const catalogue = await seedCataloguePair(prisma);
 
   const idealPoints = [marker("ideal-1"), marker("ideal-2")];
   const criteria = [60, 40].map((weight, index) => ({
@@ -100,8 +166,8 @@ export async function seedPublishedContent(
   const question = await prisma.question.create({
     data: {
       slug: `fixture-question-${id}`,
-      roles: [role],
-      levels: [level],
+      roles: { create: [{ roleId: catalogue.roleId }] },
+      levels: { create: [{ levelId: catalogue.levelId }] },
       type: "technical",
       topicId: topic.id,
       subtopic: null,
@@ -117,8 +183,8 @@ export async function seedPublishedContent(
   const track = await prisma.track.create({
     data: {
       slug: `fixture-track-${id}`,
-      role,
-      level,
+      roleId: catalogue.roleId,
+      levelId: catalogue.levelId,
       title: trackTitle,
       summary: null,
       status,
@@ -164,8 +230,9 @@ export async function seedPublishedContent(
     moduleId: module.id,
     lessonId: lesson.id,
     lessonSlug: lesson.slug,
-    role,
-    level,
+    catalogue,
+    role: catalogue.roleSlug,
+    level: catalogue.levelSlug,
     answerKeyMarkers: [
       ...idealPoints,
       ...criteria.flatMap((criterion) => [
@@ -187,28 +254,45 @@ export async function removeContent(prisma: PrismaService, fixture: ContentFixtu
   await prisma.contentVersion.deleteMany({
     where: { entityId: { in: [fixture.trackId, fixture.questionId, fixture.rubricId] } },
   });
+  // Last: a role cannot be deleted while a track or question still points at it.
+  await removeCataloguePair(prisma, fixture.catalogue);
 }
 
-/** Gives a signed-in test user the profile the candidate reads default to. */
+/**
+ * Gives a signed-in test user the profile the candidate reads default to. `stack` is optional and
+ * defaults to none — which, under the stack rule, means general questions only.
+ */
 export async function giveProfile(
   prisma: PrismaService,
   email: string,
-  role: TargetRole,
-  level: ExperienceLevel,
+  role: string,
+  level: string,
+  stack?: string,
 ): Promise<string> {
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  // Slugs in, ids out: the fixture takes what the wire takes, so a spec reads the way the API
+  // does. `findUniqueOrThrow` is the point — a typo'd slug fails here, not silently later.
+  const [targetRole, targetLevel, targetStack] = await Promise.all([
+    prisma.careerRole.findUniqueOrThrow({ where: { slug: role }, select: { id: true } }),
+    prisma.careerLevel.findUniqueOrThrow({ where: { slug: level }, select: { id: true } }),
+    stack ? prisma.stack.findUniqueOrThrow({ where: { slug: stack }, select: { id: true } }) : null,
+  ]);
+  const target = {
+    targetRoleId: targetRole.id,
+    targetLevelId: targetLevel.id,
+    targetStackId: targetStack?.id ?? null,
+  };
   await prisma.profile.upsert({
     where: { userId: user.id },
     create: {
       userId: user.id,
-      targetRole: role,
-      level,
+      ...target,
       yearsExperience: 2,
-      stack: ["TypeScript"],
+      technologies: ["TypeScript"],
       targetCompanyType: "local_startup",
       onboardingCompletedAt: new Date(),
     },
-    update: { targetRole: role, level },
+    update: target,
   });
   return user.id;
 }

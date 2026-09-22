@@ -2,6 +2,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { EMBEDDING_DIMENSIONS } from "@readi/shared-types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { type CataloguePair, removeCataloguePair, seedCataloguePair } from "./content-fixtures";
 import { createTestApp } from "./helpers";
 
 /**
@@ -14,6 +15,7 @@ describe("content schema", () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
   const created: string[] = [];
+  const pairs: CataloguePair[] = [];
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -22,6 +24,8 @@ describe("content schema", () => {
 
   afterAll(async () => {
     if (created.length > 0) await prisma.track.deleteMany({ where: { id: { in: created } } });
+    // After the tracks: a role cannot be deleted while one still points at it.
+    for (const pair of pairs) await removeCataloguePair(prisma, pair);
     await app.close();
   });
 
@@ -33,17 +37,39 @@ describe("content schema", () => {
     expect(column?.type).toBe(`vector(${EMBEDDING_DIMENSIONS})`);
   });
 
+  /*
+   * This is the test that catches the mistake this project makes most often. Prisma cannot see an
+   * index over an `Unsupported` column, so **every** `prisma migrate dev` that touches `questions`
+   * — and some that do not — generates `DROP INDEX questions_embedding_hnsw`, which has to be
+   * deleted by hand before the migration is applied (CLAUDE.md §5, `tasks/lessons.md`). It has
+   * happened in three migrations so far. Without the index, duplicate detection still *works*, so
+   * nothing else in the suite notices: it just scans the whole table and gets slower as the bank
+   * grows.
+   *
+   * Checked by hand on 2026-09-22 by dropping the index in `readi_test` and running this file:
+   * this test failed and the other three passed.
+   */
   it("indexes those embeddings for cosine distance with HNSW", async () => {
     const [index] = await prisma.$queryRaw<{ indexdef: string }[]>`
       SELECT indexdef FROM pg_indexes WHERE indexname = 'questions_embedding_hnsw'`;
+    // Asserted before the shape, so a missing index fails with what actually went wrong rather
+    // than with "undefined is not a string".
+    expect(
+      index,
+      "questions_embedding_hnsw is missing: a migration dropped it — see CLAUDE.md §5",
+    ).toBeDefined();
     expect(index?.indexdef).toContain("USING hnsw");
     expect(index?.indexdef).toContain("vector_cosine_ops");
   });
 
   it("allows only one published track per role and level", async () => {
+    // Its own catalogue pair, so this test cannot collide with another spec publishing a track —
+    // and so the index is exercised on the columns it now covers (`role_id`, `level_id`).
+    const pair = await seedCataloguePair(prisma);
+    pairs.push(pair);
     const base = {
-      role: "qa" as const,
-      level: "intern_junior" as const,
+      roleId: pair.roleId,
+      levelId: pair.levelId,
       title: "QA, intern",
       summary: null,
     };

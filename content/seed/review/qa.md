@@ -1,4 +1,4 @@
-# QA — drafted content for expert review
+# QA engineer — drafted content for expert review
 
 **3 questions**, 3 rubrics, 1 track (1 modules, 2 lessons).
 
@@ -23,7 +23,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 ### 1. test-design-signup-form
 
-**test design** · difficulty 2/5 · intern_junior · topic: Test design and coverage (boundary and state coverage)
+**test design** · difficulty 2/5 · roles: qa · intern-junior · topic: Test design and coverage (boundary and state coverage)
 
 **The interviewer asks**
 
@@ -80,7 +80,7 @@ States and sequences — double submission, going back, a dropped connection, a 
 
 ### 2. intermittent-failure-triage
 
-**scenario** · difficulty 3/5 · intern_junior, mid · topic: Defect reporting and triage (intermittent defects)
+**scenario** · difficulty 3/5 · roles: qa · intern-junior, mid · topic: Defect reporting and triage (intermittent defects)
 
 **The interviewer asks**
 
@@ -137,7 +137,7 @@ Build, environment, device, time, and an attachment that shows it.
 
 ### 3. pushing-back-on-a-release
 
-**behavioral** · difficulty 3/5 · intern_junior, mid · topic: Working with a team (raising concerns)
+**behavioral** · difficulty 3/5 · roles: qa · intern-junior, mid · topic: Working with a team (raising concerns)
 
 **The interviewer asks**
 
@@ -194,7 +194,7 @@ How it ended, honestly — including if it went badly — and something specific
 
 ## Track: QA engineer — intern and junior
 
-`qa-intern-junior` · qa · intern_junior
+`qa-intern-junior` · qa · intern-junior
 
 A starting skeleton for the QA programme: choosing the cases worth writing, and reporting what you find so that it gets fixed.
 

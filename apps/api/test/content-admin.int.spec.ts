@@ -14,7 +14,12 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
-import { giveProfile } from "./content-fixtures";
+import {
+  giveProfile,
+  removeCataloguePair,
+  seedCataloguePair,
+  type CataloguePair,
+} from "./content-fixtures";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
 
 /**
@@ -28,6 +33,7 @@ describe("admin content API", () => {
   let admin: string;
   let candidate: string;
   let candidateEmail: string;
+  let pair: CataloguePair;
   let topic: Topic;
   const tracks: string[] = [];
   const questions: string[] = [];
@@ -75,8 +81,10 @@ describe("admin content API", () => {
   ): Promise<Question> => {
     const body: QuestionInput = {
       slug: `question-${id()}`,
-      roles: ["frontend"],
-      levels: ["intern_junior"],
+      roles: [pair.roleSlug],
+      levels: [pair.levelSlug],
+      // No stacks: general to the role, which is what most questions are (ADR-0015).
+      stacks: [],
       type: "technical",
       topic_id: topic.id,
       subtopic: null,
@@ -100,8 +108,8 @@ describe("admin content API", () => {
       .set(as(cookie))
       .send({
         slug,
-        role: "frontend",
-        level: "intern_junior",
+        role: pair.roleSlug,
+        level: pair.levelSlug,
         title: "Frontend, intern",
         summary: null,
         topics: [{ topic_id: topic.id, is_core: true }],
@@ -121,9 +129,9 @@ describe("admin content API", () => {
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
-    await prisma.track.deleteMany({
-      where: { role: "frontend", level: "intern_junior", status: "published" },
-    });
+    // Its own catalogue pair (ADR-0015): no spec has to be told which (role, level) it may use,
+    // because no two specs can mint the same slugs.
+    pair = await seedCataloguePair(prisma);
 
     const expertUser = await signUpWithEmail(app, uniqueEmail());
     expert = expertUser.cookie;
@@ -140,7 +148,7 @@ describe("admin content API", () => {
     const candidateUser = await signUpWithEmail(app, uniqueEmail());
     candidate = candidateUser.cookie;
     candidateEmail = candidateUser.email;
-    await giveProfile(prisma, candidateEmail, "frontend", "intern_junior");
+    await giveProfile(prisma, candidateEmail, pair.roleSlug, pair.levelSlug);
 
     const response = await http()
       .post("/api/admin/content/topics")
@@ -156,6 +164,7 @@ describe("admin content API", () => {
     await prisma.question.deleteMany({ where: { id: { in: questions } } });
     await prisma.rubric.deleteMany({ where: { id: { in: rubrics } } });
     await prisma.topic.deleteMany({ where: { id: { in: topics } } });
+    await removeCataloguePair(prisma, pair);
     await app.close();
   });
 
@@ -282,6 +291,7 @@ describe("admin content API", () => {
         slug: source.slug,
         roles: source.roles,
         levels: source.levels,
+        stacks: source.stacks,
         type: source.type,
         topic_id: source.topic_id,
         subtopic: source.subtopic,
@@ -608,8 +618,9 @@ describe("admin content API", () => {
         .set(as(expert))
         .send({
           slug: `question-${id()}`,
-          roles: ["frontend"],
-          levels: ["intern_junior"],
+          roles: [pair.roleSlug],
+          levels: [pair.levelSlug],
+          stacks: [],
           type: "technical",
           topic_id: randomUUID(),
           subtopic: null,

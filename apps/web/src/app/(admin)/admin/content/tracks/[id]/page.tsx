@@ -7,6 +7,7 @@ import { ReviewPanel } from "@/components/admin/review-panel";
 import { TransitionPanel } from "@/components/admin/transition-panel";
 import { VersionHistory } from "@/components/admin/version-history";
 import { t } from "@/i18n";
+import { roleAndLevelChoices, slugNames } from "@/lib/catalogue-choices";
 import { requireContentEditor, serverApi } from "@/lib/session";
 
 export const metadata: Metadata = { title: t("admin.content.sections.tracks") };
@@ -15,9 +16,10 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
   const me = await requireContentEditor();
   const { id } = await params;
   const api = await serverApi();
-  const [track, topics] = await Promise.all([
+  const [track, topics, catalogue] = await Promise.all([
     api.GET("/api/admin/content/tracks/{id}", { params: { path: { id } } }),
     api.GET("/api/admin/content/topics"),
+    roleAndLevelChoices(),
   ]);
   if (!track.data) notFound();
 
@@ -25,7 +27,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
     <>
       <EditorHeading
         title={track.data.title}
-        lead={`${t(`targetRoles.${track.data.role}`)} · ${t(`levels.${track.data.level}`)}`}
+        lead={`${slugNames(catalogue.roles)(track.data.role)} · ${slugNames(catalogue.levels)(track.data.level)}`}
         backHref="/admin/content/tracks"
         status={track.data.status}
         seedManaged={track.data.seed_managed}
@@ -34,6 +36,8 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
       <TrackForm
         track={track.data}
         topics={topics.data?.topics ?? []}
+        roles={catalogue.roles}
+        levels={catalogue.levels}
         readOnly={track.data.status === "published" && me.role !== "admin"}
       />
       <ModulePanel

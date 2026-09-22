@@ -383,6 +383,101 @@ questions:
     });
   });
 
+  /**
+   * The catalogue (ADR-0015). A role names its levels and its stacks by slug, so the importer has
+   * to create them first and resolve the names — the pattern a question's `topic` already uses,
+   * and the one that fails loudest when a slug has a typo in it.
+   */
+  describe("a catalogue of its own", () => {
+    const directory = mkdtempSync(join(tmpdir(), "readi-seed-catalogue-"));
+    const slug = `cattest-${Date.now()}`;
+
+    const file = (roleName = "Test role") => `
+version: 1
+author: ai_draft
+status: draft
+career_levels:
+  - slug: ${slug}-junior
+    name: Junior
+    summary: null
+    rank: 10
+stacks:
+  - slug: ${slug}-spring
+    name: Java / Spring
+    summary: null
+career_roles:
+  - slug: ${slug}-role
+    name: ${roleName}
+    summary: null
+    position: 70
+    supported_question_types: [technical, scenario]
+    levels: [${slug}-junior]
+    stacks:
+      - { stack: ${slug}-spring, default: true }
+`;
+
+    const write = (roleName?: string) => {
+      writeFileSync(join(directory, "seed.yaml"), file(roleName));
+      return loadSeedDirectory(directory, directory).files;
+    };
+
+    afterAll(async () => {
+      await prisma.careerRole.deleteMany({ where: { slug: `${slug}-role` } });
+      await prisma.careerLevel.deleteMany({ where: { slug: `${slug}-junior` } });
+      await prisma.stack.deleteMany({ where: { slug: `${slug}-spring` } });
+    });
+
+    it("creates levels and stacks first, then the role that names them", async () => {
+      const report = await new SeedImporter(prisma, content).import(write());
+      expect(report.career_levels.created).toBe(1);
+      expect(report.stacks.created).toBe(1);
+      expect(report.career_roles.created).toBe(1);
+
+      const role = await prisma.careerRole.findUniqueOrThrow({
+        where: { slug: `${slug}-role` },
+        include: { levels: true, stacks: true },
+      });
+      expect(role.status).toBe("draft");
+      expect(role.aiDraftUnreviewed).toBe(true);
+      const level = await prisma.careerLevel.findUniqueOrThrow({
+        where: { slug: `${slug}-junior` },
+      });
+      expect(role.levels.map((link) => link.levelId)).toEqual([level.id]);
+      expect(role.stacks[0]?.isDefault).toBe(true);
+    });
+
+    it("changes nothing on a second run", async () => {
+      const before = await prisma.careerRole.findUniqueOrThrow({ where: { slug: `${slug}-role` } });
+      const report = await new SeedImporter(prisma, content).import(write());
+      expect(report).toMatchObject({
+        career_levels: { created: 0, updated: 0, unchanged: 1 },
+        stacks: { created: 0, updated: 0, unchanged: 1 },
+        career_roles: { created: 0, updated: 0, unchanged: 1 },
+      });
+      const after = await prisma.careerRole.findUniqueOrThrow({ where: { id: before.id } });
+      expect(after.updatedAt).toEqual(before.updatedAt);
+      expect(after.version).toBe(before.version);
+    });
+
+    it("versions a change to the role", async () => {
+      const before = await prisma.careerRole.findUniqueOrThrow({ where: { slug: `${slug}-role` } });
+      const report = await new SeedImporter(prisma, content).import(write("Renamed role"));
+      expect(report.career_roles).toMatchObject({ created: 0, updated: 1, unchanged: 0 });
+      const after = await prisma.careerRole.findUniqueOrThrow({ where: { id: before.id } });
+      expect(after.name).toBe("Renamed role");
+      expect(after.version).toBe(before.version + 1);
+    });
+
+    it("refuses a level slug nothing defines, naming the file", async () => {
+      const broken = file().replace(`levels: [${slug}-junior]`, "levels: [no-such-level]");
+      writeFileSync(join(directory, "seed.yaml"), broken);
+      const files = loadSeedDirectory(directory, directory).files;
+      await expect(new SeedImporter(prisma, content).import(files)).rejects.toBeInstanceOf(
+        SeedReferenceError,
+      );
+    });
+  });
+
   describe("the corpus we ship", () => {
     it("imports, and imports again with nothing to do", async () => {
       await importReal();

@@ -8,16 +8,30 @@ Written by hand in YAML, reviewed by human experts, and imported idempotently.
 ## Layout
 
 ```
+levels.yaml            the ladder: intern/junior, mid, and a senior no role offers yet
+stacks.yaml            the variants a role is interviewed for         (the catalogue)
+roles.yaml             the roles, and which levels and stacks each offers
 topics.yaml            the shared taxonomy every question and lesson hangs from
 rubrics.shared.yaml    rubrics used by more than one role
 frontend/              track.yaml, rubrics.yaml, questions.yaml   (the full set)
 backend/, qa/          the same three files, as skeletons
 review/                generated review pages — do not edit by hand
+
+A directory is one role's bank, and a role does **not** need one: `fullstack` has no directory,
+because its questions are the frontend and backend ones that carry it as a second role. Which
+roles exist is `roles.yaml`, never the directory listing — the review-doc generator reads the
+catalogue and writes a page only for a role some directory actually holds content for.
 ```
 
-Files refer to each other **by slug**: a question names its `topic` and its `rubric`, a track names
-its `topics`. The importer resolves those to database ids, and fails with the file name if a slug
-is not defined anywhere.
+Files refer to each other **by slug**: a question names its `topic`, its `rubric`, its `roles`, its
+`levels` and — when it is specific to them — its `stacks`, a track names its `role`, its `level`
+and its `topics`, and a role names its `levels` and `stacks`. The importer resolves those to database ids, and fails with the file name if a slug
+is not defined anywhere. The catalogue is imported first, because a role cannot name a level that
+does not exist yet.
+
+**Roles, levels and stacks are content now** (ADR-0015), not enums: adding a role is an entry in
+`roles.yaml` — or, just as legitimately, a form in `/admin/content` — and never a migration. The
+same workflow applies to them as to a question: they arrive as drafts, and an admin publishes.
 
 ## Commands
 
@@ -26,6 +40,7 @@ pnpm db:seed -- --dry-run     # validate and print the plan; writes nothing
 pnpm db:seed                  # import; running it twice changes nothing
 pnpm db:seed -- --force       # also overwrite items that have been edited in the CMS
 pnpm --filter @readi/api content:review-doc   # regenerate review/*.md after editing content
+pnpm format                   # then this: the generator does not emit Prettier's markdown
 ```
 
 A validation failure names the file, line and column: `content/seed/frontend/questions.yaml:84:7 —
@@ -41,6 +56,16 @@ questions[2].ideal_points: expected array`.
   been through the file.
 - **`reviewer_notes` is required on every question**, and "nothing to flag" is a legitimate answer.
   An empty field usually means nobody looked.
+- **`stacks:` on a question is a narrowing, so it is left out by default.** No `stacks` key means
+  the question is general to its roles and everyone preparing for them is asked it; listing stacks
+  means only candidates on one of those variants ever see it (ADR-0015). The test is whether the
+  question would be unfair or meaningless to someone on another variant — a snippet of JSX is,
+  "how would you decide what to test" is not. Two of the fourteen seeded questions are tagged
+  today, both React ones in `frontend/`; a candidate who chose no variant at all gets the general
+  set only.
+- **A question's `roles:` is a list, and a second role costs nothing.** A question that genuinely
+  transfers belongs to both roles rather than being copied — eleven of the fourteen carry
+  `fullstack` for exactly that reason. Copying content makes two things that drift.
 - **Rubric weights must total 100**, with 3–5 criteria and a descriptor for each level 0–4.
 - Slugs are permanent: the importer matches on them. Renaming one creates a second item.
 

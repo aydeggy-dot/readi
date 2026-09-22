@@ -339,6 +339,25 @@
         "tags": ["cv"]
       }
     },
+    "/api/content/career-roles": {
+      "get": {
+        "operationId": "ContentController_careerRoles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerRolesResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["content"]
+      }
+    },
     "/api/content/track": {
       "get": {
         "operationId": "ContentController_track",
@@ -348,7 +367,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -356,7 +378,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           }
         ],
@@ -552,6 +577,639 @@
         "tags": ["admin-content"]
       }
     },
+    "/api/admin/content/career-roles": {
+      "get": {
+        "operationId": "ContentAdminController_listCareerRoles",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ContentStatus"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/QuestionType"
+            }
+          },
+          {
+            "name": "topic_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerRoleListResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      },
+      "post": {
+        "operationId": "ContentAdminController_createCareerRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CareerRoleInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerRoleDto_Output"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Slug already in use (code `content_slug_taken`)"
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
+    "/api/admin/content/career-roles/{id}": {
+      "get": {
+        "operationId": "ContentAdminController_getCareerRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerRoleDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such role (code `career_role_not_found`)"
+          }
+        },
+        "tags": ["admin-content"]
+      },
+      "put": {
+        "operationId": "ContentAdminController_updateCareerRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CareerRoleInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerRoleDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
+    "/api/admin/content/career-levels": {
+      "get": {
+        "operationId": "ContentAdminController_listCareerLevels",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ContentStatus"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/QuestionType"
+            }
+          },
+          {
+            "name": "topic_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerLevelListResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      },
+      "post": {
+        "operationId": "ContentAdminController_createCareerLevel",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CareerLevelInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerLevelDto_Output"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Slug already in use (code `content_slug_taken`)"
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
+    "/api/admin/content/career-levels/{id}": {
+      "get": {
+        "operationId": "ContentAdminController_getCareerLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerLevelDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such level (code `career_level_not_found`)"
+          }
+        },
+        "tags": ["admin-content"]
+      },
+      "put": {
+        "operationId": "ContentAdminController_updateCareerLevel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CareerLevelInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CareerLevelDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
+    "/api/admin/content/stacks": {
+      "get": {
+        "operationId": "ContentAdminController_listStacks",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ContentStatus"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/QuestionType"
+            }
+          },
+          {
+            "name": "topic_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StackListResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      },
+      "post": {
+        "operationId": "ContentAdminController_createStack",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StackInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StackDto_Output"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Slug already in use (code `content_slug_taken`)"
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
+    "/api/admin/content/stacks/{id}": {
+      "get": {
+        "operationId": "ContentAdminController_getStack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StackDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such stack (code `stack_not_found`)"
+          }
+        },
+        "tags": ["admin-content"]
+      },
+      "put": {
+        "operationId": "ContentAdminController_updateStack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StackInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StackDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-content"]
+      }
+    },
     "/api/admin/content/tracks": {
       "get": {
         "operationId": "ContentAdminController_listTracks",
@@ -579,7 +1237,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -587,7 +1248,21 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -853,7 +1528,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -861,7 +1539,21 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1057,7 +1749,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1065,7 +1760,21 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1248,7 +1957,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/TargetRole"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1256,7 +1968,21 @@
             "required": false,
             "in": "query",
             "schema": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stack",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
             }
           },
           {
@@ -1489,7 +2215,7 @@
             "description": "Not yours to make (code `content_transition_forbidden`)"
           },
           "409": {
-            "description": "Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`)"
+            "description": "Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, `career_role_has_no_published_level`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`); or a retire rule refuses because a published role still offers it (`level_in_use`, `stack_in_use`)"
           }
         },
         "tags": ["admin-content"]
@@ -1872,14 +2598,6 @@
         "required": ["profile_completed", "consents_completed", "completed_at"],
         "additionalProperties": false
       },
-      "TargetRole_Output": {
-        "type": "string",
-        "enum": ["frontend", "backend", "qa"]
-      },
-      "ExperienceLevel_Output": {
-        "type": "string",
-        "enum": ["intern_junior", "mid"]
-      },
       "TargetCompanyType_Output": {
         "type": "string",
         "enum": ["local_startup", "enterprise_bank_telco", "remote_foreign", "big_tech"]
@@ -1893,17 +2611,30 @@
             "maxLength": 80
           },
           "target_role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "target_stack": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "nullable": true
           },
           "years_experience": {
             "type": "integer",
             "minimum": 0,
             "maximum": 50
           },
-          "stack": {
+          "technologies": {
             "type": "array",
             "minItems": 1,
             "maxItems": 15,
@@ -1932,21 +2663,14 @@
           "name",
           "target_role",
           "level",
+          "target_stack",
           "years_experience",
-          "stack",
+          "technologies",
           "target_company_type",
           "target_date",
           "updated_at"
         ],
         "additionalProperties": false
-      },
-      "TargetRole": {
-        "type": "string",
-        "enum": ["frontend", "backend", "qa"]
-      },
-      "ExperienceLevel": {
-        "type": "string",
-        "enum": ["intern_junior", "mid"]
       },
       "TargetCompanyType": {
         "type": "string",
@@ -1961,17 +2685,30 @@
             "maxLength": 80
           },
           "target_role": {
-            "$ref": "#/components/schemas/TargetRole"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "target_stack": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "nullable": true
           },
           "years_experience": {
             "type": "integer",
             "minimum": 0,
             "maximum": 50
           },
-          "stack": {
+          "technologies": {
             "minItems": 1,
             "maxItems": 15,
             "type": "array",
@@ -1995,8 +2732,9 @@
           "name",
           "target_role",
           "level",
+          "target_stack",
           "years_experience",
-          "stack",
+          "technologies",
           "target_company_type",
           "target_date"
         ]
@@ -2436,6 +3174,123 @@
         },
         "required": ["skills", "projects", "experience", "gaps"]
       },
+      "CandidateCareerRole_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "supported_question_types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionType_Output"
+            }
+          },
+          "level_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateCareerLevel_Output"
+            }
+          },
+          "stacks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateStack_Output"
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "summary",
+          "supported_question_types",
+          "level_options",
+          "stacks"
+        ],
+        "additionalProperties": false
+      },
+      "QuestionType_Output": {
+        "type": "string",
+        "enum": ["behavioral", "technical", "scenario", "test_design"]
+      },
+      "CandidateCareerLevel_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          }
+        },
+        "required": ["slug", "name", "summary"],
+        "additionalProperties": false
+      },
+      "CandidateStack_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        },
+        "required": ["slug", "name", "summary", "is_default"],
+        "additionalProperties": false
+      },
+      "CareerRolesResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateCareerRole_Output"
+            }
+          }
+        },
+        "required": ["roles"],
+        "additionalProperties": false
+      },
       "CandidateModule_Output": {
         "type": "object",
         "properties": {
@@ -2500,10 +3355,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -2591,10 +3452,6 @@
         },
         "required": ["id", "slug", "type", "difficulty", "prompt", "context", "topic"],
         "additionalProperties": false
-      },
-      "QuestionType_Output": {
-        "type": "string",
-        "enum": ["behavioral", "technical", "scenario", "test_design"]
       },
       "CandidatePracticeResponseDto_Output": {
         "type": "object",
@@ -2759,6 +3616,651 @@
         "required": ["slug", "name", "description", "id"],
         "additionalProperties": false
       },
+      "CareerRoleListItem_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "level_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "stack_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "seed_managed": {
+            "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "position",
+          "level_count",
+          "stack_count",
+          "status",
+          "version",
+          "updated_at",
+          "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at"
+        ],
+        "additionalProperties": false
+      },
+      "ContentStatus_Output": {
+        "type": "string",
+        "enum": ["draft", "in_review", "published", "retired"]
+      },
+      "CareerRoleListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareerRoleListItem_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": ["items", "next_cursor"],
+        "additionalProperties": false
+      },
+      "QuestionType": {
+        "type": "string",
+        "enum": ["behavioral", "technical", "scenario", "test_design"]
+      },
+      "CareerRoleStackInput": {
+        "type": "object",
+        "properties": {
+          "stack_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        },
+        "required": ["stack_id", "is_default"]
+      },
+      "CareerRoleInputDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "supported_question_types": {
+            "minItems": 1,
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionType"
+            }
+          },
+          "levels": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "stacks": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareerRoleStackInput"
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "summary",
+          "position",
+          "supported_question_types",
+          "levels",
+          "stacks"
+        ]
+      },
+      "CareerRoleStackInput_Output": {
+        "type": "object",
+        "properties": {
+          "stack_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        },
+        "required": ["stack_id", "is_default"],
+        "additionalProperties": false
+      },
+      "CareerRoleDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 999
+          },
+          "supported_question_types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionType_Output"
+            }
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "stacks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareerRoleStackInput_Output"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "seed_managed": {
+            "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "summary",
+          "position",
+          "supported_question_types",
+          "levels",
+          "stacks",
+          "status",
+          "version",
+          "updated_at",
+          "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at"
+        ],
+        "additionalProperties": false
+      },
+      "CareerLevelListItem_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "role_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "seed_managed": {
+            "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "rank",
+          "role_count",
+          "status",
+          "version",
+          "updated_at",
+          "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at"
+        ],
+        "additionalProperties": false
+      },
+      "CareerLevelListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CareerLevelListItem_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": ["items", "next_cursor"],
+        "additionalProperties": false
+      },
+      "CareerLevelInputDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": ["slug", "name", "summary", "rank"]
+      },
+      "CareerLevelDto_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "seed_managed": {
+            "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "summary",
+          "rank",
+          "id",
+          "status",
+          "version",
+          "updated_at",
+          "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at"
+        ],
+        "additionalProperties": false
+      },
+      "StackListItem_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "role_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "seed_managed": {
+            "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "role_count",
+          "status",
+          "version",
+          "updated_at",
+          "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at"
+        ],
+        "additionalProperties": false
+      },
+      "StackListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StackListItem_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": ["items", "next_cursor"],
+        "additionalProperties": false
+      },
+      "StackInputDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          }
+        },
+        "required": ["slug", "name", "summary"]
+      },
+      "StackDto_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ContentStatus_Output"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "seed_managed": {
+            "type": "boolean"
+          },
+          "ai_draft_unreviewed": {
+            "type": "boolean"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "summary",
+          "id",
+          "status",
+          "version",
+          "updated_at",
+          "seed_managed",
+          "ai_draft_unreviewed",
+          "reviewed_at"
+        ],
+        "additionalProperties": false
+      },
       "TrackListItem_Output": {
         "type": "object",
         "properties": {
@@ -2774,10 +4276,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -2831,10 +4339,6 @@
         ],
         "additionalProperties": false
       },
-      "ContentStatus_Output": {
-        "type": "string",
-        "enum": ["draft", "in_review", "published", "retired"]
-      },
       "TrackListResponseDto_Output": {
         "type": "object",
         "properties": {
@@ -2878,10 +4382,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -2934,10 +4444,16 @@
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "role": {
-            "$ref": "#/components/schemas/TargetRole_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "level": {
-            "$ref": "#/components/schemas/ExperienceLevel_Output"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
           "title": {
             "type": "string",
@@ -3847,13 +5363,28 @@
           "roles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TargetRole_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "levels": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ExperienceLevel_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            }
+          },
+          "stacks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "difficulty": {
@@ -3928,6 +5459,7 @@
           "type",
           "roles",
           "levels",
+          "stacks",
           "difficulty",
           "topic",
           "rubric_slug",
@@ -4026,10 +5558,6 @@
         "required": ["matches"],
         "additionalProperties": false
       },
-      "QuestionType": {
-        "type": "string",
-        "enum": ["behavioral", "technical", "scenario", "test_design"]
-      },
       "QuestionInputDto": {
         "type": "object",
         "properties": {
@@ -4041,18 +5569,34 @@
           },
           "roles": {
             "minItems": 1,
-            "maxItems": 3,
+            "maxItems": 6,
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TargetRole"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "levels": {
             "minItems": 1,
-            "maxItems": 2,
+            "maxItems": 4,
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ExperienceLevel"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            }
+          },
+          "stacks": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "type": {
@@ -4105,6 +5649,7 @@
           "slug",
           "roles",
           "levels",
+          "stacks",
           "type",
           "topic_id",
           "subtopic",
@@ -4127,17 +5672,33 @@
           "roles": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 3,
+            "maxItems": 6,
             "items": {
-              "$ref": "#/components/schemas/TargetRole_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "levels": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 2,
+            "maxItems": 4,
             "items": {
-              "$ref": "#/components/schemas/ExperienceLevel_Output"
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            }
+          },
+          "stacks": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           },
           "type": {
@@ -4320,6 +5881,7 @@
           "slug",
           "roles",
           "levels",
+          "stacks",
           "type",
           "topic_id",
           "subtopic",
@@ -4366,7 +5928,15 @@
       },
       "ContentEntityPath_Output": {
         "type": "string",
-        "enum": ["tracks", "lessons", "questions", "rubrics"]
+        "enum": [
+          "tracks",
+          "lessons",
+          "questions",
+          "rubrics",
+          "career-roles",
+          "career-levels",
+          "stacks"
+        ]
       },
       "ContentTransitionResponseDto_Output": {
         "type": "object",
@@ -4486,7 +6056,16 @@
       },
       "ContentEntityType_Output": {
         "type": "string",
-        "enum": ["track", "module", "lesson", "question", "rubric"]
+        "enum": [
+          "track",
+          "module",
+          "lesson",
+          "question",
+          "rubric",
+          "career_role",
+          "career_level",
+          "stack"
+        ]
       },
       "ContentVersionResponseDto_Output": {
         "type": "object",
@@ -4627,17 +6206,30 @@
             "type": "object",
             "properties": {
               "target_role": {
-                "$ref": "#/components/schemas/TargetRole_Output"
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
               },
               "level": {
-                "$ref": "#/components/schemas/ExperienceLevel_Output"
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "target_stack": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "nullable": true
               },
               "years_experience": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
-              "stack": {
+              "technologies": {
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -4672,8 +6264,9 @@
             "required": [
               "target_role",
               "level",
+              "target_stack",
               "years_experience",
-              "stack",
+              "technologies",
               "target_company_type",
               "target_date",
               "onboarding_completed_at",
@@ -4978,7 +6571,15 @@
       },
       "ContentEntityPath": {
         "type": "string",
-        "enum": ["tracks", "lessons", "questions", "rubrics"]
+        "enum": [
+          "tracks",
+          "lessons",
+          "questions",
+          "rubrics",
+          "career-roles",
+          "career-levels",
+          "stacks"
+        ]
       }
     }
   }

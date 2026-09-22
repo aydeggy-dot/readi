@@ -1,4 +1,4 @@
-import { errorCode } from "@readi/api-client";
+import { errorCode, errorDetails } from "@readi/api-client";
 import { t } from "@/i18n";
 
 /**
@@ -6,7 +6,10 @@ import { t } from "@/i18n";
  * message; the web app never shows the latter (ADR-0012), so every code the content endpoints can
  * return is mapped here — and anything unmapped falls back to the generic failure copy.
  */
-const MESSAGES: Record<string, () => string> = {
+/** A refusal's counts, when its copy needs one. Empty for every code that does not. */
+type Details = Readonly<Record<string, number>>;
+
+const MESSAGES: Record<string, (details: Details) => string> = {
   content_slug_taken: () => t("admin.content.errors.slugTaken"),
   rubric_weights_invalid: () => t("admin.content.errors.weights"),
   question_rubric_not_published: () => t("admin.content.errors.rubricNotPublished"),
@@ -17,6 +20,40 @@ const MESSAGES: Record<string, () => string> = {
   content_unreviewed_ai_draft: () => t("admin.content.errors.unreviewedAiDraft"),
   content_not_unreviewed: () => t("admin.content.errors.notUnreviewed"),
   content_edit_needs_admin: () => t("admin.content.errors.editNeedsAdmin"),
+  content_cursor_invalid: () => t("admin.content.errors.cursorInvalid"),
+  content_version_not_found: () => t("admin.content.errors.versionNotFound"),
+  // The catalogue (ADR-0015).
+  career_role_has_no_published_level: () => t("admin.content.errors.roleHasNoPublishedLevel"),
+  role_in_use: () => t("admin.content.errors.roleInUse"),
+  /*
+   * Taking a level or a stack off a role, rather than retiring it (ADR-0015 decision 7). The count
+   * is the point: an admin deciding whether to migrate those candidates needs to know how many
+   * there are. One and many are separate keys rather than one string with an "(s)" in it.
+   */
+  role_level_in_use: ({ profiles = 0 }) =>
+    profiles === 1
+      ? t("admin.content.errors.roleLevelInUseOne")
+      : t("admin.content.errors.roleLevelInUseMany", { count: profiles }),
+  role_stack_in_use: ({ profiles = 0 }) =>
+    profiles === 1
+      ? t("admin.content.errors.roleStackInUseOne")
+      : t("admin.content.errors.roleStackInUseMany", { count: profiles }),
+  level_in_use: () => t("admin.content.errors.levelInUse"),
+  stack_in_use: () => t("admin.content.errors.stackInUse"),
+  question_has_no_published_role: () => t("admin.content.errors.questionHasNoPublishedRole"),
+  question_has_no_published_level: () => t("admin.content.errors.questionHasNoPublishedLevel"),
+  question_has_no_published_stack: () => t("admin.content.errors.questionHasNoPublishedStack"),
+  career_role_not_found: () => t("admin.content.errors.notFound"),
+  career_level_not_found: () => t("admin.content.errors.notFound"),
+  /*
+   * The 400s from the slug resolver, raised when a track or question names a catalogue row that is
+   * not there — the stale-tab case. They are separate codes from the 404s above (`stack_not_found`
+   * is both, which is why it says "not in the catalogue any more" rather than "no longer exists").
+   * Without these three the CMS fell back to "Check this field", against ADR-0012 and ADR-0015.
+   */
+  role_not_found: () => t("admin.content.errors.roleGone"),
+  level_not_found: () => t("admin.content.errors.levelGone"),
+  stack_not_found: () => t("admin.content.errors.stackGone"),
   track_not_found: () => t("admin.content.errors.notFound"),
   lesson_not_found: () => t("admin.content.errors.notFound"),
   question_not_found: () => t("admin.content.errors.notFound"),
@@ -28,5 +65,5 @@ const MESSAGES: Record<string, () => string> = {
 /** Translated copy for a content API error body, or undefined if its code is not one of ours. */
 export function contentErrorMessage(body: unknown): string | undefined {
   const code = errorCode(body);
-  return code ? MESSAGES[code]?.() : undefined;
+  return code ? MESSAGES[code]?.(errorDetails(body)) : undefined;
 }

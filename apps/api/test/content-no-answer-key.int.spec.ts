@@ -50,7 +50,7 @@ describe("candidate content never carries the answer key", () => {
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
-    fixture = await seedPublishedContent(prisma, { role: "frontend", level: "mid" });
+    fixture = await seedPublishedContent(prisma);
 
     const candidate = await signUpWithEmail(app, uniqueEmail());
     candidateCookie = candidate.cookie;
@@ -68,6 +68,8 @@ describe("candidate content never carries the answer key", () => {
 
   /** The candidate GET routes, exactly as the API publishes them. */
   const exercisers = (): Record<string, () => request.Test> => ({
+    "/api/content/career-roles": () =>
+      http().get("/api/content/career-roles").set("cookie", candidateCookie),
     "/api/content/track": () => http().get("/api/content/track").set("cookie", candidateCookie),
     "/api/content/practice": () =>
       http().get("/api/content/practice").set("cookie", candidateCookie),
@@ -127,16 +129,36 @@ describe("candidate content never carries the answer key", () => {
   );
 
   it("returns the content a candidate is supposed to see", async () => {
-    const [track, practice, lesson] = await Promise.all([
+    const [track, practice, lesson, roles] = await Promise.all([
       http().get("/api/content/track").set("cookie", candidateCookie),
       http().get("/api/content/practice").set("cookie", candidateCookie),
       http().get(`/api/content/lessons/${fixture.lessonSlug}`).set("cookie", candidateCookie),
+      http().get("/api/content/career-roles").set("cookie", candidateCookie),
     ]);
     // Without this, "no answer key found" could simply mean "nothing came back".
     expect(JSON.stringify(track.body)).toContain(fixture.visibleMarkers.trackTitle);
     expect(JSON.stringify(practice.body)).toContain(fixture.visibleMarkers.prompt);
     // Read from the parsed body: the lesson is markdown, and JSON escapes its newlines.
     expect((lesson.body as { body: string }).body).toContain(fixture.visibleMarkers.lessonBody);
+    /*
+     * The catalogue route needed this most: its payload contains nothing an answer-key marker
+     * could ever land in, so "no leak" was true of an empty response too, and `level_options` was
+     * named to stay clear of the field-name half of the detector. Asserting the role, its level
+     * and its variant come back is what makes exercising the route mean something
+     * (M2.5 review, 2026-09-22).
+     */
+    const catalogue = roles.body as {
+      roles: {
+        slug: string;
+        name: string;
+        level_options: { slug: string }[];
+        stacks: { slug: string }[];
+      }[];
+    };
+    const mine = catalogue.roles.find((role) => role.slug === fixture.catalogue.roleSlug);
+    expect(mine?.name).toBe(fixture.catalogue.roleName);
+    expect(mine?.level_options.map((option) => option.slug)).toContain(fixture.catalogue.levelSlug);
+    expect(mine?.stacks.map((option) => option.slug)).toContain(fixture.catalogue.stackSlug);
   });
 
   describe("the detector itself", () => {

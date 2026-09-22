@@ -23,6 +23,13 @@ export const TOMBSTONED_COLUMNS = [
   { table: "lessons", column: "reviewed_by_user_id" },
   { table: "rubrics", column: "reviewed_by_user_id" },
   { table: "questions", column: "reviewed_by_user_id" },
+  // The catalogue is content too, written and reviewed by the same people (ADR-0015).
+  { table: "career_roles", column: "created_by_user_id" },
+  { table: "career_levels", column: "created_by_user_id" },
+  { table: "stacks", column: "created_by_user_id" },
+  { table: "career_roles", column: "reviewed_by_user_id" },
+  { table: "career_levels", column: "reviewed_by_user_id" },
+  { table: "stacks", column: "reviewed_by_user_id" },
 ] as const;
 
 /** Object-storage folder holding a user's files (their CV). */
@@ -70,6 +77,9 @@ export async function eraseUser(
     await tx.lesson.updateMany({ where: authored, data: toTombstone });
     await tx.rubric.updateMany({ where: authored, data: toTombstone });
     await tx.question.updateMany({ where: authored, data: toTombstone });
+    await tx.careerRole.updateMany({ where: authored, data: toTombstone });
+    await tx.careerLevel.updateMany({ where: authored, data: toTombstone });
+    await tx.stack.updateMany({ where: authored, data: toTombstone });
     // The same for whoever marked a model's draft reviewed (ADR-0014 decision 6): the review
     // stands, and only the name behind it goes.
     const reviewed = { reviewedByUserId: userId };
@@ -78,6 +88,9 @@ export async function eraseUser(
     await tx.lesson.updateMany({ where: reviewed, data: reviewedByTombstone });
     await tx.rubric.updateMany({ where: reviewed, data: reviewedByTombstone });
     await tx.question.updateMany({ where: reviewed, data: reviewedByTombstone });
+    await tx.careerRole.updateMany({ where: reviewed, data: reviewedByTombstone });
+    await tx.careerLevel.updateMany({ where: reviewed, data: reviewedByTombstone });
+    await tx.stack.updateMany({ where: reviewed, data: reviewedByTombstone });
     await tx.contentVersion.updateMany({
       where: { changedByUserId: userId },
       data: { changedByUserId: tombstone.id },

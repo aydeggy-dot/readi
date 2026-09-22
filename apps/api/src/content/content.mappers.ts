@@ -1,8 +1,15 @@
 import type {
+  CandidateCareerRole,
   CandidateLessonResponse,
   CandidateModule,
   CandidatePracticeItem,
   CandidateTrackResponse,
+  CareerLevel,
+  CareerLevelInput,
+  CareerLevelListItem,
+  CareerRole,
+  CareerRoleInput,
+  CareerRoleListItem,
   Lesson,
   LessonInput,
   LessonListItem,
@@ -14,6 +21,9 @@ import type {
   Rubric,
   RubricInput,
   RubricListItem,
+  Stack,
+  StackInput,
+  StackListItem,
   Topic,
   Track,
   TrackInput,
@@ -36,12 +46,49 @@ export const rubricInclude = {
   criteria: { orderBy: [{ position: Prisma.SortOrder.asc }] },
 } satisfies Prisma.RubricInclude;
 
+/**
+ * A question's roles and levels are a **set**, but they travel as an array, so they are read in
+ * one fixed order — by slug — everywhere. `sameContent` compares the projection field by field
+ * (ADR-0014 decision 2): without a canonical order, saving a form that reordered nothing would
+ * look like a change and write a version snapshot nobody asked for.
+ */
+const bySlug = { orderBy: { slug: Prisma.SortOrder.asc } };
+
+export const questionLinkInclude = {
+  /*
+   * `status` alongside the slug because publishing a question has to know whether the catalogue
+   * rows it is tagged with are published themselves: a question tagged only with a draft stack is
+   * offered to nobody, since nobody may choose that variant (`assertPublishable`). Only the slug
+   * reaches the wire.
+   */
+  roles: {
+    orderBy: { role: bySlug.orderBy },
+    include: { role: { select: { slug: true, status: true } } },
+  },
+  levels: {
+    orderBy: { level: bySlug.orderBy },
+    include: { level: { select: { slug: true, status: true } } },
+  },
+  stacks: {
+    orderBy: { stack: bySlug.orderBy },
+    include: { stack: { select: { slug: true, status: true } } },
+  },
+} satisfies Prisma.QuestionInclude;
+
 export const questionInclude = {
+  ...questionLinkInclude,
   topic: true,
   rubric: { include: rubricInclude },
 } satisfies Prisma.QuestionInclude;
 
+/** A track names one role and one level; only their slugs reach the wire (ADR-0015). */
+export const trackCatalogueInclude = {
+  role: { select: { slug: true } },
+  level: { select: { slug: true } },
+} satisfies Prisma.TrackInclude;
+
 export const trackInclude = {
+  ...trackCatalogueInclude,
   topics: { orderBy: [{ topicId: Prisma.SortOrder.asc }] },
   modules: { orderBy: byPosition, include: { lessons: { orderBy: byPosition } } },
 } satisfies Prisma.TrackInclude;
@@ -104,8 +151,9 @@ export const toRubric = (row: RubricRow): Rubric => ({
 export const toQuestion = (row: QuestionRow): Question => ({
   id: row.id,
   slug: row.slug,
-  roles: row.roles,
-  levels: row.levels,
+  roles: row.roles.map((link) => link.role.slug),
+  levels: row.levels.map((link) => link.level.slug),
+  stacks: row.stacks.map((link) => link.stack.slug),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,
@@ -154,8 +202,8 @@ export const toModule = (row: ModuleRow): Module => ({
 export const toTrack = (row: TrackRow): Track => ({
   id: row.id,
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   summary: row.summary,
   status: row.status,
@@ -171,12 +219,14 @@ export const toTrack = (row: TrackRow): Track => ({
 // List rows.
 
 export const toTrackListItem = (
-  row: Prisma.TrackGetPayload<{ include: { _count: { select: { modules: true } } } }>,
+  row: Prisma.TrackGetPayload<{
+    include: typeof trackCatalogueInclude & { _count: { select: { modules: true } } };
+  }>,
 ): TrackListItem => ({
   id: row.id,
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   status: row.status,
   version: row.version,
@@ -203,14 +253,15 @@ export const toLessonListItem = (
 
 export const toQuestionListItem = (
   row: Prisma.QuestionGetPayload<{
-    include: { topic: true; rubric: { select: { slug: true } } };
+    include: typeof questionLinkInclude & { topic: true; rubric: { select: { slug: true } } };
   }>,
 ): QuestionListItem => ({
   id: row.id,
   slug: row.slug,
   type: row.type,
-  roles: row.roles,
-  levels: row.levels,
+  roles: row.roles.map((link) => link.role.slug),
+  levels: row.levels.map((link) => link.level.slug),
+  stacks: row.stacks.map((link) => link.stack.slug),
   difficulty: row.difficulty,
   topic: toTopic(row.topic),
   rubric_slug: row.rubric.slug,
@@ -244,11 +295,29 @@ export const toRubricListItem = (
 export const sortTopics = <T extends { topic_id: string }>(topics: readonly T[]): T[] =>
   [...topics].sort((a, b) => (a.topic_id < b.topic_id ? -1 : a.topic_id > b.topic_id ? 1 : 0));
 
+/**
+ * The same rule for a question's roles and levels, and for the same reason. `questionContent`
+ * reads them back from the join tables sorted by slug, so an input that lists the same roles in a
+ * different order must sort to the same thing — otherwise re-importing an unchanged seed file
+ * writes a version snapshot for a question nobody touched, which `content-seed.int.spec.ts`
+ * catches by importing the real corpus twice.
+ *
+ * A question's roles really are a set: they decide who is offered it, and nothing renders them in
+ * order. A role's *stacks* are the opposite case and are deliberately not sorted — their order is
+ * what a candidate sees in the picker, so reordering them is a change (`careerRoleContent`).
+ */
+export const canonicalQuestionInput = (input: QuestionInput): QuestionInput => ({
+  ...input,
+  roles: [...input.roles].sort(),
+  levels: [...input.levels].sort(),
+  stacks: [...input.stacks].sort(),
+});
+
 /** What a track's own editor edits — the shape an update sends, for comparing like with like. */
 export const trackInputOf = (row: TrackRow): TrackInput => ({
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   summary: row.summary,
   topics: sortTopics(row.topics.map((link) => ({ topic_id: link.topicId, is_core: link.isCore }))),
@@ -288,10 +357,19 @@ export const rubricContent = (row: RubricRow): RubricInput => ({
   })),
 });
 
+/*
+ * The read side of the same set rule. The database orders these by slug, and the input side sorts
+ * with JavaScript's `.sort()` — two collations that agree today for every slug we ship, and not by
+ * anything stronger than coincidence: glibc's `en_US.UTF-8` ignores a hyphen at the primary weight
+ * and UTF-16 code units do not, so `vue-x` / `vuen` would order differently in the two. Sorting
+ * here as well makes both sides one comparison, and the idempotency test that caught the original
+ * ordering bug stays meaningful (M2.5 review, 2026-09-22).
+ */
 export const questionContent = (row: QuestionRow): QuestionInput => ({
   slug: row.slug,
-  roles: row.roles,
-  levels: row.levels,
+  roles: row.roles.map((link) => link.role.slug).sort(),
+  levels: row.levels.map((link) => link.level.slug).sort(),
+  stacks: row.stacks.map((link) => link.stack.slug).sort(),
   type: row.type,
   topic_id: row.topicId,
   subtopic: row.subtopic,
@@ -308,8 +386,8 @@ export const questionContent = (row: QuestionRow): QuestionInput => ({
 
 export const toCandidateTrack = (row: TrackRow): CandidateTrackResponse => ({
   slug: row.slug,
-  role: row.role,
-  level: row.level,
+  role: row.role.slug,
+  level: row.level.slug,
   title: row.title,
   summary: row.summary,
   modules: row.modules.map((module): CandidateModule => ({
@@ -344,4 +422,175 @@ export const toCandidatePracticeItem = (
   prompt: row.prompt,
   context: row.context,
   topic: toTopic(row.topic),
+});
+
+// -----------------------------------------------------------------------------------------------
+// The catalogue: career roles, career levels and stacks (ADR-0015). Same three families as above —
+// admin shapes, list rows and content projections — plus one candidate shape, which carries
+// resolved names because a picker cannot draw a uuid.
+
+const byPositionOnly = [{ position: Prisma.SortOrder.asc }];
+
+/** What the CMS edits: the links in display order, as ids. */
+export const careerRoleInclude = {
+  levels: { orderBy: byPositionOnly },
+  stacks: { orderBy: byPositionOnly },
+} satisfies Prisma.CareerRoleInclude;
+
+/**
+ * What a candidate is offered: the same links, resolved, and **published only**. A level or stack
+ * retired after its role was published stops being offered rather than being offered and refused.
+ */
+export const publishedCareerRoleInclude = {
+  levels: {
+    where: { level: { status: "published" as const } },
+    orderBy: byPositionOnly,
+    include: { level: true },
+  },
+  stacks: {
+    where: { stack: { status: "published" as const } },
+    orderBy: byPositionOnly,
+    include: { stack: true },
+  },
+} satisfies Prisma.CareerRoleInclude;
+
+export type CareerRoleRow = Prisma.CareerRoleGetPayload<{ include: typeof careerRoleInclude }>;
+export type PublishedCareerRoleRow = Prisma.CareerRoleGetPayload<{
+  include: typeof publishedCareerRoleInclude;
+}>;
+export type CareerLevelRow = Prisma.CareerLevelGetPayload<Record<string, never>>;
+export type StackRow = Prisma.StackGetPayload<Record<string, never>>;
+
+export const toCareerRole = (row: CareerRoleRow): CareerRole => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  position: row.position,
+  supported_question_types: row.supportedQuestionTypes,
+  levels: row.levels.map((link) => link.levelId),
+  stacks: row.stacks.map((link) => ({ stack_id: link.stackId, is_default: link.isDefault })),
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toCareerLevel = (row: CareerLevelRow): CareerLevel => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  rank: row.rank,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toStack = (row: StackRow): Stack => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toCareerRoleListItem = (
+  row: Prisma.CareerRoleGetPayload<{
+    include: { _count: { select: { levels: true; stacks: true } } };
+  }>,
+): CareerRoleListItem => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  position: row.position,
+  level_count: row._count.levels,
+  stack_count: row._count.stacks,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toCareerLevelListItem = (
+  row: Prisma.CareerLevelGetPayload<{ include: { _count: { select: { roles: true } } } }>,
+): CareerLevelListItem => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  rank: row.rank,
+  role_count: row._count.roles,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toStackListItem = (
+  row: Prisma.StackGetPayload<{ include: { _count: { select: { roles: true } } } }>,
+): StackListItem => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  role_count: row._count.roles,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+/**
+ * What a role's editor edits. Unlike a track's topics, the links are **not** sorted into a
+ * canonical order before comparing: their order is the content — it is what a candidate sees in
+ * the picker — so reordering a role's stacks is a change, and earns a version.
+ */
+export const careerRoleContent = (row: CareerRoleRow): CareerRoleInput => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  position: row.position,
+  supported_question_types: row.supportedQuestionTypes,
+  levels: row.levels.map((link) => link.levelId),
+  stacks: row.stacks.map((link) => ({ stack_id: link.stackId, is_default: link.isDefault })),
+});
+
+export const careerLevelContent = (row: CareerLevelRow): CareerLevelInput => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  rank: row.rank,
+});
+
+export const stackContent = (row: StackRow): StackInput => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+});
+
+export const toCandidateCareerRole = (row: PublishedCareerRoleRow): CandidateCareerRole => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  supported_question_types: row.supportedQuestionTypes,
+  level_options: row.levels.map((link) => ({
+    slug: link.level.slug,
+    name: link.level.name,
+    summary: link.level.summary,
+  })),
+  stacks: row.stacks.map((link) => ({
+    slug: link.stack.slug,
+    name: link.stack.name,
+    summary: link.stack.summary,
+    is_default: link.isDefault,
+  })),
 });

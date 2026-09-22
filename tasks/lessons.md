@@ -119,12 +119,16 @@
   surfaced as a nonsense error in an untouched component (`TextLink` props "not assignable to
   IntrinsicAttributes"). A full install fixed it. A duplicated `@types/*` is the usual cause of a
   type error in code nobody edited — check for two versions before debugging the component.
-- Prisma proposes dropping the hand-written HNSW index in **every** migration that touches
-  `questions` (M2 phase 5). It cannot see an index on an `Unsupported` column, so
-  `DROP INDEX questions_embedding_hnsw` appears at the top of each generated migration and, if it
-  ships, turns near-duplicate search into a sequential scan with nothing failing. Read every
-  generated migration for statements that undo hand-written SQL before applying it — the rule
-  generalises to any index, constraint or trigger Prisma does not model.
+- **After every `prisma migrate dev`, read the generated SQL and delete any `DROP INDEX
+questions_embedding_hnsw` before applying it.** Prisma cannot see an index on an `Unsupported`
+  column, so it proposes dropping the HNSW index in migrations that have nothing to do with
+  `questions` — it did so in `content_seed_managed`, `content_review_state` and again in M2.5's
+  `catalogue_roles_levels_stacks`, which only adds three tables. If it ships, near-duplicate search
+  becomes a sequential scan and **nothing fails**: the search still returns the right answers, just
+  slower as the bank grows. `content-schema.int.spec.ts` is the only thing that notices, and it is
+  the reason that test exists — verified on 2026-09-22 by dropping the index in `readi_test` and
+  watching that one test fail. Use `--create-only`, edit, then apply. The rule generalises to any
+  index, constraint or trigger Prisma does not model.
 - Generated types reach the web app through a **built** workspace package (M2 phase 5). After
   `pnpm gen:contracts`, `packages/api-client/src/generated/schema.ts` is current but `dist` is not,
   so `apps/web` typechecks against the old shapes and the errors read as if the contract change
@@ -174,3 +178,126 @@ uncoded 500 for a review. The database was never corrupted; the error was just a
 **The rule:** if a check decides whether a write is legal, put it in the write's `WHERE` and treat
 `count === 0` as the conflict. `account-deletion.service.ts` already did this — the pattern was in
 the codebase and I did not go looking for it.
+
+## A dropped column takes its indexes with it, and Prisma proposes nothing (M2.5 phase 3, 2026-09-22)
+
+CLAUDE.md already warned that Prisma proposes `DROP INDEX questions_embedding_hnsw` in migrations
+that never touch `questions`, because it cannot see an index over an `Unsupported` column. The
+catalogue switch found the other half of that rule, and it is the more dangerous half.
+
+`tracks_one_published_per_role_level` is a **partial** unique index, which Prisma also cannot see.
+It was never proposed for dropping — it did not need to be. The generated migration contained
+`ALTER TABLE "tracks" DROP COLUMN "role", DROP COLUMN "level"`, and Postgres drops every index that
+depends on a dropped column. "At most one published track per role and level" would have
+disappeared with no `DROP INDEX` line to delete, and nothing would have failed until two published
+tracks for the same audience collided in the candidate API — months later, in data.
+
+**The rule:** reading a migration for lines that _undo_ hand-written SQL is not enough. Read it for
+lines that make hand-written SQL impossible. For every `DROP COLUMN`, ask what was indexed on that
+column; for every dropped table, the same. `content-schema.int.spec.ts` already asserts both indexes
+exist, and it is the test that would have caught this — it earned its place twice now.
+
+## Prisma's generated migration is a data-loss plan when a column changes type (M2.5 phase 3, 2026-09-22)
+
+`prisma migrate dev --create-only` refused to run at all: "Added the required column `target_role_id`
+to the `profiles` table without a default value. There are 2 rows in this table." The SQL it _would_
+have written drops `target_role` and adds `target_role_id NOT NULL` — the enum values simply gone.
+
+That refusal is the useful part. It means the generated file is a starting point for a conversion,
+never the conversion. The shape that worked: add nullable → backfill → **verify and raise, naming
+what did not map** → `SET NOT NULL` → only then drop. Each migration runs in one transaction, so the
+`RAISE EXCEPTION` rolls the whole thing back and the database is untouched.
+
+Proving the failure path mattered as much as proving the happy one: a copy of the dev database with
+one catalogue row deleted aborted with `no career_roles/career_levels row for tracks.level=intern_junior`
+and left `tracks.role` and both enums exactly as they were. Later the same guard fired for real on
+`readi_e2e`, which had tracks and profiles from old runs but an empty catalogue — it refused rather
+than inventing rows, which is precisely what it is for.
+
+**The rule:** test a converting migration against a **copy of a database with real rows**, and test
+that it refuses. The empty test database proves nothing about a conversion, because there is nothing
+to convert.
+
+## A set that travels as an array must be sorted on both sides (M2.5 phase 3, 2026-09-22)
+
+`questionContent` reads a question's roles back from the join tables sorted by slug. The seed file
+lists them in whatever order a person typed. `sameContent(questionContent(current), input)` compared
+`["backend","frontend","qa"]` with `["frontend","backend","qa"]`, found a difference, and wrote a
+version snapshot — so `pnpm db:seed` twice was no longer idempotent, for exactly the two questions
+whose roles were not already in alphabetical order.
+
+`content-seed.int.spec.ts` caught it by importing the real corpus twice and asserting `updated: 0`.
+That test exists because idempotency is the importer's whole promise, and it is worth more than the
+unit tests around it: it failed on real content, in the one shape a fixture would never have had.
+
+**The rule:** when a set is stored one way and written another, canonicalise **both** sides at the
+comparison, not just the one you happen to control. And note which collections are genuinely ordered
+— a role's stacks _are_ their order, because that is the order a candidate sees in the picker — so
+the fix is per-field judgement, not a blanket sort.
+
+## Test the claim by doing the thing, not by reading the code (M2.5 phase 5, 2026-09-22)
+
+The milestone's claim was "adding a role is content, not code". A subagent swept the whole repo for
+hardcoded role slugs and came back clean, which is good evidence and not proof — a grep can only
+find what it knows to look for. Adding the role for real found two things the sweep could not:
+
+- the seed importer refuses to rewrite **published** rows, so three of the eleven questions being
+  tagged were left alone and named, and the tagging needed `--force` or the CMS. That is the rule
+  working, but it is a step nobody had written down in the acceptance criterion;
+- the generated expert-review pages never printed which **roles** a question is for, which only
+  mattered once `REVIEW.md` started asking reviewers to confirm them.
+
+**The rule:** an acceptance criterion phrased as an absence ("no code change") is tested by
+performing the action end to end and then reading `git diff`, not by searching for the thing that
+should not exist. And when the walkthrough does turn up a code change, name it and say why it is not
+the thing the criterion forbids — a claim with an unstated exception is worth nothing.
+
+## A generated file that another tool reformats will churn (M2.5 phase 5, 2026-09-22)
+
+`content:review-doc` writes `*cost*`; Prettier rewrites it to `_cost_`. Both are correct markdown,
+`pnpm lint` checks neither, and the committed pages happened to be in Prettier's dialect because
+somebody had run `pnpm format` after generating last time. So a regeneration produced a diff of
+emphasis markers mixed in with the real change, in a file whose whole purpose is being read by a
+human reviewer.
+
+**The rule:** a generator whose output lives in the repo has to agree with whatever else formats
+that repo — either emit the formatter's dialect, or make running the formatter part of the documented
+command. The second is cheaper and is what `content/seed/README.md` now says.
+
+## A guard's first job is to tell you where the rule was already being broken (M2.5 review, 2026-09-22)
+
+The new rule — a question cannot be published unless at least one of its roles, levels and (if any)
+stacks is published, because otherwise nobody can ever be offered it — broke seven tests in
+`content-embeddings.int.spec.ts` the moment it landed. The spec names `frontend` and `mid` directly.
+Those rows exist in the test database only because a _different_ spec, `content-seed.int.spec.ts`,
+imports the real corpus, which creates them as **drafts**. So the embeddings spec had been publishing
+questions that no candidate could ever have been offered, and it worked only as long as the other
+spec ran first.
+
+Two things worth keeping:
+
+- **A test that names content it does not create is borrowing, and what it borrows can change under
+  it.** Every other spec mints its own catalogue pair (`seedCataloguePair`); this one did not, and
+  the cost was hidden until a rule made it visible. It mints one now.
+- **When a new guard fails existing tests, read the fixtures before weakening the guard.** The
+  temptation is to add an exemption. Here the failures were the guard working: seven questions in a
+  fixture were in exactly the state the rule exists to prevent.
+
+## A test that only runs when asked is a test that rots (M2.5 phase 5, 2026-09-22)
+
+`apps/web/e2e/visual/capture.spec.ts` is skipped unless `E2E_SCREENSHOTS` is set, which is the right
+call — it takes twenty minutes and writes 136 files nobody wants on every CI run. The cost showed up
+the first time it was asked for in three phases: its `fillProfile` still typed into a field labelled
+"Your main stack", which stopped existing in phase 4 when `Profile.stack` became `technologies`. The
+run did not fail fast; it waited on a locator that would never appear and died on its own timeout,
+having written nothing.
+
+Two things to keep:
+
+- **When a milestone renames a field, grep the skipped specs too.** `pnpm test:e2e` being green says
+  nothing about the specs it skipped. The phase-4 checklist would have caught this with one
+  `grep -rn "main stack" apps/web/e2e`.
+- **The screens a capture cannot reach are the screens it cannot photograph.** A visual suite whose
+  seeding is out of date silently narrows to whatever it can still get to — here, nothing at all,
+  which at least failed loudly. A partial failure would have been worse: a "before/after" review of
+  a subset nobody noticed had shrunk.

@@ -38,8 +38,16 @@ export default defineConfig({
   },
   // Mobile first (CLAUDE.md §5): the suite runs at 360px, the narrowest width we support.
   projects: [
+    /*
+     * Runs first and once: seeds `/content/seed` and publishes the catalogue, because roles and
+     * levels are content now and arrive as drafts (ADR-0015). Every spec that fills the
+     * onboarding form needs a published role to pick.
+     */
+    { name: "setup", testMatch: /catalogue\.setup\.ts$/ },
     {
       name: "mobile-chromium",
+      testIgnore: /catalogue\.setup\.ts$/,
+      dependencies: ["setup"],
       use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } },
     },
   ],

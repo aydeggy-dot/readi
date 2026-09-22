@@ -6,8 +6,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaService } from "../src/prisma/prisma.service";
 import {
   giveProfile,
+  removeCataloguePair,
   removeContent,
+  seedCataloguePair,
   seedPublishedContent,
+  type CataloguePair,
   type ContentFixture,
 } from "./content-fixtures";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
@@ -24,13 +27,14 @@ describe("candidate content API", () => {
   /** A second signed-in user who never finished onboarding. */
   let profileless: string;
   const extra: string[] = [];
+  const otherPairs: CataloguePair[] = [];
 
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
-    fixture = await seedPublishedContent(prisma, { role: "backend", level: "mid" });
+    fixture = await seedPublishedContent(prisma);
 
     const candidate = await signUpWithEmail(app, uniqueEmail());
     cookie = candidate.cookie;
@@ -41,6 +45,7 @@ describe("candidate content API", () => {
   afterAll(async () => {
     await prisma.question.deleteMany({ where: { id: { in: extra } } });
     await prisma.lesson.deleteMany({ where: { id: { in: extra } } });
+    for (const pair of otherPairs) await removeCataloguePair(prisma, pair);
     await removeContent(prisma, fixture);
     await app.close();
   });
@@ -166,11 +171,13 @@ describe("candidate content API", () => {
     });
 
     it("leaves out a question for another role", async () => {
+      const otherRole = await seedCataloguePair(prisma);
+      otherPairs.push(otherRole);
       const other = await prisma.question.create({
         data: {
           slug: `other-role-${randomUUID().slice(0, 8)}`,
-          roles: ["qa"],
-          levels: [fixture.level],
+          roles: { create: [{ roleId: otherRole.roleId }] },
+          levels: { create: [{ levelId: fixture.catalogue.levelId }] },
           type: "scenario",
           topicId: fixture.topicId,
           difficulty: 2,

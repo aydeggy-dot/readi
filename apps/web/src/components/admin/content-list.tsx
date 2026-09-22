@@ -1,10 +1,5 @@
 import type { ContentStatus, Topic } from "@readi/shared-types";
-import {
-  CONTENT_STATUSES,
-  EXPERIENCE_LEVELS,
-  QUESTION_TYPES,
-  TARGET_ROLES,
-} from "@readi/shared-types/constants";
+import { CONTENT_STATUSES, QUESTION_TYPES } from "@readi/shared-types/constants";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DraftBadge, StatusBadge, SeedBadge } from "@/components/admin/badges";
@@ -14,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { TextLink } from "@/components/ui/text-link";
 import { t } from "@/i18n";
 import { formatDay } from "@/i18n";
+import type { CatalogueOption } from "@/lib/catalogue-choices";
 import type { ContentQuery } from "@/lib/content-query";
 import { isFiltered, nextPageHref } from "@/lib/content-query";
 
@@ -30,6 +26,7 @@ export interface FilterFields {
   status?: boolean;
   role?: boolean;
   level?: boolean;
+  stack?: boolean;
   type?: boolean;
   topic?: boolean;
 }
@@ -39,18 +36,30 @@ export function ContentFilters({
   query,
   fields,
   topics = [],
+  roles = [],
+  levels = [],
+  stacks = [],
 }: {
   action: string;
   query: ContentQuery;
   fields: FilterFields;
   topics?: Topic[];
+  /** The catalogue to filter by, drafts included: the CMS lists content before it goes out. */
+  roles?: readonly CatalogueOption[];
+  levels?: readonly CatalogueOption[];
+  stacks?: readonly CatalogueOption[];
 }) {
-  const selects = [fields.status, fields.type, fields.role, fields.level, fields.topic].filter(
-    Boolean,
-  ).length;
+  const selects = [
+    fields.status,
+    fields.type,
+    fields.role,
+    fields.level,
+    fields.stack,
+    fields.topic,
+  ].filter(Boolean).length;
   // Open when one of them is already narrowing the list, so a short list always explains itself.
   const narrowed = Boolean(
-    query.status ?? query.type ?? query.role ?? query.level ?? query.topic_id,
+    query.status ?? query.type ?? query.role ?? query.level ?? query.stack ?? query.topic_id,
   );
 
   return (
@@ -107,7 +116,7 @@ export function ContentFilters({
                 name="role"
                 label={t("admin.content.filters.role")}
                 value={query.role}
-                options={TARGET_ROLES.map((value) => ({ value, label: t(`targetRoles.${value}`) }))}
+                options={roles.map((role) => ({ value: role.slug, label: role.name }))}
               />
             )}
             {fields.level && (
@@ -115,10 +124,17 @@ export function ContentFilters({
                 name="level"
                 label={t("admin.content.filters.level")}
                 value={query.level}
-                options={EXPERIENCE_LEVELS.map((value) => ({
-                  value,
-                  label: t(`levels.${value}`),
-                }))}
+                options={levels.map((level) => ({ value: level.slug, label: level.name }))}
+              />
+            )}
+            {/* Tagged for this stack — not "what a candidate on it would be offered", which
+                would also include every general question (ADR-0015). */}
+            {fields.stack && (
+              <FilterSelect
+                name="stack"
+                label={t("admin.content.filters.stack")}
+                value={query.stack}
+                options={stacks.map((stack) => ({ value: stack.slug, label: stack.name }))}
               />
             )}
             {fields.topic && (

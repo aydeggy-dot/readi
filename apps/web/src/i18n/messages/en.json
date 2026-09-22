@@ -10,7 +10,7 @@
     "inTheOpen": "Readi is being built in the open. Today you can set up your profile and CV; mock interviews, feedback reports and study plans are on the way.",
     "getStarted": "Start free",
     "logIn": "Log in",
-    "freeNote": "Free plan: 3 text mock interviews every month. Frontend, backend and QA.",
+    "freeNote": "Free plan: 3 text mock interviews every month. Frontend, backend, QA and full-stack.",
     "example": {
       "caption": "Example feedback from a frontend mock interview",
       "question": "Interviewer: a product page is slow on older Android phones. What would you do?",
@@ -43,7 +43,7 @@
     },
     "audience": {
       "heading": "Who it’s for",
-      "body": "Frontend, backend and QA engineers, from intern to mid-level. If you are getting ready for your first technical interview, or aiming for a remote role abroad, the questions meet you where you are."
+      "body": "Frontend, backend, QA and full-stack engineers, from intern to mid-level. If you are getting ready for your first technical interview, or aiming for a remote role abroad, the questions meet you where you are."
     },
     "cost": {
       "heading": "What it costs",
@@ -189,29 +189,29 @@
     "targetRole": "Which role are you preparing for?",
     "level": "Your level",
     "yearsExperience": "Years of professional experience",
-    "stack": "Your main stack",
-    "stackHint": "The languages, frameworks and tools you use most.",
-    "stackPlaceholder": "For example React",
+    "targetStack": "Which stack are you interviewing for?",
+    "targetStackHint": "We use it to pick questions written for that stack. Choose “Not sure yet” and you get the questions that apply whatever you use.",
+    "noStack": "Not sure yet",
+    "technologies": "What do you work with?",
+    "technologiesHint": "The languages, frameworks and tools you use most.",
+    "technologiesPlaceholder": "For example React",
     "targetCompanyType": "What kind of company are you aiming for?",
     "targetDate": "Interview date (optional)",
     "targetDateHint": "If you already have an interview scheduled.",
     "save": "Save changes",
+    "noRoles": "No roles are open for practice just yet. Please check back shortly.",
+    "levelAfterRole": "Choose a role first — every role is hired at its own levels.",
+    "levelNone": "This role has no levels to choose from just yet. Please check back shortly.",
     "errors": {
-      "stackRequired": "Add at least one item.",
-      "stackMax": "You can add up to {max} items.",
+      "technologiesRequired": "Add at least one item.",
+      "technologiesMax": "You can add up to {max} items.",
       "yearsRange": "Enter a whole number from 0 to {max}.",
       "datePast": "Choose today or a later date.",
-      "stackDuplicate": "{item} is already on the list."
+      "technologiesDuplicate": "{item} is already on the list.",
+      "roleGone": "That role is no longer on offer. Please pick another one.",
+      "levelGone": "That level is no longer on offer. Please pick another one.",
+      "stackGone": "That stack is no longer on offer for this role. Please pick another one."
     }
-  },
-  "targetRoles": {
-    "frontend": "Frontend engineer",
-    "backend": "Backend engineer",
-    "qa": "QA engineer"
-  },
-  "levels": {
-    "intern_junior": "Intern or junior",
-    "mid": "Mid-level"
   },
   "companyTypes": {
     "local_startup": "Nigerian startup",
@@ -285,7 +285,8 @@
       "targetRole": "Target role",
       "level": "Level",
       "yearsExperience": "Years of experience",
-      "stack": "Main stack",
+      "targetStack": "Interviewing for",
+      "technologies": "Works with",
       "targetCompanyType": "Target company",
       "targetDate": "Interview date"
     },
@@ -316,7 +317,13 @@
         "tracks": "Tracks",
         "tracksLead": "A programme for one role and level, with its modules.",
         "topics": "Topics",
-        "topicsLead": "The taxonomy every question and lesson hangs from."
+        "topicsLead": "The taxonomy every question and lesson hangs from.",
+        "roles": "Roles",
+        "rolesLead": "The roles a candidate prepares for, and what each one offers.",
+        "levels": "Levels",
+        "levelsLead": "The ladder a role is hired at, lowest first.",
+        "stacks": "Stacks",
+        "stacksLead": "The variants a role is interviewed for, like Java / Spring."
       },
       "workflow": "A content expert writes and submits; an admin publishes. Candidates only ever see published content — and a lesson also needs its track published, a question its rubric.",
       "queue": {
@@ -337,6 +344,11 @@
         "owned": "Edited here",
         "ownedHint": "content/seed no longer overwrites this item."
       },
+      "catalogue": {
+        "noRoles": "No roles yet. Add one under Roles first.",
+        "noLevels": "No levels yet. Add one under Levels first.",
+        "noStacks": "No stacks yet. Add one under Stacks first."
+      },
       "filters": {
         "legend": "Filter",
         "search": "Search",
@@ -344,6 +356,7 @@
         "status": "Status",
         "role": "Role",
         "level": "Level",
+        "stack": "Stack",
         "type": "Type",
         "topic": "Topic",
         "any": "Any",
@@ -359,7 +372,11 @@
         "version": "v{version}",
         "criteria": "{count} criteria",
         "modules": "{count} modules",
-        "difficulty": "Difficulty {value}"
+        "difficulty": "Difficulty {value}",
+        "roleLevels": "{count} levels",
+        "roleStacks": "{count} stacks",
+        "usedByRoles": "Offered by {count} roles",
+        "rank": "Rank {value}"
       },
       "actions": {
         "newQuestion": "New question",
@@ -373,7 +390,10 @@
         "create": "Create",
         "back": "Back to the list",
         "openTrack": "Open its track",
-        "publishedReadOnly": "This is published — candidates are reading it now, so changing its words is an admin's call. Ask an admin, or have it retired first."
+        "publishedReadOnly": "This is published — candidates are reading it now, so changing its words is an admin's call. Ask an admin, or have it retired first.",
+        "newRole": "New role",
+        "newLevel": "New level",
+        "newStack": "New stack"
       },
       "errors": {
         "slugTaken": "That slug is already in use.",
@@ -386,7 +406,23 @@
         "notFound": "That item no longer exists.",
         "unreviewedAiDraft": "A model drafted this and nobody has marked it reviewed, so it cannot be published here. Have an expert review it, or publish it anyway if you are certain.",
         "notUnreviewed": "There is nothing to review — nobody had marked this an AI draft.",
-        "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first."
+        "editNeedsAdmin": "This is published, so only an admin can change it. Ask an admin, or have it retired first.",
+        "roleHasNoPublishedLevel": "Publish one of the role's levels first, or a candidate would be offered a role with nothing to choose.",
+        "roleInUse": "Published content or a candidate's profile still uses this role, so it cannot be withdrawn.",
+        "levelInUse": "A published role, a published track, a published question or a candidate's profile still uses this level, so it cannot be withdrawn.",
+        "stackInUse": "A published role, a published question or a candidate's profile still uses this stack, so it cannot be withdrawn.",
+        "roleGone": "That role is not in the catalogue any more. Choose another.",
+        "levelGone": "That level is not in the catalogue any more. Choose another.",
+        "stackGone": "That stack is not in the catalogue any more. Choose another.",
+        "questionHasNoPublishedRole": "Every role this question is written for is still a draft, so no candidate could be asked it. Publish one of them first.",
+        "questionHasNoPublishedLevel": "Every level this question is written for is still a draft, so no candidate could be asked it. Publish one of them first.",
+        "questionHasNoPublishedStack": "Every stack this question is tagged for is still a draft, so no candidate could be asked it. Publish one of them, or take the tags off to make the question general.",
+        "cursorInvalid": "That page link is stale. Go back to the first page and try again.",
+        "versionNotFound": "That version is not in the history any more.",
+        "roleLevelInUseOne": "One candidate is preparing for this role at that level, so it cannot be taken off. Leave it on the role, or move that candidate to another level first.",
+        "roleLevelInUseMany": "{count} candidates are preparing for this role at that level, so it cannot be taken off. Leave it on the role, or move them to another level first.",
+        "roleStackInUseOne": "One candidate is interviewing for this role on that stack, so it cannot be taken off. Leave it on the role, or move that candidate to another stack first.",
+        "roleStackInUseMany": "{count} candidates are interviewing for this role on that stack, so it cannot be taken off. Leave it on the role, or move them to another stack first."
       },
       "transition": {
         "legend": "Workflow",
@@ -436,6 +472,8 @@
         "roles": "Roles",
         "rolesHint": "A question may suit more than one role.",
         "levels": "Levels",
+        "stacks": "Stacks",
+        "stacksHint": "Leave every box clear unless the question is specific to those stacks — tagging narrows who is ever asked it. An untagged question goes to everyone preparing for its roles.",
         "topic": "Topic",
         "subtopic": "Subtopic",
         "subtopicHint": "Optional, freer than the topic: 'useEffect', 'index design'.",
@@ -528,6 +566,41 @@
         "done": "Marked reviewed.",
         "reviewedOn": "Reviewed on {date}.",
         "note": "Note for the review"
+      },
+      "role": {
+        "name": "Name",
+        "nameHint": "What a candidate sees when choosing, like “Backend engineer”.",
+        "slug": "Slug",
+        "summary": "Summary",
+        "summaryHint": "One line about the work, shown under the name.",
+        "position": "Position",
+        "positionHint": "Where it sits in the list a candidate chooses from; ties break by name.",
+        "questionTypes": "Interview types",
+        "questionTypesHint": "What a session for this role may contain. QA needs test design; most engineering roles do not.",
+        "levels": "Levels offered",
+        "levelsHint": "A role needs at least one published level before it can be published. Candidates see them in the order below; a level you add joins the end.",
+        "noLevels": "No levels yet. Add one under Levels first.",
+        "stacks": "Stacks offered",
+        "stacksHint": "Leave them all unticked for a role with no variants. The default is where the candidate's picker starts.",
+        "noStacks": "No stacks yet. Add one under Stacks first.",
+        "default": "Default",
+        "catalogueCapped": "Showing the first {count}. Search the Levels and Stacks lists for the rest.",
+        "noDefault": "No default — the candidate chooses"
+      },
+      "level": {
+        "name": "Name",
+        "slug": "Slug",
+        "summary": "Summary",
+        "summaryHint": "One line about who this level is for.",
+        "rank": "Rank",
+        "rankHint": "Lowest first. Leave gaps (10, 20, 30) so a level can be added between two others."
+      },
+      "stack": {
+        "name": "Name",
+        "nameHint": "The variant as a candidate would say it, like “Java / Spring”.",
+        "slug": "Slug",
+        "summary": "Summary",
+        "summaryHint": "Optional. One line, if the name is not self-explanatory."
       }
     }
   },

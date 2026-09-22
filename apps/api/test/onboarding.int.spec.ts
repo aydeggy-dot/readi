@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import {
   AuthMethodsResponse,
@@ -10,6 +11,7 @@ import {
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { removeCataloguePair, seedCataloguePair, type CataloguePair } from "./content-fixtures";
 import {
   createTestApp,
   requestOtp,
@@ -19,15 +21,26 @@ import {
   viaProxy,
 } from "./helpers";
 
-const profile = {
+/*
+ * Roles and levels are catalogue rows now (ADR-0015), and the test database is migrated but never
+ * seeded, so there is no `frontend` to name. Each run mints its own published role offering two
+ * levels — which is also what the API requires of a candidate: a published role, at a level that
+ * role is actually hired at.
+ */
+let pair: CataloguePair;
+let secondLevelSlug: string;
+
+const profileFor = (overrides: Record<string, unknown> = {}) => ({
   name: "Ada Obi",
-  target_role: "frontend",
-  level: "intern_junior",
+  target_role: pair.roleSlug,
+  level: pair.levelSlug,
   years_experience: 1,
-  stack: ["React", "TypeScript", "react"],
+  target_stack: null,
+  technologies: ["React", "TypeScript", "react"],
   target_company_type: "remote_foreign",
   target_date: null,
-} as const;
+  ...overrides,
+});
 
 const allDecisions = (granted: (type: string) => boolean) =>
   CONSENT_TYPES.map((type) => ({ type, granted: granted(type), version: CONSENT_VERSIONS[type] }));
@@ -35,13 +48,30 @@ const allDecisions = (granted: (type: string) => boolean) =>
 describe("profile, consent and onboarding", () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
+  const secondLevelIds: string[] = [];
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
     app = await createTestApp();
     prisma = app.get(PrismaService);
+    pair = await seedCataloguePair(prisma);
+    const second = await prisma.careerLevel.create({
+      data: {
+        slug: `onboarding-level-${randomUUID().slice(0, 8)}`,
+        name: "Mid",
+        rank: 30,
+        status: "published",
+      },
+    });
+    secondLevelSlug = second.slug;
+    await prisma.careerRoleLevel.create({
+      data: { roleId: pair.roleId, levelId: second.id, position: 1 },
+    });
+    secondLevelIds.push(second.id);
   });
   afterAll(async () => {
+    await removeCataloguePair(prisma, pair);
+    await prisma.careerLevel.deleteMany({ where: { id: { in: secondLevelIds } } });
     await app.close();
   });
 
@@ -60,17 +90,17 @@ describe("profile, consent and onboarding", () => {
   });
 
   describe("profile", () => {
-    it("is 404 before it exists, then saves, dedupes the stack and sets the name", async () => {
+    it("is 404 before it exists, then saves, dedupes technologies and sets the name", async () => {
       const cookie = await signUp();
       const missing = await http().get("/api/me/profile").set("cookie", cookie);
       expect(missing.status).toBe(404);
       expect(missing.body).toMatchObject({ code: "profile_not_found" });
 
-      const saved = await http().put("/api/me/profile").set("cookie", cookie).send(profile);
+      const saved = await http().put("/api/me/profile").set("cookie", cookie).send(profileFor());
       expect(saved.status).toBe(200);
       expect(ProfileResponse.parse(saved.body)).toMatchObject({
-        ...profile,
-        stack: ["React", "TypeScript"],
+        ...profileFor(),
+        technologies: ["React", "TypeScript"],
       });
 
       const read = await http().get("/api/me/profile").set("cookie", cookie);
@@ -82,22 +112,22 @@ describe("profile, consent and onboarding", () => {
 
     it("replaces the profile on a second save and keeps a calendar date intact", async () => {
       const cookie = await signUp();
-      await http().put("/api/me/profile").set("cookie", cookie).send(profile);
+      await http().put("/api/me/profile").set("cookie", cookie).send(profileFor());
       const updated = await http()
         .put("/api/me/profile")
         .set("cookie", cookie)
-        .send({
-          ...profile,
-          level: "mid",
-          stack: ["Playwright"],
-          target_role: "qa",
-          target_date: "2099-01-31",
-        });
+        .send(
+          profileFor({
+            level: secondLevelSlug,
+            technologies: ["Playwright"],
+            target_date: "2099-01-31",
+          }),
+        );
       expect(updated.status).toBe(200);
       expect(updated.body).toMatchObject({
-        level: "mid",
-        target_role: "qa",
-        stack: ["Playwright"],
+        level: secondLevelSlug,
+        target_role: pair.roleSlug,
+        technologies: ["Playwright"],
         target_date: "2099-01-31",
       });
     });
@@ -112,7 +142,7 @@ describe("profile, consent and onboarding", () => {
       const response = await http()
         .put("/api/me/profile")
         .set("cookie", cookie)
-        .send({ ...profile, ...patch });
+        .send(profileFor(patch));
       expect(response.status).toBe(400);
       const [field] = Object.keys(patch);
       expect(
@@ -125,7 +155,7 @@ describe("profile, consent and onboarding", () => {
       const response = await http()
         .put("/api/me/profile")
         .set("cookie", cookie)
-        .send({ ...profile, role: "admin" });
+        .send({ ...profileFor(), role: "admin" });
       // Unknown keys are stripped by the schema; the role is not a profile field.
       expect(response.status).toBe(200);
       expect((await me(cookie)).role).toBe("candidate");
@@ -209,7 +239,7 @@ describe("profile, consent and onboarding", () => {
       const complete = () => http().post("/api/me/onboarding/complete").set("cookie", cookie);
 
       expect((await complete()).body).toMatchObject({ code: "profile_required" });
-      await http().put("/api/me/profile").set("cookie", cookie).send(profile);
+      await http().put("/api/me/profile").set("cookie", cookie).send(profileFor());
       const noConsents = await complete();
       expect(noConsents.status).toBe(409);
       expect(noConsents.body).toMatchObject({ code: "consents_required" });
@@ -239,7 +269,7 @@ describe("profile, consent and onboarding", () => {
       const cookie = sessionCookie(verified);
       expect((await me(cookie)).name).toBe("");
 
-      await http().put("/api/me/profile").set("cookie", cookie).send(profile);
+      await http().put("/api/me/profile").set("cookie", cookie).send(profileFor());
       await http()
         .put("/api/me/consents")
         .set("cookie", cookie)

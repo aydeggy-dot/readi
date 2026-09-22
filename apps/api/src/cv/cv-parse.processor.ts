@@ -21,7 +21,16 @@ export class CvParseProcessor {
   ) {}
 
   async process(job: CvParseJob, { finalAttempt }: { finalAttempt: boolean }): Promise<void> {
-    const profile = await this.prisma.profile.findUnique({ where: { userId: job.userId } });
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId: job.userId },
+      // The worker is sent the role, level and stack as words, not keys (ADR-0015): it has no
+      // catalogue and, with roles as content, no enum it could have been taught to recognise.
+      include: {
+        targetRole: { select: { name: true } },
+        targetLevel: { select: { name: true } },
+        targetStack: { select: { name: true } },
+      },
+    });
     // Replaced or deleted since the job was queued: nothing to do.
     if (profile?.cvFileKey !== job.fileKey || profile.cvStatus !== "processing") return;
     try {
@@ -31,8 +40,10 @@ export class CvParseProcessor {
         content_type: CvContentType.parse(profile.cvContentType),
         file_base64: Buffer.from(file).toString("base64"),
         // Minimal context only (ADR-0004): no name, email or phone.
-        target_role: profile.targetRole,
-        level: profile.level,
+        target_role_label: profile.targetRole.name,
+        level_label: profile.targetLevel.name,
+        // Null when the candidate chose no variant; the prompt then says nothing about a stack.
+        stack_label: profile.targetStack?.name ?? null,
       });
       await this.aiCalls.record(result.ai_calls, { userId: job.userId });
       await this.prisma.profile.updateMany({

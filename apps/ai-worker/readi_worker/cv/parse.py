@@ -18,7 +18,7 @@ from readi_worker.prompts import as_data, render
 
 logger = logging.getLogger(__name__)
 
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 MAX_ATTEMPTS = 3  # one call plus up to two retries on invalid output (CLAUDE.md "Evaluation")
 MAX_OUTPUT_TOKENS = 8_000
 EXTRACT_TIMEOUT_S = 20.0
@@ -35,12 +35,6 @@ LIMITS = {
     "gap_length": 300,
     "technologies": 15,
 }
-
-# Readable forms of the shared enums for the prompt. A value added to TARGET_ROLES or
-# EXPERIENCE_LEVELS widens the generated Literal, so `test_labels_cover_every_enum_value` fails
-# here rather than the parse raising KeyError at runtime for every candidate with that role.
-ROLE_LABELS = {"frontend": "frontend engineer", "backend": "backend engineer", "qa": "QA engineer"}
-LEVEL_LABELS = {"intern_junior": "intern or junior", "mid": "mid"}
 
 
 # What the model is asked to produce: the ParsedCv shape without length limits (limits are
@@ -112,8 +106,22 @@ class CvParser:
         system = render(
             "cv_parse",
             PROMPT_VERSION,
-            target_role_label=ROLE_LABELS.get(request.target_role, request.target_role),
-            level_label=LEVEL_LABELS.get(request.level, request.level),
+            # The API sends the words, not a key (ADR-0015): roles are content now, so there is
+            # no enum here to map from and nothing this worker could have been taught to
+            # recognise. They are wrapped as data like the CV text, because a role's name is
+            # written by staff in the CMS and lands in a *system* prompt — a narrow surface, but
+            # the only one where editable content becomes an instruction.
+            target_role_block=as_data(request.target_role_label, "target_role"),
+            level_block=as_data(request.level_label, "level"),
+            # Absent when the candidate has chosen no variant, or their role offers none. The
+            # template then says nothing about a stack rather than naming one nobody picked.
+            # `.root` because a *nullable* constrained string generates as a Pydantic RootModel
+            # rather than a plain `str` — the same shape as `AiCallRecord.error_code`.
+            stack_block=(
+                as_data(request.stack_label.root, "stack")
+                if request.stack_label is not None
+                else ""
+            ),
         )
         user = render(
             "cv_parse_input", PROMPT_VERSION, cv_text_block=as_data(extracted.text, "cv_text")
