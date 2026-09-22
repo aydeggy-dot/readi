@@ -137,3 +137,40 @@
   context that had just signed up reported 801 KB for a 274 KB page: `encodedBodySize` counts
   resources served from the browser cache, and the load time (667 ms on a 1.6 Mbps profile) was the
   tell — 800 KB cannot arrive in 667 ms. When a weight and a duration disagree, the weight is wrong.
+
+## A test that changes two things at once proves neither (M2 phase 6, 2026-09-22)
+
+I added a column the seed importer sets from each file's `author`, documented in four places that
+`author: human` clears it, and wrote a test that passed. The test changed the prompt **and** the
+author in the same import, so it only ever exercised the path where the content had changed — which
+is the path that already worked. The case the feature exists for (an expert approves a bank without
+rewriting a word) did nothing at all, and two independent reviewers found it within minutes.
+
+**The rule:** when a test sets up a change, change exactly the one thing under test. If the feature
+is "X causes Y", the fixture must differ from the baseline in X and nothing else. A passing test
+over a confounded fixture is worse than no test, because it stops anyone looking.
+
+**The tell:** I wrote `write("...actually do?", undefined, "human")` — two arguments moved. That
+`undefined` in the middle was the signal that the helper was doing more than the test needed.
+
+## Audit entries must record what happened, not what was true (M2 phase 6, 2026-09-22)
+
+I recorded `acknowledged_unreviewed: true` whenever a marked item was published, with a comment
+saying "only recorded when it actually mattered". In development the guard never runs, so that
+logged an override nobody performed — and a later search for real overrides would have found noise.
+The condition has to include the flag the admin actually sent.
+
+**The rule:** an audit field names an _act_, so its condition must include the act. "This was true
+at the time" and "someone did this" are different claims, and only the second belongs in an audit
+log.
+
+## Read a precondition inside the transaction that depends on it (M2 phase 6, 2026-09-22)
+
+`transition` and `markReviewed` both read the row's state outside the transaction and then updated
+by id. Two concurrent requests both passed the check, both wrote, and the loser collided on the
+version history's unique key — surfacing as `track_already_published` for a _question_, and as an
+uncoded 500 for a review. The database was never corrupted; the error was just a lie.
+
+**The rule:** if a check decides whether a write is legal, put it in the write's `WHERE` and treat
+`count === 0` as the conflict. `account-deletion.service.ts` already did this — the pattern was in
+the codebase and I did not go looking for it.
