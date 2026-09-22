@@ -27,6 +27,9 @@ export interface EmbeddableQuestion {
  * unreachable worker is a warning for us: both leave the question published, and leave the vector
  * *absent* rather than stale, so `content:reembed` can put it right.
  */
+/** Error names only: a provider's or driver's prose could carry question text (CLAUDE.md §5). */
+const describe = (error: unknown) => (error instanceof Error ? error.name : "unknown");
+
 @Injectable()
 export class QuestionEmbeddingsService {
   private readonly logger = new Logger(QuestionEmbeddingsService.name);
@@ -47,25 +50,54 @@ export class QuestionEmbeddingsService {
   /** Embeds a question, stores the vector, and reports what it looks like a duplicate of. */
   async sync(question: EmbeddableQuestion): Promise<DuplicateMatch[]> {
     const embedded = await this.embed(QuestionEmbeddingsService.textFor(question));
+    // No vector to store — an unreachable worker, or one that answered with the wrong shape.
+    if (!embedded) {
+      await this.clearQuietly(question.id);
+      return [];
+    }
+
     try {
-      if (!embedded) {
-        await this.repository.clear(question.id);
-        return [];
-      }
       await this.repository.store(question.id, embedded.vector, embedded.model);
+    } catch (error) {
+      this.logger.error(
+        `storing the embedding for question ${question.id} failed: ${describe(error)}`,
+      );
+      /*
+       * The row still holds the vector of the *previous* wording, now wearing the current model's
+       * name — which is exactly the one thing `stale()` cannot find, because it looks for a null
+       * vector or a different model. Absent beats stale: clearing it puts the question back in
+       * `content:reembed`'s sights instead of leaving it wrong for ever.
+       */
+      await this.clearQuietly(question.id);
+      return [];
+    }
+
+    try {
       return await this.repository.findSimilar(embedded.vector, {
         threshold: this.env.CONTENT_DUPLICATE_THRESHOLD,
         excludeQuestionId: question.id,
       });
     } catch (error) {
-      // The publish already happened and is what matters; the vector can be rebuilt by
-      // `content:reembed`. Nothing on this path is allowed to turn a publish into a 500.
+      // A warning that could not be computed. The publish already happened and is what matters;
+      // nothing on this path is allowed to turn a publish into a 500 (ADR-0006).
       this.logger.error(
-        `storing the embedding for question ${question.id} failed: ${
-          error instanceof Error ? error.name : "unknown"
-        }`,
+        `searching for duplicates of question ${question.id} failed: ${describe(error)}`,
       );
       return [];
+    }
+  }
+
+  /**
+   * Drops a question's vector, swallowing failure. Every caller is already on a path where the
+   * publish has happened and the vector is the lesser concern.
+   */
+  private async clearQuietly(questionId: string): Promise<void> {
+    try {
+      await this.repository.clear(questionId);
+    } catch (error) {
+      this.logger.error(
+        `clearing the embedding for question ${questionId} failed: ${describe(error)}`,
+      );
     }
   }
 
@@ -73,10 +105,17 @@ export class QuestionEmbeddingsService {
   async check(request: DuplicateCheckRequest): Promise<DuplicateMatch[]> {
     const embedded = await this.embed(QuestionEmbeddingsService.textFor(request));
     if (!embedded) return [];
-    return this.repository.findSimilar(embedded.vector, {
-      threshold: this.env.CONTENT_DUPLICATE_THRESHOLD,
-      excludeQuestionId: request.exclude_question_id,
-    });
+    try {
+      return await this.repository.findSimilar(embedded.vector, {
+        threshold: this.env.CONTENT_DUPLICATE_THRESHOLD,
+        excludeQuestionId: request.exclude_question_id,
+      });
+    } catch (error) {
+      // A warning the CMS could not compute is still only a warning: an empty list, never a 500
+      // on a form the author is in the middle of writing.
+      this.logger.error(`searching for duplicates of unsaved text failed: ${describe(error)}`);
+      return [];
+    }
   }
 
   /**

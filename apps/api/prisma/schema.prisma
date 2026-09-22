@@ -391,6 +391,8 @@ model Track {
   topics  TrackTopic[]
 
   @@index([role, level, status])
+  /// The CMS list order (`updated_at desc, id desc`); without it every page sorts the table.
+  @@index([updatedAt, id])
   @@map("tracks")
 }
 
@@ -462,6 +464,8 @@ model Lesson {
   @@index([moduleId, position])
   @@index([status])
   @@index([topicId])
+  /// The CMS list order (`updated_at desc, id desc`).
+  @@index([updatedAt, id])
   @@map("lessons")
 }
 
@@ -492,6 +496,8 @@ model Rubric {
   questions Question[]
 
   @@index([status])
+  /// The CMS list order (`updated_at desc, id desc`).
+  @@index([updatedAt, id])
   @@map("rubrics")
 }
 
@@ -559,6 +565,8 @@ model Question {
   @@index([status])
   @@index([topicId])
   @@index([type, difficulty])
+  /// The CMS list order (`updated_at desc, id desc`).
+  @@index([updatedAt, id])
   @@map("questions")
 }
 

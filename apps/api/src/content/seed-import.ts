@@ -40,6 +40,12 @@ export interface SeedCounts {
   updated: number;
   unchanged: number;
   /**
+   * Items whose words did not change but whose file changed its mind about `author` — an expert's
+   * YAML review round approving a bank as it stands (ADR-0014 decision 6). Counted apart from
+   * `updated` because no content moved and no version was written.
+   */
+  reviewed: number;
+  /**
    * Slugs the CMS owns now, left exactly as they are. Named rather than counted: "3 skipped" sends
    * a reader hunting, and the point of the report is to say what the files no longer control.
    */
@@ -68,7 +74,13 @@ export class SeedReferenceError extends Error {
   }
 }
 
-const emptyCounts = (): SeedCounts => ({ created: 0, updated: 0, unchanged: 0, skipped: [] });
+const emptyCounts = (): SeedCounts => ({
+  created: 0,
+  updated: 0,
+  unchanged: 0,
+  reviewed: 0,
+  skipped: [],
+});
 
 const emptyReport = (): SeedReport => ({
   topics: emptyCounts(),
@@ -125,12 +137,25 @@ export class SeedImporter {
     existing: { seedManaged: boolean },
     unchanged: () => Promise<boolean>,
     update: () => Promise<unknown>,
+    /**
+     * For the four entities that carry review state: reconcile the row's mark with the file's
+     * `author` when nothing else changed. Omitted for topics and modules, which have no mark.
+     */
+    syncReview?: () => Promise<boolean>,
   ): Promise<void> {
+    const mayWrite = existing.seedManaged || this.options.force === true;
     if (await unchanged()) {
+      /*
+       * The words are the same — but `author` is not part of the words, and it is a claim about
+       * whether a person has vouched for them. An expert who reads a bank and approves most of it
+       * without rewriting anything changes nothing but that line, and this is the only place that
+       * notices (ADR-0014 decision 6). It is not a content change, so it earns no version.
+       */
+      if (syncReview && mayWrite && (await syncReview())) counts.reviewed += 1;
       counts.unchanged += 1;
       return;
     }
-    if (!existing.seedManaged && !this.options.force) {
+    if (!mayWrite) {
       counts.skipped.push(slug);
       return;
     }
@@ -212,6 +237,13 @@ export class SeedImporter {
         existing,
         async () => sameContent(await this.rubricContentOf(existing.id), input),
         () => this.content.updateRubric(existing.id, input, { actor: this.actor, note: this.note }),
+        () =>
+          this.content.syncSeedReviewState(
+            this.actor,
+            "rubrics",
+            existing.id,
+            this.options.dryRun === true,
+          ),
       );
     }
   }
@@ -245,6 +277,13 @@ export class SeedImporter {
         () => Promise.resolve(sameContent(current, input)),
         () =>
           this.content.updateQuestion(existing.id, input, { actor: this.actor, note: this.note }),
+        () =>
+          this.content.syncSeedReviewState(
+            this.actor,
+            "questions",
+            existing.id,
+            this.options.dryRun === true,
+          ),
       );
     }
   }
@@ -298,7 +337,16 @@ export class SeedImporter {
         );
       }
       // A module the CMS owns still has lessons the files may own, so they are considered either way.
-      if (!moduleId) continue;
+      if (!moduleId) {
+        /*
+         * Only a dry run reaches here: the module does not exist yet, so nothing under it can
+         * either, and its lessons all count as creations. Without this the plan a dry run prints
+         * is not the plan a real run performs — it said `lessons: 0 to create` for a new module
+         * added to a track that already existed.
+         */
+        report.lessons.created += module.lessons.length;
+        continue;
+      }
       await this.importLessons(file, module, moduleId, report);
     }
   }
@@ -338,6 +386,13 @@ export class SeedImporter {
         existing,
         () => Promise.resolve(sameContent(current, input)),
         () => this.content.updateLesson(existing.id, input, { actor: this.actor, note: this.note }),
+        () =>
+          this.content.syncSeedReviewState(
+            this.actor,
+            "lessons",
+            existing.id,
+            this.options.dryRun === true,
+          ),
       );
     }
   }
@@ -383,6 +438,13 @@ export class SeedImporter {
       existing,
       () => Promise.resolve(sameContent(sortTopics(current), sortTopics(input))),
       () => this.content.updateTrack(existing.id, input, { actor: this.actor, note: this.note }),
+      () =>
+        this.content.syncSeedReviewState(
+          this.actor,
+          "tracks",
+          existing.id,
+          this.options.dryRun === true,
+        ),
     );
     return existing.id;
   }

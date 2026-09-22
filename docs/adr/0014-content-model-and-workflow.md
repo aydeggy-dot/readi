@@ -161,6 +161,14 @@ Two things deliberately do **not** clear the mark:
 Re-importing a file that says `author: ai_draft` over text a model has redrafted **re-marks** the
 row and clears any earlier review, because that review was of words the import replaced.
 
+Conversely — and this is the case the whole YAML review round is made of — **a file that changes
+only its `author` still clears the mark.** An expert who reads a bank and approves most of it
+without rewriting a word changes nothing the content diff can see, so this is the one write the
+importer makes on an item it has just reported as `unchanged`. It touches the review columns
+alone: no version snapshot, because no content moved (decision 2), and an audit entry, because who
+vouched for what is exactly what the audit log is for. The importer reports it on its own line
+(`N marked reviewed`) rather than as an update.
+
 The migration backfills every row `/content/seed` still owns as unreviewed, since `ai_draft` is the
 only author the shipped corpus uses.
 

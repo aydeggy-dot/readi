@@ -88,16 +88,34 @@ describe("candidate content never carries the answer key", () => {
     }
   });
 
-  it("covers every candidate GET route the API publishes", () => {
+  it("covers every candidate route the API publishes, by any method", () => {
     const document = createOpenApiDocument(app);
+    /*
+     * Deliberately not `startsWith("/api/content/")` with a trailing slash, and deliberately not
+     * `item.get` alone: `@Get()` with no path segment publishes `/api/content` exactly, and a
+     * `@Post("practice/search")` returning questions would be just as much a candidate payload.
+     * Either would have slipped past a narrower filter without failing anything.
+     */
     const published = Object.entries(document.paths)
-      .filter(([path, item]) => path.startsWith("/api/content/") && item?.get)
+      .filter(
+        ([path, item]) =>
+          (path === "/api/content" || path.startsWith("/api/content/")) &&
+          Boolean(item && Object.keys(item).length > 0),
+      )
       .map(([path]) => path)
       .sort();
     expect(published.length).toBeGreaterThan(0);
     // A new candidate endpoint fails here until it is exercised below. That is the point.
     expect(Object.keys(exercisers()).sort()).toEqual(published);
   });
+
+  /*
+   * The guarantee this file proves stops at the `/api/content` prefix. From M3 the interview
+   * engine serves question prompts from its own module (`/api/sessions/...`), and nothing here
+   * will notice if one of those responses carries an answer key. Widening the filter to "every
+   * route a candidate-role cookie can reach" is the job of whichever milestone adds the first
+   * such route — see the M2 handover.
+   */
 
   it.each(Object.entries(exercisers()))(
     "%s returns content and no answer key",

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { CONTENT_LIMITS, RUBRIC_WEIGHT_TOTAL } from "../constants.js";
 import {
   CandidateLessonResponse,
+  CandidateLessonSummary,
+  CandidateModule,
   CandidatePracticeItem,
   CandidateTrackResponse,
   ContentTransitionRequest,
@@ -125,10 +127,15 @@ describe("questions", () => {
 describe("candidate shapes carry no answer key", () => {
   // The guarantee is enforced end to end by the API's leak test; here we prove the schemas
   // themselves have no room for it, so a stray field cannot be parsed into one.
+  // Every candidate shape, including the nested ones: the check reads `schema.shape` and does
+  // not recurse, so a shape left out of this list is a shape nothing here inspects. Adding
+  // `rubric` to `CandidateModule` used to leave every assertion in this file green.
   const shapes = {
     CandidateTrackResponse,
     CandidateLessonResponse,
     CandidatePracticeItem,
+    CandidateModule,
+    CandidateLessonSummary,
   };
 
   // `levels` (plural) is a rubric's level descriptors; `level` alone is the candidate's

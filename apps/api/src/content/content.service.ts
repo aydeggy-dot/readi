@@ -209,46 +209,58 @@ export class ContentService {
   }
 
   async createTopic(actor: Actor, input: TopicInput): Promise<Topic> {
-    const topic = await this.prisma.topic
-      .create({
-        data: {
-          slug: input.slug,
-          name: input.name,
-          description: input.description,
-          ...ownership(actor),
-        },
+    const topic = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.topic.create({
+          data: {
+            slug: input.slug,
+            name: input.name,
+            description: input.description,
+            ...ownership(actor),
+          },
+        });
+        await this.audit.record(
+          {
+            actorType: actorType(actor),
+            actorId: actor.id,
+            action: "content.topic.created",
+            targetType: "topic",
+            targetId: row.id,
+          },
+          tx,
+        );
+        return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error));
-    await this.audit.record({
-      actorType: actorType(actor),
-      actorId: actor.id,
-      action: "content.topic.created",
-      targetType: "topic",
-      targetId: topic.id,
-    });
     return toTopic(topic);
   }
 
   async updateTopic(actor: Actor, id: string, input: TopicInput): Promise<Topic> {
     await this.findTopicOrFail(id);
-    const topic = await this.prisma.topic
-      .update({
-        where: { id },
-        data: {
-          slug: input.slug,
-          name: input.name,
-          description: input.description,
-          ...ownership(actor),
-        },
+    const topic = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.topic.update({
+          where: { id },
+          data: {
+            slug: input.slug,
+            name: input.name,
+            description: input.description,
+            ...ownership(actor),
+          },
+        });
+        await this.audit.record(
+          {
+            actorType: actorType(actor),
+            actorId: actor.id,
+            action: "content.topic.updated",
+            targetType: "topic",
+            targetId: row.id,
+          },
+          tx,
+        );
+        return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error));
-    await this.audit.record({
-      actorType: actorType(actor),
-      actorId: actor.id,
-      action: "content.topic.updated",
-      targetType: "topic",
-      targetId: topic.id,
-    });
     return toTopic(topic);
   }
 
@@ -279,27 +291,30 @@ export class ContentService {
   }
 
   async createTrack(actor: Actor, input: TrackInput): Promise<Track> {
-    const track = await this.prisma.track
-      .create({
-        data: {
-          slug: input.slug,
-          role: input.role,
-          level: input.level,
-          title: input.title,
-          summary: input.summary,
-          createdByUserId: actor.id,
-          ...authorship(actor),
-          topics: {
-            create: sortTopics(input.topics).map((link) => ({
-              topicId: link.topic_id,
-              isCore: link.is_core,
-            })),
+    const track = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.track.create({
+          data: {
+            slug: input.slug,
+            role: input.role,
+            level: input.level,
+            title: input.title,
+            summary: input.summary,
+            createdByUserId: actor.id,
+            ...authorship(actor),
+            topics: {
+              create: sortTopics(input.topics).map((link) => ({
+                topicId: link.topic_id,
+                isCore: link.is_core,
+              })),
+            },
           },
-        },
-        include: trackInclude,
+          include: trackInclude,
+        });
+        await this.recordCreation(actor, "track", row.id, row.status, tx);
+        return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topics"));
-    await this.recordCreation(actor, "track", track.id, track.status);
     return toTrack(track);
   }
 
@@ -451,22 +466,25 @@ export class ContentService {
   async createLesson(actor: Actor, moduleId: string, input: LessonInput): Promise<Lesson> {
     const module = await this.prisma.module.findUnique({ where: { id: moduleId } });
     if (!module) throw this.notFound("module_not_found");
-    const lesson = await this.prisma.lesson
-      .create({
-        data: {
-          moduleId,
-          slug: input.slug,
-          title: input.title,
-          body: input.body,
-          topicId: input.topic_id,
-          position: input.position,
-          estimatedMinutes: input.estimated_minutes,
-          createdByUserId: actor.id,
-          ...authorship(actor),
-        },
+    const lesson = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.lesson.create({
+          data: {
+            moduleId,
+            slug: input.slug,
+            title: input.title,
+            body: input.body,
+            topicId: input.topic_id,
+            position: input.position,
+            estimatedMinutes: input.estimated_minutes,
+            createdByUserId: actor.id,
+            ...authorship(actor),
+          },
+        });
+        await this.recordCreation(actor, "lesson", row.id, row.status, tx);
+        return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
-    await this.recordCreation(actor, "lesson", lesson.id, lesson.status);
     return toLesson(lesson);
   }
 
@@ -527,19 +545,22 @@ export class ContentService {
   }
 
   async createRubric(actor: Actor, input: RubricInput): Promise<Rubric> {
-    const rubric = await this.prisma.rubric
-      .create({
-        data: {
-          slug: input.slug,
-          name: input.name,
-          createdByUserId: actor.id,
-          ...authorship(actor),
-          criteria: { create: this.criteriaRows(input) },
-        },
-        include: rubricInclude,
+    const rubric = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.rubric.create({
+          data: {
+            slug: input.slug,
+            name: input.name,
+            createdByUserId: actor.id,
+            ...authorship(actor),
+            criteria: { create: this.criteriaRows(input) },
+          },
+          include: rubricInclude,
+        });
+        await this.recordCreation(actor, "rubric", row.id, row.status, tx);
+        return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error));
-    await this.recordCreation(actor, "rubric", rubric.id, rubric.status);
     return toRubric(rubric);
   }
 
@@ -605,13 +626,16 @@ export class ContentService {
   }
 
   async createQuestion(actor: Actor, input: QuestionInput): Promise<Question> {
-    const question = await this.prisma.question
-      .create({
-        data: { ...this.questionRow(input), createdByUserId: actor.id, ...authorship(actor) },
-        include: questionInclude,
+    const question = await this.prisma
+      .$transaction(async (tx) => {
+        const row = await tx.question.create({
+          data: { ...this.questionRow(input), createdByUserId: actor.id, ...authorship(actor) },
+          include: questionInclude,
+        });
+        await this.recordCreation(actor, "question", row.id, row.status, tx);
+        return row;
       })
       .catch((error: unknown) => this.rethrowWriteError(error, "topic_id"));
-    await this.recordCreation(actor, "question", question.id, question.status);
     return toQuestion(question);
   }
 
@@ -653,6 +677,43 @@ export class ContentService {
   // ---------------------------------------------------------------------------------------------
   // The workflow: draft → in_review → published → retired.
 
+  /**
+   * Applies `data` to one publishable entity **only if `where` still matches**, and returns the
+   * row. The precondition belongs in the statement, not in a check before it: `loadForTransition`
+   * reads outside the transaction, so two requests can both see the same status. Without the
+   * guard they both write, and the loser collides on `content_versions`' unique key — surfacing
+   * as a misleading `track_already_published` for a question, or an uncoded 500.
+   *
+   * Returns null when the row moved under us, which every caller turns into its own 409.
+   * (`apps/api/src/account/account-deletion.service.ts` uses the same shape.)
+   */
+  private async guardedUpdate(
+    tx: Prisma.TransactionClient,
+    entity: ContentEntityPath,
+    where: { id: string; status?: ContentStatus; version?: number; aiDraftUnreviewed?: boolean },
+    data: Prisma.QuestionUpdateManyMutationInput &
+      Prisma.TrackUpdateManyMutationInput &
+      Prisma.LessonUpdateManyMutationInput &
+      Prisma.RubricUpdateManyMutationInput,
+  ): Promise<{ id: string; status: ContentStatus; version: number; updatedAt: Date } | null> {
+    const applied =
+      entity === "tracks"
+        ? await tx.track.updateMany({ where, data })
+        : entity === "lessons"
+          ? await tx.lesson.updateMany({ where, data })
+          : entity === "questions"
+            ? await tx.question.updateMany({ where, data })
+            : await tx.rubric.updateMany({ where, data });
+    if (applied.count === 0) return null;
+    return entity === "tracks"
+      ? await tx.track.findUniqueOrThrow({ where: { id: where.id } })
+      : entity === "lessons"
+        ? await tx.lesson.findUniqueOrThrow({ where: { id: where.id } })
+        : entity === "questions"
+          ? await tx.question.findUniqueOrThrow({ where: { id: where.id } })
+          : await tx.rubric.findUniqueOrThrow({ where: { id: where.id } });
+  }
+
   async transition(
     actor: Actor,
     entity: ContentEntityPath,
@@ -681,22 +742,29 @@ export class ContentService {
     const context: ChangeContext = { actor, note: body.note };
     const updated = await this.prisma
       .$transaction(async (tx) => {
-        // A transition is a change to the entity's state, so it is versioned like any other.
-        await this.writeSnapshot(tx, ENTITY_TYPE[entity], current, current.content, context);
         // `published_at` is when it first reached candidates; retiring does not unsay that.
         const data = {
           status: to,
           version: { increment: 1 },
           ...(to === "published" ? { publishedAt: new Date() } : {}),
         };
-        const row =
-          entity === "tracks"
-            ? await tx.track.update({ where: { id }, data })
-            : entity === "lessons"
-              ? await tx.lesson.update({ where: { id }, data })
-              : entity === "questions"
-                ? await tx.question.update({ where: { id }, data })
-                : await tx.rubric.update({ where: { id }, data });
+        // The move goes first, guarded by the status and version it was decided against, so a
+        // concurrent second transition loses here rather than on the snapshot's unique key.
+        const row = await this.guardedUpdate(
+          tx,
+          entity,
+          { id, status: current.status, version: current.version },
+          data,
+        );
+        if (!row) {
+          throw new ApiError(
+            HttpStatus.CONFLICT,
+            "content_transition_invalid",
+            "this content changed while the move was being made",
+          );
+        }
+        // A transition is a change to the entity's state, so it is versioned like any other.
+        await this.writeSnapshot(tx, ENTITY_TYPE[entity], current, current.content, context);
         await this.audit.record(
           {
             actorType: actorType(actor),
@@ -708,8 +776,14 @@ export class ContentService {
             after: {
               status: row.status,
               version: row.version,
-              // Only recorded when it actually mattered, so a search for it finds real overrides.
-              ...(to === "published" && current.aiDraftUnreviewed
+              /*
+               * Recorded only when an admin actually reached for the override on something that
+               * was actually marked — not merely whenever a marked item is published. Outside
+               * production the guard never runs, so publishing a seeded draft there overrides
+               * nothing, and an audit entry saying otherwise would be a lie that a later search
+               * for real overrides would trip over.
+               */
+              ...(to === "published" && current.aiDraftUnreviewed && body.acknowledge_unreviewed
                 ? { acknowledged_unreviewed: true }
                 : {}),
             },
@@ -764,32 +838,26 @@ export class ContentService {
     body: ContentReviewRequest,
   ): Promise<ContentReviewResponse> {
     const current = await this.loadForTransition(entity, id);
-    if (!current.aiDraftUnreviewed) {
-      throw new ApiError(
-        HttpStatus.CONFLICT,
-        "content_not_unreviewed",
-        "this item is not an unreviewed AI draft",
-      );
-    }
+    if (!current.aiDraftUnreviewed) throw this.notUnreviewed();
 
     const context: ChangeContext = { actor, note: body.note ?? REVIEW_NOTE };
     const reviewedAt = new Date();
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Guarded on the mark itself, so a double-click loses here and gets the same honest 409 as
+      // a second click a minute later, rather than colliding on the version history's unique key.
+      const row = await this.guardedUpdate(
+        tx,
+        entity,
+        { id, aiDraftUnreviewed: true },
+        {
+          aiDraftUnreviewed: false,
+          reviewedAt,
+          reviewedByUserId: actor.id,
+          version: { increment: 1 },
+        },
+      );
+      if (!row) throw this.notUnreviewed();
       await this.writeSnapshot(tx, ENTITY_TYPE[entity], current, current.content, context);
-      const data = {
-        aiDraftUnreviewed: false,
-        reviewedAt,
-        reviewedByUserId: actor.id,
-        version: { increment: 1 },
-      };
-      const row =
-        entity === "tracks"
-          ? await tx.track.update({ where: { id }, data })
-          : entity === "lessons"
-            ? await tx.lesson.update({ where: { id }, data })
-            : entity === "questions"
-              ? await tx.question.update({ where: { id }, data })
-              : await tx.rubric.update({ where: { id }, data });
       await this.audit.record(
         {
           actorType: actorType(actor),
@@ -813,6 +881,59 @@ export class ContentService {
       version: updated.version,
       updated_at: updated.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * The seed file's `author` changed without its words changing (ADR-0014 decision 6).
+   *
+   * This is the case the whole YAML review round turns on: an expert reads a bank, approves most
+   * of it **without rewriting a word**, sets `author: human` and re-imports. There is no content
+   * change, so the importer's ordinary update path never runs and the mark would survive a review
+   * that did happen.
+   *
+   * It is deliberately not an ordinary update. Nothing about the content moved, so writing a
+   * version snapshot would put an entry in the history identical to the one before it and bump a
+   * version number nothing could explain (decision 2). This is the one write that touches the
+   * review columns alone — audited, because who vouched for what is exactly what the audit log is
+   * for.
+   *
+   * Returns whether the mark changed, so the importer can report it; `dryRun` answers the same
+   * question without writing.
+   */
+  async syncSeedReviewState(
+    actor: Actor,
+    entity: ContentEntityPath,
+    id: string,
+    dryRun = false,
+  ): Promise<boolean> {
+    const { seedManaged: _owned, ...review } = authorship(actor);
+    // Only the seed importer claims anything about authorship; a CMS write says nothing.
+    if (review.aiDraftUnreviewed === undefined) return false;
+    const current = await this.loadForTransition(entity, id);
+    if (current.aiDraftUnreviewed === review.aiDraftUnreviewed) return false;
+    if (dryRun) return true;
+
+    const marked = review.aiDraftUnreviewed;
+    await this.prisma.$transaction(async (tx) => {
+      const where = { id };
+      if (entity === "tracks") await tx.track.update({ where, data: review });
+      else if (entity === "lessons") await tx.lesson.update({ where, data: review });
+      else if (entity === "questions") await tx.question.update({ where, data: review });
+      else await tx.rubric.update({ where, data: review });
+      await this.audit.record(
+        {
+          actorType: actorType(actor),
+          actorId: actor.id,
+          action: `content.${ENTITY_TYPE[entity]}.${marked ? "unreviewed" : "reviewed"}`,
+          targetType: ENTITY_TYPE[entity],
+          targetId: id,
+          before: { ai_draft_unreviewed: current.aiDraftUnreviewed },
+          after: { ai_draft_unreviewed: marked, by: "seed" },
+        },
+        tx,
+      );
+    });
+    return true;
   }
 
   /** Near-duplicates of a question that may not exist yet (the CMS's question form). */
@@ -1068,15 +1189,19 @@ export class ContentService {
     entityType: ContentEntityType,
     id: string,
     status: ContentStatus,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    await this.audit.record({
-      actorType: actorType(actor),
-      actorId: actor.id,
-      action: `content.${entityType}.created`,
-      targetType: entityType,
-      targetId: id,
-      after: { status, version: 1 },
-    });
+    await this.audit.record(
+      {
+        actorType: actorType(actor),
+        actorId: actor.id,
+        action: `content.${entityType}.created`,
+        targetType: entityType,
+        targetId: id,
+        after: { status, version: 1 },
+      },
+      tx,
+    );
   }
 
   private async recordUpdate(
@@ -1099,6 +1224,14 @@ export class ContentService {
         after: { status, version },
       },
       tx,
+    );
+  }
+
+  private notUnreviewed(): ApiError {
+    return new ApiError(
+      HttpStatus.CONFLICT,
+      "content_not_unreviewed",
+      "this item is not an unreviewed AI draft",
     );
   }
 

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { Input } from "@/components/ui/input";
 import { Note } from "@/components/ui/margin";
-import { t } from "@/i18n";
+import { formatDay, t } from "@/i18n";
 import { type ApiFailure, apiFailure, networkFailure } from "@/lib/api-errors";
 import { browserApi } from "@/lib/browser-api";
 import { contentErrorMessage } from "@/lib/content-errors";
@@ -44,9 +44,7 @@ export function ReviewPanel({
     // Nothing to do, but when a review happened the editor should be able to see that it did.
     return reviewedAt ? (
       <Note as="aside">
-        {t("admin.content.review.reviewedOn", {
-          date: new Date(reviewedAt).toLocaleDateString(),
-        })}
+        {t("admin.content.review.reviewedOn", { date: formatDay(reviewedAt) })}
       </Note>
     ) : null;
   }
@@ -55,6 +53,7 @@ export function ReviewPanel({
     setPending(true);
     setConfirming(false);
     setFailure(undefined);
+    setDone(false);
     try {
       const { data, error, response } = await browserApi.POST(
         "/api/admin/content/{entity}/{id}/reviewed",
@@ -80,7 +79,7 @@ export function ReviewPanel({
       <h2 className="text-xl leading-tight">{t("admin.content.review.legend")}</h2>
       <p className="text-base text-muted-foreground">{t("admin.content.review.lead")}</p>
       <label className="flex flex-col gap-1.5">
-        <span className="font-bold text-heading">{t("admin.content.transition.note")}</span>
+        <span className="font-bold text-heading">{t("admin.content.review.note")}</span>
         <Input
           name="review-note"
           value={note}

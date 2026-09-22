@@ -74,6 +74,14 @@ export const TopicInput = z.object({
 });
 export type TopicInput = z.infer<typeof TopicInput>;
 
+/*
+ * NOTE: `Topic` is the one schema that crosses the admin/candidate boundary — it is nested in
+ * `QuestionListItem` (admin) and in `CandidateLessonResponse` and `CandidatePracticeItem`. That is
+ * deliberate: a topic is neutral taxonomy and all three of its fields are safe for a candidate to
+ * read. It is also the single seam where "candidate shapes are separate shapes" is not literally
+ * true, so **anything added here reaches candidate payloads with no further edit**. Keep it
+ * candidate-safe; an admin-only fact about a topic belongs in a separate admin shape.
+ */
 export const Topic = TopicInput.extend({ id: z.uuid() });
 export type Topic = z.infer<typeof Topic>;
 

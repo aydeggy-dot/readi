@@ -473,31 +473,44 @@ axis — it says who owns the words, and it stays true after an expert reviews a
 a guard built on it would refuse the reviewed content and wave through a typo fix. The fact needs
 its own column.
 
-- [ ] Migration `content_review_state` on tracks, lessons, questions, rubrics:
+- [x] Migration `content_review_state` on tracks, lessons, questions, rubrics:
       `ai_draft_unreviewed` (bool, default false), `reviewed_by_user_id` (uuid, no FK),
       `reviewed_at` (timestamptz). Drop Prisma's proposed `DROP INDEX questions_embedding_hnsw`
       by hand, as in phase 5
-- [ ] `TOMBSTONED_COLUMNS` gains the four `reviewed_by_user_id` columns (ADR-0011); the schema
+- [x] `TOMBSTONED_COLUMNS` gains the four `reviewed_by_user_id` columns (ADR-0011); the schema
       test in `account.int.spec.ts` is the gate
-- [ ] `Actor.drafted` + `seedActor(author)` in `ContentService`; the importer passes each file's
+- [x] `Actor.drafted` + `seedActor(author)` in `ContentService`; the importer passes each file's
       own `author`. A bare `SEED_ACTOR` means authorship unstated, which counts as an AI draft —
       the conservative default
-- [ ] **Not cleared by a content save.** A perfect draft would need a fake edit to be approved, and
+- [x] **Not cleared by a content save.** A perfect draft would need a fake edit to be approved, and
       a typo fix would count as reviewing the whole question and rubric
-- [ ] `POST /api/admin/content/:entity/:id/reviewed` — the explicit "Mark as reviewed" action, for
+- [x] `POST /api/admin/content/:entity/:id/reviewed` — the explicit "Mark as reviewed" action, for
       content_expert and admin. Writes a version snapshot and an audit entry with who and when;
       409 `content_not_unreviewed` when there is nothing to review, so it never churns a version
-- [ ] Re-import with `author: human` clears the flag; re-import of changed `ai_draft` text sets it
+- [x] Re-import with `author: human` clears the flag; re-import of changed `ai_draft` text sets it
       again and clears a stale review
-- [ ] The guard in `assertPublishable`: `NODE_ENV=production` only, code
+- [x] The guard in `assertPublishable`: `NODE_ENV=production` only, code
       `content_unreviewed_ai_draft`, override `acknowledge_unreviewed` on the publish transition
       (already admin-only) recorded in the audit entry. Never refuses in dev, test or e2e, so M3
       builds on seeded drafts freely
-- [ ] CMS: "AI draft, unreviewed" chip in the four lists and on each item, the Mark as reviewed
+- [x] CMS: "AI draft, unreviewed" chip in the four lists and on each item, the Mark as reviewed
       button, and publish copy that explains the refusal and offers the override
-- [ ] ADR-0014 decision 6; `content/seed/REVIEW.md` and the handover say the rule in prose
+- [x] ADR-0014 decision 6; `content/seed/REVIEW.md` and the handover say the rule in prose
 
-Then: verification, `docs/progress/2026-09-22-m2.md`, and the full milestone review across M2.
+- [x] Verification: lint, typecheck, format, `check:contracts` (no drift), `pnpm build`,
+      **595 tests** (519 TypeScript + 76 Python), `pnpm test:e2e` 4 specs green, `pnpm db:seed`
+      twice with nothing to do on the second run
+- [x] Docs: ADR-0014 decision 6 and the index, CLAUDE.md §5, `content/seed/REVIEW.md` (the rule in
+      prose for the expert reviewers), `content/seed/README.md`, `docs/progress/2026-09-22-m2.md`
+- [x] Found in my own code during the review and fixed at `36dd6ff`+: the transition audit entry
+      recorded `acknowledged_unreviewed: true` whenever a marked item was published, including in
+      development where the guard never ran and nothing was overridden. It now requires the flag
+      itself, with a regression test.
+
+**Deviations from the proposal the owner approved.** None. The one judgement call not in the brief:
+the review state is three columns rather than one boolean, because "who vouched for this and when"
+is the evidence that makes the mark worth having, and `reviewed_by_user_id` is tombstoned on
+erasure like the other authorship columns.
 
 ## Carried forward
 

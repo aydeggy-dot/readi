@@ -524,7 +524,8 @@
         "action": "Mark as reviewed",
         "confirm": "Mark this reviewed? It records your name against it, and it is what lets it be published in production.",
         "done": "Marked reviewed.",
-        "reviewedOn": "Reviewed on {date}."
+        "reviewedOn": "Reviewed on {date}.",
+        "note": "Note for the review"
       }
     }
   },

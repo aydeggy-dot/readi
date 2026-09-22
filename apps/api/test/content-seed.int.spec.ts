@@ -284,6 +284,61 @@ questions:
       expect(reviewed.aiDraftUnreviewed).toBe(false);
     });
 
+    /*
+     * The case the review round is actually made of, and the one the test above misses by changing
+     * the prompt and the author together: an expert reads a bank, says "these are fine as they
+     * stand", and changes nothing but `author`. No content moves, so the importer's ordinary
+     * update path never runs, and for a while this did nothing at all.
+     */
+    it("clears the mark when ONLY the author changed, without writing a version", async () => {
+      const PROMPT = "What does the event loop do, exactly?";
+      await new SeedImporter(prisma, content).import(write(PROMPT));
+      const before = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(before.aiDraftUnreviewed).toBe(true);
+      const versionsBefore = await prisma.contentVersion.count({
+        where: { entityType: "question", entityId: before.id },
+      });
+
+      // The same words; a different claim about who stands behind them.
+      const report = await new SeedImporter(prisma, content).import(
+        write(PROMPT, undefined, "human"),
+      );
+      expect(report.questions).toMatchObject({ updated: 0, unchanged: 1, reviewed: 1 });
+
+      const after = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(after.aiDraftUnreviewed).toBe(false);
+      // Not a content change: no new version, and no history entry saying otherwise.
+      expect(after.version).toBe(before.version);
+      expect(
+        await prisma.contentVersion.count({
+          where: { entityType: "question", entityId: before.id },
+        }),
+      ).toBe(versionsBefore);
+
+      // The audit log says a review happened, and that the files are what said so.
+      const entry = await prisma.auditLog.findFirst({
+        where: { action: "content.question.reviewed", targetId: before.id },
+      });
+      expect(entry?.after).toMatchObject({ ai_draft_unreviewed: false, by: "seed" });
+    });
+
+    it("plans an author-only flip in a dry run without writing it", async () => {
+      const PROMPT = "What does the event loop do, in a dry run?";
+      await new SeedImporter(prisma, content).import(write(PROMPT));
+      const report = await new SeedImporter(prisma, content, { dryRun: true }).import(
+        write(PROMPT, undefined, "human"),
+      );
+      expect(report.questions).toMatchObject({ reviewed: 1 });
+      const row = await prisma.question.findUniqueOrThrow({
+        where: { slug: `${slug}-question` },
+      });
+      expect(row.aiDraftUnreviewed).toBe(true);
+    });
+
     it("re-marks a question whose text a model has redrafted, and forgets the stale review", async () => {
       await new SeedImporter(prisma, content).import(write("First wording.", undefined, "human"));
       const id = (await prisma.question.findUniqueOrThrow({ where: { slug: `${slug}-question` } }))

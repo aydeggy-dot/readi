@@ -61,7 +61,10 @@ questions[2].ideal_points: expected array`.
   `seed import (forced)` in the version history. A status change is not an edit: publishing seeded
   content leaves it under these files (ADR-0014 decision 5).
 - **Marks what a model drafted.** A file saying `author: ai_draft` marks every row it writes as an
-  unreviewed AI draft; `author: human` clears the mark. Re-drafting the text of a reviewed question
+  unreviewed AI draft; `author: human` clears the mark — **including on items whose words did not
+  change**, which is what an expert approving a bank as it stands looks like. That one write
+  touches the review columns only, writes no version, and is reported on its own line
+  (`8 marked reviewed`) rather than counted as an update. Re-drafting the text of a reviewed question
   under `ai_draft` marks it again and forgets the stale review, because that review was of words
   the import replaced. The mark is otherwise cleared only by **Mark as reviewed** in the CMS —
   never by saving an edit, because a typo fix is not a review (ADR-0014 decision 6).

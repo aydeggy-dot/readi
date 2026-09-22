@@ -93,9 +93,15 @@ export function formatReport(report: SeedReport, dryRun: boolean): string[] {
     )
     .map(([kind, counts]) => {
       const skipped = counts.skipped.length > 0 ? `, ${counts.skipped.length} kept` : "";
+      // Said separately from "updated": no words changed, only the file's claim about who wrote
+      // them, and that is what an expert's YAML review round looks like (ADR-0014 decision 6).
+      const reviewed =
+        counts.reviewed > 0
+          ? `, ${counts.reviewed} ${dryRun ? "to mark reviewed" : "marked reviewed"}`
+          : "";
       return (
         `${kind}: ${counts.created} ${verb[0]}, ${counts.updated} ${verb[1]}, ` +
-        `${counts.unchanged} ${verb[2]}${skipped}`
+        `${counts.unchanged} ${verb[2]}${reviewed}${skipped}`
       );
     });
 }

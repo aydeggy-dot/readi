@@ -20,6 +20,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <>
       <AppHeader
+        width="max-w-5xl"
         nav={
           <nav aria-label={t("nav.main")} className="flex items-center gap-1 sm:gap-3">
             {editor && <NavLink href="/admin/content">{t("nav.content")}</NavLink>}

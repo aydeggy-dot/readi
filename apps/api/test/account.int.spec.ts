@@ -342,6 +342,31 @@ describe("data export and account deletion (ADR-0011)", () => {
           expiresAt: new Date(Date.now() + 300_000),
         },
       });
+      /*
+       * Content the user authored and vouched for. `TOMBSTONED_COLUMNS` being complete is proved
+       * by the schema test below; this proves `eraseUser` actually *acts* on what is listed — a
+       * future column could be added to the list and forgotten in the function, and both other
+       * tests would still pass (ADR-0011, ADR-0014 decisions 4 and 6).
+       */
+      const authored = await prisma.rubric.create({
+        data: {
+          slug: `erase-rubric-${randomUUID().slice(0, 8)}`,
+          name: "Written and reviewed by someone who then left",
+          createdByUserId: userId,
+          reviewedByUserId: userId,
+          reviewedAt: new Date(),
+        },
+      });
+      await prisma.contentVersion.create({
+        data: {
+          entityType: "rubric",
+          entityId: authored.id,
+          version: 1,
+          snapshot: {},
+          changedByUserId: userId,
+        },
+      });
+
       await endGracePeriod(userId);
 
       const erasedAfter = new Date();
@@ -375,6 +400,18 @@ describe("data export and account deletion (ADR-0011)", () => {
         }),
       ).toBe(1);
       expect(await prisma.aiCallLog.count({ where: { userId: tombstone } })).toBe(1);
+
+      // The content stands; only the names behind it move to the tombstone.
+      const kept = await prisma.rubric.findUniqueOrThrow({ where: { id: authored.id } });
+      expect(kept.createdByUserId).toBe(tombstone);
+      expect(kept.reviewedByUserId).toBe(tombstone);
+      expect(kept.reviewedAt).not.toBeNull();
+      expect(
+        await prisma.contentVersion.count({
+          where: { entityId: authored.id, changedByUserId: tombstone },
+        }),
+      ).toBe(1);
+      await prisma.rubric.delete({ where: { id: authored.id } });
 
       // The email address is free again.
       expect((await signUpWithEmail(app, email)).cookie).toBeTruthy();

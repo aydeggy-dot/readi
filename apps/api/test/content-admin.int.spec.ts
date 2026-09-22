@@ -482,12 +482,19 @@ describe("admin content API", () => {
       expect(edited.body).toMatchObject({ seed_managed: false });
     });
 
-    it("does not refuse publishing outside production", async () => {
+    it("does not refuse publishing outside production, and claims no override for it", async () => {
       const rubric = await createRubric(expert);
       await asAiDraft(rubric.id);
       await move(expert, "rubrics", rubric.id, "submit");
       const published = await move(admin, "rubrics", rubric.id, "publish");
       expect(published.status).toBe(201);
+
+      // Here the guard never ran, so nothing was overridden. An audit entry saying it was would
+      // be a lie that a later search for real overrides would trip over.
+      const entry = await prisma.auditLog.findFirst({
+        where: { action: "content.rubric.published", targetId: rubric.id },
+      });
+      expect(entry?.after).not.toMatchObject({ acknowledged_unreviewed: true });
     });
   });
 
