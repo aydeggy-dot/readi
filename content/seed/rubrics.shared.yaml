@@ -32,7 +32,7 @@ rubrics:
         weight: 30
         levels:
           "0": No situation given; answers in generalities ("I always communicate early").
-          "1": Names a situation with no detail that fixes it in time or place.
+          "1": Nothing that fixes it in time or place — a situation named with no detail, or a confident account that turns out to be how they usually work rather than one occasion.
           "2": One situation with some context; the task or the timeframe is missing.
           "3": One situation, with the context an outsider needs in order to follow it.
           "4": As 3, and says what made it hard — the constraint, the deadline, the thing that was unknown.
@@ -43,7 +43,7 @@ rubrics:
         weight: 40
         levels:
           "0": No action is attributable to the candidate, even after the interviewer asks which part was theirs.
-          "1": Actions are generic ("I fixed it") and could describe anyone.
+          "1": Nothing in the answer is theirs to point at — generic actions ("I fixed it"), or a detailed account of what the team decided with their own part left out.
           "2": Some of their own actions, but the sequence or the reasoning is missing.
           "3": What they did and why it is recoverable from the answer.
           "4": As 3, including a decision they weighed and what they gave up by taking it.
@@ -55,7 +55,7 @@ rubrics:
         levels:
           "0": No outcome, or an outcome that does not follow from the actions described.
           "1": States that it worked out, with nothing to show for it.
-          "2": An outcome, but the lesson is a platitude ("communication is important").
+          "2": An outcome, but the lesson is a platitude ("communication is important") — however specifically the outcome itself is told.
           "3": The outcome and one specific thing they changed afterwards are both stated.
           "4": As 3, and the change is one an interviewer could check against how they now work.
 
@@ -75,7 +75,7 @@ rubrics:
         description: Evidence of a real attempt — what they read, what they ruled out — rather than a search and a shrug.
         weight: 35
         levels:
-          "0": No attempt described.
+          "0": No attempt of their own described — including a detailed account of an attempt that was somebody else's.
           "1": '"I looked it up", with nothing they learned from doing so.'
           "2": One thing tried, with no account of what it told them.
           "3": Several things tried, and what each one ruled out.
@@ -87,7 +87,7 @@ rubrics:
           fact about the workplace, not a fault in the candidate.
         weight: 40
         levels:
-          "0": No sense that asking was a decision at all.
+          "0": No decision about their own asking — not treated as a decision at all, or a lesson drawn about the team's process instead.
           "1": A rule with nothing behind it ("I always try for an hour first").
           "2": Says they waited or asked, with no reason tied to what was at stake or what they had ruled out.
           "3": The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why.
@@ -101,7 +101,7 @@ rubrics:
         weight: 25
         levels:
           "0": No situation given; answers in generalities about being open to feedback.
-          "1": Names a situation with no detail about what the feedback said.
+          "1": No piece of work to point at — a situation with nothing about what the feedback said, or a specific, well-told story about feedback on something other than their work.
           "2": One situation, with the feedback described only as "a lot of comments".
           "3": One situation, with at least one comment described specifically enough to discuss.
           "4": As 3, and the comment described is one that changed something, not the easiest one.
@@ -110,7 +110,7 @@ rubrics:
         weight: 35
         levels:
           "0": No actions described.
-          "1": '"I made the changes", with nothing about what they were.'
+          "1": Nothing recoverable about the work — "I made the changes" with no account of them, or changes to how they behave rather than to what they built.
           "2": Some changes described, without saying what problem each addressed.
           "3": What they changed and why it was an improvement is recoverable from the answer.
           "4": As 3, and something they now do earlier so that comment would not arise again.
@@ -156,7 +156,7 @@ rubrics:
         description: What they do with the six hours.
         weight: 30
         levels:
-          "0": Waits.
+          "0": Waits — for want of anything else to do, or on the argument that working on a blocked task creates rework.
           "1": Says they would "keep trying" with no plan.
           "2": Moves to other work without narrowing the problem at all.
           "3": Picks up something not blocked, and keeps narrowing the problem in the background.
@@ -190,7 +190,7 @@ rubrics:
         weight: 30
         levels:
           "0": Nothing they would change.
-          "1": '"I would write cleaner code" or similar.'
+          "1": The answer everyone gives — "cleaner code", "tests earlier" — with nothing from this project behind it.
           "2": Names a change with no reason behind it.
           "3": Names a specific change and what went wrong that taught them it.
           "4": As 3, and separates what they could reasonably have known at the time from what only experience gives.

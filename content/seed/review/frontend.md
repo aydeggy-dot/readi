@@ -1,6 +1,6 @@
 # Frontend engineer — drafted content for expert review
 
-**34 questions**, 34 rubrics, 1 track (3 modules, 6 lessons).
+**35 questions**, 35 rubrics, 1 track (3 modules, 6 lessons).
 
 Everything here is a **draft written by `ai_draft`** and is invisible to candidates until a human publishes it. Your review is what decides whether it ever is.
 
@@ -23,62 +23,67 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 ### 1. js-async-ordering
 
-**technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: JavaScript fundamentals (event loop)
+**technical** · difficulty 3/5 · roles: frontend, fullstack · mid · topic: JavaScript fundamentals (the main thread)
 
 **The interviewer asks**
 
-> Have a look at this snippet. In what order do the four numbers appear in the console, what is it about the way the browser runs JavaScript that makes it come out that way, and why should anyone building a page care?
+> A tester says that when they tap Save on their phone the screen goes dead for about two seconds — nothing on it changes at all — and then the "Saved" message appears. They expected to see "Saving…" while they waited. Why does that line never show up, what is the browser doing for those two seconds, and what would you change?
 
 **Setup the candidate is given**
 
 > ```js
-> console.log("1");
-> setTimeout(() => console.log("4"), 0);
-> Promise.resolve().then(() => console.log("3"));
-> console.log("2");
+> saveButton.addEventListener("click", () => {
+>   status.textContent = "Saving…";
+>
+>   // Builds the report from about 40,000 rows. Takes ~2 seconds on a mid-range phone.
+>   const report = buildReport(rows);
+>
+>   status.textContent = `Saved — ${report.length} lines`;
+> });
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
-- The order is 1, 2, 3, 4.
-- JavaScript runs on one thread; the synchronous lines run to completion first.
-- Promise callbacks are microtasks and are drained after the current work, before the next task.
-- A zero-delay `setTimeout` is a task, so it waits behind the microtasks — "0ms" is not "now".
-- The same thread paints, so long synchronous work blocks rendering and input.
+- The first line did run; the text was set and the browser never got the chance to paint it.
+- Rendering happens on the same thread as the handler, and only once the handler has returned.
+- By the time a frame could be drawn, `textContent` already said "Saved", so "Saving…" was never on screen.
+- Nothing else works during those two seconds either — taps and scrolling wait behind the loop.
+- Let the browser paint before the work starts, or move the work off the main thread.
+- Check it on a mid-range phone or with the CPU throttled, not on the laptop it was written on.
 
-**Rubric: Understanding of asynchronous ordering** (`async-ordering-understanding`)
+**Rubric: Understanding what the main thread is doing** (`async-ordering-understanding`)
 
-**Gets the order right — 30%**
+**Says why the first message never reaches the screen — 25%**
 
-Predicts the actual output order of the snippet.
+Not that it was overwritten too quickly to see — that no frame was painted between the two assignments, so there was never anything to see.
 
-- **0 (absent):** No answer, or an order with no reasoning behind it.
-- **1 (weak):** Order is wrong in a way that shows no model of queuing (e.g. purely top to bottom).
-- **2 (partial):** Synchronous lines placed correctly; the promise and the timer are swapped.
-- **3 (solid):** Correct order.
-- **4 (excellent):** Correct order, and says which line was the one to get right — the zero-delay timer that still runs last.
+- **0 (absent):** Concludes the line did not run, or that the code is wrong.
+- **1 (weak):** A story about the writes rather than about painting — too quick to see, the second line overwriting the first, the two assignments batched together so only the last survived — however confidently told.
+- **2 (partial):** Says the screen did not update, without saying why the update never reached it.
+- **3 (solid):** Says the text was set but the browser never painted between the two assignments.
+- **4 (excellent):** As 3, and says what was on screen for those two seconds instead — whatever the tap found there.
 
-**Explains the mechanism — 45%**
+**Explains what the browser is doing for those two seconds — 45%**
 
-Why that order: one thread, a call stack that runs to completion, microtasks drained before the next task. Not a memorised rule ("promises are faster").
+One thread runs the handler and draws the page and cannot do both at once, so the frame comes after the handler returns.
 
-- **0 (absent):** No explanation offered.
-- **1 (weak):** A rule with no mechanism ("promises come first").
-- **2 (partial):** Mentions the event loop or a queue, but conflates timers and promise callbacks.
-- **3 (solid):** Distinguishes the two queues, by whatever name, and says when each is taken.
-- **4 (excellent):** As 3, and explains that the stack must empty first, so `setTimeout(…, 0)` means "not before then".
+- **0 (absent):** Treats drawing the page as something that happens independently of the code.
+- **1 (weak):** A mechanism that is not this one — the browser batching updates for performance, rendering on another thread, `textContent` being asynchronous — however precisely it is put.
+- **2 (partial):** Says the thread is busy, without connecting that to when the page can be drawn.
+- **3 (solid):** Says the same thread runs the handler and paints, so no frame can be produced until the handler returns.
+- **4 (excellent):** As 3, and extends it to the rest of the page — the tap that goes unanswered, the scroll that stalls — because they wanted the same thread.
 
-**Connects it to the user — 25%**
+**Gets the work out of the way — 30%**
 
-What this means on screen — a frozen page, a late paint, a race between two requests.
+What they would change, and how they would know it had worked.
 
-- **0 (absent):** Treats it as trivia with no consequence.
-- **1 (weak):** Says it "matters for performance" without saying how.
-- **2 (partial):** Names one consequence in general terms.
-- **3 (solid):** Gives a concrete consequence, such as a long task blocking a tap or a paint.
-- **4 (excellent):** As 3, plus what they would do about it (break up work, start requests together).
+- **0 (absent):** No change proposed, or only a message put somewhere else on the page.
+- **1 (weak):** A change that leaves no room for a frame — a promise wrapped round the same work, a faster loop, a spinner beside the text, or forcing a synchronous layout after the assignment to push it out.
+- **2 (partial):** Names an approach — yield, a worker, do it on the server — without saying what it changes about the two seconds.
+- **3 (solid):** Lets the browser paint before the work starts, or moves the work off the main thread, and says why that is what fixes it.
+- **4 (excellent):** As 3, and says how they would check — a throttled profile, or a real mid-range phone — and what their choice costs against the other one.
 
-> **The drafter is unsure about:** **Three of the four critique passes wanted this question changed or cut**, and I have only made it fairer rather than acted on that, because it is the oldest question in the bank and the call is yours. The case against: this exact snippet is in every "top ten JavaScript interview questions" video, so it sorts candidates by how much interview prep they have watched; criterion 2 carries 45% on a distinction a good self-taught candidate may never have been given a word for (level 3 now accepts the idea by any name); and it is offered at intern-junior. **The best proposal was to keep the mechanism and change the snippet**: a click handler that sets a "Saving…" flag and then runs a long synchronous loop, so the spinner never appears. Same event loop, cannot be answered from memory, and the follow-up ("so where does the work go?") is a real one. Mid only, that snippet, both, or neither?
+> **The drafter is unsure about:** **The snippet changed on 2026-09-22 and the question is now mid only** (owner's decision). It used to be four `console.log`s and a zero-delay `setTimeout` — the snippet in every "top ten JavaScript interview questions" video, which sorted candidates by how much interview prep they had watched rather than by what they understood, and three of the four critique passes wanted it changed or cut. It asks the same thing about the main thread from a symptom nobody can have memorised, and the follow-up ("so where does the work go?") is a real one. What I would like checked is whether the fix is still reachable at mid: "let it paint first" is easy to say and fiddly to do, so the rubric puts the mechanism at level 3 and the yielding at level 4, and a candidate who only says "move it to a worker" still scores 3.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -87,7 +92,76 @@ What this means on screen — a frozen page, a late paint, a race between two re
 
 ---
 
-### 2. fetch-failure-states
+### 2. js-loop-that-returns-nothing
+
+**technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior · topic: JavaScript fundamentals (array methods and return values)
+
+**The interviewer asks**
+
+> This function is meant to give back the jobs that are still open, and whoever calls it gets `undefined` every time. Talk me through what actually happens when it runs, why the `return` does not do what it looks like it does, and how you would write it instead.
+
+**Setup the candidate is given**
+
+> ```js
+> function openJobs(jobs) {
+>   jobs.forEach((job) => {
+>     if (job.isOpen) {
+>       return job;
+>     }
+>   });
+> }
+> ```
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- `openJobs` has no `return` of its own, so it gives back `undefined` whatever the loop does.
+- The `return` inside belongs to the arrow function and ends that call, not the outer one.
+- `forEach` throws away whatever its callback returns; it is there for side effects.
+- `filter` keeps the items that pass a test and gives back a new array, leaving the original alone.
+- `find` is the one to reach for if only the first match is wanted — a different question.
+
+**Rubric: Reading what a loop actually gives back** (`array-return-diagnosis`)
+
+**Says where the `undefined` comes from — 40%**
+
+The outer function never returns anything; the `return` inside belongs to the callback.
+
+- **0 (absent):** Sees nothing wrong, or blames the data.
+- **1 (weak):** Puts the fault somewhere it is not — the `if`, the property name, an empty array — whether guessed at or argued in detail.
+- **2 (partial):** Notices that `openJobs` returns nothing, without saying what the inner `return` does instead — or gives that `return` a behaviour it does not have and makes the missing assignment the whole of the bug.
+- **3 (solid):** Says the `return` ends the arrow function and the outer one falls off the end, so the caller gets `undefined`.
+- **4 (excellent):** As 3, and says the loop itself runs correctly — nothing is broken except what is done with the result.
+
+**Knows what `forEach` is for — 30%**
+
+That it throws away whatever the callback returns, so no `return` inside it can produce a value.
+
+- **0 (absent):** Treats `forEach` as interchangeable with any other loop.
+- **1 (weak):** Gives `forEach` a behaviour it does not have — that the `return` skips to the next item and is otherwise fine, that it stops the loop, that it collects what is returned — however confidently.
+- **2 (partial):** Says `forEach` "does not return anything" without connecting that to the callback's value.
+- **3 (solid):** Says `forEach` ignores what the callback gives back, and is there for side effects.
+- **4 (excellent):** As 3, and separates it from the methods whose whole purpose is the value the callback returns.
+
+**Writes it the way that says what it means — 30%**
+
+`filter` for every match, `find` for the first — chosen, rather than the first thing that works.
+
+- **0 (absent):** No working alternative.
+- **1 (weak):** A change that does not fix it — moving the inner `return` elsewhere in the callback, or capturing what `jobs.forEach(...)` gives back, which is `undefined`. A correct method named in passing is not the fix they proposed.
+- **2 (partial):** Gets a correct result the long way — a variable, a loop and a `push` — or names `filter` without being able to say what it gives back.
+- **3 (solid):** Uses `filter`, and says it gives back a new array of the items that passed.
+- **4 (excellent):** As 3, and says what they would use if only the first open job were wanted, and why that is a different question.
+
+> **The drafter is unsure about:** New on 2026-09-22, because `js-async-ordering` became mid only and `javascript-fundamentals` would otherwise have had one general question at intern-junior instead of the floor of two. It is the cheapest question in the bank and deliberately so: the topic needed something a self-taught junior meets in their own code rather than in a video. The risk runs the other way — is it too easy to be worth one of the six questions an hour holds, or does the "which function is this `return` in" part carry it? The follow-up I have in mind is "and if you only wanted the first one?", which is where `find` comes in.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 3. fetch-failure-states
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior · topic: HTTP, APIs and the network (error handling)
 
@@ -111,7 +185,7 @@ Loading, empty, error and data — with empty treated as normal, not as an error
 
 - **0 (absent):** Only the success case.
 - **1 (weak):** Success and a spinner.
-- **2 (partial):** Three of the four states, or all four named without distinguishing empty from error.
+- **2 (partial):** Three of the four states, or all four with empty and error run together — whether they are merged by omission or an empty list is argued to be an error.
 - **3 (solid):** All four states, with empty and error clearly different.
 - **4 (excellent):** All four, plus what the user can do from the error state (retry, go back, contact support).
 
@@ -120,7 +194,7 @@ Loading, empty, error and data — with empty treated as normal, not as an error
 Knows that `fetch` resolves for a 404 or a 500 and that the status must be checked — the single most common mistake in this area.
 
 - **0 (absent):** No error handling at all.
-- **1 (weak):** A `try`/`catch` only; a 500 would be reported as a parsing failure.
+- **1 (weak):** Relies on the request rejecting — a `try`/`catch` only, or a confident claim that `fetch` throws on a 404 or a 500.
 - **2 (partial):** Checks the status, but treats every failure the same way.
 - **3 (solid):** Checks `response.ok`, and separates "the request failed" from "the server said no".
 - **4 (excellent):** As 3, and distinguishes statuses that deserve different handling (401 vs 404 vs 500).
@@ -130,7 +204,7 @@ Knows that `fetch` resolves for a 404 or a 500 and that the status must be check
 Timeouts, a request that never returns, retries, and what is safe to retry.
 
 - **0 (absent):** Assumes the request either succeeds or fails promptly.
-- **1 (weak):** Mentions slow networks with no mechanism for dealing with them.
+- **1 (weak):** Mentions slow networks with no mechanism — or names one the platform does not have, such as a timeout `fetch` applies on its own.
 - **2 (partial):** Suggests a timeout or a retry, without saying how or when.
 - **3 (solid):** Gives the request a deadline (e.g. `AbortController`) and retries deliberately.
 - **4 (excellent):** As 3, and notes that retrying a non-idempotent request can repeat a side effect.
@@ -144,7 +218,7 @@ Timeouts, a request that never returns, retries, and what is safe to retry.
 
 ---
 
-### 3. react-state-placement
+### 4. react-state-placement
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (lifting state) · stacks: react-typescript, nextjs, react-node
 
@@ -168,7 +242,7 @@ Local, lifted to the nearest common parent, in the URL, or in a server cache —
 
 - **0 (absent):** No decision, or "put it in a global store" with no reasoning.
 - **1 (weak):** Picks a place but cannot say why that one.
-- **2 (partial):** Lifts to a common parent, but higher than necessary, or reaches for a global store first.
+- **2 (partial):** Lifts higher than necessary, or reaches for a global store first — including a confident case for the store built on a claim about re-renders that this tree does not support.
 - **3 (solid):** Lifts to the nearest component that needs it, and says why there.
 - **4 (excellent):** As 3, and recognises the kind of state it is (server data, UI state, or a URL concern).
 
@@ -176,7 +250,7 @@ Local, lifted to the nearest common parent, in the URL, or in a server cache —
 
 Derives what can be derived; does not keep two copies that have to be kept in step.
 
-- **0 (absent):** Copies the same value into several places without noticing.
+- **0 (absent):** Copies the same value into several places — without noticing, or defending it as an optimisation.
 - **1 (weak):** Notices the duplication only when prompted.
 - **2 (partial):** Avoids duplication in the example but cannot generalise the rule.
 - **3 (solid):** States the rule — one source of truth, derive the rest during render.
@@ -187,12 +261,12 @@ Derives what can be derived; does not keep two copies that have to be kept in st
 Prop drilling, re-renders, a store that outlives the screen — no choice is free.
 
 - **0 (absent):** Presents the choice as obviously correct with no trade-off.
-- **1 (weak):** Acknowledges a trade-off exists but not what it is.
+- **1 (weak):** Acknowledges a trade-off and names the wrong one — an extra file, some boilerplate — rather than what this choice actually costs.
 - **2 (partial):** Names one cost in passing.
 - **3 (solid):** Names the real cost of their choice and when it would push them to a different one.
 - **4 (excellent):** As 3, and gives the signal they would watch for to change the decision later.
 
-> **The drafter is unsure about:** **A critique pass wanted this cut, and I think the argument is good enough that you should decide.** Since this pass, `state-that-can-disagree` covers deriving, `url-as-state` covers the URL answer with an actual symptom, and `react-unnecessary-effect` covers "this should not be state" with real code — which leaves this as the only one of the four with nothing concrete to reason from, so the conversation tends to end in "it depends". I have kept it and added "what does that choice cost you" to the prompt, because 30% of the score was on a cost the question never asked for. If it stays: is asking for the cost fair on someone who has only built small apps, and is the React tag right when the prompt itself reads framework-neutral?
+> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -201,7 +275,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 
 ---
 
-### 4. react-unnecessary-effect
+### 5. react-unnecessary-effect
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (effects) · stacks: react-typescript, nextjs, react-node
 
@@ -238,7 +312,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 That the value is derived and does not need to be state, or that the effect duplicates a render.
 
 - **0 (absent):** Sees nothing wrong.
-- **1 (weak):** Says it "looks off" without locating the problem.
+- **1 (weak):** Locates the problem somewhere else — the dependency array, a render loop — whether vaguely or in convincing detail.
 - **2 (partial):** Identifies the effect as suspicious but explains it as a style preference.
 - **3 (solid):** Says that the value can be computed during render, so it is not state.
 - **4 (excellent):** As 3, and states the rule: effects are for synchronising with things outside React.
@@ -248,7 +322,7 @@ That the value is derived and does not need to be state, or that the effect dupl
 An extra render, a frame of stale UI, and a second place for the value to go wrong.
 
 - **0 (absent):** No consequence given.
-- **1 (weak):** "It is slower", with nothing behind it.
+- **1 (weak):** A consequence that does not follow — "it is slower" with nothing behind it, or a detailed account of a runaway loop this code does not have.
 - **2 (partial):** Mentions an extra render without saying why it happens.
 - **3 (solid):** Explains that the effect runs after render, so the user briefly sees the old value.
 - **4 (excellent):** As 3, and notes that the state can now disagree with the props it came from.
@@ -258,7 +332,7 @@ An extra render, a frame of stale UI, and a second place for the value to go wro
 Removes the state and the effect, computing the value where it is used.
 
 - **0 (absent):** No alternative offered.
-- **1 (weak):** Changes the dependency array and keeps the effect.
+- **1 (weak):** Keeps the state and the effect and adds machinery around them — a new dependency array, a memo, an equality guard.
 - **2 (partial):** Removes the effect but keeps the redundant state.
 - **3 (solid):** Computes during render; the state and the effect both disappear.
 - **4 (excellent):** As 3, and says what they would do if the calculation really were expensive — measure it first, rather than assume.
@@ -272,7 +346,7 @@ Removes the state and the effect, computing the value where it is used.
 
 ---
 
-### 5. css-overflow-at-360
+### 6. css-overflow-at-360
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior · topic: CSS layout and responsive design (responsive debugging)
 
@@ -295,7 +369,7 @@ Removes the state and the effect, computing the value where it is used.
 Narrows down to the element that is too wide rather than guessing at fixes — for example by using the inspector, or by bisecting the page.
 
 - **0 (absent):** Starts changing CSS at random.
-- **1 (weak):** Guesses a cause and applies a fix without checking it was the cause.
+- **1 (weak):** Applies a fix to a cause they never confirmed, however specific the hunch — searching the stylesheet for one suspect property rather than reproducing the overflow.
 - **2 (partial):** Uses the inspector but stops at the first element that looks wrong.
 - **3 (solid):** Identifies the specific element that exceeds the viewport and says how they found it.
 - **4 (excellent):** As 3, with a repeatable method (device toolbar at 360px, then narrowing down the subtree).
@@ -305,7 +379,7 @@ Narrows down to the element that is too wide rather than guessing at fixes — f
 Fixed widths, long unbroken strings, wide tables and images, negative margins, `100vw` with a scrollbar.
 
 - **0 (absent):** No candidate causes.
-- **1 (weak):** One cause, stated as the only possibility.
+- **1 (weak):** One cause, stated as the usual answer — including `100vw` beside a scrollbar, which is not what happens on a phone.
 - **2 (partial):** Two or three causes, unsorted.
 - **3 (solid):** Several plausible causes, with a reason for checking one first.
 - **4 (excellent):** As 3, including a cause that is easy to miss (overflowing text, or a `min-width: auto` flex item).
@@ -315,7 +389,7 @@ Fixed widths, long unbroken strings, wide tables and images, negative margins, `
 A fix that holds from 360px upward, rather than a media query patching one width.
 
 - **0 (absent):** No fix, or one that would break other sizes.
-- **1 (weak):** Hides the symptom (`overflow-x: hidden`) without addressing the cause.
+- **1 (weak):** Hides the symptom (`overflow-x: hidden` on the page) without addressing the cause — including when it is offered as standard practice.
 - **2 (partial):** A media query for small screens only.
 - **3 (solid):** A fix that works at every width (fluid sizing, wrapping, `max-width: 100%`).
 - **4 (excellent):** As 3, and says how they would check it stays fixed — a test or a screenshot at 360px.
@@ -329,7 +403,7 @@ A fix that holds from 360px upward, rather than a media query patching one width
 
 ---
 
-### 6. slow-page-on-3g
+### 7. slow-page-on-3g
 
 **scenario** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Browser rendering and performance (performance investigation)
 
@@ -353,7 +427,7 @@ Reproduces the complaint under the user's conditions rather than reasoning from 
 
 - **0 (absent):** Starts optimising immediately.
 - **1 (weak):** Says "I would profile it" with no method.
-- **2 (partial):** Opens DevTools but does not reproduce the user's conditions.
+- **2 (partial):** Measures on their own machine and stops — a tool opened, or a score taken as proof — without reproducing the user's conditions.
 - **3 (solid):** Reproduces under the user's conditions — throttling, or a real mid-range phone on mobile data — and records a load.
 - **4 (excellent):** As 3, and gathers what the report is missing first — device, page, whether it is every visit.
 
@@ -362,7 +436,7 @@ Reproduces the complaint under the user's conditions rather than reasoning from 
 Knows that bytes and main-thread time are different budgets that fail differently, and works out which one this is.
 
 - **0 (absent):** Treats "slow" as one undifferentiated thing.
-- **1 (weak):** Assumes it is the network (or the server) without checking.
+- **1 (weak):** Settles on one of the two without checking — usually the network, sometimes argued as a rule that it is always the network.
 - **2 (partial):** Mentions both but does not say how to tell them apart.
 - **3 (solid):** Reads the waterfall and the main thread and says which dominates here.
 - **4 (excellent):** As 3, and knows a mid-range phone's CPU is often the binding constraint, not bandwidth.
@@ -372,7 +446,7 @@ Knows that bytes and main-thread time are different budgets that fail differentl
 The fix follows from the measurement, and its effect is checked.
 
 - **0 (absent):** No change proposed, or a rewrite.
-- **1 (weak):** A list of general best practices unrelated to the finding.
+- **1 (weak):** General best practices unrelated to the finding, often shipped together — plausible changes, none of them chosen by the measurement.
 - **2 (partial):** A reasonable change, but not clearly the one the measurement pointed to.
 - **3 (solid):** A change that addresses the dominant cost, then re-measures.
 - **4 (excellent):** As 3, and weighs effort against benefit, naming what they would not bother with.
@@ -386,7 +460,7 @@ The fix follows from the measurement, and its effect is checked.
 
 ---
 
-### 7. stuck-and-asked-for-help
+### 8. stuck-and-asked-for-help
 
 **behavioral** · difficulty 2/5 · roles: frontend, backend, qa, fullstack · intern-junior · topic: Working with a team (asking for help)
 
@@ -418,7 +492,7 @@ One occasion that actually happened, with the concrete detail an outsider needs 
 
 Evidence of a real attempt — what they read, what they ruled out — rather than a search and a shrug.
 
-- **0 (absent):** No attempt described.
+- **0 (absent):** No attempt of their own described — including a detailed account of an attempt that was somebody else's.
 - **1 (weak):** "I looked it up", with nothing they learned from doing so.
 - **2 (partial):** One thing tried, with no account of what it told them.
 - **3 (solid):** Several things tried, and what each one ruled out.
@@ -428,7 +502,7 @@ Evidence of a real attempt — what they read, what they ruled out — rather th
 
 Why they asked when they did. The decision can show in the story rather than be stated. Scored on the judgement, never on the hours — a team that treats asking as weakness is a fact about the workplace, not a fault in the candidate.
 
-- **0 (absent):** No sense that asking was a decision at all.
+- **0 (absent):** No decision about their own asking — not treated as a decision at all, or a lesson drawn about the team's process instead.
 - **1 (weak):** A rule with nothing behind it ("I always try for an hour first").
 - **2 (partial):** Says they waited or asked, with no reason tied to what was at stake or what they had ruled out.
 - **3 (solid):** The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why.
@@ -443,7 +517,7 @@ Why they asked when they did. The decision can show in the story rather than be 
 
 ---
 
-### 8. feedback-on-your-code
+### 9. feedback-on-your-code
 
 **behavioral** · difficulty 2/5 · roles: frontend, backend, qa, fullstack · intern-junior, mid · topic: Working with a team (code review)
 
@@ -465,7 +539,7 @@ Why they asked when they did. The decision can show in the story rather than be 
 One piece of work and the feedback it actually got, from whoever gave it.
 
 - **0 (absent):** No situation given; answers in generalities about being open to feedback.
-- **1 (weak):** Names a situation with no detail about what the feedback said.
+- **1 (weak):** No piece of work to point at — a situation with nothing about what the feedback said, or a specific, well-told story about feedback on something other than their work.
 - **2 (partial):** One situation, with the feedback described only as "a lot of comments".
 - **3 (solid):** One situation, with at least one comment described specifically enough to discuss.
 - **4 (excellent):** As 3, and the comment described is one that changed something, not the easiest one.
@@ -475,7 +549,7 @@ One piece of work and the feedback it actually got, from whoever gave it.
 The changes they made, and how the work ended up different.
 
 - **0 (absent):** No actions described.
-- **1 (weak):** "I made the changes", with nothing about what they were.
+- **1 (weak):** Nothing recoverable about the work — "I made the changes" with no account of them, or changes to how they behave rather than to what they built.
 - **2 (partial):** Some changes described, without saying what problem each addressed.
 - **3 (solid):** What they changed and why it was an improvement is recoverable from the answer.
 - **4 (excellent):** As 3, and something they now do earlier so that comment would not arise again.
@@ -499,7 +573,7 @@ How they got to the bottom of it. Pushing back is one route and is not available
 
 ---
 
-### 9. js-copy-or-reference
+### 10. js-copy-or-reference
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: JavaScript fundamentals (references and copying)
 
@@ -537,7 +611,7 @@ How they got to the bottom of it. Pushing back is one route and is not available
 That the array holds objects, that the function received the same objects, and that it wrote to them.
 
 - **0 (absent):** Does not identify what changed the caller's data.
-- **1 (weak):** Blames the loop, the framework or the caller rather than the assignment.
+- **1 (weak):** Blames the loop, the framework or the caller rather than the assignment — including a detailed account of how the loop binding is at fault.
 - **2 (partial):** Says the array was "passed by reference" without saying what that means for the items inside it.
 - **3 (solid):** Says the function is writing to the same objects the caller holds, and points at the assignment.
 - **4 (excellent):** As 3, and separates the array from the objects in it — copying the array alone would not have helped.
@@ -547,7 +621,7 @@ That the array holds objects, that the function received the same objects, and t
 That it fixes the binding, not the contents — the single most common misreading here.
 
 - **0 (absent):** Not addressed.
-- **1 (weak):** Believes `const` should have prevented the change.
+- **1 (weak):** Gets `const` wrong — that it should have prevented the change, or that it is a live binding into the caller's memory.
 - **2 (partial):** Says `const` is "about reassignment" without applying it to this code.
 - **3 (solid):** States that `const` stops `cart` being pointed elsewhere and nothing else.
 - **4 (excellent):** As 3, and names what would actually prevent the change instead.
@@ -557,7 +631,7 @@ That it fixes the binding, not the contents — the single most common misreadin
 Returns new data rather than editing what was passed in, and says why that is the better default.
 
 - **0 (absent):** No fix, or one that still writes to the caller's objects.
-- **1 (weak):** Copies the array only, so the objects are still shared.
+- **1 (weak):** Copies the array only, so the objects are still shared — including when the spread is described as a deep copy.
 - **2 (partial):** Produces new objects but by a route that would break on nested data, without noticing.
 - **3 (solid):** Builds and returns new items, leaving the input untouched.
 - **4 (excellent):** As 3, and says when editing in place is legitimate — and that the name should then say so.
@@ -571,7 +645,7 @@ Returns new data rather than editing what was passed in, and says why that is th
 
 ---
 
-### 10. state-that-can-disagree
+### 11. state-that-can-disagree
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (derived state)
 
@@ -594,7 +668,7 @@ Returns new data rather than editing what was passed in, and says why that is th
 Recognises that the selection is the state and the count and total follow from it.
 
 - **0 (absent):** Treats all three as things to store, with no distinction between them.
-- **1 (weak):** Stores all three and keeps them in step manually, seeing no problem.
+- **1 (weak):** Keeps all three — seeing no problem, or diagnosing something else entirely, such as a stale closure, and leaving the three in place.
 - **2 (partial):** Senses that the count is redundant but keeps it "to avoid recalculating".
 - **3 (solid):** Holds the selection alone and calculates the count and total where they are shown.
 - **4 (excellent):** As 3, and generalises — anything filtered, sorted or summed from data already held is derived.
@@ -603,7 +677,7 @@ Recognises that the selection is the state and the count and total follow from i
 
 Three copies of one fact can disagree, and the failure looks like a display bug.
 
-- **0 (absent):** No downside offered.
+- **0 (absent):** No downside offered — the duplication is never identified as the problem, so nothing is said to follow from it.
 - **1 (weak):** Says it is "bad practice" with nothing behind it.
 - **2 (partial):** Says the values "could get out of sync" without a route by which they would.
 - **3 (solid):** Describes a concrete path to disagreement — a change that updates two of the three.
@@ -628,7 +702,7 @@ Whether doing the work on every render matters here, and how they would find out
 
 ---
 
-### 11. url-as-state
+### 12. url-as-state
 
 **scenario** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (state in the URL)
 
@@ -650,7 +724,7 @@ Whether doing the work on every render matters here, and how they would find out
 
 That the filter lives only in the page's memory, so the link carries nothing about it.
 
-- **0 (absent):** Treats it as a bug in sharing, the browser or the server.
+- **0 (absent):** Puts the cause outside the page — sharing, the browser, a cache, the server — however specifically it is argued.
 - **1 (weak):** Says the filter "was not saved" without saying where it lived.
 - **2 (partial):** Identifies that the state is in the page, but not why the link is therefore incomplete.
 - **3 (solid):** Says the address never changed, so the friend's page starts from its defaults.
@@ -685,7 +759,7 @@ Ephemeral interface state — an open menu, an unsent draft — is not a URL con
 
 ---
 
-### 12. layout-tools-for-a-screen
+### 13. layout-tools-for-a-screen
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: CSS layout and responsive design (choosing a layout tool)
 
@@ -734,7 +808,7 @@ It describes four screen widths rather than what the cards need, so every width 
 
 - **0 (absent):** Sees nothing wrong; the CSS works, so it is fine.
 - **1 (weak):** Objects to the number of media queries without saying what goes wrong because of them.
-- **2 (partial):** Says it is hard to maintain, without connecting that to the widths in between.
+- **2 (partial):** Says it is hard to maintain — magic numbers, drift, or an invented cost such as media queries forcing layout on resize — without connecting it to the widths in between.
 - **3 (solid):** Says the rules describe devices rather than content, so any width not listed is unhandled.
 - **4 (excellent):** As 3, and points out that changing the card itself means revisiting all four numbers.
 
@@ -743,7 +817,7 @@ It describes four screen widths rather than what the cards need, so every width 
 The number of cards per row follows from the space available and a minimum card width.
 
 - **0 (absent):** No alternative, or more breakpoints.
-- **1 (weak):** Rearranges the same breakpoints, or adds one for a size that was missing.
+- **1 (weak):** Rearranges the same breakpoints — new units, variables, or one more for a size that was missing — leaving the model untouched.
 - **2 (partial):** Knows the grid can do it but cannot say what it would be told.
 - **3 (solid):** Gives the grid a minimum card width and lets it fit as many as will go.
 - **4 (excellent):** As 3, and keeps breakpoints for where the design genuinely changes shape rather than removing them all.
@@ -752,7 +826,7 @@ The number of cards per row follows from the space available and a minimum card 
 
 Building up from the small screen rather than patching a wide layout down.
 
-- **0 (absent):** Designs for a laptop and does not mention small screens.
+- **0 (absent):** Never reaches the narrow end — designs for a laptop, or answers about something else, such as zoom or the design system.
 - **1 (weak):** Mentions mobile as something to check at the end.
 - **2 (partial):** Says "mobile-first" without it affecting the described approach.
 - **3 (solid):** Describes checking at the narrow width first and adding rules as space appears.
@@ -767,7 +841,7 @@ Building up from the small screen rather than patching a wide layout down.
 
 ---
 
-### 13. content-you-do-not-control
+### 14. content-you-do-not-control
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: CSS layout and responsive design (resilient layout)
 
@@ -802,7 +876,7 @@ Building up from the small screen rather than patching a wide layout down.
 Names the specific failures — overflow from an unbroken string, uneven heights, a missing image.
 
 - **0 (absent):** Expects nothing to break, or answers about the data instead of the layout.
-- **1 (weak):** Says it "might look bad" without naming a failure.
+- **1 (weak):** Names no failure — "it might look bad", or straight to a fix, with nothing said about what goes wrong.
 - **2 (partial):** Names one failure, usually the long title.
 - **3 (solid):** Names several, including one caused by something missing rather than something long.
 - **4 (excellent):** As 3, and separates failures that are ugly from failures that break the page, such as sideways scrolling.
@@ -811,7 +885,7 @@ Names the specific failures — overflow from an unbroken string, uneven heights
 
 Wrapping, space reserved for what may not arrive, and sizes the content can flow inside.
 
-- **0 (absent):** No technique offered, or fixed sizes that assume the sample data.
+- **0 (absent):** No technique, or fixed sizes that assume the sample data — including a confident set of them that would clip the content instead.
 - **1 (weak):** Would fix each case as it is reported.
 - **2 (partial):** One technique, applied narrowly.
 - **3 (solid):** Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
@@ -821,7 +895,7 @@ Wrapping, space reserved for what may not arrive, and sizes the content can flow
 
 Deliberately trying the worst content available rather than the sample you built against.
 
-- **0 (absent):** Assumes the sample data is representative.
+- **0 (absent):** Nothing left to test — the sample data is assumed representative, or the geometry is presented as a guarantee.
 - **1 (weak):** Would wait for a bug report.
 - **2 (partial):** Says they would "test with different data" without saying which.
 - **3 (solid):** Describes trying the longest, the shortest and the missing, before it ships.
@@ -836,7 +910,7 @@ Deliberately trying the worst content available rather than the sample you built
 
 ---
 
-### 14. images-on-a-metered-plan
+### 15. images-on-a-metered-plan
 
 **scenario** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: Browser rendering and performance (image delivery)
 
@@ -858,7 +932,7 @@ Deliberately trying the worst content available rather than the sample you built
 
 Finding out what is actually being sent, in bytes, rather than reasoning from how it looks.
 
-- **0 (absent):** Starts changing things without knowing the sizes.
+- **0 (absent):** Starts changing things without knowing the sizes — including an explicit case for not measuring, because the cause is already obvious.
 - **1 (weak):** Says the images are "too big" with nothing measured.
 - **2 (partial):** Would look in the browser tools without saying what for.
 - **3 (solid):** Reads the transferred size of each image and the total weight of the page.
@@ -869,7 +943,7 @@ Finding out what is actually being sent, in bytes, rather than reasoning from ho
 Right-sized images, a sensible format, and loading later what is not yet on screen.
 
 - **0 (absent):** No technique, or only "compress them".
-- **1 (weak):** One technique, applied to all six images regardless.
+- **1 (weak):** One technique applied to all six regardless — or several that do not address this complaint at all, such as compression that does little to a photograph, caching that helps only the second visit, or deferring the image at the top.
 - **2 (partial):** Two techniques, without saying which would save the most here.
 - **3 (solid):** Serves a size suited to the device, a modern format, and defers what is below the fold.
 - **4 (excellent):** As 3, and reserves the space so deferring does not make the page jump as it loads.
@@ -893,7 +967,7 @@ That six large photographs may be a product decision rather than a delivery prob
 
 ---
 
-### 15. retry-and-the-double-charge
+### 16. retry-and-the-double-charge
 
 **scenario** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: HTTP, APIs and the network (retries and idempotency)
 
@@ -915,7 +989,7 @@ That six large photographs may be a product decision rather than a delivery prob
 
 That a timeout says nothing about whether the server acted — the commonest wrong assumption here.
 
-- **0 (absent):** Assumes a timeout means the payment did not happen.
+- **0 (absent):** Assumes a timeout means the payment did not happen — plainly, or argued in detail from what the connection did.
 - **1 (weak):** Says the request "failed" and moves on to retrying it.
 - **2 (partial):** Notices the uncertainty when prompted but does not build for it.
 - **3 (solid):** Says that the charge may have gone through and that the client has no way to know.
@@ -926,7 +1000,7 @@ That a timeout says nothing about whether the server acted — the commonest wro
 What the interface does while the request is in flight, and after it times out.
 
 - **0 (absent):** Leaves the button live and says nothing to the user.
-- **1 (weak):** Adds a spinner and nothing else.
+- **1 (weak):** Addresses the tap and not the uncertainty — a spinner, or an automatic retry so the user never has to tap twice.
 - **2 (partial):** Disables the button while loading, with no answer for what happens after the timeout.
 - **3 (solid):** Disables the button, says what is happening, and offers a deliberate next step rather than a retry.
 - **4 (excellent):** As 3, and the next step is to check the state — "let me confirm whether it went through".
@@ -936,7 +1010,7 @@ What the interface does while the request is in flight, and after it times out.
 Something that identifies the attempt, so a second send can be recognised as the same one.
 
 - **0 (absent):** No mechanism; relies on the user not tapping twice.
-- **1 (weak):** Retries automatically, which makes the problem worse.
+- **1 (weak):** A mechanism the server never sees — a retry the client decides on its own, or a value kept in the browser that nothing on the server checks.
 - **2 (partial):** Says the server "should handle duplicates" with nothing the client does to help.
 - **3 (solid):** Does not resend blindly — asks the server what the state is first — and separates reads, which are safe to retry, from actions that move money.
 - **4 (excellent):** As 3, and sends a value that identifies the attempt, generated before the first send and reused on a retry, so the server can recognise it.
@@ -950,7 +1024,7 @@ Something that identifies the attempt, so a second send can be recognised as the
 
 ---
 
-### 16. stale-after-saving
+### 17. stale-after-saving
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: HTTP, APIs and the network (caching and freshness)
 
@@ -973,7 +1047,7 @@ Something that identifies the attempt, so a second send can be recognised as the
 
 Whether the server has the new name at all, before hunting for a cache.
 
-- **0 (absent):** Starts changing caching settings.
+- **0 (absent):** Starts changing caching — a setting, a header, a service worker — before establishing what the server holds.
 - **1 (weak):** Assumes the save failed, or assumes it succeeded, without checking.
 - **2 (partial):** Would "check the API" without saying what that would tell them.
 - **3 (solid):** Confirms what the server returns for that user before looking anywhere else.
@@ -993,7 +1067,7 @@ More than one thing can be holding the old value — the page's own data, the br
 
 After a successful save, the held copy is refreshed or replaced rather than left to expire.
 
-- **0 (absent):** Not addressed — the answer stops at the diagnosis.
+- **0 (absent):** Not addressed — the answer stops at the diagnosis, or proposes a change aimed at a layer that was never holding the value.
 - **1 (weak):** Would disable caching everywhere, or reload the whole page after saving.
 - **2 (partial):** Refetches, but leaves the other layers that could hold the old value.
 - **3 (solid):** Updates or invalidates the copy the page holds as part of the save.
@@ -1008,7 +1082,7 @@ After a successful save, the held copy is refreshed or replaced rather than left
 
 ---
 
-### 17. div-that-should-be-a-button
+### 18. div-that-should-be-a-button
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: Accessibility (semantics)
 
@@ -1048,7 +1122,7 @@ A real `<button>`, rather than attributes bolted onto the div.
 
 - **0 (absent):** No fix, or a visual one.
 - **1 (weak):** Adds a click handler for the Enter key and considers it done.
-- **2 (partial):** Adds `role` and `tabindex` to the div without the key handling that then becomes necessary.
+- **2 (partial):** Adds `role` and `tabindex` to the div without the key handling that then becomes necessary — or with a `tabindex` value that takes it out of the tab order.
 - **3 (solid):** Replaces it with a `<button>`, and says what that brings without extra code.
 - **4 (excellent):** As 3, and says when the attribute route is the right one — an element you cannot change.
 
@@ -1071,7 +1145,7 @@ That styling was never the reason to avoid a button.
 
 ---
 
-### 18. telling-a-user-the-form-failed
+### 19. telling-a-user-the-form-failed
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Accessibility (forms and error feedback)
 
@@ -1094,7 +1168,7 @@ That styling was never the reason to avoid a button.
 Beside the field that is wrong, not only in a summary at the top of the form.
 
 - **0 (absent):** Only a general "something went wrong".
-- **1 (weak):** A summary at the top, with nothing at the fields.
+- **1 (weak):** A summary at the top and nothing at the fields — including when inline messages are argued against as noise.
 - **2 (partial):** Messages at the fields, with no way for a non-visual user to reach them.
 - **3 (solid):** A message at each field, tied to that input so it is read out when the field is reached.
 - **4 (excellent):** As 3, plus a summary that links to the fields, for a long form.
@@ -1105,7 +1179,7 @@ Colour is not the signal; text is, and focus goes somewhere useful.
 
 - **0 (absent):** Red borders and nothing else.
 - **1 (weak):** Colour plus an icon, with no text.
-- **2 (partial):** Text present, but the user is left where they were with no indication anything changed.
+- **2 (partial):** Text present, but nothing reliably reaches a non-visual user — focus left where it was, or moved somewhere that is not the problem, or the message put where it may not be announced.
 - **3 (solid):** Text on every error, and focus moved to the first field that needs attention.
 - **4 (excellent):** As 3, and the failure is announced rather than silently appearing on screen.
 
@@ -1128,7 +1202,7 @@ The message describes what to do, not that the input is invalid.
 
 ---
 
-### 19. what-to-test-on-a-login-screen
+### 20. what-to-test-on-a-login-screen
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: Testing frontend code (choosing what to test)
 
@@ -1161,7 +1235,7 @@ What a user does and sees, rather than component state or implementation detail.
 The failure cases, which are the ones manual testing misses.
 
 - **0 (absent):** Only the successful login.
-- **1 (weak):** Success, plus an empty form.
+- **1 (weak):** Success, plus an empty form — or a reasoned case for leaving the failure paths out.
 - **2 (partial):** Names failure cases without saying what each would assert.
 - **3 (solid):** Covers wrong credentials and a failing request, with the message each should produce.
 - **4 (excellent):** As 3, and stubs the network so the test is about this screen rather than about the server.
@@ -1171,7 +1245,7 @@ The failure cases, which are the ones manual testing misses.
 Styling, framework behaviour, and anything whose test would only restate the code.
 
 - **0 (absent):** Would test everything, or gives no view.
-- **1 (weak):** Says "test everything important" with no example of what is not.
+- **1 (weak):** No usable line — "test everything important" with no example, or a principle that would exclude most of what is worth testing.
 - **2 (partial):** Excludes something without a reason that would generalise.
 - **3 (solid):** Names what they would leave out and why it is not worth the maintenance.
 - **4 (excellent):** As 3, and prefers a few tests that would catch a regression to many that assert the obvious.
@@ -1185,7 +1259,7 @@ Styling, framework behaviour, and anything whose test would only restate the cod
 
 ---
 
-### 20. the-test-that-broke-for-nothing
+### 21. the-test-that-broke-for-nothing
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Testing frontend code (brittle tests)
 
@@ -1207,7 +1281,7 @@ Styling, framework behaviour, and anything whose test would only restate the cod
 
 Class names and structure — the things a refactor changes without changing behaviour.
 
-- **0 (absent):** Concludes the refactor was wrong.
+- **0 (absent):** Concludes the refactor was wrong — including the argued version, that the markup is a contract and the tests were right to hold it to one.
 - **1 (weak):** Says the tests are "brittle" without saying what they depend on.
 - **2 (partial):** Identifies the selectors as the problem but treats it as a naming issue.
 - **3 (solid):** Says the tests assert on structure and styling rather than on what the screen does.
@@ -1217,7 +1291,7 @@ Class names and structure — the things a refactor changes without changing beh
 
 A suite that cries wolf stops being read, which is worse than having no suite.
 
-- **0 (absent):** Treats it as an inconvenience.
+- **0 (absent):** Sees no cost — an inconvenience, or the safety net doing its job.
 - **1 (weak):** Says it "wastes time" and nothing more.
 - **2 (partial):** Mentions that people start ignoring failures.
 - **3 (solid):** Says the team loses trust in the suite and begins skipping or deleting tests.
@@ -1227,7 +1301,7 @@ A suite that cries wolf stops being read, which is worse than having no suite.
 
 Rewriting the selectors rather than reverting a change that was an improvement.
 
-- **0 (absent):** Reverts the rename, or deletes the tests.
+- **0 (absent):** Reverts the rename, deletes the tests, or tightens the coupling further — snapshots of the tree, or the class names centralised so they are quicker to update.
 - **1 (weak):** Updates the class names in all eleven tests and moves on.
 - **2 (partial):** Rewrites some selectors without a rule for the rest.
 - **3 (solid):** Selects by role, label or visible text, so the next refactor does not break them.
@@ -1242,7 +1316,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 
 ---
 
-### 21. it-works-for-me
+### 22. it-works-for-me
 
 **scenario** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: Debugging and diagnosis (reproducing a report)
 
@@ -1270,7 +1344,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 
 Specific questions — which screen, what they tapped, what they expected — rather than "can you give more detail".
 
-- **0 (absent):** Starts looking at code, or closes the report.
+- **0 (absent):** Asks nothing — starts on the code, closes the report, or declares the cause already known from what is written.
 - **1 (weak):** Asks for "more information" without saying what.
 - **2 (partial):** Asks one or two questions, missing the conditions the failure depends on.
 - **3 (solid):** Asks what they did, what happened, what they expected, and on what device and connection.
@@ -1280,7 +1354,7 @@ Specific questions — which screen, what they tapped, what they expected — ra
 
 What signals already exist gets checked first — logs, other reports, what changed recently. A candidate with none of those available scores on naming what they would look at if they had it.
 
-- **0 (absent):** Waits for the reporter, or goes straight to the code.
+- **0 (absent):** Checks nothing that already exists — waits for the reporter, or settles on a cause and goes straight to the code.
 - **1 (weak):** Says they would "check the logs" with no idea what for.
 - **2 (partial):** Names one source to check.
 - **3 (solid):** Names what would already know something — errors being recorded, other reports, what shipped recently — and what each would tell them.
@@ -1290,7 +1364,7 @@ What signals already exist gets checked first — logs, other reports, what chan
 
 The user's device, connection and data — not a laptop on office wifi.
 
-- **0 (absent):** Cannot reproduce it, so treats it as not real.
+- **0 (absent):** Does not reproduce it — cannot, so treats it as not real, or would not spend the time because the fix is already decided.
 - **1 (weak):** Tries once on their own machine and stops.
 - **2 (partial):** Tries a narrow screen, but not the connection or the account.
 - **3 (solid):** Reproduces with a throttled connection and a comparable device, on the same data if possible.
@@ -1305,7 +1379,7 @@ The user's device, connection and data — not a laptop on office wifi.
 
 ---
 
-### 22. error-only-in-production
+### 23. error-only-in-production
 
 **scenario** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Debugging and diagnosis (production-only failures)
 
@@ -1340,7 +1414,7 @@ The user's device, connection and data — not a laptop on office wifi.
 That minified line numbers mean nothing without source maps.
 
 - **0 (absent):** Reads the minified trace as if it named real code.
-- **1 (weak):** Says the trace is "useless" and looks elsewhere.
+- **1 (weak):** Sets the trace aside — as useless, or as able only to confirm a cause already decided.
 - **2 (partial):** Knows the code is minified without naming what would undo it.
 - **3 (solid):** Says source maps are needed and that the reporting tool can map the trace back.
 - **4 (excellent):** As 3, and notes that the maps must match the deployed build, not the current one.
@@ -1351,7 +1425,7 @@ The fields listed beside the trace — page, browser, device, users, first seen.
 
 - **0 (absent):** Works from the message alone.
 - **1 (weak):** Mentions that there is other data without using it.
-- **2 (partial):** Looks at one field, usually the browser.
+- **2 (partial):** Looks at one field, usually the browser, and stops — for want of a next step, or because it already agrees with a theory.
 - **3 (solid):** Groups the occurrences — which page, which devices, how many distinct users, since when.
 - **4 (excellent):** As 3, and puts forty a day against total sessions before deciding how urgent it is.
 
@@ -1360,7 +1434,7 @@ The fields listed beside the trace — page, browser, device, users, first seen.
 A missing property means data that was assumed to be there was not.
 
 - **0 (absent):** No fix proposed.
-- **1 (weak):** Wraps the line in a check and considers it closed.
+- **1 (weak):** Ships a fix the report does not support — a guard on the line, or a build setting — and considers it closed.
 - **2 (partial):** Guards the value and says the data "must be bad" without pursuing it.
 - **3 (solid):** Guards the immediate case and traces why the data was missing — an empty or failed response.
 - **4 (excellent):** As 3, and says what would tell them the fix did not work — the rate not moving, or moving for one browser only.
@@ -1374,7 +1448,7 @@ A missing property means data that was assumed to be there was not.
 
 ---
 
-### 23. react-list-key-mixup
+### 24. react-list-key-mixup
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (list identity) · stacks: react-typescript, nextjs, react-node
 
@@ -1416,7 +1490,7 @@ A missing property means data that was assumed to be there was not.
 That an index key changes meaning when the list changes, so the wrong row is reused.
 
 - **0 (absent):** Blames the data, the API or the tester.
-- **1 (weak):** Says the key "should not be the index" as a rule, with no account of this bug.
+- **1 (weak):** Treats the key as beside the point — the rule against index keys quoted with no account of this bug, or an argument that keys are only a hint and cannot be the cause.
 - **2 (partial):** Identifies the key as the problem but explains it as a warning to be silenced.
 - **3 (solid):** Says removing an item shifts every index, so a row's key now points at different data.
 - **4 (excellent):** As 3, and explains that the reused component keeps the state it already had, which is the note.
@@ -1427,7 +1501,7 @@ That the note is state inside the row component, not a field on the application.
 
 - **0 (absent):** Assumes the note was saved against the wrong record.
 - **1 (weak):** Looks for the bug in the parent's data.
-- **2 (partial):** Says the state "got confused" without locating it.
+- **2 (partial):** Locates the state only loosely — "it got confused" — or locates it correctly and then denies the key has anything to do with which row keeps it.
 - **3 (solid):** Says the note is the child's own state and React kept it when it reused the child.
 - **4 (excellent):** As 3, and notes that nothing in the data was ever wrong, which is why it looks so strange.
 
@@ -1441,7 +1515,7 @@ A key from the item itself, and an honest account of when an index is acceptable
 - **3 (solid):** Uses the application's id, and says it must be stable and unique among siblings.
 - **4 (excellent):** As 3, and says an index is only safe for a list that never reorders, filters or removes.
 
-> **The drafter is unsure about:** This is the bug I would most expect to actually happen to a junior on a real project, which is why it is here rather than a rendering-performance question. It needs the candidate to know that a child holds state, which the snippet has to state in prose because the component is not shown. Does that prose line give too much away, or is it the minimum the question needs?
+> **The drafter is unsure about:** **Version-sensitive: React list reconciliation, checked against react.dev on 2026-09-22.** This is the bug I would most expect to actually happen to a junior on a real project, which is why it is here rather than a rendering-performance question. It needs the candidate to know that a child holds state, which the snippet has to state in prose because the component is not shown. Does that prose line give too much away, or is it the minimum the question needs?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1450,7 +1524,7 @@ A key from the item itself, and an honest account of when an index is acceptable
 
 ---
 
-### 24. nextjs-server-or-client
+### 25. nextjs-server-or-client
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Browser rendering and performance (the server and client boundary) · stacks: nextjs
 
@@ -1473,8 +1547,8 @@ A key from the item itself, and an honest account of when an index is acceptable
 
 That it applies to everything beneath it, not only to the file it is written in.
 
-- **0 (absent):** Treats it as a per-component setting with no wider effect.
-- **1 (weak):** Says it "makes the page interactive" without a cost.
+- **0 (absent):** Treats it as a per-file setting with no wider effect — unexamined, or asserted as the point of the directive.
+- **1 (weak):** Names no real cost — "it makes the page interactive", or a specific cost that is a side effect, alongside a claim that little more is shipped.
 - **2 (partial):** Knows it affects children but describes the effect vaguely.
 - **3 (solid):** Says everything imported below becomes client code and ships to the browser.
 - **4 (excellent):** As 3, and separates what is rendered on the server once from what must be sent to run again.
@@ -1493,13 +1567,13 @@ More JavaScript on a phone, and server rendering given up for the whole page.
 
 Only the interactive part becomes a client component; the page stays on the server.
 
-- **0 (absent):** Keeps the directive on the page, or removes the button.
+- **0 (absent):** Keeps the directive on the page — removing the button, or moving the data fetching into the browser instead.
 - **1 (weak):** Suggests splitting the file without saying where the line goes.
 - **2 (partial):** Moves some code but leaves the data fetching in the browser.
 - **3 (solid):** Makes the filter panel the client component and leaves the page and its data on the server.
 - **4 (excellent):** As 3, and says how far down the tree the boundary should go as a general habit.
 
-> **The drafter is unsure about:** The App Router's server-and-client split is the thing Next.js candidates most often half-know, so I think this is the right question — but it is also the part of the framework that has moved most in the last two years, and a candidate who learned on the Pages Router will answer about `getServerSideProps` instead. Should the rubric give credit for that, or is being current part of what is being tested?
+> **The drafter is unsure about:** **Version-sensitive: Next.js `"use client"` semantics, checked against nextjs.org on 2026-09-22.** The App Router's server-and-client split is the thing Next.js candidates most often half-know, so I think this is the right question — but it is also the part of the framework that has moved most in the last two years, and a candidate who learned on the Pages Router will answer about `getServerSideProps` instead. Should the rubric give credit for that, or is being current part of what is being tested?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1508,7 +1582,7 @@ Only the interactive part becomes a client component; the page stays on the serv
 
 ---
 
-### 25. nextjs-key-in-the-browser
+### 26. nextjs-key-in-the-browser
 
 **technical** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: HTTP, APIs and the network (secrets and the client boundary) · stacks: nextjs
 
@@ -1548,7 +1622,7 @@ Only the interactive part becomes a client component; the page stays on the serv
 The prefix puts the value in the bundle, and the client request carries it in a header.
 
 - **0 (absent):** Sees nothing wrong.
-- **1 (weak):** Says environment variables are "safe because they are on the server".
+- **1 (weak):** Believes the value stays on the server — because environment variables do, or because the prefix is taken to mean exactly that.
 - **2 (partial):** Knows the prefix means something without saying what.
 - **3 (solid):** Says the prefix inlines the value into the browser bundle, so the key is public.
 - **4 (excellent):** As 3, and adds that the request itself exposes it in the network tab regardless of the bundle.
@@ -1558,7 +1632,7 @@ The prefix puts the value in the bundle, and the client request carries it in a 
 The request belongs on the server, with the key kept out of anything the browser receives.
 
 - **0 (absent):** No change, or only renaming the variable.
-- **1 (weak):** Removes the prefix and leaves the call in the client component, which then has no value.
+- **1 (weak):** Moves the value rather than the call — dropping the prefix, or putting it elsewhere in the build — and leaves the request in the browser.
 - **2 (partial):** Says "call it from the server" without saying what the browser then talks to.
 - **3 (solid):** Puts the call in a server component or a route handler and has the client call that.
 - **4 (excellent):** As 3, and keeps the response shape the client needs, rather than proxying the provider wholesale.
@@ -1567,13 +1641,13 @@ The request belongs on the server, with the key kept out of anything the browser
 
 Rotating it, and finding out whether it was used, rather than quietly removing it.
 
-- **0 (absent):** Does not consider that the key is already out.
+- **0 (absent):** Does not treat the key as out — not considered, or argued to be safe because it was never committed anywhere public.
 - **1 (weak):** Removes it from the code and considers the matter closed.
 - **2 (partial):** Says it "should probably be rotated" with no follow-through.
 - **3 (solid):** Rotates the key, and checks the provider's usage for calls that were not ours.
 - **4 (excellent):** As 3, and checks the deployed bundles and the history for how long it was exposed.
 
-> **The drafter is unsure about:** This is as much a security question as a framework one, and I have weighted "what do you do about a key that has already shipped" at 30% because I think the rotation instinct matters more than the framework trivia. Is that the right balance for a frontend interview, or would a reviewer here expect the whole score on the `NEXT_PUBLIC_` rule?
+> **The drafter is unsure about:** **Version-sensitive: Next.js `NEXT_PUBLIC_` inlining, checked against nextjs.org on 2026-09-22.** This is as much a security question as a framework one, and I have weighted "what do you do about a key that has already shipped" at 30% because I think the rotation instinct matters more than the framework trivia. Is that the right balance for a frontend interview, or would a reviewer here expect the whole score on the `NEXT_PUBLIC_` rule?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1582,7 +1656,7 @@ Rotating it, and finding out whether it was used, rather than quietly removing i
 
 ---
 
-### 26. vue-reactivity-lost
+### 27. vue-reactivity-lost
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (reactivity) · stacks: vue-nuxt, laravel-vue
 
@@ -1625,7 +1699,7 @@ Rotating it, and finding out whether it was used, rather than quietly removing i
 That destructuring copied the number out of the reactive object.
 
 - **0 (absent):** Blames the click handler or the template syntax.
-- **1 (weak):** Says reactivity is "not working" with no mechanism.
+- **1 (weak):** Puts the break somewhere else — reactivity "not working" with no mechanism, or a detailed mechanism that rules the destructuring out.
 - **2 (partial):** Suspects the destructuring but describes it as a style problem.
 - **3 (solid):** Says the destructured value is a plain number, so nothing links it to later changes.
 - **4 (excellent):** As 3, and confirms the object is still updating — only the template's copy is stale.
@@ -1635,7 +1709,7 @@ That destructuring copied the number out of the reactive object.
 Keep the reference, or convert the properties so they stay connected.
 
 - **0 (absent):** No fix, or one that would not restore reactivity.
-- **1 (weak):** Forces a re-render by hand.
+- **1 (weak):** A change the bug survives — forcing a re-render by hand, or swapping the container while still copying the value out of it.
 - **2 (partial):** Removes the destructuring without being able to say why that works.
 - **3 (solid):** Uses the object in the template, or converts its properties to refs before destructuring.
 - **4 (excellent):** As 3, and says which they would choose here and why.
@@ -1645,12 +1719,12 @@ Keep the reference, or convert the properties so they stay connected.
 Reactivity belongs to the container, not to the value taken out of it.
 
 - **0 (absent):** Treats it as a one-off quirk.
-- **1 (weak):** States a rule that is really a restatement of the fix.
+- **1 (weak):** States a rule that does not cover this case — a restatement of the fix, or a choice between `ref` and `reactive` that leaves the copying untouched.
 - **2 (partial):** Gives a rule that covers this case but not a ref.
 - **3 (solid):** States that copying a value out of any reactive container loses the connection.
 - **4 (excellent):** As 3, and applies it to a second case — a prop, or a value passed into a function.
 
-> **The drafter is unsure about:** Checked against vuejs.org on 2026-09-22: destructuring a `reactive()` object still breaks the connection, and **Vue 3.5 made destructuring `defineProps` reactive**, which the answer key now mentions — a candidate who learned on 3.5 may reasonably expect this to work too, and knowing why props are the exception is the best answer available here. What I am less sure of is the audience: this is the Composition API with `<script setup>`, and someone who learned on the Options API would hit the same bug in unfamiliar syntax. Is that the right default to write for, or should one of the two Vue questions use the Options API?
+> **The drafter is unsure about:** **Version-sensitive: Vue reactivity and `<script setup>`, checked against vuejs.org on 2026-09-22 — needs a reviewer who knows what this audience actually learned Vue on.** Checked against vuejs.org on 2026-09-22: destructuring a `reactive()` object still breaks the connection, and **Vue 3.5 made destructuring `defineProps` reactive**, which the answer key now mentions — a candidate who learned on 3.5 may reasonably expect this to work too, and knowing why props are the exception is the best answer available here. What I am less sure of is the audience: this is the Composition API with `<script setup>`, and someone who learned on the Options API would hit the same bug in unfamiliar syntax. Is that the right default to write for, or should one of the two Vue questions use the Options API?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1659,7 +1733,7 @@ Reactivity belongs to the container, not to the value taken out of it.
 
 ---
 
-### 27. vue-list-drifts-from-its-source
+### 28. vue-list-drifts-from-its-source
 
 **technical** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Component state and data flow (computed values and watchers) · stacks: vue-nuxt, laravel-vue
 
@@ -1701,7 +1775,7 @@ The visible list is only rebuilt when the term changes, so a reload leaves it be
 
 - **0 (absent):** Blames the filter logic, the API or the user.
 - **1 (weak):** Says the list is "not reactive" without saying what it fails to react to.
-- **2 (partial):** Identifies the watcher as involved but not what it fails to watch.
+- **2 (partial):** Identifies the watcher as involved but not what it fails to watch — including blaming its options, which do not add a second source.
 - **3 (solid):** Says the list is rebuilt only on a change of term, so new jobs do not reach it until the next keystroke.
 - **4 (excellent):** As 3, and says the symptom itself points there — typing another letter is what fixes it.
 
@@ -1710,7 +1784,7 @@ The visible list is only rebuilt when the term changes, so a reload leaves it be
 The filtered list follows from the jobs and the term, so it should not be stored at all.
 
 - **0 (absent):** Keeps the stored list and adds a second watcher for the jobs.
-- **1 (weak):** Adds the jobs to the existing watcher and considers it solved.
+- **1 (weak):** Keeps the stored list — adding the jobs to the existing watcher, or arguing against a computed value on grounds that were never measured.
 - **2 (partial):** Says it "could be computed" without saying what that changes.
 - **3 (solid):** Makes it a computed value that depends on both, so there is one list rather than two.
 - **4 (excellent):** As 3, and says why that removes the whole class of bug rather than this instance of it.
@@ -1725,7 +1799,7 @@ Something that has to happen when a value changes, as opposed to a value that fo
 - **3 (solid):** Gives an example that has to happen rather than be shown — analytics, saving a draft, a request.
 - **4 (excellent):** As 3, and separates it from the filtered list by asking whether anything outside the component has to change.
 
-> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when _is_ a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher?
+> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when _is_ a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1734,7 +1808,7 @@ Something that has to happen when a value changes, as opposed to a value that fo
 
 ---
 
-### 28. angular-subscription-leak
+### 29. angular-subscription-leak
 
 **technical** · difficulty 3/5 · roles: frontend · intern-junior, mid · topic: Component state and data flow (subscriptions and lifetime) · stacks: angular
 
@@ -1767,7 +1841,7 @@ Something that has to happen when a value changes, as opposed to a value that fo
 Growing memory and stale results are the same cause — subscriptions that never ended.
 
 - **0 (absent):** Treats the slowdown and the wrong results as unrelated.
-- **1 (weak):** Blames the service or the server.
+- **1 (weak):** Blames something else — the service, the server, the router — or argues that the subscriptions end on their own.
 - **2 (partial):** Identifies the subscription as suspicious without explaining either symptom.
 - **3 (solid):** Says each visit adds a subscription that is never ended, and all of them still respond.
 - **4 (excellent):** As 3, and explains why the component cannot be collected while something holds it.
@@ -1776,7 +1850,7 @@ Growing memory and stale results are the same cause — subscriptions that never
 
 Any fix that ties the subscription's lifetime to the component's.
 
-- **0 (absent):** No fix, or a manual cleanup that runs at the wrong time.
+- **0 (absent):** No fix — a cleanup that runs at the wrong time, or a rearrangement of the code that still leaves nothing ending the subscriptions.
 - **1 (weak):** Suggests a page reload or a cache clear.
 - **2 (partial):** Says it should be unsubscribed without saying when.
 - **3 (solid):** Ties it to the component's destruction, or lets the template own the subscription instead.
@@ -1786,13 +1860,13 @@ Any fix that ties the subscription's lifetime to the component's.
 
 Anything started in a component — subscription, timer, listener — is ended with it.
 
-- **0 (absent):** Treats it as specific to this service.
+- **0 (absent):** Draws no rule about lifetime — treats it as specific to this service, or generalises about something else, such as routing.
 - **1 (weak):** States a rule about this one pattern.
 - **2 (partial):** Generalises to subscriptions only.
 - **3 (solid):** Names timers and listeners as the same class of problem.
 - **4 (excellent):** As 3, and says how they would catch it in review rather than in production.
 
-> **The drafter is unsure about:** The bug and the reasoning are stable across Angular versions, but **the idiomatic fix is not**: the async pipe, `takeUntil` with a subject, `takeUntilDestroyed`, and signals are all answers a candidate might give depending on when they learned. I have written the rubric to reward any fix that ties the subscription to the component's lifetime and not to name a mechanism. Is that too lenient for a mid-level Angular interview here? The snippet also has a second problem on a current Angular — assigning to a field inside `subscribe` notifies a zoneless application of nothing — which I have added as an ideal point rather than rewriting the snippet, because the leak is what the question is about. Would you rather the snippet used the async pipe and the leak came from somewhere else?
+> **The drafter is unsure about:** **Version-sensitive: the idiomatic Angular cleanup, checked against angular.dev on 2026-09-22.** The bug and the reasoning are stable across Angular versions, but **the idiomatic fix is not**: the async pipe, `takeUntil` with a subject, `takeUntilDestroyed`, and signals are all answers a candidate might give depending on when they learned. I have written the rubric to reward any fix that ties the subscription to the component's lifetime and not to name a mechanism. Is that too lenient for a mid-level Angular interview here? The snippet also has a second problem on a current Angular — assigning to a field inside `subscribe` notifies a zoneless application of nothing — which I have added as an ideal point rather than rewriting the snippet, because the leak is what the question is about. Would you rather the snippet used the async pipe and the leak came from somewhere else?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1801,7 +1875,7 @@ Anything started in a component — subscription, timer, listener — is ended w
 
 ---
 
-### 29. angular-view-did-not-update
+### 30. angular-view-did-not-update
 
 **technical** · difficulty 3/5 · roles: frontend · intern-junior, mid · topic: Browser rendering and performance (change detection) · stacks: angular
 
@@ -1869,12 +1943,12 @@ Angular re-renders on a short list of notifications; an assignment to a plain fi
 Replace the value rather than editing it, and treat a forced refresh as a smell.
 
 - **0 (absent):** Forces a refresh and stops.
-- **1 (weak):** Forces a refresh and says it is not ideal, with no alternative.
+- **1 (weak):** Forces a refresh with no alternative — acknowledged as not ideal, or aimed confidently at a cause this code does not have.
 - **2 (partial):** Replaces the value in this case without a general rule.
 - **3 (solid):** Assigns a new value so the change is visible, and explains why that is enough.
 - **4 (excellent):** As 3, and says that needing to force a check usually means the real cause is still there.
 
-> **The drafter is unsure about:** Rewritten twice on 2026-09-22. Checking angular.dev showed zoneless is the default from v21, so "it happened outside the zone" is no longer the first thing to reach for; and three critique passes said a diagnosis question with no code was an invitation to recite a blog post. It now shows the bug I would actually expect — a parent pushing into an array a child was given — which behaves the same in a zone-based, a signal-based and an `OnPush` application, so the candidate is not guessing which Angular I mean. One thing I could not settle: **the docs disagree with themselves about whether `OnPush` is now the default**, so the snippet sets it explicitly. Is that the right way out, or does setting it give the answer away?
+> **The drafter is unsure about:** **Version-sensitive: Angular change detection, checked against angular.dev on 2026-09-22 — needs an Angular specialist, not a generalist reviewer.** Kept on that condition, and rewritten twice the same day: zoneless is the default from v21, so "it happened outside the zone" is no longer the first thing to reach for, and three critique passes said a diagnosis question with no code invites reciting a blog post. It shows the bug I would expect — a parent pushing into an array a child was given — which behaves the same in zone-based, signal-based and `OnPush` applications. **What a specialist has to settle: the docs disagree about whether `OnPush` is now the default** — the roadmap says it was made so, the zoneless guide still calls it recommended. The snippet sets it explicitly rather than depend on the answer. Right way out, or does it give the game away?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1883,7 +1957,7 @@ Replace the value rather than editing it, and treat a forced refresh as a smell.
 
 ---
 
-### 30. vanilla-clicks-on-new-items
+### 31. vanilla-clicks-on-new-items
 
 **technical** · difficulty 2/5 · roles: frontend · intern-junior, mid · topic: JavaScript fundamentals (events and the DOM) · stacks: vanilla-js
 
@@ -1915,7 +1989,7 @@ The handlers were attached once, to the elements present at that moment.
 
 - **0 (absent):** Blames the loading code or the markup of the new rows.
 - **1 (weak):** Says the listeners "did not apply" without saying why.
-- **2 (partial):** Identifies that the code ran once, without connecting it to the missing handlers.
+- **2 (partial):** Identifies that the code ran once, without connecting it to the missing handlers — including an account that makes the stale collection, rather than the absent listener, the fault.
 - **3 (solid):** Says the selector matched only the buttons that existed then, so later ones were never given a listener.
 - **4 (excellent):** As 3, and predicts the same failure for anything else added to the page after load.
 
@@ -1923,7 +1997,7 @@ The handlers were attached once, to the elements present at that moment.
 
 One listener on an ancestor that is always present, acting on what was clicked.
 
-- **0 (absent):** No fix, or one that would not cover future items.
+- **0 (absent):** No fix, or one that would not cover future items — a different way of finding the buttons is not a way of giving them a listener.
 - **1 (weak):** Re-runs the same loop after each load, and does not notice the duplicate listeners that follow.
 - **2 (partial):** Describes delegation without saying how the clicked button is identified.
 - **3 (solid):** Listens on a container and checks what was clicked before acting.
@@ -1934,7 +2008,7 @@ One listener on an ancestor that is always present, acting on what was clicked.
 That a click travels up through the ancestors, so a parent can hear it.
 
 - **0 (absent):** Cannot say why.
-- **1 (weak):** Says "that is just how it is done".
+- **1 (weak):** Offers no mechanism for the fix — "that is just how it is done", or a true mechanism that explains something else.
 - **2 (partial):** Uses the word bubbling with no description of it.
 - **3 (solid):** Describes the event travelling up from the element that was clicked.
 - **4 (excellent):** As 3, and names a case where it does not help — an event that does not travel that way.
@@ -1948,7 +2022,7 @@ That a click travels up through the ancestors, so a parent can hear it.
 
 ---
 
-### 31. vanilla-form-before-js-loads
+### 32. vanilla-form-before-js-loads
 
 **scenario** · difficulty 3/5 · roles: frontend, fullstack · intern-junior, mid · topic: Browser rendering and performance (what works before the script arrives)
 
@@ -1972,7 +2046,7 @@ That there is a period where the page is visible and its script is not there yet
 
 - **0 (absent):** Treats the report as a bug in the handler.
 - **1 (weak):** Says the connection is "just slow" with nothing to do about it.
-- **2 (partial):** Acknowledges the gap without saying what the user sees during it.
+- **2 (partial):** Acknowledges the gap without saying what the user sees during it — including naming it and then setting it aside as a matter of perceived speed.
 - **3 (solid):** Says the form is on screen and looks ready while nothing is listening to it.
 - **4 (excellent):** As 3, and adds that the same state is permanent for a user whose script fails to load.
 
@@ -1980,7 +2054,7 @@ That there is a period where the page is visible and its script is not there yet
 
 The form submits on its own, and the script improves it rather than enabling it.
 
-- **0 (absent):** Keeps the script as the only way to submit.
+- **0 (absent):** Keeps the script as the only way to submit — including when something else is claimed to cover the gap, such as the browser replaying the click once it loads.
 - **1 (weak):** Adds a spinner or a message and leaves the behaviour unchanged.
 - **2 (partial):** Says the form "should work without JavaScript" without saying what that requires.
 - **3 (solid):** Gives the form a real action so a submission works before the script arrives, then enhances it.
@@ -2005,7 +2079,7 @@ If the button cannot work yet, it does not look as though it can.
 
 ---
 
-### 32. the-overnight-blocker
+### 33. the-overnight-blocker
 
 **scenario** · difficulty 3/5 · roles: frontend, backend, qa, fullstack · intern-junior, mid · topic: Saying it in writing (escalating asynchronously)
 
@@ -2048,7 +2122,7 @@ One answerable question, and what is blocked and by when.
 
 What they do with the six hours.
 
-- **0 (absent):** Waits.
+- **0 (absent):** Waits — for want of anything else to do, or on the argument that working on a blocked task creates rework.
 - **1 (weak):** Says they would "keep trying" with no plan.
 - **2 (partial):** Moves to other work without narrowing the problem at all.
 - **3 (solid):** Picks up something not blocked, and keeps narrowing the problem in the background.
@@ -2063,7 +2137,7 @@ What they do with the six hours.
 
 ---
 
-### 33. something-you-built
+### 34. something-you-built
 
 **technical** · difficulty 3/5 · roles: frontend, backend, qa, fullstack · intern-junior, mid · topic: Talking about your own work (a decision you made)
 
@@ -2106,7 +2180,7 @@ A point where there were at least two options, and why they took the one they di
 Something specific they would do differently, and why they did not know it then.
 
 - **0 (absent):** Nothing they would change.
-- **1 (weak):** "I would write cleaner code" or similar.
+- **1 (weak):** The answer everyone gives — "cleaner code", "tests earlier" — with nothing from this project behind it.
 - **2 (partial):** Names a change with no reason behind it.
 - **3 (solid):** Names a specific change and what went wrong that taught them it.
 - **4 (excellent):** As 3, and separates what they could reasonably have known at the time from what only experience gives.
@@ -2120,7 +2194,7 @@ Something specific they would do differently, and why they did not know it then.
 
 ---
 
-### 34. vanilla-dom-as-the-source-of-truth
+### 35. vanilla-dom-as-the-source-of-truth
 
 **technical** · difficulty 3/5 · roles: frontend · intern-junior, mid · topic: Component state and data flow (where the data lives) · stacks: vanilla-js
 
@@ -2161,7 +2235,7 @@ That rebuilding the markup throws away everything in it, and the data only exist
 
 - **0 (absent):** Sees nothing wrong; the code works.
 - **1 (weak):** Says it is "not scalable" without naming a failure.
-- **2 (partial):** Objects to `innerHTML` on style grounds without saying what it destroys.
+- **2 (partial):** Objects to `innerHTML` without saying what it destroys — on style grounds, or on a detailed performance argument.
 - **3 (solid):** Says rewriting `innerHTML` rebuilds every row, so anything the user had in one is lost.
 - **4 (excellent):** As 3, and adds what else goes with it — listeners, focus, scroll position.
 
@@ -2169,7 +2243,7 @@ That rebuilding the markup throws away everything in it, and the data only exist
 
 The cart's contents exist only as list items, and the total is gathered back off the screen.
 
-- **0 (absent):** Treats the DOM as a reasonable place to keep the data.
+- **0 (absent):** Treats the DOM as a reasonable place to keep the data — unexamined, or defended as keeping the cart in one place.
 - **1 (weak):** Says the code is "messy" without locating where the data lives.
 - **2 (partial):** Notices the total is read from the page, without generalising.
 - **3 (solid):** Says the page is being used as the store, and that reading numbers back out of text is the symptom.
@@ -2180,7 +2254,7 @@ The cart's contents exist only as list items, and the total is gathered back off
 Hold the items, draw the page from them, derive the total.
 
 - **0 (absent):** No alternative, or the same approach written more carefully.
-- **1 (weak):** Keeps the DOM as the store and adds a variable for the total alongside it.
+- **1 (weak):** Keeps the DOM as the store and holds the total beside it — in a variable, or in an attribute on the markup.
 - **2 (partial):** Keeps an array but still reads the total off the page.
 - **3 (solid):** Keeps the items in an array, redraws from it, and derives the total from the array.
 - **4 (excellent):** As 3, and redraws only what changed rather than the whole list, without reaching for a framework to do it.

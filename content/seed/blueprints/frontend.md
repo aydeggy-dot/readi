@@ -1,7 +1,8 @@
 # Frontend engineer — question bank blueprint
 
-**Wave 1. Status: drafted and critiqued 2026-09-22. The bank is 34 questions — 23 general and 11
-stack-tagged — and is with the owner before it goes to a human expert.**
+**Wave 1. Status: drafted, critiqued, stress-tested and revised to the owner's decisions,
+2026-09-22. The bank is 35 questions — 24 general and 11 stack-tagged — and goes next to a human
+expert.**
 Derived from `docs/role-catalogue.md` § Frontend Engineer.
 
 ## What the role is
@@ -123,9 +124,9 @@ complete: false
 
 |          | General | Stack-tagged | Total  | Was |
 | -------- | ------- | ------------ | ------ | --- |
-| Frontend | 23      | 11           | **34** | 8   |
+| Frontend | 24      | 11           | **35** | 8   |
 
-Twenty-eight new rubrics: one per new technical and scenario question, plus four in
+Twenty-nine new rubrics: one per new technical and scenario question, plus four in
 `rubrics.shared.yaml` — two that replaced the shared behavioural rubric on the questions it could
 not score, and two for the questions the critique passes added.
 
@@ -140,11 +141,20 @@ shortfall every run, which is the point.
 They are not just kept. Two have known weaknesses their own `reviewer_notes` admit, and one has a
 defect the checker finds:
 
-- `async-ordering-understanding`, criterion 1, descriptor 4 reads "Correct order, **stated
+- `async-ordering-understanding`, criterion 1, descriptor 4 read "Correct order, **stated
   confidently**…". That scores delivery, not content — exactly the defect the fairness pass and the
-  stress test exist to catch. Fix it in this pass.
-- `js-async-ordering` is offered at intern-junior and its own notes doubt that. The stress test
-  decides: if the junior sample answers cannot separate, it becomes mid-only.
+  stress test exist to catch. Fixed, and then the whole rubric was replaced (below).
+- `js-async-ordering` was offered at intern-junior and its own notes doubted that. **The owner's
+  decision: keep the mechanism, change the snippet, and make it mid only.** The four `console.log`s
+  and the zero-delay `setTimeout` were the snippet in every "top ten JavaScript interview questions"
+  video, so the question sorted candidates by how much interview prep they had watched. It is now a
+  click handler that sets "Saving…" and blocks the main thread for two seconds, so the message never
+  paints — the same single thread, from a symptom nobody can have memorised, and a real follow-up
+  ("so where does the work go?"). The rubric became `Understanding what the main thread is doing`.
+  Moving it off intern-junior left `javascript-fundamentals` with one general question there instead
+  of two, so **`js-loop-that-returns-nothing` was written to fill the slot** — a `return` inside a
+  `forEach` callback, which is where a self-taught junior actually meets this rather than in a
+  video. That is the 35th question.
 - `react-state-placement` and `react-unnecessary-effect` are tagged `react-typescript, nextjs,
 react-node`. The tags are right; what is missing is their general counterparts (above).
 - `stuck-and-asked-for-help` and `pushing-back-on-a-release` (QA) both carry the hierarchy-norms
@@ -180,6 +190,23 @@ on **2026-09-22**. Three of the four things checked had moved since the drafter'
 
 Nothing in the bank names a model, a price, a benchmark or a version number, so nothing else in it
 can go stale silently. The four stack-tagged families are where to look first next time.
+
+**Since 2026-09-22 the set is findable rather than remembered.** Each of the six questions above
+opens its `reviewer_notes` with
+
+```
+**Version-sensitive: <the claim>, checked against <source> on <date>.**
+```
+
+so `grep -l 'Version-sensitive' content/seed/*/questions.yaml` names every such question in every
+bank and `grep -o '\*\*Version-sensitive:[^*]*'` prints the claims with their dates. The rule is in
+`SKILL.md`, so later banks are written that way from the start. `angular-view-did-not-update` and
+`vue-reactivity-lost` additionally say that a generalist reviewer cannot settle them.
+
+**What does not exist yet is the cycle.** Three of the four claims checked on 2026-09-22 had moved
+since the drafter learned them, in a bank three months old — so the marking is worth nothing without
+a date by which it is re-read. `tasks/todo.md` carries the open decision: cadence, who does it, and
+whether `check-bank.mjs` should warn on a mark older than one cycle.
 
 ## Appendix B — what the critique passes changed
 
@@ -238,13 +265,15 @@ The other findings worth recording:
 
 ## Appendix B2 — what the rubric stress test changed
 
-Five answers per rubric — 34 rubrics, 170 answers — written from the prompts alone by subagents that
-never saw a rubric, then scored against the criteria. `check-stress.mjs` enforces the two
-separations mechanically. **Every rubric passes**: `fluent-but-wrong` falls between 1.3 and 3.65
-points below `strong`, `correct-poorly-explained` sits 1.5 to 3.4 above `weak`, and
+Five answers per rubric — **35 rubrics, 175 answers** — written from the prompts alone by subagents
+that never saw a rubric, then scored against the criteria. `check-stress.mjs` enforces the two
+separations mechanically. **Every rubric passes**: `fluent-but-wrong` falls between 1.50 and 3.65
+points below `strong`, `correct-poorly-explained` sits 1.50 to 3.40 above `weak`, and
 `nigerian-english` is within one point of `strong` on every criterion of every rubric.
 
-Three rubrics changed because the exercise broke them:
+Three rubrics changed because the exercise broke them, and two more were written after it —
+`async-ordering-understanding` was replaced wholesale when its question changed, and
+`array-return-diagnosis` is new; both were stress-tested the same way, blind:
 
 | Rubric                         | What the answers exposed                                                                                                                                                                                                                                                                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -252,18 +281,38 @@ Three rubrics changed because the exercise broke them:
 | `cache-invalidation-diagnosis` | Criterion 3 had no descriptor for saying nothing. `correct-poorly-explained` diagnoses better than `strong` and never proposes a change, and the only level that fitted was "would disable caching everywhere", which is a different failure. Level 0 is now "not addressed — the answer stops at the diagnosis".                             |
 | `change-detection-diagnosis`   | Criterion 2 (45%) required **both** ways a change goes unnoticed, but the snippet only exhibits one — so a precise answer was capped below a vague one that listed both. Level 3 now asks for the shape that applies, level 4 for the separation.                                                                                             |
 
-Two findings that did not change a rubric and should:
+One finding was worth more than any of the three, and the owner's decision was to apply it here
+rather than carry it forward:
 
-- **No rubric has a descriptor that fits a confident, specific, wrong answer.** The scores come out
-  right — `fluent-but-wrong` lands on level 1 or 2 everywhere — but the descriptors it lands on were
-  written for vagueness ("a rule with no mechanism", "with nothing behind it"), and this is the
-  opposite of vague. The score will be right and the evidence the evaluator quotes will not match the
-  answer. It is a house-style change across every rubric in the product, not a frontend one, so it is
-  flagged here rather than applied. `SKILL.md` carries it as a rule for the next bank.
-- **The three narrowest separations are the three to watch**: `async-ordering-understanding` (+1.30),
-  `network-failure-handling` (+1.50) and `change-detection-diagnosis` (+1.60). In each, a fluent
-  wrong answer reaches level 2 on a criterion because it genuinely does part of what is asked. The
-  ranking is the checker's output, sorted narrowest first.
+- **No rubric had a descriptor that fitted a confident, specific, wrong answer.** The scores came
+  out right — `fluent-but-wrong` lands on level 1 or 2 everywhere — but the descriptors it landed on
+  were written for vagueness ("a rule with no mechanism", "with nothing behind it"), and a fluent
+  wrong answer is the opposite of vague. The number would have been right and **the evidence the
+  evaluator quotes would have contradicted the descriptor it was scored against** — telling a
+  candidate they were vague about something they were specific and wrong about. M4's feedback is
+  built on those evidence quotes, so it is the difference between feedback that is trusted and
+  feedback that shows we were not listening.
+
+  **Applied on 2026-09-22 across all 34 rubrics: 82 descriptors rewritten**, 73 in
+  `frontend/rubrics.yaml` and 9 in `rubrics.shared.yaml`. The wording came from the stress test
+  itself — each rubric's `fluent-but-wrong` answer names the wrong belief that question actually
+  attracts, so the descriptor could name it too:
+
+  > `"1": Relies on the request rejecting — a `try`/`catch`only, or a confident claim that`fetch`
+throws on a 404 or a 500.`
+
+  No score moved: the exercise was to give the same number somewhere honest to land. The rule is in
+  `SKILL.md`'s house style and in `references/stress-test.md`, so every bank after this one is
+  written that way from the start. `backend/rubrics.yaml` and `qa/rubrics.yaml` are **not** done —
+  they are two-rubric M2 stubs their own waves will rewrite, and inventing wrong beliefs for them
+  without a stress test behind it is the padding this method exists to prevent.
+
+- **The three narrowest separations are the three to watch**: `network-failure-handling` (+1.50),
+  `change-detection-diagnosis` (+1.60) and `semantic-html-diagnosis` (+1.90). In each, a fluent
+  wrong answer reaches level 2 on a criterion because it genuinely does part of what is asked.
+  `async-ordering-understanding` was the narrowest in the bank at +1.30 and is no longer on the
+  list: the rewritten question separates at +2.45, which is some evidence the owner's call on it was
+  the right one. The ranking is the checker's output, sorted narrowest first.
 
 Two rubrics were reached by `correct-poorly-explained` scoring **above** `strong` —
 `reference-semantics-understanding` (3.80 against 3.00) and `event-binding-diagnosis` (3.75 against

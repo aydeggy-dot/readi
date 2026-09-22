@@ -1,5 +1,5 @@
-# The frontend question bank: 34 questions for an intern/junior or mid-level interview — 23 general
-# and 11 written for a particular stack. (A frontend candidate is offered 35: `incident-you-contributed-to`
+# The frontend question bank: 35 questions for an intern/junior or mid-level interview — 24 general
+# and 11 written for a particular stack. (A frontend candidate is offered 36: `incident-you-contributed-to`
 # lives in the backend bank and carries this role too.) Built to `content/seed/blueprints/frontend.md`,
 # which says how many questions each core topic earns and why.
 #
@@ -17,40 +17,82 @@ status: draft
 questions:
   - slug: js-async-ordering
     roles: [frontend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: technical
     topic: javascript-fundamentals
-    subtopic: event loop
+    subtopic: the main thread
     difficulty: 3
     prompt: >-
-      Have a look at this snippet. In what order do the four numbers appear in the console, what is
-      it about the way the browser runs JavaScript that makes it come out that way, and why should
-      anyone building a page care?
+      A tester says that when they tap Save on their phone the screen goes dead for about two
+      seconds — nothing on it changes at all — and then the "Saved" message appears. They expected
+      to see "Saving…" while they waited. Why does that line never show up, what is the browser
+      doing for those two seconds, and what would you change?
     context: |
       ```js
-      console.log("1");
-      setTimeout(() => console.log("4"), 0);
-      Promise.resolve().then(() => console.log("3"));
-      console.log("2");
+      saveButton.addEventListener("click", () => {
+        status.textContent = "Saving…";
+
+        // Builds the report from about 40,000 rows. Takes ~2 seconds on a mid-range phone.
+        const report = buildReport(rows);
+
+        status.textContent = `Saved — ${report.length} lines`;
+      });
       ```
     rubric: async-ordering-understanding
     ideal_points:
-      - The order is 1, 2, 3, 4.
-      - JavaScript runs on one thread; the synchronous lines run to completion first.
-      - Promise callbacks are microtasks and are drained after the current work, before the next task.
-      - A zero-delay `setTimeout` is a task, so it waits behind the microtasks — "0ms" is not "now".
-      - The same thread paints, so long synchronous work blocks rendering and input.
+      - The first line did run; the text was set and the browser never got the chance to paint it.
+      - Rendering happens on the same thread as the handler, and only once the handler has returned.
+      - By the time a frame could be drawn, `textContent` already said "Saved", so "Saving…" was never on screen.
+      - Nothing else works during those two seconds either — taps and scrolling wait behind the loop.
+      - Let the browser paint before the work starts, or move the work off the main thread.
+      - Check it on a mid-range phone or with the CPU throttled, not on the laptop it was written on.
     reviewer_notes: >-
-      **Three of the four critique passes wanted this question changed or cut**, and I have only
-      made it fairer rather than acted on that, because it is the oldest question in the bank and
-      the call is yours. The case against: this exact snippet is in every "top ten JavaScript
-      interview questions" video, so it sorts candidates by how much interview prep they have
-      watched; criterion 2 carries 45% on a distinction a good self-taught candidate may never have
-      been given a word for (level 3 now accepts the idea by any name); and it is offered at
-      intern-junior. **The best proposal was to keep the mechanism and change the snippet**: a click
-      handler that sets a "Saving…" flag and then runs a long synchronous loop, so the spinner never
-      appears. Same event loop, cannot be answered from memory, and the follow-up ("so where does
-      the work go?") is a real one. Mid only, that snippet, both, or neither?
+      **The snippet changed on 2026-09-22 and the question is now mid only** (owner's decision).
+      It used to be four `console.log`s and a zero-delay `setTimeout` — the snippet in every "top
+      ten JavaScript interview questions" video, which sorted candidates by how much interview prep
+      they had watched rather than by what they understood, and three of the four critique passes
+      wanted it changed or cut. It asks the same thing about the main thread from a symptom nobody
+      can have memorised, and the follow-up ("so where does the work go?") is a real one. What I
+      would like checked is whether the fix is still reachable at mid: "let it paint first" is easy
+      to say and fiddly to do, so the rubric puts the mechanism at level 3 and the yielding at
+      level 4, and a candidate who only says "move it to a worker" still scores 3.
+
+  - slug: js-loop-that-returns-nothing
+    roles: [frontend, fullstack]
+    levels: [intern-junior]
+    type: technical
+    topic: javascript-fundamentals
+    subtopic: array methods and return values
+    difficulty: 2
+    prompt: >-
+      This function is meant to give back the jobs that are still open, and whoever calls it gets
+      `undefined` every time. Talk me through what actually happens when it runs, why the `return`
+      does not do what it looks like it does, and how you would write it instead.
+    context: |
+      ```js
+      function openJobs(jobs) {
+        jobs.forEach((job) => {
+          if (job.isOpen) {
+            return job;
+          }
+        });
+      }
+      ```
+    rubric: array-return-diagnosis
+    ideal_points:
+      - "`openJobs` has no `return` of its own, so it gives back `undefined` whatever the loop does."
+      - The `return` inside belongs to the arrow function and ends that call, not the outer one.
+      - "`forEach` throws away whatever its callback returns; it is there for side effects."
+      - "`filter` keeps the items that pass a test and gives back a new array, leaving the original alone."
+      - "`find` is the one to reach for if only the first match is wanted — a different question."
+    reviewer_notes: >-
+      New on 2026-09-22, because `js-async-ordering` became mid only and `javascript-fundamentals`
+      would otherwise have had one general question at intern-junior instead of the floor of two.
+      It is the cheapest question in the bank and deliberately so: the topic needed something a
+      self-taught junior meets in their own code rather than in a video. The risk runs the other
+      way — is it too easy to be worth one of the six questions an hour holds, or does the "which
+      function is this `return` in" part carry it? The follow-up I have in mind is "and if you only
+      wanted the first one?", which is where `find` comes in.
 
   - slug: fetch-failure-states
     roles: [frontend, fullstack]
@@ -102,14 +144,16 @@ questions:
       - Consider the URL, so the selection survives a reload and can be shared.
       - Name the cost of the choice — prop drilling, or re-rendering the list when the selection changes.
     reviewer_notes: >-
-      **A critique pass wanted this cut, and I think the argument is good enough that you should
-      decide.** Since this pass, `state-that-can-disagree` covers deriving, `url-as-state` covers
-      the URL answer with an actual symptom, and `react-unnecessary-effect` covers "this should not
-      be state" with real code — which leaves this as the only one of the four with nothing concrete
-      to reason from, so the conversation tends to end in "it depends". I have kept it and added
-      "what does that choice cost you" to the prompt, because 30% of the score was on a cost the
-      question never asked for. If it stays: is asking for the cost fair on someone who has only
-      built small apps, and is the React tag right when the prompt itself reads framework-neutral?
+      **Kept, after a critique pass wanted it cut**, because it is not subsumed by
+      `state-that-can-disagree` or `url-as-state`: neither asks where shared state should *live*,
+      which is the reflex here — lifting to the nearest component that contains both rather than to
+      a global store, and knowing the job data itself is server state belonging in a cache. What
+      the critique pass got right stands: this is the only question of the four with nothing
+      concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two
+      questions for you. Is asking for the cost fair on someone who has only built small apps? And
+      **is the React tag right when the prompt reads framework-neutral** — untagging it would give
+      Vue, Angular and vanilla candidates a question on state ownership they never see now, at the
+      price of taking `react-typescript` below its blueprint target of three.
 
   - slug: react-unnecessary-effect
     roles: [frontend, fullstack]
@@ -715,6 +759,7 @@ questions:
       - The state that went wrong is the state React is holding for that row, not the data.
       - An index key is safe only for a list that never reorders, never filters and never removes.
     reviewer_notes: >-
+      **Version-sensitive: React list reconciliation, checked against react.dev on 2026-09-22.**
       This is the bug I would most expect to actually happen to a junior on a real project, which is
       why it is here rather than a rendering-performance question. It needs the candidate to know
       that a child holds state, which the snippet has to state in prose because the component is not
@@ -742,7 +787,8 @@ questions:
       - Data fetching can then stay on the server, close to the database, rather than becoming a request from the browser.
       - A server component passed to a client component as a child or a prop stays on the server — it is rendered output, not an import.
     reviewer_notes: >-
-      The App Router's server-and-client split is the thing Next.js candidates most often half-know,
+      **Version-sensitive: Next.js `"use client"` semantics, checked against nextjs.org on
+      2026-09-22.** The App Router's server-and-client split is the thing Next.js candidates most often half-know,
       so I think this is the right question — but it is also the part of the framework that has moved
       most in the last two years, and a candidate who learned on the Pages Router will answer about
       `getServerSideProps` instead. Should the rubric give credit for that, or is being current part
@@ -782,7 +828,8 @@ questions:
       - "A key that has shipped is compromised: rotate it, rather than only removing it."
       - Search the deployed bundle to see whether it is there, and check the provider's usage.
     reviewer_notes: >-
-      This is as much a security question as a framework one, and I have weighted "what do you do
+      **Version-sensitive: Next.js `NEXT_PUBLIC_` inlining, checked against nextjs.org on
+      2026-09-22.** This is as much a security question as a framework one, and I have weighted "what do you do
       about a key that has already shipped" at 30% because I think the rotation instinct matters more
       than the framework trivia. Is that the right balance for a frontend interview, or would a
       reviewer here expect the whole score on the `NEXT_PUBLIC_` rule?
@@ -824,6 +871,8 @@ questions:
       - The rule is that reactivity belongs to the container, not to the value taken out of it.
       - "Props are the exception: since Vue 3.5 the compiler rewrites destructured props, so that one case does keep working."
     reviewer_notes: >-
+      **Version-sensitive: Vue reactivity and `<script setup>`, checked against vuejs.org on
+      2026-09-22 — needs a reviewer who knows what this audience actually learned Vue on.**
       Checked against vuejs.org on 2026-09-22: destructuring a `reactive()` object still breaks the
       connection, and **Vue 3.5 made destructuring `defineProps` reactive**, which the answer key
       now mentions — a candidate who learned on 3.5 may reasonably expect this to work too, and
@@ -873,7 +922,11 @@ questions:
       anyone who has read the docs, and the general set already covers the idea for every candidate.
       This version has the bug in it, so the candidate has to find the drift rather than recite the
       distinction — and the follow-up ("when *is* a watcher right?") gets the rest for free. Is the
-      symptom — right after another keystroke — too strong a hint at the watcher?
+      symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue
+      questions are written in the Composition API with `<script setup>`**, which the owner has
+      kept for now on the condition that a reviewer confirms it: someone who learned on the Options
+      API would meet the same bug in unfamiliar syntax, and you will know which of the two this
+      audience actually learned on better than we do.
 
   - slug: angular-subscription-leak
     roles: [frontend]
@@ -903,7 +956,8 @@ questions:
       - The general rule is that anything subscribed in a component is ended when the component is.
       - Credit a candidate who also notices that assigning to a field from inside `subscribe` notifies a zoneless Angular of nothing, so the list may not render at all.
     reviewer_notes: >-
-      The bug and the reasoning are stable across Angular versions, but **the idiomatic fix is not**:
+      **Version-sensitive: the idiomatic Angular cleanup, checked against angular.dev on
+      2026-09-22.** The bug and the reasoning are stable across Angular versions, but **the idiomatic fix is not**:
       the async pipe, `takeUntil` with a subject, `takeUntilDestroyed`, and signals are all answers a
       candidate might give depending on when they learned. I have written the rubric to reward any
       fix that ties the subscription to the component's lifetime and not to name a mechanism. Is that
@@ -953,14 +1007,16 @@ questions:
       - Forcing a check by hand works, and needing to is a sign the real cause has not been found.
       - The same reasoning holds whether the application uses zones or signals — what changed is what does the notifying, not that something has to.
     reviewer_notes: >-
-      Rewritten twice on 2026-09-22. Checking angular.dev showed zoneless is the default from v21,
-      so "it happened outside the zone" is no longer the first thing to reach for; and three critique
-      passes said a diagnosis question with no code was an invitation to recite a blog post. It now
-      shows the bug I would actually expect — a parent pushing into an array a child was given —
-      which behaves the same in a zone-based, a signal-based and an `OnPush` application, so the
-      candidate is not guessing which Angular I mean. One thing I could not settle: **the docs
-      disagree with themselves about whether `OnPush` is now the default**, so the snippet sets it
-      explicitly. Is that the right way out, or does setting it give the answer away?
+      **Version-sensitive: Angular change detection, checked against angular.dev on 2026-09-22 —
+      needs an Angular specialist, not a generalist reviewer.** Kept on that condition, and
+      rewritten twice the same day: zoneless is the default from v21, so "it happened outside the
+      zone" is no longer the first thing to reach for, and three critique passes said a diagnosis
+      question with no code invites reciting a blog post. It shows the bug I would expect — a
+      parent pushing into an array a child was given — which behaves the same in zone-based,
+      signal-based and `OnPush` applications. **What a specialist has to settle: the docs disagree
+      about whether `OnPush` is now the default** — the roadmap says it was made so, the zoneless
+      guide still calls it recommended. The snippet sets it explicitly rather than depend on the
+      answer. Right way out, or does it give the game away?
 
   - slug: vanilla-clicks-on-new-items
     roles: [frontend]

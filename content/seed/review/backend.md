@@ -158,7 +158,7 @@ A fix proportionate to the cause, aware of what it costs elsewhere.
 The answer is about one thing that actually happened, with concrete detail — the task, the system, when, who else if anyone — rather than a general description of how the candidate likes to work.
 
 - **0 (absent):** No situation given; answers in generalities ("I always communicate early").
-- **1 (weak):** Names a situation with no detail that fixes it in time or place.
+- **1 (weak):** Nothing that fixes it in time or place — a situation named with no detail, or a confident account that turns out to be how they usually work rather than one occasion.
 - **2 (partial):** One situation with some context; the task or the timeframe is missing.
 - **3 (solid):** One situation, with the context an outsider needs in order to follow it.
 - **4 (excellent):** As 3, and says what made it hard — the constraint, the deadline, the thing that was unknown.
@@ -168,7 +168,7 @@ The answer is about one thing that actually happened, with concrete detail — t
 What the candidate personally did, in enough detail to judge. Collective phrasing is not a fault; an answer with no recoverable action is.
 
 - **0 (absent):** No action is attributable to the candidate, even after the interviewer asks which part was theirs.
-- **1 (weak):** Actions are generic ("I fixed it") and could describe anyone.
+- **1 (weak):** Nothing in the answer is theirs to point at — generic actions ("I fixed it"), or a detailed account of what the team decided with their own part left out.
 - **2 (partial):** Some of their own actions, but the sequence or the reasoning is missing.
 - **3 (solid):** What they did and why it is recoverable from the answer.
 - **4 (excellent):** As 3, including a decision they weighed and what they gave up by taking it.
@@ -179,7 +179,7 @@ How it ended, including if it went badly, and something specific they do differe
 
 - **0 (absent):** No outcome, or an outcome that does not follow from the actions described.
 - **1 (weak):** States that it worked out, with nothing to show for it.
-- **2 (partial):** An outcome, but the lesson is a platitude ("communication is important").
+- **2 (partial):** An outcome, but the lesson is a platitude ("communication is important") — however specifically the outcome itself is told.
 - **3 (solid):** The outcome and one specific thing they changed afterwards are both stated.
 - **4 (excellent):** As 3, and the change is one an interviewer could check against how they now work.
 

@@ -32,7 +32,11 @@ Sharpening means the descriptors, not the weights. The usual repairs:
 - Levels 3 and 4 differing only in confidence. Give 4 a thing to contain that 3 does not.
 - A criterion that scores the whole answer rather than one dimension of it — so a fluent wrong
   answer picks up the same score as a correct one on two of the three criteria.
-- No descriptor that a wrong-but-fluent answer would land on. Add it at level 1.
+- **No descriptor written for being wrong** — only descriptors written for being vague. The score
+  comes out right and the evidence quote does not match the words it was scored against. This is a
+  house rule, not a repair: see "Every criterion needs a descriptor that fits a confident, specific,
+  wrong answer" in `SKILL.md`. The `fluent-but-wrong` answer you have just written is where the
+  wording comes from — take the wrong belief it commits to and put it in the descriptor.
 
 If the fifth answer scores more than one point below **strong** anywhere, the descriptor it lost
 points on is rewarding phrasing. Fix it and score again.

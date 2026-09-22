@@ -1223,3 +1223,46 @@ questions — if a topic supports two good ones, write two and say so.**
 - **A local caveat, not a defect:** `pnpm db:seed -- --dry-run` reports four M2 rows as "left alone —
   published" on this machine, because they were published in a developer database. ADR-0014 decision
   7 working as designed; a fresh database takes all 34.
+
+## The owner's six decisions on the frontend bank (2026-09-22)
+
+- [x] **1. `angular-view-did-not-update` kept, flagged for an Angular specialist.** Its
+      `reviewer_notes` now opens with the version-sensitive marker and says in as many words that a
+      generalist reviewer cannot settle it: the one thing a specialist has to decide is whether
+      setting `ChangeDetectionStrategy.OnPush` explicitly in the snippet is the right way around the
+      docs contradicting themselves, or whether it gives the game away.
+- [x] **1b. How a question is marked version-sensitive** is now a hard rule in `SKILL.md`: the
+      `reviewer_notes` opens with `**Version-sensitive: <claim>, checked against <source> on
+    <date>.**`, plus `— needs a <X> specialist` where it needs one. No schema field, because the
+      seed contract would only carry it to a database column nothing reads;
+      `grep -l 'Version-sensitive' content/seed/*/questions.yaml` finds them across every bank and
+      `grep -o '\*\*Version-sensitive:[^*]*'` prints the claims with their dates. Six questions in
+      the frontend bank carry it — the six rows of the blueprint's fact-check appendix.
+- [ ] **1c. Version-sensitive questions need a re-check cycle, and it does not exist yet.** Three of
+      the four claims checked on 2026-09-22 had moved since the drafter learned them, in a bank
+      three months old. The marking above makes the set findable; what is missing is **when** it is
+      re-read and **who** by. Cheapest version: a quarterly pass that greps the marker, re-reads each
+      claim against the vendor's current docs, and dates the row in the blueprint's fact-check
+      appendix — about an hour per bank. Needs a decision on cadence (quarterly? per milestone?
+      before each expert review?) and on whether a mark older than one cycle should make
+      `check-bank.mjs` warn. **Do not let this become "we will remember": the whole point of the
+      2026-09-22 fact-check is that we did not.**
+- [x] **2. `something-you-built` kept**, unchanged. Describing your own work clearly is a skill
+      practising improves, so a question we cannot anticipate is not a question candidates game.
+- [x] **3. `js-async-ordering` rewritten and moved to mid only.** The `console.log` ordering snippet
+      is gone; it is now a click handler that sets "Saving…" and then blocks the main thread for two
+      seconds, so the message never paints. Same mechanism, unmemorisable, and the rubric became
+      `Understanding what the main thread is doing` with three new criteria. **Moving it off
+      intern-junior took `javascript-fundamentals` below its floor there**, so
+      `js-loop-that-returns-nothing` was written to fill the slot — a `return` inside a `forEach`
+      callback, which is where a self-taught junior actually meets this. The bank is 35 questions.
+- [x] **4. `react-state-placement` kept.** It is not subsumed: `state-that-can-disagree` covers
+      deriving and `url-as-state` covers the URL, but neither asks where shared state should _live_
+      — lifting to the nearest common component rather than reaching for a global store, and server
+      data belonging in a cache rather than in `useState`. Nothing else in the bank asks either. The
+      critique pass's real complaint stands in `reviewer_notes` for the expert: it is the only one
+      of the four with nothing concrete to reason from.
+- [x] **5. Both Vue questions kept in the Composition API with `<script setup>`**, flagged in
+      `reviewer_notes` on both for the reviewers to confirm against what this audience learned on.
+- [x] **6. The descriptor finding applied across all 34 rubrics** — 82 descriptors rewritten so a
+      confident, specific, wrong answer has words to land on. See the blueprint's Appendix B2.

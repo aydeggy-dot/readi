@@ -44,6 +44,22 @@ Each of these has a source, and none of them is a preference.
 - **`reviewer_notes` is the drafter's uncertainty**, addressed to the expert — a claim that may have
   aged, a level that may be wrong, a weight that was a judgement call. It is not a summary of the
   question, and "nothing to flag" is a legitimate answer that should be rare.
+- **A question whose answer depends on what a named product currently does is marked
+  version-sensitive**, by opening its `reviewer_notes` with the line
+
+  ```
+  **Version-sensitive: <the claim>, checked against <source> on <YYYY-MM-DD>.**
+  ```
+
+  and, where the claim needs someone who works in that stack, `— needs a <X> specialist, not a
+generalist reviewer.` The seed contract has no field for this and does not need one:
+  `grep -l 'Version-sensitive' content/seed/*/questions.yaml` finds every such question across every
+  bank, and `grep -o '\*\*Version-sensitive:[^*]*'` prints the claims and their dates. The detail
+  behind each one lives in the blueprint's fact-check appendix. Mark it when the answer would change
+  if the vendor changed something — Angular's change detection, `NEXT_PUBLIC_` inlining, Vue's
+  reactivity — and not merely because a framework is named. **These are re-checked on a cycle**, so a
+  mark with no date is worse than no mark.
+
 - **Only question types in that role's `supported_question_types`** (`roles.yaml`; M3 reads it).
 - **Never write a question the engine cannot deliver.** No "write the code", no "draw the diagram",
   no "run this query", no lab. The catalogue names what each role needs beyond M3; the blueprint
@@ -90,6 +106,24 @@ defective — sharpen it before the stress test finds it.
 around", "checks the error rate afterwards", "tests on a real device" — a claimed habit costs
 nothing to say, so the top band separates the coached from the good. Make level 4 a distinction, a
 trade-off, or a case where the candidate's own answer would be the wrong call.
+
+**Every criterion needs a descriptor that fits a confident, specific, wrong answer.** The low
+descriptors get written for vagueness — "a rule with no mechanism", "with nothing behind it",
+"without saying why" — because that is what a weak answer looks like. A fluent wrong answer is the
+opposite of vague: it is detailed, it uses the vocabulary correctly, and the detail is wrong. Scored
+against a descriptor written for absence, it lands on the right _number_ and the evaluator's
+evidence quote then contradicts the descriptor it was scored against — the candidate is told they
+were vague about something they were specific and wrong about. **M4's feedback is built on those
+evidence quotes**, so this is the difference between feedback a candidate trusts and feedback that
+tells them we were not listening. Name the wrong belief this question actually attracts, and put it
+at level 0, 1 or 2 beside the vague one:
+
+> `"1": Relies on the request rejecting — a `try`/`catch`only, or a confident claim that`fetch`
+throws on a 404 or a 500.`
+
+The `fluent-but-wrong` answer in the stress test is where the wrong belief comes from, which is why
+the test is worth running before the rubric is finished rather than after. Applied across all 34
+frontend and shared rubrics on 2026-09-22; every bank after that is written this way from the start.
 
 **A shared rubric must be able to score its questions.** A behavioural answer is judged the same way
 whatever the role, so the shared rubric is right — until a question is written about a _specific_

@@ -10,37 +10,70 @@ status: draft
 
 rubrics:
   - slug: async-ordering-understanding
-    name: Understanding of asynchronous ordering
+    name: Understanding what the main thread is doing
     criteria:
-      - dimension: Gets the order right
-        description: Predicts the actual output order of the snippet.
-        weight: 30
-        levels:
-          "0": No answer, or an order with no reasoning behind it.
-          "1": Order is wrong in a way that shows no model of queuing (e.g. purely top to bottom).
-          "2": Synchronous lines placed correctly; the promise and the timer are swapped.
-          "3": Correct order.
-          "4": Correct order, and says which line was the one to get right — the zero-delay timer that still runs last.
-      - dimension: Explains the mechanism
+      - dimension: Says why the first message never reaches the screen
         description: >-
-          Why that order: one thread, a call stack that runs to completion, microtasks drained
-          before the next task. Not a memorised rule ("promises are faster").
-        weight: 45
-        levels:
-          "0": No explanation offered.
-          "1": A rule with no mechanism ("promises come first").
-          "2": Mentions the event loop or a queue, but conflates timers and promise callbacks.
-          "3": Distinguishes the two queues, by whatever name, and says when each is taken.
-          "4": As 3, and explains that the stack must empty first, so `setTimeout(…, 0)` means "not before then".
-      - dimension: Connects it to the user
-        description: What this means on screen — a frozen page, a late paint, a race between two requests.
+          Not that it was overwritten too quickly to see — that no frame was painted between the two
+          assignments, so there was never anything to see.
         weight: 25
         levels:
-          "0": Treats it as trivia with no consequence.
-          "1": Says it "matters for performance" without saying how.
-          "2": Names one consequence in general terms.
-          "3": Gives a concrete consequence, such as a long task blocking a tap or a paint.
-          "4": As 3, plus what they would do about it (break up work, start requests together).
+          "0": Concludes the line did not run, or that the code is wrong.
+          "1": A story about the writes rather than about painting — too quick to see, the second line overwriting the first, the two assignments batched together so only the last survived — however confidently told.
+          "2": Says the screen did not update, without saying why the update never reached it.
+          "3": Says the text was set but the browser never painted between the two assignments.
+          "4": As 3, and says what was on screen for those two seconds instead — whatever the tap found there.
+      - dimension: Explains what the browser is doing for those two seconds
+        description: >-
+          One thread runs the handler and draws the page and cannot do both at once, so the frame
+          comes after the handler returns.
+        weight: 45
+        levels:
+          "0": Treats drawing the page as something that happens independently of the code.
+          "1": A mechanism that is not this one — the browser batching updates for performance, rendering on another thread, `textContent` being asynchronous — however precisely it is put.
+          "2": Says the thread is busy, without connecting that to when the page can be drawn.
+          "3": Says the same thread runs the handler and paints, so no frame can be produced until the handler returns.
+          "4": As 3, and extends it to the rest of the page — the tap that goes unanswered, the scroll that stalls — because they wanted the same thread.
+      - dimension: Gets the work out of the way
+        description: What they would change, and how they would know it had worked.
+        weight: 30
+        levels:
+          "0": No change proposed, or only a message put somewhere else on the page.
+          "1": A change that leaves no room for a frame — a promise wrapped round the same work, a faster loop, a spinner beside the text, or forcing a synchronous layout after the assignment to push it out.
+          "2": Names an approach — yield, a worker, do it on the server — without saying what it changes about the two seconds.
+          "3": Lets the browser paint before the work starts, or moves the work off the main thread, and says why that is what fixes it.
+          "4": As 3, and says how they would check — a throttled profile, or a real mid-range phone — and what their choice costs against the other one.
+
+  - slug: array-return-diagnosis
+    name: Reading what a loop actually gives back
+    criteria:
+      - dimension: Says where the `undefined` comes from
+        description: The outer function never returns anything; the `return` inside belongs to the callback.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong, or blames the data.
+          "1": Puts the fault somewhere it is not — the `if`, the property name, an empty array — whether guessed at or argued in detail.
+          "2": Notices that `openJobs` returns nothing, without saying what the inner `return` does instead — or gives that `return` a behaviour it does not have and makes the missing assignment the whole of the bug.
+          "3": Says the `return` ends the arrow function and the outer one falls off the end, so the caller gets `undefined`.
+          "4": As 3, and says the loop itself runs correctly — nothing is broken except what is done with the result.
+      - dimension: Knows what `forEach` is for
+        description: That it throws away whatever the callback returns, so no `return` inside it can produce a value.
+        weight: 30
+        levels:
+          "0": Treats `forEach` as interchangeable with any other loop.
+          "1": Gives `forEach` a behaviour it does not have — that the `return` skips to the next item and is otherwise fine, that it stops the loop, that it collects what is returned — however confidently.
+          "2": Says `forEach` "does not return anything" without connecting that to the callback's value.
+          "3": Says `forEach` ignores what the callback gives back, and is there for side effects.
+          "4": As 3, and separates it from the methods whose whole purpose is the value the callback returns.
+      - dimension: Writes it the way that says what it means
+        description: "`filter` for every match, `find` for the first — chosen, rather than the first thing that works."
+        weight: 30
+        levels:
+          "0": No working alternative.
+          "1": A change that does not fix it — moving the inner `return` elsewhere in the callback, or capturing what `jobs.forEach(...)` gives back, which is `undefined`. A correct method named in passing is not the fix they proposed.
+          "2": Gets a correct result the long way — a variable, a loop and a `push` — or names `filter` without being able to say what it gives back.
+          "3": Uses `filter`, and says it gives back a new array of the items that passed.
+          "4": As 3, and says what they would use if only the first open job were wanted, and why that is a different question.
 
   - slug: network-failure-handling
     name: Handling a network that fails
@@ -51,7 +84,7 @@ rubrics:
         levels:
           "0": Only the success case.
           "1": Success and a spinner.
-          "2": Three of the four states, or all four named without distinguishing empty from error.
+          "2": Three of the four states, or all four with empty and error run together — whether they are merged by omission or an empty list is argued to be an error.
           "3": All four states, with empty and error clearly different.
           "4": All four, plus what the user can do from the error state (retry, go back, contact support).
       - dimension: Handles HTTP errors correctly
@@ -61,7 +94,7 @@ rubrics:
         weight: 40
         levels:
           "0": No error handling at all.
-          "1": A `try`/`catch` only; a 500 would be reported as a parsing failure.
+          "1": Relies on the request rejecting — a `try`/`catch` only, or a confident claim that `fetch` throws on a 404 or a 500.
           "2": Checks the status, but treats every failure the same way.
           "3": Checks `response.ok`, and separates "the request failed" from "the server said no".
           "4": As 3, and distinguishes statuses that deserve different handling (401 vs 404 vs 500).
@@ -70,7 +103,7 @@ rubrics:
         weight: 25
         levels:
           "0": Assumes the request either succeeds or fails promptly.
-          "1": Mentions slow networks with no mechanism for dealing with them.
+          "1": Mentions slow networks with no mechanism — or names one the platform does not have, such as a timeout `fetch` applies on its own.
           "2": Suggests a timeout or a retry, without saying how or when.
           "3": Gives the request a deadline (e.g. `AbortController`) and retries deliberately.
           "4": As 3, and notes that retrying a non-idempotent request can repeat a side effect.
@@ -84,14 +117,14 @@ rubrics:
         levels:
           "0": No decision, or "put it in a global store" with no reasoning.
           "1": Picks a place but cannot say why that one.
-          "2": Lifts to a common parent, but higher than necessary, or reaches for a global store first.
+          "2": Lifts higher than necessary, or reaches for a global store first — including a confident case for the store built on a claim about re-renders that this tree does not support.
           "3": Lifts to the nearest component that needs it, and says why there.
           "4": As 3, and recognises the kind of state it is (server data, UI state, or a URL concern).
       - dimension: Avoids duplicating the same fact
         description: Derives what can be derived; does not keep two copies that have to be kept in step.
         weight: 30
         levels:
-          "0": Copies the same value into several places without noticing.
+          "0": Copies the same value into several places — without noticing, or defending it as an optimisation.
           "1": Notices the duplication only when prompted.
           "2": Avoids duplication in the example but cannot generalise the rule.
           "3": States the rule — one source of truth, derive the rest during render.
@@ -101,7 +134,7 @@ rubrics:
         weight: 30
         levels:
           "0": Presents the choice as obviously correct with no trade-off.
-          "1": Acknowledges a trade-off exists but not what it is.
+          "1": Acknowledges a trade-off and names the wrong one — an extra file, some boilerplate — rather than what this choice actually costs.
           "2": Names one cost in passing.
           "3": Names the real cost of their choice and when it would push them to a different one.
           "4": As 3, and gives the signal they would watch for to change the decision later.
@@ -114,7 +147,7 @@ rubrics:
         weight: 40
         levels:
           "0": Sees nothing wrong.
-          "1": Says it "looks off" without locating the problem.
+          "1": Locates the problem somewhere else — the dependency array, a render loop — whether vaguely or in convincing detail.
           "2": Identifies the effect as suspicious but explains it as a style preference.
           "3": Says that the value can be computed during render, so it is not state.
           "4": "As 3, and states the rule: effects are for synchronising with things outside React."
@@ -123,7 +156,7 @@ rubrics:
         weight: 30
         levels:
           "0": No consequence given.
-          "1": '"It is slower", with nothing behind it.'
+          "1": A consequence that does not follow — "it is slower" with nothing behind it, or a detailed account of a runaway loop this code does not have.
           "2": Mentions an extra render without saying why it happens.
           "3": Explains that the effect runs after render, so the user briefly sees the old value.
           "4": As 3, and notes that the state can now disagree with the props it came from.
@@ -132,7 +165,7 @@ rubrics:
         weight: 30
         levels:
           "0": No alternative offered.
-          "1": Changes the dependency array and keeps the effect.
+          "1": Keeps the state and the effect and adds machinery around them — a new dependency array, a memo, an equality guard.
           "2": Removes the effect but keeps the redundant state.
           "3": Computes during render; the state and the effect both disappear.
           "4": As 3, and says what they would do if the calculation really were expensive — measure it first, rather than assume.
@@ -147,7 +180,7 @@ rubrics:
         weight: 40
         levels:
           "0": Starts changing CSS at random.
-          "1": Guesses a cause and applies a fix without checking it was the cause.
+          "1": Applies a fix to a cause they never confirmed, however specific the hunch — searching the stylesheet for one suspect property rather than reproducing the overflow.
           "2": Uses the inspector but stops at the first element that looks wrong.
           "3": Identifies the specific element that exceeds the viewport and says how they found it.
           "4": As 3, with a repeatable method (device toolbar at 360px, then narrowing down the subtree).
@@ -156,7 +189,7 @@ rubrics:
         weight: 30
         levels:
           "0": No candidate causes.
-          "1": One cause, stated as the only possibility.
+          "1": One cause, stated as the usual answer — including `100vw` beside a scrollbar, which is not what happens on a phone.
           "2": Two or three causes, unsorted.
           "3": Several plausible causes, with a reason for checking one first.
           "4": "As 3, including a cause that is easy to miss (overflowing text, or a `min-width: auto` flex item)."
@@ -165,7 +198,7 @@ rubrics:
         weight: 30
         levels:
           "0": No fix, or one that would break other sizes.
-          "1": "Hides the symptom (`overflow-x: hidden`) without addressing the cause."
+          "1": "Hides the symptom (`overflow-x: hidden` on the page) without addressing the cause — including when it is offered as standard practice."
           "2": A media query for small screens only.
           "3": "A fix that works at every width (fluid sizing, wrapping, `max-width: 100%`)."
           "4": As 3, and says how they would check it stays fixed — a test or a screenshot at 360px.
@@ -179,7 +212,7 @@ rubrics:
         levels:
           "0": Starts optimising immediately.
           "1": Says "I would profile it" with no method.
-          "2": Opens DevTools but does not reproduce the user's conditions.
+          "2": Measures on their own machine and stops — a tool opened, or a score taken as proof — without reproducing the user's conditions.
           "3": Reproduces under the user's conditions — throttling, or a real mid-range phone on mobile data — and records a load.
           "4": As 3, and gathers what the report is missing first — device, page, whether it is every visit.
       - dimension: Separates network from CPU
@@ -189,7 +222,7 @@ rubrics:
         weight: 30
         levels:
           "0": Treats "slow" as one undifferentiated thing.
-          "1": Assumes it is the network (or the server) without checking.
+          "1": Settles on one of the two without checking — usually the network, sometimes argued as a rule that it is always the network.
           "2": Mentions both but does not say how to tell them apart.
           "3": Reads the waterfall and the main thread and says which dominates here.
           "4": As 3, and knows a mid-range phone's CPU is often the binding constraint, not bandwidth.
@@ -198,7 +231,7 @@ rubrics:
         weight: 30
         levels:
           "0": No change proposed, or a rewrite.
-          "1": A list of general best practices unrelated to the finding.
+          "1": General best practices unrelated to the finding, often shipped together — plausible changes, none of them chosen by the measurement.
           "2": A reasonable change, but not clearly the one the measurement pointed to.
           "3": A change that addresses the dominant cost, then re-measures.
           "4": As 3, and weighs effort against benefit, naming what they would not bother with.
@@ -217,7 +250,7 @@ rubrics:
         weight: 40
         levels:
           "0": Does not identify what changed the caller's data.
-          "1": Blames the loop, the framework or the caller rather than the assignment.
+          "1": Blames the loop, the framework or the caller rather than the assignment — including a detailed account of how the loop binding is at fault.
           "2": Says the array was "passed by reference" without saying what that means for the items inside it.
           "3": Says the function is writing to the same objects the caller holds, and points at the assignment.
           "4": As 3, and separates the array from the objects in it — copying the array alone would not have helped.
@@ -226,7 +259,7 @@ rubrics:
         weight: 20
         levels:
           "0": Not addressed.
-          "1": Believes `const` should have prevented the change.
+          "1": Gets `const` wrong — that it should have prevented the change, or that it is a live binding into the caller's memory.
           "2": Says `const` is "about reassignment" without applying it to this code.
           "3": States that `const` stops `cart` being pointed elsewhere and nothing else.
           "4": As 3, and names what would actually prevent the change instead.
@@ -235,7 +268,7 @@ rubrics:
         weight: 40
         levels:
           "0": No fix, or one that still writes to the caller's objects.
-          "1": Copies the array only, so the objects are still shared.
+          "1": Copies the array only, so the objects are still shared — including when the spread is described as a deep copy.
           "2": Produces new objects but by a route that would break on nested data, without noticing.
           "3": Builds and returns new items, leaving the input untouched.
           "4": As 3, and says when editing in place is legitimate — and that the name should then say so.
@@ -248,7 +281,7 @@ rubrics:
         weight: 45
         levels:
           "0": Treats all three as things to store, with no distinction between them.
-          "1": Stores all three and keeps them in step manually, seeing no problem.
+          "1": Keeps all three — seeing no problem, or diagnosing something else entirely, such as a stale closure, and leaving the three in place.
           "2": Senses that the count is redundant but keeps it "to avoid recalculating".
           "3": Holds the selection alone and calculates the count and total where they are shown.
           "4": As 3, and generalises — anything filtered, sorted or summed from data already held is derived.
@@ -256,7 +289,7 @@ rubrics:
         description: Three copies of one fact can disagree, and the failure looks like a display bug.
         weight: 30
         levels:
-          "0": No downside offered.
+          "0": No downside offered — the duplication is never identified as the problem, so nothing is said to follow from it.
           "1": Says it is "bad practice" with nothing behind it.
           "2": Says the values "could get out of sync" without a route by which they would.
           "3": Describes a concrete path to disagreement — a change that updates two of the three.
@@ -278,7 +311,7 @@ rubrics:
         description: That the filter lives only in the page's memory, so the link carries nothing about it.
         weight: 30
         levels:
-          "0": Treats it as a bug in sharing, the browser or the server.
+          "0": Puts the cause outside the page — sharing, the browser, a cache, the server — however specifically it is argued.
           "1": Says the filter "was not saved" without saying where it lived.
           "2": Identifies that the state is in the page, but not why the link is therefore incomplete.
           "3": Says the address never changed, so the friend's page starts from its defaults.
@@ -313,7 +346,7 @@ rubrics:
         levels:
           "0": Sees nothing wrong; the CSS works, so it is fine.
           "1": Objects to the number of media queries without saying what goes wrong because of them.
-          "2": Says it is hard to maintain, without connecting that to the widths in between.
+          "2": Says it is hard to maintain — magic numbers, drift, or an invented cost such as media queries forcing layout on resize — without connecting it to the widths in between.
           "3": Says the rules describe devices rather than content, so any width not listed is unhandled.
           "4": As 3, and points out that changing the card itself means revisiting all four numbers.
       - dimension: Lets the layout decide for itself
@@ -321,7 +354,7 @@ rubrics:
         weight: 35
         levels:
           "0": No alternative, or more breakpoints.
-          "1": Rearranges the same breakpoints, or adds one for a size that was missing.
+          "1": Rearranges the same breakpoints — new units, variables, or one more for a size that was missing — leaving the model untouched.
           "2": Knows the grid can do it but cannot say what it would be told.
           "3": Gives the grid a minimum card width and lets it fit as many as will go.
           "4": As 3, and keeps breakpoints for where the design genuinely changes shape rather than removing them all.
@@ -329,7 +362,7 @@ rubrics:
         description: Building up from the small screen rather than patching a wide layout down.
         weight: 25
         levels:
-          "0": Designs for a laptop and does not mention small screens.
+          "0": Never reaches the narrow end — designs for a laptop, or answers about something else, such as zoom or the design system.
           "1": Mentions mobile as something to check at the end.
           "2": Says "mobile-first" without it affecting the described approach.
           "3": Describes checking at the narrow width first and adding rules as space appears.
@@ -343,7 +376,7 @@ rubrics:
         weight: 40
         levels:
           "0": Expects nothing to break, or answers about the data instead of the layout.
-          "1": Says it "might look bad" without naming a failure.
+          "1": Names no failure — "it might look bad", or straight to a fix, with nothing said about what goes wrong.
           "2": Names one failure, usually the long title.
           "3": Names several, including one caused by something missing rather than something long.
           "4": As 3, and separates failures that are ugly from failures that break the page, such as sideways scrolling.
@@ -351,7 +384,7 @@ rubrics:
         description: Wrapping, space reserved for what may not arrive, and sizes the content can flow inside.
         weight: 35
         levels:
-          "0": No technique offered, or fixed sizes that assume the sample data.
+          "0": No technique, or fixed sizes that assume the sample data — including a confident set of them that would clip the content instead.
           "1": Would fix each case as it is reported.
           "2": One technique, applied narrowly.
           "3": Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
@@ -360,7 +393,7 @@ rubrics:
         description: Deliberately trying the worst content available rather than the sample you built against.
         weight: 25
         levels:
-          "0": Assumes the sample data is representative.
+          "0": Nothing left to test — the sample data is assumed representative, or the geometry is presented as a guarantee.
           "1": Would wait for a bug report.
           "2":
             Says they would "test with different data" without saying which.
@@ -375,7 +408,7 @@ rubrics:
         description: Finding out what is actually being sent, in bytes, rather than reasoning from how it looks.
         weight: 30
         levels:
-          "0": Starts changing things without knowing the sizes.
+          "0": Starts changing things without knowing the sizes — including an explicit case for not measuring, because the cause is already obvious.
           "1": Says the images are "too big" with nothing measured.
           "2": Would look in the browser tools without saying what for.
           "3": Reads the transferred size of each image and the total weight of the page.
@@ -385,7 +418,7 @@ rubrics:
         weight: 45
         levels:
           "0": No technique, or only "compress them".
-          "1": One technique, applied to all six images regardless.
+          "1": One technique applied to all six regardless — or several that do not address this complaint at all, such as compression that does little to a photograph, caching that helps only the second visit, or deferring the image at the top.
           "2": Two techniques, without saying which would save the most here.
           "3": Serves a size suited to the device, a modern format, and defers what is below the fold.
           "4": As 3, and reserves the space so deferring does not make the page jump as it loads.
@@ -409,7 +442,7 @@ rubrics:
         description: That a timeout says nothing about whether the server acted — the commonest wrong assumption here.
         weight: 35
         levels:
-          "0": Assumes a timeout means the payment did not happen.
+          "0": Assumes a timeout means the payment did not happen — plainly, or argued in detail from what the connection did.
           "1": Says the request "failed" and moves on to retrying it.
           "2": Notices the uncertainty when prompted but does not build for it.
           "3": Says that the charge may have gone through and that the client has no way to know.
@@ -419,7 +452,7 @@ rubrics:
         weight: 30
         levels:
           "0": Leaves the button live and says nothing to the user.
-          "1": Adds a spinner and nothing else.
+          "1": Addresses the tap and not the uncertainty — a spinner, or an automatic retry so the user never has to tap twice.
           "2": Disables the button while loading, with no answer for what happens after the timeout.
           "3": Disables the button, says what is happening, and offers a deliberate next step rather than a retry.
           "4": As 3, and the next step is to check the state — "let me confirm whether it went through".
@@ -428,7 +461,7 @@ rubrics:
         weight: 35
         levels:
           "0": No mechanism; relies on the user not tapping twice.
-          "1": Retries automatically, which makes the problem worse.
+          "1": A mechanism the server never sees — a retry the client decides on its own, or a value kept in the browser that nothing on the server checks.
           "2": Says the server "should handle duplicates" with nothing the client does to help.
           "3": Does not resend blindly — asks the server what the state is first — and separates reads, which are safe to retry, from actions that move money.
           "4": As 3, and sends a value that identifies the attempt, generated before the first send and reused on a retry, so the server can recognise it.
@@ -440,7 +473,7 @@ rubrics:
         description: Whether the server has the new name at all, before hunting for a cache.
         weight: 40
         levels:
-          "0": Starts changing caching settings.
+          "0": Starts changing caching — a setting, a header, a service worker — before establishing what the server holds.
           "1": Assumes the save failed, or assumes it succeeded, without checking.
           "2": Would "check the API" without saying what that would tell them.
           "3": Confirms what the server returns for that user before looking anywhere else.
@@ -460,7 +493,7 @@ rubrics:
         description: After a successful save, the held copy is refreshed or replaced rather than left to expire.
         weight: 35
         levels:
-          "0": Not addressed — the answer stops at the diagnosis.
+          "0": Not addressed — the answer stops at the diagnosis, or proposes a change aimed at a layer that was never holding the value.
           "1": Would disable caching everywhere, or reload the whole page after saving.
           "2": Refetches, but leaves the other layers that could hold the old value.
           "3": Updates or invalidates the copy the page holds as part of the save.
@@ -484,7 +517,7 @@ rubrics:
         levels:
           "0": No fix, or a visual one.
           "1": Adds a click handler for the Enter key and considers it done.
-          "2": Adds `role` and `tabindex` to the div without the key handling that then becomes necessary.
+          "2": Adds `role` and `tabindex` to the div without the key handling that then becomes necessary — or with a `tabindex` value that takes it out of the tab order.
           "3": Replaces it with a `<button>`, and says what that brings without extra code.
           "4": As 3, and says when the attribute route is the right one — an element you cannot change.
       - dimension: Separates looks from meaning
@@ -505,7 +538,7 @@ rubrics:
         weight: 35
         levels:
           "0": Only a general "something went wrong".
-          "1": A summary at the top, with nothing at the fields.
+          "1": A summary at the top and nothing at the fields — including when inline messages are argued against as noise.
           "2": Messages at the fields, with no way for a non-visual user to reach them.
           "3": A message at each field, tied to that input so it is read out when the field is reached.
           "4": As 3, plus a summary that links to the fields, for a long form.
@@ -515,7 +548,7 @@ rubrics:
         levels:
           "0": Red borders and nothing else.
           "1": Colour plus an icon, with no text.
-          "2": Text present, but the user is left where they were with no indication anything changed.
+          "2": Text present, but nothing reliably reaches a non-visual user — focus left where it was, or moved somewhere that is not the problem, or the message put where it may not be announced.
           "3": Text on every error, and focus moved to the first field that needs attention.
           "4": As 3, and the failure is announced rather than silently appearing on screen.
       - dimension: Says how to fix it
@@ -545,7 +578,7 @@ rubrics:
         weight: 35
         levels:
           "0": Only the successful login.
-          "1": Success, plus an empty form.
+          "1": Success, plus an empty form — or a reasoned case for leaving the failure paths out.
           "2": Names failure cases without saying what each would assert.
           "3": Covers wrong credentials and a failing request, with the message each should produce.
           "4": As 3, and stubs the network so the test is about this screen rather than about the server.
@@ -554,7 +587,7 @@ rubrics:
         weight: 30
         levels:
           "0": Would test everything, or gives no view.
-          "1": Says "test everything important" with no example of what is not.
+          "1": No usable line — "test everything important" with no example, or a principle that would exclude most of what is worth testing.
           "2": Excludes something without a reason that would generalise.
           "3": Names what they would leave out and why it is not worth the maintenance.
           "4": As 3, and prefers a few tests that would catch a regression to many that assert the obvious.
@@ -566,7 +599,7 @@ rubrics:
         description: Class names and structure — the things a refactor changes without changing behaviour.
         weight: 40
         levels:
-          "0": Concludes the refactor was wrong.
+          "0": Concludes the refactor was wrong — including the argued version, that the markup is a contract and the tests were right to hold it to one.
           "1": Says the tests are "brittle" without saying what they depend on.
           "2": Identifies the selectors as the problem but treats it as a naming issue.
           "3": Says the tests assert on structure and styling rather than on what the screen does.
@@ -575,7 +608,7 @@ rubrics:
         description: A suite that cries wolf stops being read, which is worse than having no suite.
         weight: 25
         levels:
-          "0": Treats it as an inconvenience.
+          "0": Sees no cost — an inconvenience, or the safety net doing its job.
           "1": Says it "wastes time" and nothing more.
           "2": Mentions that people start ignoring failures.
           "3": Says the team loses trust in the suite and begins skipping or deleting tests.
@@ -584,7 +617,7 @@ rubrics:
         description: Rewriting the selectors rather than reverting a change that was an improvement.
         weight: 35
         levels:
-          "0": Reverts the rename, or deletes the tests.
+          "0": Reverts the rename, deletes the tests, or tightens the coupling further — snapshots of the tree, or the class names centralised so they are quicker to update.
           "1": Updates the class names in all eleven tests and moves on.
           "2": Rewrites some selectors without a rule for the rest.
           "3": Selects by role, label or visible text, so the next refactor does not break them.
@@ -597,7 +630,7 @@ rubrics:
         description: Specific questions — which screen, what they tapped, what they expected — rather than "can you give more detail".
         weight: 40
         levels:
-          "0": Starts looking at code, or closes the report.
+          "0": Asks nothing — starts on the code, closes the report, or declares the cause already known from what is written.
           "1": Asks for "more information" without saying what.
           "2": Asks one or two questions, missing the conditions the failure depends on.
           "3": Asks what they did, what happened, what they expected, and on what device and connection.
@@ -608,7 +641,7 @@ rubrics:
           A candidate with none of those available scores on naming what they would look at if they had it.
         weight: 30
         levels:
-          "0": Waits for the reporter, or goes straight to the code.
+          "0": Checks nothing that already exists — waits for the reporter, or settles on a cause and goes straight to the code.
           "1": Says they would "check the logs" with no idea what for.
           "2": Names one source to check.
           "3": Names what would already know something — errors being recorded, other reports, what shipped recently — and what each would tell them.
@@ -617,7 +650,7 @@ rubrics:
         description: The user's device, connection and data — not a laptop on office wifi.
         weight: 30
         levels:
-          "0": Cannot reproduce it, so treats it as not real.
+          "0": Does not reproduce it — cannot, so treats it as not real, or would not spend the time because the fix is already decided.
           "1": Tries once on their own machine and stops.
           "2": Tries a narrow screen, but not the connection or the account.
           "3": Reproduces with a throttled connection and a comparable device, on the same data if possible.
@@ -631,7 +664,7 @@ rubrics:
         weight: 30
         levels:
           "0": Reads the minified trace as if it named real code.
-          "1": Says the trace is "useless" and looks elsewhere.
+          "1": Sets the trace aside — as useless, or as able only to confirm a cause already decided.
           "2": Knows the code is minified without naming what would undo it.
           "3": Says source maps are needed and that the reporting tool can map the trace back.
           "4": As 3, and notes that the maps must match the deployed build, not the current one.
@@ -643,7 +676,7 @@ rubrics:
         levels:
           "0": Works from the message alone.
           "1": Mentions that there is other data without using it.
-          "2": Looks at one field, usually the browser.
+          "2": Looks at one field, usually the browser, and stops — for want of a next step, or because it already agrees with a theory.
           "3": Groups the occurrences — which page, which devices, how many distinct users, since when.
           "4": As 3, and puts forty a day against total sessions before deciding how urgent it is.
       - dimension: Fixes the cause, not the symptom
@@ -651,7 +684,7 @@ rubrics:
         weight: 25
         levels:
           "0": No fix proposed.
-          "1": Wraps the line in a check and considers it closed.
+          "1": Ships a fix the report does not support — a guard on the line, or a build setting — and considers it closed.
           "2": Guards the value and says the data "must be bad" without pursuing it.
           "3": Guards the immediate case and traces why the data was missing — an empty or failed response.
           "4": As 3, and says what would tell them the fix did not work — the rate not moving, or moving for one browser only.
@@ -666,7 +699,7 @@ rubrics:
         weight: 40
         levels:
           "0": Blames the data, the API or the tester.
-          "1": Says the key "should not be the index" as a rule, with no account of this bug.
+          "1": Treats the key as beside the point — the rule against index keys quoted with no account of this bug, or an argument that keys are only a hint and cannot be the cause.
           "2": Identifies the key as the problem but explains it as a warning to be silenced.
           "3": Says removing an item shifts every index, so a row's key now points at different data.
           "4": As 3, and explains that the reused component keeps the state it already had, which is the note.
@@ -676,7 +709,7 @@ rubrics:
         levels:
           "0": Assumes the note was saved against the wrong record.
           "1": Looks for the bug in the parent's data.
-          "2": Says the state "got confused" without locating it.
+          "2": Locates the state only loosely — "it got confused" — or locates it correctly and then denies the key has anything to do with which row keeps it.
           "3": Says the note is the child's own state and React kept it when it reused the child.
           "4": As 3, and notes that nothing in the data was ever wrong, which is why it looks so strange.
       - dimension: Fixes it and knows the boundary
@@ -696,8 +729,8 @@ rubrics:
         description: That it applies to everything beneath it, not only to the file it is written in.
         weight: 35
         levels:
-          "0": Treats it as a per-component setting with no wider effect.
-          "1": Says it "makes the page interactive" without a cost.
+          "0": Treats it as a per-file setting with no wider effect — unexamined, or asserted as the point of the directive.
+          "1": Names no real cost — "it makes the page interactive", or a specific cost that is a side effect, alongside a claim that little more is shipped.
           "2": Knows it affects children but describes the effect vaguely.
           "3": Says everything imported below becomes client code and ships to the browser.
           "4": As 3, and separates what is rendered on the server once from what must be sent to run again.
@@ -714,7 +747,7 @@ rubrics:
         description: Only the interactive part becomes a client component; the page stays on the server.
         weight: 30
         levels:
-          "0": Keeps the directive on the page, or removes the button.
+          "0": Keeps the directive on the page — removing the button, or moving the data fetching into the browser instead.
           "1": Suggests splitting the file without saying where the line goes.
           "2": Moves some code but leaves the data fetching in the browser.
           "3": Makes the filter panel the client component and leaves the page and its data on the server.
@@ -728,7 +761,7 @@ rubrics:
         weight: 40
         levels:
           "0": Sees nothing wrong.
-          "1": Says environment variables are "safe because they are on the server".
+          "1": Believes the value stays on the server — because environment variables do, or because the prefix is taken to mean exactly that.
           "2": Knows the prefix means something without saying what.
           "3": Says the prefix inlines the value into the browser bundle, so the key is public.
           "4": As 3, and adds that the request itself exposes it in the network tab regardless of the bundle.
@@ -737,7 +770,7 @@ rubrics:
         weight: 30
         levels:
           "0": No change, or only renaming the variable.
-          "1": Removes the prefix and leaves the call in the client component, which then has no value.
+          "1": Moves the value rather than the call — dropping the prefix, or putting it elsewhere in the build — and leaves the request in the browser.
           "2": Says "call it from the server" without saying what the browser then talks to.
           "3": Puts the call in a server component or a route handler and has the client call that.
           "4": As 3, and keeps the response shape the client needs, rather than proxying the provider wholesale.
@@ -745,7 +778,7 @@ rubrics:
         description: Rotating it, and finding out whether it was used, rather than quietly removing it.
         weight: 30
         levels:
-          "0": Does not consider that the key is already out.
+          "0": Does not treat the key as out — not considered, or argued to be safe because it was never committed anywhere public.
           "1": Removes it from the code and considers the matter closed.
           "2": Says it "should probably be rotated" with no follow-through.
           "3": Rotates the key, and checks the provider's usage for calls that were not ours.
@@ -759,7 +792,7 @@ rubrics:
         weight: 45
         levels:
           "0": Blames the click handler or the template syntax.
-          "1": Says reactivity is "not working" with no mechanism.
+          "1": Puts the break somewhere else — reactivity "not working" with no mechanism, or a detailed mechanism that rules the destructuring out.
           "2": Suspects the destructuring but describes it as a style problem.
           "3": Says the destructured value is a plain number, so nothing links it to later changes.
           "4": As 3, and confirms the object is still updating — only the template's copy is stale.
@@ -768,7 +801,7 @@ rubrics:
         weight: 30
         levels:
           "0": No fix, or one that would not restore reactivity.
-          "1": Forces a re-render by hand.
+          "1": A change the bug survives — forcing a re-render by hand, or swapping the container while still copying the value out of it.
           "2": Removes the destructuring without being able to say why that works.
           "3": Uses the object in the template, or converts its properties to refs before destructuring.
           "4": As 3, and says which they would choose here and why.
@@ -777,7 +810,7 @@ rubrics:
         weight: 25
         levels:
           "0": Treats it as a one-off quirk.
-          "1": States a rule that is really a restatement of the fix.
+          "1": States a rule that does not cover this case — a restatement of the fix, or a choice between `ref` and `reactive` that leaves the copying untouched.
           "2": Gives a rule that covers this case but not a ref.
           "3": States that copying a value out of any reactive container loses the connection.
           "4": As 3, and applies it to a second case — a prop, or a value passed into a function.
@@ -791,7 +824,7 @@ rubrics:
         levels:
           "0": Blames the filter logic, the API or the user.
           "1": Says the list is "not reactive" without saying what it fails to react to.
-          "2": Identifies the watcher as involved but not what it fails to watch.
+          "2": Identifies the watcher as involved but not what it fails to watch — including blaming its options, which do not add a second source.
           "3": Says the list is rebuilt only on a change of term, so new jobs do not reach it until the next keystroke.
           "4": As 3, and says the symptom itself points there — typing another letter is what fixes it.
       - dimension: Recognises it as derived
@@ -799,7 +832,7 @@ rubrics:
         weight: 35
         levels:
           "0": Keeps the stored list and adds a second watcher for the jobs.
-          "1": Adds the jobs to the existing watcher and considers it solved.
+          "1": Keeps the stored list — adding the jobs to the existing watcher, or arguing against a computed value on grounds that were never measured.
           "2": Says it "could be computed" without saying what that changes.
           "3": Makes it a computed value that depends on both, so there is one list rather than two.
           "4": As 3, and says why that removes the whole class of bug rather than this instance of it.
@@ -821,7 +854,7 @@ rubrics:
         weight: 40
         levels:
           "0": Treats the slowdown and the wrong results as unrelated.
-          "1": Blames the service or the server.
+          "1": Blames something else — the service, the server, the router — or argues that the subscriptions end on their own.
           "2": Identifies the subscription as suspicious without explaining either symptom.
           "3": Says each visit adds a subscription that is never ended, and all of them still respond.
           "4": As 3, and explains why the component cannot be collected while something holds it.
@@ -829,7 +862,7 @@ rubrics:
         description: Any fix that ties the subscription's lifetime to the component's.
         weight: 35
         levels:
-          "0": No fix, or a manual cleanup that runs at the wrong time.
+          "0": No fix — a cleanup that runs at the wrong time, or a rearrangement of the code that still leaves nothing ending the subscriptions.
           "1": Suggests a page reload or a cache clear.
           "2": Says it should be unsubscribed without saying when.
           "3": Ties it to the component's destruction, or lets the template own the subscription instead.
@@ -838,7 +871,7 @@ rubrics:
         description: Anything started in a component — subscription, timer, listener — is ended with it.
         weight: 25
         levels:
-          "0": Treats it as specific to this service.
+          "0": Draws no rule about lifetime — treats it as specific to this service, or generalises about something else, such as routing.
           "1": States a rule about this one pattern.
           "2": Generalises to subscriptions only.
           "3": Names timers and listeners as the same class of problem.
@@ -872,7 +905,7 @@ rubrics:
         weight: 30
         levels:
           "0": Forces a refresh and stops.
-          "1": Forces a refresh and says it is not ideal, with no alternative.
+          "1": Forces a refresh with no alternative — acknowledged as not ideal, or aimed confidently at a cause this code does not have.
           "2": Replaces the value in this case without a general rule.
           "3": Assigns a new value so the change is visible, and explains why that is enough.
           "4": As 3, and says that needing to force a check usually means the real cause is still there.
@@ -886,14 +919,14 @@ rubrics:
         levels:
           "0": Blames the loading code or the markup of the new rows.
           "1": Says the listeners "did not apply" without saying why.
-          "2": Identifies that the code ran once, without connecting it to the missing handlers.
+          "2": Identifies that the code ran once, without connecting it to the missing handlers — including an account that makes the stale collection, rather than the absent listener, the fault.
           "3": Says the selector matched only the buttons that existed then, so later ones were never given a listener.
           "4": As 3, and predicts the same failure for anything else added to the page after load.
       - dimension: Fixes it at the container
         description: One listener on an ancestor that is always present, acting on what was clicked.
         weight: 35
         levels:
-          "0": No fix, or one that would not cover future items.
+          "0": No fix, or one that would not cover future items — a different way of finding the buttons is not a way of giving them a listener.
           "1": Re-runs the same loop after each load, and does not notice the duplicate listeners that follow.
           "2": Describes delegation without saying how the clicked button is identified.
           "3": Listens on a container and checks what was clicked before acting.
@@ -903,7 +936,7 @@ rubrics:
         weight: 25
         levels:
           "0": Cannot say why.
-          "1": Says "that is just how it is done".
+          "1": Offers no mechanism for the fix — "that is just how it is done", or a true mechanism that explains something else.
           "2": Uses the word bubbling with no description of it.
           "3": Describes the event travelling up from the element that was clicked.
           "4": As 3, and names a case where it does not help — an event that does not travel that way.
@@ -917,14 +950,14 @@ rubrics:
         levels:
           "0": Treats the report as a bug in the handler.
           "1": Says the connection is "just slow" with nothing to do about it.
-          "2": Acknowledges the gap without saying what the user sees during it.
+          "2": Acknowledges the gap without saying what the user sees during it — including naming it and then setting it aside as a matter of perceived speed.
           "3": Says the form is on screen and looks ready while nothing is listening to it.
           "4": As 3, and adds that the same state is permanent for a user whose script fails to load.
       - dimension: Makes the baseline work
         description: The form submits on its own, and the script improves it rather than enabling it.
         weight: 40
         levels:
-          "0": Keeps the script as the only way to submit.
+          "0": Keeps the script as the only way to submit — including when something else is claimed to cover the gap, such as the browser replaying the click once it loads.
           "1": Adds a spinner or a message and leaves the behaviour unchanged.
           "2": Says the form "should work without JavaScript" without saying what that requires.
           "3": Gives the form a real action so a submission works before the script arrives, then enhances it.
@@ -948,14 +981,14 @@ rubrics:
         levels:
           "0": Sees nothing wrong; the code works.
           "1": Says it is "not scalable" without naming a failure.
-          "2": Objects to `innerHTML` on style grounds without saying what it destroys.
+          "2": Objects to `innerHTML` without saying what it destroys — on style grounds, or on a detailed performance argument.
           "3": Says rewriting `innerHTML` rebuilds every row, so anything the user had in one is lost.
           "4": As 3, and adds what else goes with it — listeners, focus, scroll position.
       - dimension: Recognises the page as the store
         description: The cart's contents exist only as list items, and the total is gathered back off the screen.
         weight: 35
         levels:
-          "0": Treats the DOM as a reasonable place to keep the data.
+          "0": Treats the DOM as a reasonable place to keep the data — unexamined, or defended as keeping the cart in one place.
           "1": Says the code is "messy" without locating where the data lives.
           "2": Notices the total is read from the page, without generalising.
           "3": Says the page is being used as the store, and that reading numbers back out of text is the symptom.
@@ -965,7 +998,7 @@ rubrics:
         weight: 25
         levels:
           "0": No alternative, or the same approach written more carefully.
-          "1": Keeps the DOM as the store and adds a variable for the total alongside it.
+          "1": Keeps the DOM as the store and holds the total beside it — in a variable, or in an attribute on the markup.
           "2": Keeps an array but still reads the total off the page.
           "3": Keeps the items in an array, redraws from it, and derives the total from the array.
           "4": As 3, and redraws only what changed rather than the whole list, without reaching for a framework to do it.

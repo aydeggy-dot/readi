@@ -3,110 +3,120 @@ generated_by: ai_draft
 role: frontend
 rubric: async-ordering-understanding
 question: js-async-ordering
-# The pairing this rubric had to survive: `fluent-but-wrong` gives 1,2,4,3 confidently and
-# inverts microtasks and macrotasks. It lands on 2/2/2 against `strong`'s 4/3/3, so the rubric
-# separates fluency from correctness here.
+# Rewritten 2026-09-22 with the question: the `console.log` ordering snippet became a click handler
+# that blocks the main thread for two seconds, so "Saving…" never paints.
+#
+# The pairing this rubric had to survive: `fluent-but-wrong` gives a detailed, correct-sounding
+# account of DOM write batching — the two assignments coalesce, the first is dropped before it
+# reaches the render tree — and prescribes a forced synchronous reflow (`status.offsetHeight`) as
+# a one-line fix. It is wrong in the same place at every criterion and scores 1/1/1 against
+# `strong`'s 3/4/3, so the rubric is not reading fluency.
 answers:
   - kind: strong
     text: |
-      Okay so it prints 1, then 2, then 3, then 4. The two console.logs are just normal
-      synchronous lines, so they run straight down, top to bottom — that's your 1 and 2. The
-      setTimeout callback and the promise .then both get deferred, but they don't go into the
-      same queue. The promise one is a microtask, and microtasks get drained as soon as the
-      current chunk of code finishes, so 3 comes next. The setTimeout is a task, so even with
-      zero it has to wait for the next turn of the loop — zero doesn't mean now, it means as
-      soon as you're free. And why anyone should care, it's one thread, so if you do something
-      heavy in a loop the whole page just freezes, nothing paints, clicks do nothing.
+      Okay so — the line does get set. `status.textContent = "Saving…"` runs, the actual DOM node
+      changes. What never happens is a paint. JavaScript is single-threaded, and the browser only
+      gets to render between tasks, not in the middle of one. This whole click handler is one task:
+      it sets the text, it runs buildReport for two seconds, it sets the text again to "Saved", and
+      only when the handler returns does the browser get its turn to draw. By then the node already
+      says "Saved", so "Saving…" never reaches the screen. And for those two seconds the phone is
+      basically dead — taps queue up, scrolling doesn't move, because that one thread is stuck in
+      the loop. What I'd change... the cheap version is to yield before the work,
+      requestAnimationFrame or even a setTimeout, so a paint gets in first. The proper one is a Web
+      Worker — forty thousand rows has no business on the main thread.
     expected:
-      - dimension: "Gets the order right"
+      - dimension: "Says why the first message never reaches the screen"
+        score: 3
+        because: "The text was set and the browser never painted between the two assignments; does not say what stayed on screen instead."
+      - dimension: "Explains what the browser is doing for those two seconds"
         score: 4
-        because: "Correct order, and calls out the zero-delay timer as the line that decides it."
-      - dimension: "Explains the mechanism"
+        because: "One thread, no frame until the handler returns — and extends it to the taps and the scrolling that wanted the same thread."
+      - dimension: "Gets the work out of the way"
         score: 3
-        because: "Distinguishes the two queues and says when each is taken; does not say the stack must empty first."
-      - dimension: "Connects it to the user"
-        score: 3
-        because: "One thread that also paints, so a heavy loop freezes the page — concrete, no remedy offered."
+        because: "Yield so a paint gets in first, or a Worker, with the reason; no account of how they would check it worked."
   - kind: weak
     text: |
-      Hmm. Honestly I think setTimeout with zero fires immediately, so maybe 1, 4, 2, 3? No,
-      wait. I know the two logs at the top run first because, well, they're at the top. And
-      promises are asynchronous so they come later, but setTimeout is also asynchronous, so
-      I'm not sure which of those two wins. I'd probably just paste it in the console and see,
-      to be honest. The reason it happens is JavaScript is asynchronous, it doesn't wait for
-      things to finish. Why care — I guess so your code runs in the order you expect it to? I
-      haven't really had to think about ordering like this, I mostly just await things and it
-      works out.
+      Right, so — the "Saving…" doesn't show. I think it's probably because the two lines are too
+      close together? Like it sets it and then immediately sets it again, so the second one kind of
+      overwrites the first before you can see it. Um. The two seconds is the report building, I
+      think it's fetching the rows, forty thousand is a lot, so it takes time, especially on a phone
+      with bad network. Honestly I'd have to put a console.log in there to see what's really
+      happening. What I'd change... maybe I'd make it async? Like put async on the function and
+      await the buildReport, so it doesn't block. Or a loading spinner — you'd normally use a
+      spinner for this instead of text. Sorry, I know there's a proper reason, I just — I'd have to
+      look it up.
     expected:
-      - dimension: "Gets the order right"
+      - dimension: "Says why the first message never reaches the screen"
         score: 1
-        because: "Offers 1, 4, 2, 3, then retracts it; no model of queuing behind either attempt."
-      - dimension: "Explains the mechanism"
+        because: '"Too close together", "overwrites the first before you can see it" — a story about the writes, not about painting.'
+      - dimension: "Explains what the browser is doing for those two seconds"
         score: 1
-        because: '"JavaScript is asynchronous, it doesn''t wait" — a rule with no mechanism.'
-      - dimension: "Connects it to the user"
+        because: "The two seconds are a network fetch — a mechanism that is not this one, and drawing is never mentioned."
+      - dimension: "Gets the work out of the way"
         score: 1
-        because: '"So your code runs in the order you expect" — no consequence a user would see.'
+        because: "`async`/`await` around synchronous work, and a spinner: no room made for a frame either way."
   - kind: fluent-but-wrong
     text: |
-      Right, so this is the event loop. The output is 1, 2, 4, 3. Synchronous lines first,
-      obviously, that's 1 and 2. Then the queue drains in registration order, and the
-      setTimeout was registered before the promise, so 4 goes first. The other piece is that
-      promise callbacks are macrotasks — they're scheduled onto the next full turn of the
-      event loop — whereas a zero-delay setTimeout is effectively a microtask, it's the
-      browser's way of saying run this at the end of the current tick. So the timer wins. That
-      is exactly why people reach for setTimeout zero when they need something to happen
-      before a promise chain settles. It matters because if you're ordering side effects you
-      need to know which queue you've put yourself in.
+      Right, this is DOM write batching. So the browser doesn't commit `textContent` the moment you
+      assign it — it queues the mutation and coalesces the writes, and it only flushes that queue at
+      the end of the task, for performance, so you're not paying for a style recalculation per
+      assignment. Both writes land in the same batch, the second one supersedes the first, and the
+      first is dropped before it ever hits the render tree. That's why "Saving…" is invisible — it
+      was written, it was just never flushed on its own. The two seconds is buildReport, that part's
+      fine. The fix is to force the flush yourself: read a layout property right after the
+      assignment, so `status.textContent = "Saving…"` and then `status.offsetHeight` — reading
+      offsetHeight forces a synchronous reflow, which commits that batch and paints it before the
+      heavy work starts. One line. You don't need a Worker for this, the work itself is fast enough.
     expected:
-      - dimension: "Gets the order right"
-        score: 2
-        because: "Synchronous lines placed correctly; the promise and the timer are swapped."
-      - dimension: "Explains the mechanism"
-        score: 2
-        because: "Names the event loop and both queues, and inverts them — microtask and macrotask are the wrong way round."
-      - dimension: "Connects it to the user"
-        score: 2
-        because: '"If you''re ordering side effects you need to know which queue" — a consequence in general terms.'
+      - dimension: "Says why the first message never reaches the screen"
+        score: 1
+        because: "The two assignments batched together so only the last survived — a story about the writes, told with conviction."
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 1
+        because: "The browser batching updates for performance: a mechanism that is not this one, put precisely."
+      - dimension: "Gets the work out of the way"
+        score: 1
+        because: "Forcing a synchronous layout after the assignment to push it out — and explicitly no Worker and no yield, so no room for a frame."
   - kind: correct-poorly-explained
     text: |
-      So there's four numbers, and the timeout is zero which you'd think means first but it
-      isn't, it's actually last, and the promise one is before it but after the two plain
-      logs, sorry — I mean the plain ones are obviously first because they just, they just
-      run, so 1 and 2, then the promise, then the timer, and the reason is there's like a
-      separate queue for promises that gets emptied before the timer one even gets looked at,
-      they're not the same queue even though both of them are async, and I suppose the thing
-      to actually care about, which I should have said at the start, is there's only the one
-      thread doing all of it including the drawing, so anything slow you write blocks the page
-      from painting or responding to a tap.
+      So the text is set, that's — sorry, let me start again. It never gets shown. Not that it isn't
+      set, it's set, it just isn't shown, because the showing part, the actual drawing, that's a
+      separate thing the browser does and it can only do it when the JavaScript is finished, and the
+      JavaScript isn't finished, it's in buildReport, so it can't draw, and then when it finally can
+      draw the text isn't "Saving…" anymore, it's "Saved", so what it draws is "Saved". Same reason
+      the phone won't scroll, it's the one thread. So you'd have to let it draw first, put the
+      buildReport in a setTimeout or something so the drawing happens in between, or, better I
+      think, push the whole thing into a worker thread so it's not on the main one at all. Yeah.
+      That'd be my answer.
     expected:
-      - dimension: "Gets the order right"
+      - dimension: "Says why the first message never reaches the screen"
         score: 3
-        because: "Correct order, arrived at backwards, with no commentary on which line was the trap."
-      - dimension: "Explains the mechanism"
+        because: "Set but not drawn, and by the time it can be drawn the text has changed — arrived at sideways, and correct."
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 4
+        because: "Drawing waits for the JavaScript to finish, and the scrolling fails for the same reason — the same thread."
+      - dimension: "Gets the work out of the way"
         score: 3
-        because: "Describes a separate queue for promises drained before the timer queue is looked at."
-      - dimension: "Connects it to the user"
-        score: 3
-        because: "One thread including the drawing, so slow work blocks painting and taps."
+        because: "A `setTimeout` so the drawing happens in between, or a worker thread; no check and no comparison."
   - kind: nigerian-english
     text: |
-      It will print 1, then 2, then 3, then 4. The two normal console.logs, they will just run
-      one after the other because they are ordinary lines, nothing is waiting for them — that
-      one is your 1 and 2. Then the promise and the setTimeout, both of them are waiting, but
-      they are not on the same queue o. The promise one is microtask, so the moment the main
-      code finish, JavaScript will clear that one first — that's your 3. The setTimeout, even
-      the zero you put there, it's still a task, so it must wait for the next round. Zero does
-      not mean now, it means when you are free. And why it matters — na one thread, and the
-      same thread is painting. So if you run one long loop there, the page will just hang, the
-      person is clicking and nothing is answering.
+      Okay so the line is set, no doubt — the textContent don change already. Na the painting wey no
+      happen. JavaScript na one thread, and the browser only get chance to repaint when your code
+      don finish; e no fit paint for middle of the work. So this click handler na one single task:
+      it set "Saving…", it enter buildReport for two seconds, it set "Saved", then e return — and na
+      that time browser go say okay let me draw. By then the text don already be "Saved", so
+      "Saving…" no ever show. And for those two seconds, the whole phone go just hang — you tap,
+      nothing, you scroll, nothing, because that one thread dey busy. Wetin I go change? The quick
+      one, make you yield first — requestAnimationFrame or setTimeout — so the paint fit enter
+      before the heavy work. But properly, I go move am go Web Worker. Forty thousand rows no
+      suppose dey main thread at all.
     expected:
-      - dimension: "Gets the order right"
+      - dimension: "Says why the first message never reaches the screen"
+        score: 3
+        because: 'Same as `strong`: the text changed and "na the painting wey no happen".'
+      - dimension: "Explains what the browser is doing for those two seconds"
         score: 4
-        because: 'Same as `strong`: correct order, and "zero does not mean now, it means when you are free".'
-      - dimension: "Explains the mechanism"
+        because: "One thread, no repaint until the code finishes, and the phone hanging on taps and scrolling for the same reason."
+      - dimension: "Gets the work out of the way"
         score: 3
-        because: "Same mechanism, same omission — the stack emptying is implied rather than said."
-      - dimension: "Connects it to the user"
-        score: 3
-        because: "Same consequence, stated concretely: the page hangs and clicks are not answered."
+        because: "Yield first so the paint can get in, or a Worker; same omission as `strong`."
