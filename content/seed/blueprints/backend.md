@@ -113,6 +113,10 @@ general_by_topic:
   observability: { intern-junior: 2, mid: 2 }
   system-design-basics: { mid: 2 }
   collaboration: { intern-junior: 2, mid: 2 }
+  # Added after the frontend pass, which created both topics and wrote the first question of each.
+  # The second of each is role-general and was written here, as that blueprint said it would be.
+  written-communication: { intern-junior: 2, mid: 2 }
+  own-work: { intern-junior: 2, mid: 2 }
 by_stack:
   nodejs: 3
   java-spring: 2
@@ -155,10 +159,31 @@ About 30 new rubrics — one per new technical and scenario question.
 
 ## Appendix A — fact-check log
 
-_Filled as the bank is drafted._
+Every version-sensitive claim in the bank, checked against the vendor's own current documentation on
+**2026-09-22**. All nine are in the stack-tagged set, which is where a bank goes stale: nothing in
+the general set names a product. Each of the nine questions opens its `reviewer_notes` with the
+marker `**Version-sensitive: <claim>, checked against <source> on <date>.**`, so
+`grep -l 'Version-sensitive' content/seed/*/questions.yaml` finds them across every bank
+(`SKILL.md`, hard rules).
 
-| Question | Claim | Checked against | Date | Outcome |
-| -------- | ----- | --------------- | ---- | ------- |
+**Four of the nine had moved, and one of those was a defect in the question rather than in a note.**
+
+| Question                             | Claim                                                                                          | Checked against                                     | Outcome                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spring-default-error-body`          | The `{timestamp, status, error, trace, message, path}` body is what a default Boot app returns | docs.spring.io, Spring Boot 4.1                     | **Moved, and the question was wrong.** `trace`, `message` and `errors` are **off by default** and the keys are omitted entirely, so a default app returns only `{timestamp, status, error, path}` — the body in the snippet was not plausible out of the box. The prompt now says the service has switched those settings on. Also: in Boot 4.0 the properties moved from `server.error.*` to `spring.web.error.*` |
+| `spring-transaction-did-not-roll-back` | Self-invocation bypasses the `@Transactional` proxy; the docs prefer moving the boundary to self-injecting | docs.spring.io, Spring Framework 7.0                | **Half moved.** The mechanism holds verbatim — "only external method calls coming in through the proxy are intercepted". But the docs rank *three* fixes and **document self-injection as an alternative**; only `AopContext.currentProxy()` is "highly discouraged". The rubric scored a self reference at level 1 and now credits it at 3, with the refactor preferred at 4                           |
+| `laravel-mass-assignment`            | `protected $guarded = []` disables mass-assignment protection                                  | laravel.com, Laravel 13                             | **Behaviour holds, syntax moved.** Laravel 13 documents PHP attributes — `#[Fillable]`, `#[Guarded]`, `#[Unguarded]` — and no longer shows the properties, though the upgrade guide lists no breaking change so they still work. The snippet stays in the property form, which is what an existing codebase looks like, and the answer key and rubric now credit either form |
+| `node-blocked-event-loop`            | `worker_threads` and streaming are the documented remedies for CPU work in a handler           | nodejs.org API docs vs the "Don't Block" learn page | **Unresolved, and Node's own docs disagree.** The API docs call `worker_threads` stable and useful for CPU-intensive JavaScript; the learn guide never mentions it and still points at C++ addons, an abandoned npm package, child processes and cluster. A worker thread and a separate process are credited equally                                             |
+| `python-blocking-call-in-async`      | A plain `def` path operation runs in a threadpool; `async def` runs on the loop                | fastapi.tiangolo.com                                | Holds, verbatim, and the guidance ("if you just don't know, use normal `def`") is unchanged — which is what makes the last answer-key point true                                                                                                                                                                                                              |
+| `django-save-overwrote-a-change`     | `save()` writes all fields; `update_fields` writes some; `QuerySet.update()` writes without reading | docs.djangoproject.com                              | Holds. Two nuances worth crediting that the answer key does not yet name: a model loaded with `only()`/`defer()` writes only the loaded fields, and the docs point at `F()` expressions for avoiding exactly this race                                                                                                                                       |
+| `laravel-worker-running-old-code`    | A queue worker holds the booted application in memory and misses deployed changes              | laravel.com, Laravel 13                             | Holds, verbatim: "queue workers are long-lived processes and store the booted application state in memory… they will not notice changes in your code base after they have been started"                                                                                                                                                                       |
+| `dotnet-blocking-on-async`           | No synchronisation context on ASP.NET Core, so `.Result` starves the thread pool rather than deadlocking | learn.microsoft.com, rule CA2007                    | Holds, and the citation changed: the ASP.NET Core best-practices page no longer uses the term, CA2007 does. **Caveat added:** Blazor *does* have a synchronisation context, so a candidate who asks which part of ASP.NET Core is ahead of the question                                                                                                        |
+| `rails-callback-that-did-too-much`   | `after_save` runs inside the save, so `deliver_now` blocks it; the guide cautions against side effects | guides.rubyonrails.org, Rails 8.1                   | Holds. The guide's current answer for reaching outside the record is `after_commit`, "most useful when your Active Record models need to interact with external systems", and its own example uses `deliver_later`                                                                                                                                             |
+
+Nothing in the general set names a product, a version, a price or a benchmark, so nothing there can
+go stale silently. **The nine above are the re-check list**, and `tasks/todo.md` carries the open
+decision on how often that happens and who does it — the marking makes them findable, which is not
+the same as making them checked.
 
 ## Appendix B — what the critique passes changed
 

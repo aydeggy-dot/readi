@@ -194,3 +194,69 @@ rubrics:
           "2": Names a change with no reason behind it.
           "3": Names a specific change and what went wrong that taught them it.
           "4": As 3, and separates what they could reasonably have known at the time from what only experience gives.
+
+  # The two questions the frontend pass said belonged in the backend pass — the second
+  # `written-communication` question and the second `own-work` one. Both carry all four wave-1
+  # roles, so their rubrics live here rather than in one role's file.
+
+  - slug: escalating-early
+    name: Saying a date will be missed, before it is
+    criteria:
+      - dimension: What the message contains
+        description: Where it is, what is left, the new date — and the cause, plainly, including when the cause was their own estimate.
+        weight: 35
+        levels:
+          "0": No message written; would explain it in person or at standup.
+          "1": A message that is mostly apology, or mostly explanation, with no new date in it — however well composed.
+          "2": Says it will be late and by roughly how long, without what is done and what is left.
+          "3": What is finished, what remains, and the date they now believe, with the reason stated without defensiveness.
+          "4": As 3, and owns the estimate where that is the honest answer — "I underestimated this part" rather than a cause outside themselves.
+      - dimension: When it goes, and to whom
+        description: Wednesday, not Friday, and to whoever is depending on the date rather than only whoever asked for it.
+        weight: 25
+        levels:
+          "0": Would tell someone on Friday, or when asked.
+          "1": Justifies waiting — wanting certainty first, hoping to catch up over Thursday, not wanting to worry anyone until it is definite.
+          "2": Says to tell someone soon, without saying who or what the timing is worth.
+          "3": Sends it as soon as they are sure, to the people whose own work depends on the date, and says why the notice is the point.
+          "4": As 3, and offers something to decide — cut this part, take help, move the date — so the reader has a choice rather than an announcement.
+      - dimension: A time they did it, or did not
+        description: One occasion, with what they actually did. Saying they left it too late counts, and counts well if they say what they learned.
+        weight: 40
+        levels:
+          "0": No occasion; answers about how they generally communicate.
+          "1": A situation with no detail that fixes it in time or place, or a confident account in which nothing was ever late.
+          "2": One occasion, with what happened but not what they did about it.
+          "3": One occasion, what they said and when, and how it landed — including plainly saying they left it too long.
+          "4": As 3, and something specific they changed afterwards about how they estimate or when they raise it.
+
+  - slug: unfamiliar-code-approach
+    name: Working on code you did not write
+    criteria:
+      - dimension: A way in that is not reading it all
+        description: Running it, following one path through, changing something to see what moves — and a specific piece of code to point at.
+        weight: 35
+        levels:
+          "0": No specific code; answers about how they would approach it in general.
+          "1": A confident method that is not a way in — reading it top to bottom, reading the documentation, asking someone to explain the whole thing before touching it.
+          "2": Names the code and one thing they did, without saying what it told them.
+          "3": A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
+          "4": As 3, and worked out what the code was *for* before deciding what it was doing wrong.
+      - dimension: How they decided a change was safe
+        description: Something told them — a test, a small experiment, a person, a way to undo it — rather than confidence.
+        weight: 35
+        levels:
+          "0": Not addressed; they changed it and it worked.
+          "1": Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
+          "2": Names one safeguard without saying what it would have caught.
+          "3": Says what gave them the confidence and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
+          "4": As 3, and says what it did not cover, so they knew what they were still taking a chance on.
+      - dimension: The change they made
+        description: Smaller than it was tempting to make, and they can say why.
+        weight: 30
+        levels:
+          "0": Cannot say what they changed.
+          "1": A rewrite, or a refactor of code they had just met, described as the obvious improvement.
+          "2": Describes the change without a reason for its size.
+          "3": A change narrow enough to reason about, and they can say what they deliberately did not touch.
+          "4": As 3, and separates what they left alone because it was fine from what they left alone because they did not understand it yet — and what they did about the second.

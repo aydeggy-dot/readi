@@ -64,3 +64,1004 @@ rubrics:
           "2": Fixes this query in a way that will not generalise.
           "3": Fetches the related rows in one query, or adds the index the plan calls for.
           "4": As 3, and notes the cost — write amplification from indexes, or over-fetching from a join.
+
+  # -----------------------------------------------------------------------------------------------
+  # Added 2026-09-22, the backend pass. Same house style as the frontend bank: three criteria,
+  # weights adding to 100, five descriptors two readers would land on identically, level 4 holding a
+  # thing level 3 does not, and — new since the frontend stress test — **a descriptor at 0, 1 or 2
+  # that a confident, specific, wrong answer lands on**, named from the wrong belief the question
+  # actually attracts rather than written for vagueness.
+
+  - slug: status-code-honesty
+    name: Saying in the status line what happened
+    criteria:
+      - dimension: Says what the client is forced to do
+        description: That the app has to parse the body to learn it failed, because the status says it did not.
+        weight: 30
+        levels:
+          "0": Sees nothing wrong with the response.
+          "1": Defends the shape — an envelope the client checks, status codes described as being about transport rather than the application — stated as a pattern rather than a mistake.
+          "2": Says the status "should be different" without saying what the client has to do because it is not.
+          "3": Says the app must read and understand the body before it knows this was a failure.
+          "4": As 3, and notes that a client written against a normal API would have treated this as a created account.
+      - dimension: Sends a status the machine can act on
+        description: A 4xx for something the caller can fix, plus a stable code — not an English sentence.
+        weight: 40
+        levels:
+          "0": No change, or a 500.
+          "1": Keeps the 200 and improves the body, or picks a status by how it sounds rather than what it means.
+          "2": Says "a 4xx" without choosing one or saying what the client branches on.
+          "3": A defensible 4xx with a reason — this is a conflict with data that already exists — and a stable code beside it.
+          "4": As 3, and separates the code the client branches on from the message a person reads, so the wording can change freely.
+      - dimension: Knows who else reads the status line
+        description: Proxies, caches, retries, load balancers and error tracking all act on it and never open the body.
+        weight: 30
+        levels:
+          "0": Treats the status as something only this client sees.
+          "1": Says it is "good practice" or "the standard" with nothing that follows from getting it wrong.
+          "2": Names one other reader without saying what it does wrong.
+          "3": Names something in the path that acts on a 200 — a cache storing it, a retry not happening, an error rate that looks clean.
+          "4": "As 3, and says the monitoring is the expensive one: a failure that reports as success is invisible until a customer calls."
+
+  - slug: collection-endpoint-design
+    name: An endpoint that returns a collection
+    criteria:
+      - dimension: Names what it costs and who pays
+        description: Bytes on mobile data, memory on the server, and a query that reads the whole table.
+        weight: 35
+        levels:
+          "0": Sees no problem, or says only that it is "not scalable".
+          "1": Names a cost that is not the main one, confidently — that JSON is verbose, that the client's rendering is slow, that the network is the user's problem.
+          "2": Says the response is too big, without saying what that does to anyone.
+          "3": Names the user's side and the server's side — megabytes over mobile data, and the memory and query needed to produce them.
+          "4": "As 3, and says what it fails like rather than how slow it is: a phone on a weak connection that times out and retries the same download."
+      - dimension: Changes the endpoint, not the size of the answer
+        description: Pages, with a way to ask for the next one, rather than a bigger pipe or a smaller payload.
+        weight: 35
+        levels:
+          "0": No change, or a faster server.
+          "1": Makes the same response cheaper — compression, fewer fields, a cache — and still returns all forty thousand.
+          "2": Says "add pagination" without saying how the client asks for more.
+          "3": Returns a page, and the response carries what is needed to ask for the next one rather than leaving the client to guess.
+          "4": As 3, and puts the filtering and sorting on the server too, so no client has to download everything to find one row.
+      - dimension: Does not break the callers it already has
+        description: A change to a live contract needs a path that does not strand the apps on phones.
+        weight: 30
+        levels:
+          "0": Changes the shape and does not consider who is calling it.
+          "1": Says the clients "will need to update", with no account of the ones that will not — an installed app on a phone nobody updates.
+          "2": Mentions versioning as a word, with no plan for this endpoint.
+          "3": Keeps the old behaviour working while clients move — a default, a version, or a new path — and says how it ends.
+          "4": As 3, and says how they would know it is safe to remove the old one, rather than picking a date.
+
+  - slug: money-storage-reasoning
+    name: Storing an amount of money
+    criteria:
+      - dimension: Names why the value is already wrong
+        description: Binary floating point cannot represent most decimal fractions, so the stored amount is an approximation.
+        weight: 35
+        levels:
+          "0": Treats it as a display or rounding bug in the report.
+          "1": A confident wrong mechanism — that the column has too few decimal places, that the ORM is truncating, that `double` is fine and the reporting query needs rounding.
+          "2": Says floating point is "inaccurate" with no account of why.
+          "3": Says a binary fraction cannot hold most decimal values exactly, so each row is already slightly off.
+          "4": As 3, and gives an instance — a value that cannot be represented, or what the column actually holds for 1500.50.
+      - dimension: Says why it gets worse
+        description: The errors accumulate over a sum; a month has more rows in it than a day.
+        weight: 30
+        levels:
+          "0": Does not address it, or says the data is getting worse.
+          "1": Attributes the growth to something else — more traffic, a currency conversion, the report caching yesterday's figure.
+          "2": Says "the errors add up" with nothing behind it.
+          "3": Says each amount carries a small error and summing thousands adds them together, so the longer the period the bigger the gap.
+          "4": As 3, and notes the error does not cancel out reliably, so "it will average out" is not a defence.
+      - dimension: Chooses a type, and moves the data into it
+        description: An exact type, with the currency beside it, and a conversion that is checked before anything is dropped.
+        weight: 35
+        levels:
+          "0": No change, or rounding at the point of display.
+          "1": Swaps to another inexact type, or keeps `double` and adds rounding on write, described as the fix.
+          "2": Names an exact type without saying what happens to the rows already there.
+          "3": Integer minor units or a fixed-scale decimal, and a migration that converts the existing rows.
+          "4": As 3, and stores the currency with the amount, and verifies the conversion before dropping the old column rather than after.
+
+  - slug: transaction-boundary-reasoning
+    name: Where a unit of work begins and ends
+    criteria:
+      - dimension: Sees the gap between the two writes
+        description: Two statements are two units of work; anything that stops in between leaves half of it done.
+        weight: 35
+        levels:
+          "0": Blames the database, the network or the amount.
+          "1": Locates the fault somewhere it is not, in detail — the subtraction failing, a negative balance, the notification throwing and being swallowed.
+          "2": Says the two updates "should be together" without saying what happens if they are not.
+          "3": Says a crash, a timeout or a thrown error between the statements commits the first and never runs the second.
+          "4": As 3, and notes the notification in the middle widens the window and can itself be the thing that fails.
+      - dimension: Puts a boundary in the right place
+        description: Both writes in one transaction, and the things a database cannot undo outside it.
+        weight: 40
+        levels:
+          "0": No transaction; a retry, a try/catch, or an alert instead.
+          "1": Compensates rather than rolls back — reverses the first update in a `catch` — which fails in exactly the same window.
+          "2": Says "wrap it in a transaction" without saying what goes inside and what does not.
+          "3": Both updates in one transaction, committed or rolled back together, with the notification moved out.
+          "4": As 3, and puts the balance check inside the same transaction, because a check made before it opens proves nothing by the time it writes.
+      - dimension: Deals with the rows that are already wrong
+        description: The accounts in that state exist now, and a code fix does not move them.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Fixes the code and moves on, or assumes there cannot be many.
+          "2": Says the data "would need fixing" with no way of finding which rows.
+          "3": Says how they would find them — the debits with no matching credit — and that they are corrected deliberately, not by rerunning the transfer.
+          "4": "As 3, and says who is told: the money belonged to someone who has not had it, so this is a conversation and not only a script."
+
+  - slug: cache-key-diagnosis
+    name: Finding a cache that is serving the wrong person
+    criteria:
+      - dimension: Finds the shared key
+        description: One key for every user, so whoever fills it decides what everyone sees.
+        weight: 40
+        levels:
+          "0": Blames the session, the token or the authentication middleware.
+          "1": A confident wrong cause — the serialisation racing, the Redis connection being shared, the middleware running out of order — argued from the code without reaching the key.
+          "2": Suspects the cache without saying what about it is wrong.
+          "3": Says the key is a constant, so the first response stored is returned to everyone until it expires.
+          "4": "As 3, and says the check above it is irrelevant: the request is authenticated and then answered with somebody else's data anyway."
+      - dimension: Explains why it comes and goes
+        description: It only shows while an entry is live; the five minutes expire and the next user refills it.
+        weight: 30
+        levels:
+          "0": Treats the intermittency as unrelated, or as a different bug.
+          "1": Explains it with something that is not there — load balancing between servers, a replica lag, the browser's own cache.
+          "2": Says it is "a timing thing" without connecting it to the expiry.
+          "3": "Ties it to the lifetime: wrong until the entry expires, right again for whoever refills it, so refreshing often lands on a fresh one."
+          "4": As 3, and notes the pattern this produces — the same wrong dashboard for several users in a row, which is what makes it look like a login bug.
+      - dimension: Treats it as an exposure, not a bug
+        description: People's figures were shown to other people; the key fix is the smallest part of the response.
+        weight: 30
+        levels:
+          "0": Ships the key fix and considers it closed.
+          "1": Mentions that it is "a security issue" with nothing following from it.
+          "2": Says someone should be told, without saying what is done in the meantime.
+          "3": Stops it first — clear the cache, turn the caching off — then fixes the key, and says someone has to be told.
+          "4": As 3, and asks what can be established about who saw what, and accepts that the honest answer may be "we cannot tell, and that is part of the report".
+
+  - slug: caching-judgement
+    name: Deciding what is worth caching
+    criteria:
+      - dimension: Discriminates between the three
+        description: They differ in how often they change, how many people share them, and what a stale one costs.
+        weight: 40
+        levels:
+          "0": Treats them as one decision — cache all, or cache none.
+          "1": Applies one rule to all three with a confident reason — a five-minute default, "cache the read-heavy ones", "Redis is fast enough that it does not matter".
+          "2": Separates them, with a reason that is really about how often each is queried.
+          "3": "Separates them on what actually differs: shared versus per-user, how often it changes, and what a stale answer costs the person reading it."
+          "4": As 3, and names the saved-jobs list as the one to leave alone because the user changed it themselves a moment ago, so staleness is most visible exactly where it is least acceptable.
+      - dimension: Gives each one a way to stop being wrong
+        description: A lifetime, or being dropped when the underlying data is written — decided, not assumed.
+        weight: 35
+        levels:
+          "0": No expiry or invalidation considered.
+          "1": One lifetime for everything, or invalidation described as something the cache does by itself.
+          "2": Names expiry and invalidation without saying which suits which of the three.
+          "3": Picks a lifetime for the ones where staleness is tolerable and dropping-on-write for the ones where it is not, and says why each way round.
+          "4": As 3, and says what happens the moment a cached entry disappears under load — everything asking the database at once — and that it is a thing to have thought about.
+      - dimension: Knows what the cache is hiding
+        description: A cache in front of a slow query leaves the slow query there, now harder to see.
+        weight: 25
+        levels:
+          "0": Treats caching as the fix for a struggling database.
+          "1": Argues the query does not matter once it is cached, or that caching is cheaper than optimising.
+          "2": Mentions that the queries could be improved, as an aside.
+          "3": Says the cache hides the cost rather than removing it, and that the database is still the thing that fails when the cache does.
+          "4": As 3, and would look at why three queries are slow before caching any of them — an index, an N+1 — and treats the cache as what is left over.
+
+  - slug: background-work-reasoning
+    name: Taking work out of the request
+    criteria:
+      - dimension: Says what the user is paying for
+        description: They are waiting for something that is not theirs, and a failure in it fails theirs.
+        weight: 30
+        levels:
+          "0": Sees nothing wrong; the account is created and the email is sent.
+          "1": Names the wrong cost with conviction — that the provider is slow and should be swapped, that four seconds is acceptable for sign-up, that the fix is a better email service.
+          "2": Says it is slow, without connecting the slowness to what the user actually asked for.
+          "3": Says the user waits for the email and that the email failing fails the whole request, although the account already exists.
+          "4": As 3, and notices the account is left created with no way to tell the user so — the failure is not only slow, it is dishonest.
+      - dimension: Gets the work out of the request
+        description: The email leaves the handler entirely, somewhere it can be retried.
+        weight: 45
+        levels:
+          "0": Keeps it in the handler.
+          "1": Drops the `await` and leaves the call in the handler, or wraps it in a `try`/`catch` that swallows the failure — fire and forget, described as the fix.
+          "2": Says to "make it asynchronous" or "use a queue" without saying what happens to a failure.
+          "3": Hands the email to something outside the request — a queue, a job table, a worker — so the response returns as soon as the account exists.
+          "4": "As 3, and says what that buys beyond speed: the provider recovering means the email eventually goes, which fire-and-forget can never do."
+      - dimension: Says what the user is told
+        description: The person signing up has to know the email is coming and have a way to get it again.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Would show a spinner or a generic success, and treats the question as answered.
+          "2": Says they would "tell the user", without saying what.
+          "3": Tells them the account exists and the email is on its way, and offers a resend.
+          "4": As 3, and will not claim something that has not happened — the message says the email is being sent, not that it has been.
+
+  - slug: duplicate-job-reasoning
+    name: A job that can run twice
+    criteria:
+      - dimension: Knows why a queue re-delivers
+        description: A queue that will not lose work has to repeat anything it cannot confirm finished.
+        weight: 35
+        levels:
+          "0": Treats it as a bug in the queue, or as two jobs having been enqueued.
+          "1": A confident wrong account — the queue being misconfigured, the retry count needing to be zero, a duplicate enqueue upstream — argued without the worker restart.
+          "2": Connects it to the restart without saying why the restart causes a repeat.
+          "3": Says a worker that dies mid-job never acknowledges it, so the queue hands it out again — which is the queue doing its job.
+          "4": "As 3, and says the alternative is worse: a queue that only delivers once loses work whenever a worker dies, which is not a trade a payout system makes."
+      - dimension: Makes the job safe to run twice
+        description: The protection lives in the job, not in a promise from the queue.
+        weight: 40
+        levels:
+          "0": No change, or asks the queue for a stronger guarantee.
+          "1": Guards with something that has the same gap — a flag set after the payment, an in-memory set, a check that reads before it writes.
+          "2": Says the job "should be idempotent" without saying what makes it so.
+          "3": Records that this payout was made as part of making it, in one transaction, and checks that record before paying.
+          "4": As 3, and sends something the provider will also recognise, so a repeat is refused at their end too rather than only at ours.
+      - dimension: Says what happens to the money and the vendor
+        description: A vendor has been paid twice; a code change does not undo that.
+        weight: 25
+        levels:
+          "0": Not addressed — the answer is entirely about the code.
+          "1": Would quietly deduct it from the next payout, or assume the vendor will return it.
+          "2": Says someone should be told, without saying who or what happens to the money.
+          "3": The vendor is told, and the recovery goes through the payment provider rather than by adjusting a future payment.
+          "4": As 3, and asks how many other payouts this has happened to, because a weekly restart means this is unlikely to be the first.
+
+  - slug: credential-storage-reasoning
+    name: Storing a password
+    criteria:
+      - dimension: Says what is wrong with the hash
+        description: MD5 is fast and unsalted here, which are the two things a password hash must not be.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong; the password is hashed.
+          "1": A confident partial — that MD5 is "broken" because of collisions, or that the fix is a stronger fast hash such as SHA-256.
+          "2": Says MD5 is not safe for passwords without saying what about it is not.
+          "3": Says it is fast, so guesses can be made in enormous numbers, and that a general-purpose hash is the wrong tool.
+          "4": As 3, and adds that every user with the same password has the same hash here, so one leaked table shows which accounts share one.
+      - dimension: Picks something built for passwords
+        description: A slow, salted, tunable hash — bcrypt, scrypt, Argon2 — rather than a hash plus a salt column.
+        weight: 35
+        levels:
+          "0": No change, or encryption instead of hashing.
+          "1": Keeps a fast hash and adds a salt, or a pepper, or several rounds by hand, described as sufficient.
+          "2": Names a password hash without saying what it does that the current one does not.
+          "3": Names one and says why — it is deliberately slow and handles the salt itself — and that the cost can be raised as machines get faster.
+          "4": As 3, and notices the comparison is happening in SQL, so the hash is in the query log and the match is not constant-time.
+      - dimension: Deals with the accounts that exist
+        description: The old hashes cannot be converted, because the password is not recoverable from them.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Would re-hash the stored hashes, or run a migration over the table — treating the old hash as something the new one can be computed from.
+          "2": Says the users will "have to reset", with no plan for getting there.
+          "3": Re-hash each password at the next successful sign-in, keeping which scheme each row uses, and retire the rest after a period.
+          "4": "As 3, and says what would change the answer: if the table is believed to have leaked, every password is forced rather than upgraded quietly."
+
+  - slug: authorisation-reasoning
+    name: Deciding what a signed-in user may see
+    criteria:
+      - dimension: Separates who you are from what you may do
+        description: The middleware proves identity; nothing here asks whether the invoice is theirs.
+        weight: 40
+        levels:
+          "0": Sees nothing wrong, or blames the tester.
+          "1": Locates the fault somewhere else, confidently — the ids being sequential and needing to be UUIDs, the middleware needing a role check, the route needing rate limiting.
+          "2": Says an ownership check is missing without distinguishing it from the sign-in check.
+          "3": Says `requireSignIn` establishes identity only, and that nothing compares the invoice's owner with the person asking.
+          "4": As 3, and names it as the general shape — every route that takes an id from the caller needs to ask whether that caller may have it.
+      - dimension: Writes a check that cannot return the row
+        description: Ask for it by id and owner together, so a mismatch finds nothing.
+        weight: 30
+        levels:
+          "0": No check, or one on the client side.
+          "1": Hides the row rather than refusing it — unguessable ids, removing the id from the URL, filtering fields out of the response.
+          "2": Fetches the invoice and compares afterwards, without noticing that the row was already loaded.
+          "3": Includes the owner in the lookup, so a row belonging to someone else is never returned to compare against.
+          "4": "As 3, and says what that buys: there is no branch to forget, and no window where the wrong row is in a variable."
+      - dimension: Puts it where it cannot be forgotten
+        description: One place every route inherits, rather than a line copied into each handler.
+        weight: 30
+        levels:
+          "0": Would add the check to this handler and consider the class of bug closed.
+          "1": Says they would "be careful" or add it to a checklist, or rely on review to catch the next one.
+          "2": Says it should be shared, without saying what would enforce it.
+          "3": Puts it somewhere routes inherit — a policy, a scoped query, a repository that always takes the user — so a new route gets it by default.
+          "4": As 3, and says how they would find the routes that already lack it, rather than assuming this was the only one.
+
+  - slug: race-condition-reasoning
+    name: Two requests inside the same check
+    criteria:
+      - dimension: Sees the gap between the read and the write
+        description: Both requests read a stock of one before either has written, so both pass.
+        weight: 40
+        levels:
+          "0": Blames the client sending twice, or the stock being wrong to begin with.
+          "1": A confident wrong mechanism — the ORM caching the row, the reads hitting a replica, the two orders being one double-submitted request.
+          "2": Says it is "a race condition" without saying which two operations race.
+          "3": Says the check and the decrement are separate, so a second request can read the same value in between and pass the same check.
+          "4": As 3, and notes the write is as bad as the check — `stock - 1` computed from a value read earlier overwrites whatever happened since.
+      - dimension: Says why it is rare rather than constant
+        description: The two have to land in a window measured in milliseconds, which traffic makes likelier.
+        weight: 20
+        levels:
+          "0": Does not address it, or treats the rarity as evidence against a race.
+          "1": Explains the rarity with something else — the cache expiring, a particular customer, a specific product.
+          "2": Says "it depends on timing" with nothing more.
+          "3": Says the overlap has to fall between the read and the write, which is a very short window, and peak traffic supplies more attempts at it.
+          "4": As 3, and says that is why it cannot be tested for by hand, and what they would do instead — two requests fired together.
+      - dimension: Makes it impossible rather than unlikely
+        description: The database decides, in one statement, and the loser is told.
+        weight: 40
+        levels:
+          "0": No change, or a delay, a retry, or a check done twice.
+          "1": Wraps the same read-then-write in a transaction and stops there, on the belief that a transaction makes the sequence atomic.
+          "2": Names locking or an atomic update without saying what the code would then do.
+          "3": Decrements conditionally in one statement — only where stock is still above zero — and uses what the database reports to decide whether the order happens.
+          "4": As 3, and adds a constraint that forbids negative stock, so the rule survives the next piece of code that forgets it.
+
+  - slug: lost-update-reasoning
+    name: An update that overwrote another one
+    criteria:
+      - dimension: Finds the read-modify-write
+        description: The number is read, incremented in the application, and written back over whatever happened in between.
+        weight: 40
+        levels:
+          "0": Blames the logs, the analytics, or bots being filtered out.
+          "1": A confident wrong cause — a cache serving a stale count, the writes being throttled, the ORM batching updates, the counter overflowing.
+          "2": Says two requests "interfere" without naming the read and the write.
+          "3": Says two overlapping views read the same value and the later write replaces the earlier one, so one view is lost per collision.
+          "4": As 3, and notes nothing errors because both writes are perfectly valid — the row simply ends up one lower than it should be.
+      - dimension: Says why it scales with traffic
+        description: More concurrent views means more overlap, so a larger share is lost, not a constant number.
+        weight: 25
+        levels:
+          "0": Does not address it.
+          "1": Attributes the growth to something else — the database slowing down under load, a rate limiter, a queue dropping writes.
+          "2": Says "more traffic, more collisions" without connecting it to the proportion.
+          "3": Says the chance that a view overlaps another rises with how many are in flight, so the fraction lost rises rather than the count.
+          "4": As 3, and says what that predicts — the quiet listings are roughly right and the popular ones are badly wrong, which is what was observed.
+      - dimension: Moves the arithmetic to where the row is
+        description: One statement that increments the column, so no value travels through the application.
+        weight: 35
+        levels:
+          "0": No change, or recounting from the logs.
+          "1": Keeps the read and the write and narrows the gap — re-reading later, retrying, a short sleep — or wraps them in a transaction and stops there.
+          "2": Says the database should do the increment without saying what that changes.
+          "3": Increments in the database in one statement, so the value is never held in the application to be overwritten.
+          "4": As 3, and says when they would not bother being exact — a view count that can be counted elsewhere and reconciled is cheaper than making every view a write.
+
+  - slug: slow-dependency-reasoning
+    name: One slow dependency taking the service with it
+    criteria:
+      - dimension: Says what the waiting requests are holding
+        description: Each one occupies something finite for thirty seconds — a connection, a worker, a thread.
+        weight: 40
+        levels:
+          "0": Treats it as the provider's outage and nothing to do with this service.
+          "1": A confident wrong mechanism — the provider's errors crashing the process, memory filling up, the database being the thing that ran out.
+          "2": Says the service was "overloaded" without saying what ran out.
+          "3": Says each waiting request holds a finite resource for sixty times as long, so they run out and new requests have nowhere to go.
+          "4": As 3, and says why unrelated pages fail too — they queue behind the payment requests for the same pool, so one endpoint's problem becomes everyone's.
+      - dimension: Gives the call a deadline
+        description: A call to someone else needs a timeout, and it has to be shorter than your own budget.
+        weight: 35
+        levels:
+          "0": No timeout; retries, or more machines.
+          "1": Adds a retry without a timeout, or sets a timeout generously above the observed thirty seconds so it never fires.
+          "2": Says "add a timeout" without a number or a basis for one.
+          "3": Sets a deadline derived from what the caller can wait for, and fails the request cleanly when it passes.
+          "4": As 3, and says a retry on top of a timeout multiplies the load on something already struggling, so it is bounded or skipped.
+      - dimension: Stops asking for a while
+        description: After enough failures, stop calling rather than sending every request into the same wall.
+        weight: 25
+        levels:
+          "0": Keeps calling regardless.
+          "1": Names a pattern as the answer without saying what it does — a circuit breaker invoked as a component to add.
+          "2": Says they would "back off" with no account of when it starts or stops.
+          "3": Stops calling after a run of failures and tries again occasionally, by whatever name, and says what the request does meanwhile.
+          "4": As 3, and separates what must fail from what can still be served — the checkout stops, the rest of the site does not.
+
+  - slug: degradation-reasoning
+    name: What the service does when something it needs is down
+    criteria:
+      - dimension: Catches it rather than passing it on
+        description: The failure is handled where it happens; nothing half-created is left behind.
+        weight: 35
+        levels:
+          "0": The error reaches the user as a 500 or a blank page.
+          "1": Catches it and hides it — returns success, or logs and carries on as though the code was sent.
+          "2": Catches it and returns a generic error, with no account of what state the sign-in is left in.
+          "3": Fails the attempt cleanly, and says nothing is left behind that cannot be signed in to or retried.
+          "4": As 3, and separates the provider being down from a single number failing, because they deserve different handling.
+      - dimension: Gives the person another way in
+        description: A second route — email, an existing session, a different provider — turns an outage into an inconvenience.
+        weight: 35
+        levels:
+          "0": Not considered; the user waits for the provider.
+          "1": Offers a retry button as the alternative, or proposes letting them in without the code.
+          "2": Says a fallback "would be good" without naming one or what it costs.
+          "3": Names a route that does not depend on the failing provider, and says who it works for and who it does not.
+          "4": As 3, and weighs the cost honestly — a second SMS provider is real money and a real integration, so it is proposed as a decision rather than assumed.
+      - dimension: Says what the person is told
+        description: The message says what happened and what to do, and does not claim something that did not happen.
+        weight: 30
+        levels:
+          "0": No message, or an error code.
+          "1": A message that is untrue — "your code has been sent, please check your phone" when it has not.
+          "2": A generic apology with nothing to do next.
+          "3": Says the code could not be sent and what to do now — wait and try, or use the other route.
+          "4": As 3, and someone finds out from an alert rather than from users, because every sign-in is failing at once.
+
+  - slug: test-isolation-diagnosis
+    name: A suite that depends on what ran before it
+    criteria:
+      - dimension: Finds the shared state
+        description: The tests share a database and this one asserts on the whole table.
+        weight: 30
+        levels:
+          "0": Concludes the tests are wrong about the code, or that the code is intermittently broken.
+          "1": A confident wrong cause — an async race in the test, a connection pool limit, the framework's own caching, a timeout that needs raising.
+          "2": Says the tests "interfere" without saying what they share.
+          "3": Says rows left by other tests are in the table this test counts, so the result depends on what ran before it.
+          "4": As 3, and notes the failure moves around because the order does, which is why one file at a time passes.
+      - dimension: Confirms it before changing anything
+        description: Run the failing test alone; run the suite in a different order.
+        weight: 30
+        levels:
+          "0": Starts changing tests.
+          "1": Proposes a confirmation that cannot distinguish the causes — rerunning the whole suite, adding logging, raising the timeout.
+          "2": Says they would "run it alone" without saying what either outcome would tell them.
+          "3": Runs it alone and runs the suite in a different order, and says what each result rules out.
+          "4": As 3, and says why CI differs — parallel workers, a fresh database, a different seed — and checks that rather than assuming CI is flaky.
+      - dimension: Makes the suite independent again
+        description: Each test sets up what it needs, leaves nothing, and asserts on what it created.
+        weight: 40
+        levels:
+          "0": Makes the tests pass by running them in a fixed order, or by deleting the failing ones.
+          "1": Adds a sleep, a retry, or a shared fixture that every test depends on — trading one order dependency for another.
+          "2": Says tests should "clean up after themselves" without a mechanism.
+          "3": Isolates the data — a transaction rolled back, or the tables cleared between tests — so nothing survives a test.
+          "4": As 3, and changes the assertion as well, so it checks for the row it created rather than the size of the table and cannot be broken by a stray row.
+
+  - slug: test-double-judgement
+    name: Standing in for something you do not own
+    criteria:
+      - dimension: Says what the tests were proving
+        description: That the code handles the response the team wrote down, which is not the same as the provider's.
+        weight: 40
+        levels:
+          "0": Concludes the tests were fine and the provider changed without warning.
+          "1": Blames the fake's fidelity in the wrong place — that it needed more fields, that the library was wrong, that mocking is bad and everything should be integration-tested.
+          "2": Says the fake "was out of date" without saying what that means the tests were checking.
+          "3": Says the tests check the code against an assumption, so they pass for as long as the assumption is written down, true or not.
+          "4": As 3, and notes nothing in the suite could ever have told them otherwise, so the passing tests were not weak evidence — they were no evidence.
+      - dimension: Improves the double without removing it
+        description: Keep standing in, and stand in for failure as well as success, from something real.
+        weight: 30
+        levels:
+          "0": No change to the tests.
+          "1": Removes the double and calls the real provider from the test suite, presented as the rigorous option.
+          "2": Says the fake should be "more realistic" without saying where realism would come from.
+          "3": Builds the fake from a real recorded response, and adds the provider's failures — declines, timeouts, malformed bodies — as cases.
+          "4": As 3, and says what still will not be caught, so the fake is not asked to do a job it cannot.
+      - dimension: Puts something outside the tests
+        description: Something has to touch the real provider, or watch the real failure rate.
+        weight: 30
+        levels:
+          "0": Treats another test as the whole answer.
+          "1": Proposes more unit tests, or a stricter review, as the way this gets caught next time.
+          "2": Says they would "monitor it" without saying what.
+          "3": Names something that touches reality on a schedule — a sandbox run, a small live transaction — or a visible failure rate for that call.
+          "4": "As 3, and says two days is the real defect: whatever is added has to shorten that, not just exist."
+
+  - slug: log-usefulness-reasoning
+    name: Logging enough, and not too much
+    criteria:
+      - dimension: Says what these lines cannot answer
+        description: No user, no transfer, no cause — and nothing tying two lines to one request.
+        weight: 35
+        levels:
+          "0": Believes the logs show what happened.
+          "1": Reads more into them than is there — treats the two timestamps as one failure and its retry, or the gap between them as the cause.
+          "2": Says the logs are "not detailed enough" without saying what question they fail to answer.
+          "3": Says nothing identifies the user or the transfer, and nothing says what failed, so this user's report cannot be matched to these lines at all.
+          "4": As 3, and notes two users failing at the same minute would be indistinguishable, because nothing ties a line to a request.
+      - dimension: Says what to log instead
+        description: An identifier per request and per user, the operation, and the error itself.
+        weight: 40
+        levels:
+          "0": No specifics, or "log more".
+          "1": Adds volume rather than structure — logging at every step, logging the whole request and response, raising the level to debug in production.
+          "2": Names one or two fields without a way to join the lines for one request.
+          "3": An id that travels with the request, an id for the user, what was being attempted, and the actual error rather than the word "error".
+          "4": As 3, and makes it structured rather than prose, because the question that gets asked is "everything about this request" and that has to be searchable.
+      - dimension: Says what to keep out
+        description: The phone number, the account number, the token and the amount in plain text — an id stands in for the person.
+        weight: 25
+        levels:
+          "0": Not addressed, or would log the whole request body.
+          "1": Names the wrong boundary — would keep passwords out and everything else in, or believes a private log is a safe place for it.
+          "2": Says "no sensitive data" with no example of what that is here.
+          "3": Names what to leave out — the phone number, the account number, the token — and logs an id that can be looked up instead.
+          "4": As 3, and notes the phone number is the account identifier for much of this market, so leaving it in is not a small thing, and that logs are read by more people than the database is.
+
+  - slug: alerting-judgement
+    name: Finding out before the customer does
+    criteria:
+      - dimension: Measures the right thing
+        description: A rate of failures per endpoint over time, not a count, and not a machine's health.
+        weight: 40
+        levels:
+          "0": Nothing measured; would check the logs more often.
+          "1": Measures something that would not have caught this — CPU and memory, the server being up, an uptime check hitting the home page, the total error count.
+          "2": Says to "monitor errors" without saying per what, or against what.
+          "3": Measures responses by status per endpoint over time, so one in twelve on checkout is visible as a rate.
+          "4": As 3, and puts latency and volume beside it, because a checkout that has stopped being called is also broken and shows no errors at all.
+      - dimension: Knows what "worse than usual" means
+        description: A threshold is a claim about normal, and normal has to be known before it can be exceeded.
+        weight: 25
+        levels:
+          "0": No threshold; would look at a dashboard.
+          "1": Picks a number with a confident justification that is not about this service — an industry figure, a round percentage, "any error at all should alert".
+          "2": Says a threshold is needed without saying how it would be chosen.
+          "3": Derives it from what this endpoint normally does, and says an eight percent failure rate is far outside it.
+          "4": As 3, and says what they would do about the endpoints whose normal is genuinely noisy, rather than letting one of them train everyone to ignore alerts.
+      - dimension: Makes it reach someone who can act
+        description: An alert nobody receives, or nobody can act on, is not an alert.
+        weight: 35
+        levels:
+          "0": Treats the alert as done once it is configured.
+          "1": Routes everything to a shared channel or an email nobody reads, described as covered.
+          "2": Says someone "should be notified" without saying who or what they would do.
+          "3": Says who receives it — even if that is only themselves — and what the message has to contain for them to start work rather than start looking.
+          "4": As 3, and says an alert that fires often and means nothing gets ignored, which is how three days pass, so the number of alerts is itself a thing to keep down.
+
+  - slug: long-running-work-design
+    name: Building something that takes too long for a request
+    criteria:
+      - dimension: Takes the work out of the request
+        description: Forty seconds is past what any request should hold; the button starts the work and returns.
+        weight: 35
+        levels:
+          "0": Builds it in the request and raises the timeout.
+          "1": Keeps it in the request and makes it feel shorter — streaming the response, a longer timeout, a spinner, chunked transfer — presented as the design.
+          "2": Says it "should be a background job" without saying what the request returns.
+          "3": The request accepts the work, returns immediately with something that identifies it, and the building happens elsewhere.
+          "4": "As 3, and says what that buys beyond the timeout: the work survives the user closing the tab, and can be retried without them pressing anything."
+      - dimension: Says what the user experiences
+        description: Told it is being prepared, told when it is ready, and given the file without it coming back through the API.
+        weight: 35
+        levels:
+          "0": Not addressed; the user presses the button and waits.
+          "1": Describes an experience that does not follow from the design — the file downloading when ready with no mechanism, or an email as the only route with no page state.
+          "2": Says they would "show a status" without saying how the page learns it.
+          "3": Describes both ends — a page or a notification that reflects progress, and a way to get the finished file, from storage rather than through the request.
+          "4": "As 3, and says what happens when it fails: the user is told, rather than waiting for something that is never coming."
+      - dimension: Holds up under a hundred at once
+        description: The queue absorbs the burst; what is sized is the workers, not the endpoint.
+        weight: 30
+        levels:
+          "0": Not addressed, or "add more servers".
+          "1": Scales the wrong thing with confidence — more web processes, a bigger machine, raising the rate limit — as the answer to a hundred exports.
+          "2": Says the queue "handles it" without saying what actually has to be decided.
+          "3": Says the queue buffers and the number of workers sets the throughput, so the queue grows and nothing falls over.
+          "4": As 3, and stops one user's second press starting a second export, and says what they would watch to know the workers are behind.
+
+  - slug: scaling-out-reasoning
+    name: Going from one machine to two
+    criteria:
+      - dimension: Knows what breaks the moment there are two
+        description: Anything held on the machine — memory, local disk, scheduled jobs — stops being one thing.
+        weight: 40
+        levels:
+          "0": Expects it to work; the load balancer shares the traffic.
+          "1": Names a plausible wrong set — that the database will need sharding, that the code needs to be stateless in some unspecified way, that it is a deployment problem.
+          "2": Names one thing, usually sessions, and stops.
+          "3": Names state in memory and files on local disk, and says what each looks like to the user — being signed out at random, an upload that is there half the time.
+          "4": As 3, and gets to the scheduled jobs, which now run on both machines and do everything twice.
+      - dimension: Finds out what is actually saturated
+        description: Measure before moving anything; the second machine may not be what is needed.
+        weight: 30
+        levels:
+          "0": Adds the machine and sees what happens.
+          "1": Asserts the bottleneck without checking — that it is obviously CPU, or obviously the database, or that tripled traffic needs tripled capacity.
+          "2": Says they would "check the metrics" without saying which would decide.
+          "3": Names what would tell them where the limit is — CPU, memory, database connections, disk — and says the answer changes what to do.
+          "4": "As 3, and says the cheapest fix may not be a machine at all: one slow query or a missing index can be the whole of it."
+      - dimension: Does it in an order that works
+        description: The state moves out before the machine is added, not after the failures start.
+        weight: 30
+        levels:
+          "0": No order; a list of things to do.
+          "1": Adds the machine first and fixes what breaks — described as pragmatic, and it is the outage.
+          "2": Gives an order without a reason for it.
+          "3": Moves sessions and files out and settles the scheduled jobs first, then adds the machine, so nothing user-visible breaks on the way.
+          "4": As 3, and says how they would verify each step before the next — and that the database becoming the constraint is the thing they are deferring, not solving.
+
+  # Rubrics for the stack-tagged questions.
+
+  - slug: event-loop-blocking-diagnosis
+    name: One request holding the only thread
+    criteria:
+      - dimension: Says what is blocking and what is not
+        description: The database call yields; the mapping and joining do not, and that is the difference.
+        weight: 40
+        levels:
+          "0": Blames the database, the row count, or the machine being too small.
+          "1": Locates the block in the wrong place, in detail — the `await` on the query, the eighty thousand rows in memory, garbage collection, the response being large.
+          "2": Says the work is "heavy" or "synchronous" without separating it from the awaited call.
+          "3": Says the mapping and the join run without pausing, so nothing else on the thread can run until they finish.
+          "4": As 3, and says the `await` above them is exactly the counter-example — waiting on I/O releases the thread, computing does not, and `async` does not change that.
+      - dimension: Connects it to the restart
+        description: The health check queues behind the same work, so the service is declared dead and killed mid-export.
+        weight: 25
+        levels:
+          "0": Treats the restart as unrelated.
+          "1": Explains the restart with something else — memory pressure, an out-of-memory kill, a crash in the export.
+          "2": Says other requests are slow without reaching the health check.
+          "3": Says the health check is a request like any other and waits behind the export, so the platform concludes the process is unhealthy.
+          "4": As 3, and notices the loop it creates — the export never finishes, because it is killed each time it is nearly done.
+      - dimension: Moves the work off the thread
+        description: A worker thread, a separate process, or a job the request only starts — and streaming instead of building a string.
+        weight: 35
+        levels:
+          "0": No change, or a faster machine.
+          "1": Keeps the work on the thread and rearranges it — a promise around the same loop, `setImmediate` between rows, `async` on the map function.
+          "2": Says to "use worker threads" or "make it a job" without saying what the request then returns.
+          "3": Puts the work somewhere that is not the request thread, and says what the endpoint returns instead.
+          "4": As 3, and offers streaming as the cheaper answer — rows written out as they arrive, so nothing large is ever held or built.
+
+  - slug: async-error-path-diagnosis
+    name: An error that never reached the handler
+    criteria:
+      - dimension: Says where the error goes
+        description: The `try` block has finished before the promise rejects, so its `catch` can never see it.
+        weight: 40
+        levels:
+          "0": Believes the `catch` runs and blames what is inside it.
+          "1": A confident wrong account — that the `catch` fires and `res` has already been sent, that the error is swallowed by the promise library, that `createOrder` needs its own try/catch inside.
+          "2": Says the error is "not caught" without saying why this `catch` cannot catch it.
+          "3": Says the call returns a promise immediately, so the `try` is over before the failure happens and a rejection is not an exception it can see.
+          "4": As 3, and notes the success path works for the same reason it fails — `.then` is the only thing attached, and there is no `.catch` beside it.
+      - dimension: Says why the request hangs
+        description: Nothing writes a response on the failure path, so the client waits for a timeout.
+        weight: 25
+        levels:
+          "0": Does not address the hang.
+          "1": Attributes it elsewhere — the database connection not being released, a deadlock, the server being blocked.
+          "2": Says "no response is sent" without saying which path failed to send it.
+          "3": Says the only `res` call is inside `.then`, so a rejection leaves the request with nothing written and the client waits.
+          "4": As 3, and says what the caller sees and does next — a timeout, then very possibly the same order submitted again.
+      - dimension: Writes it so failures have a path
+        description: "`await` inside an `async` handler, or a `.catch` — and something at the framework level for the next route."
+        weight: 35
+        levels:
+          "0": No change, or logging added.
+          "1": Adds something that does not restore the path — a `.finally`, a process-level rejection handler, a `try`/`catch` moved inside `createOrder`.
+          "2": Says to "use async/await" without saying what the `catch` then sees.
+          "3": Makes the handler `async` and awaits the call, so the rejection becomes an exception the `catch` handles, or attaches a `.catch` that responds.
+          "4": As 3, and puts an error handler where every route inherits it, because this is a shape that will be written again and one missing `catch` should not hang a request.
+
+  - slug: request-state-diagnosis
+    name: State that belongs to the process, not the request
+    criteria:
+      - dimension: Finds the shared variable
+        description: One `currentUser` for the whole process, written by every request that arrives.
+        weight: 40
+        levels:
+          "0": Blames the authorisation header, the token, or the email provider.
+          "1": A confident wrong mechanism — the middleware running out of order, `loadUser` caching, the single thread making this impossible, a connection pool reusing objects.
+          "2": Says the variable is "global" without saying what goes wrong because of it.
+          "3": Says every request assigns to the same variable, so the value at any moment belongs to whichever request wrote last.
+          "4": As 3, and says exactly where it goes wrong — the handler reads it after its own `await`, by which time another request has overwritten it.
+      - dimension: Says why testing by hand misses it
+        description: One request at a time never overlaps, so the variable is always the right one.
+        weight: 25
+        levels:
+          "0": Does not address it.
+          "1": Explains it with something else — development having fewer users so less data, a different configuration, the email provider batching.
+          "2": Says it is "a load issue" without saying what load changes.
+          "3": Says nothing overlaps when requests arrive one at a time, so the bug needs two in flight and never appears by hand.
+          "4": As 3, and says how they would show it — two requests fired together for different users, which is a test that can be written.
+      - dimension: Puts the value where the request is
+        description: On `req`, or passed as an argument — something whose lifetime is the request's.
+        weight: 35
+        levels:
+          "0": No change, or a lock around the variable.
+          "1": Keeps the module-level variable and defends it — restoring it after the handler, a per-user map keyed by id, reassigning it just before use.
+          "2": Says it should be "request-scoped" without saying what that means in this code.
+          "3": Attaches the user to the request object and reads it from there, so each request carries its own.
+          "4": As 3, and prefers passing it explicitly to whatever needs it, and treats request-scoped storage as the last resort for code too deep to reach.
+
+  - slug: spring-transaction-diagnosis
+    name: A transaction annotation that did nothing
+    criteria:
+      - dimension: Says why the annotation did not apply
+        description: The behaviour comes from a proxy around the bean; a call from inside the object never goes through it.
+        weight: 45
+        levels:
+          "0": Believes the annotation applies and blames the exception type or the repository.
+          "1": A confident wrong cause — that the exception is checked so nothing rolls back, that the propagation is wrong, that the repositories each open their own transaction and that is the whole story.
+          "2": Says self-invocation is the problem without saying what mechanism it bypasses.
+          "3": Says the annotation is applied by a proxy, and an internal call reaches the method directly, so no transaction is ever started.
+          "4": As 3, and says what would have been observable — the same method called from another bean would work, which is why it looks intermittent to whoever wrote it.
+      - dimension: Puts the boundary where the work is
+        description: Annotate what is called from outside, or move the inner method to another bean.
+        weight: 35
+        levels:
+          "0": No change, or a try/catch with manual cleanup.
+          "1": Fixes it without the proxy ever being involved — a manual transaction, a `catch` that deletes the order, the annotation moved onto the repository methods.
+          "2": Says to "move the annotation" without saying to what, or reaches for `AopContext.currentProxy()`, which the documentation singles out as the one to avoid.
+          "3": Makes the call cross the proxy — the boundary moved to the method called from outside, the inner method moved to another bean, or a self reference injected.
+          "4": As 3, and prefers the refactor to the self reference, because it puts the boundary around the whole unit of work — usually the entry point, not the innermost save.
+      - dimension: Knows what a transaction is being asked to cover
+        description: What must succeed or fail together, and what must not be inside it.
+        weight: 20
+        levels:
+          "0": Not addressed.
+          "1": Would widen it to the whole request, or annotate every method, as a way of being safe.
+          "2": Says both saves belong together without saying what else does not.
+          "3": Says the two writes are one unit, and that anything a database cannot undo does not belong inside it.
+          "4": As 3, and names the cost of a boundary that is too wide — a connection and locks held across a slow call, which is the next outage.
+
+  - slug: framework-error-body-judgement
+    name: What a framework's default error tells a client
+    criteria:
+      - dimension: Says what the client cannot do with it
+        description: Nothing identifies the field, so the app cannot mark anything or branch on anything.
+        weight: 35
+        levels:
+          "0": Sees nothing wrong; there is a message and a status.
+          "1": Names the wrong deficiency confidently — that the message is not user-friendly enough, that it needs translating, that the client should show `message` to the user.
+          "2": Says it is "not useful" without saying what the client needed and did not get.
+          "3": Says nothing names the field that failed, so the app can only show a generic error and cannot mark the input.
+          "4": As 3, and says why branching on `message` is not an option either — it is prose, and it changes when the framework does.
+      - dimension: Sees what is being given away
+        description: A stack trace naming internal classes and the framework is information a client never needs.
+        weight: 30
+        levels:
+          "0": Does not notice the trace, or treats it as helpful.
+          "1": Would keep it for debugging — in a header, behind a flag, for staff accounts — described as a reasonable compromise.
+          "2": Says the trace "should not be there" with no account of what it costs.
+          "3": Says it names internal classes and the framework version, which narrows what an attacker has to guess, and that none of it helps the client.
+          "4": "As 3, and separates the two audiences: the trace belongs in the log against a request id, and the client gets the id."
+      - dimension: Says what to send instead
+        description: A stable code, the fields that failed, and one shape for the whole API.
+        weight: 35
+        levels:
+          "0": No alternative, or "a nicer message".
+          "1": Fixes it by configuration alone — turning the trace off — and leaves a body the client still cannot branch on.
+          "2": Names a code or field errors, without the other, or without saying what stays the same across endpoints.
+          "3": A stable code per error plus the failing fields and what was wrong with each, in a shape every endpoint uses.
+          "4": As 3, and says this has to be enforced somewhere rather than written per controller, or the next exception escapes as the default again.
+
+  - slug: async-blocking-diagnosis
+    name: A blocking call inside an async handler
+    criteria:
+      - dimension: Says what `async` did and did not do
+        description: It put the function on the event loop; it did not make the call inside it asynchronous.
+        weight: 40
+        levels:
+          "0": Believes the handler is asynchronous because it is declared so.
+          "1": A confident wrong mechanism — that the provider is slow and needs a shorter timeout, that the server needs more workers, that the GIL is the constraint, that `async def` needs an `await` added in front of the call to work.
+          "2": Says the call is "blocking" without connecting it to the loop.
+          "3": Says the function runs on the event loop and the library holds the thread, so the loop cannot run anything else for the duration.
+          "4": As 3, and says why unrelated endpoints are affected — they share the loop, so a call that never yields stops all of them, not just this one.
+      - dimension: Fixes it in a way that yields
+        description: An awaiting client, or the blocking call moved off the loop.
+        weight: 35
+        levels:
+          "0": No change, or a longer timeout.
+          "1": Keeps `requests` on the loop and changes something around it — `await` in front of it, a thread pool the code never actually uses, caching the response.
+          "2": Says to "use an async client" without saying what changes about the loop.
+          "3": Uses a client that awaits, so the loop is free while the call is in flight — or runs the blocking call in a thread deliberately.
+          "4": "As 3, and knows which to choose: the async client when one exists, the thread when the library has no async version and rewriting it is not on offer."
+      - dimension: Knows the framework was offering a safer default
+        description: A plain `def` endpoint is run in a threadpool; the `async def` is what put it on the loop.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Believes `async def` is always the faster or more correct choice, and says so as a rule.
+          "2": Mentions that `def` and `async def` differ without saying how.
+          "3": Says a plain `def` path operation is run in a threadpool, so the same code in a `def` would not have blocked the loop.
+          "4": As 3, and draws the rule from it — declare `async def` only when what is inside actually awaits, because the declaration is a promise the framework believes.
+
+  - slug: stale-write-diagnosis
+    name: A save that wrote back what it read
+    criteria:
+      - dimension: Says what `save()` writes
+        description: Every field on the instance, from the values it held when it was read.
+        weight: 40
+        levels:
+          "0": Blames the support tool, a cache, or a replica.
+          "1": A confident wrong cause — the support update not committing, a signal or a callback resetting the field, the form posting a blank phone number, a replica lagging.
+          "2": Says the object is "stale" without saying what `save()` then does with it.
+          "3": Says `save()` writes all the fields on the instance, and the instance holds the values from the earlier read, so the old number goes back.
+          "4": As 3, and says nothing errors and nothing is logged, because both writes were perfectly valid — which is why it looks like the support tool is broken.
+      - dimension: Says what made the window wide
+        description: A slow external call between the read and the write is what turns a millisecond into a minute.
+        weight: 20
+        levels:
+          "0": Does not address it.
+          "1": Attributes the minute to something else — a queue, a transaction held open, the database being slow.
+          "2": Notes the call is in the middle without saying what that changes.
+          "3": Says the instance is held across the provider call, so the gap between reading and writing is as long as that call takes.
+          "4": As 3, and says this is why it is reproducible rather than rare — unlike a millisecond race, a minute is easy to land in.
+      - dimension: Writes only what changed
+        description: Name the field, or update the row without reading it first.
+        weight: 40
+        levels:
+          "0": No change, or telling support to re-enter it.
+          "1": Narrows the window instead of closing it — re-reading the instance after the provider call, moving the call earlier, a retry — described as the fix.
+          "2": Says to "only save that field" without saying how.
+          "3": Saves with the field named, or updates the row directly so nothing is read into the application first.
+          "4": As 3, and says which of the two they would pick here and why — and that re-reading before saving still leaves a gap, it is only a smaller one.
+
+  - slug: mass-assignment-diagnosis
+    name: Letting a request decide which columns to write
+    criteria:
+      - dimension: Says how the extra field arrived
+        description: The request is whatever was posted; the form is not a constraint on it.
+        weight: 40
+        levels:
+          "0": Concludes someone with access changed it in the database.
+          "1": A confident wrong route in — an SQL injection, a stolen admin session, the front-end validation being bypassed as the whole story, a seeded account.
+          "2": Says the request contained a role field, without saying why that was possible.
+          "3": Says anyone can post any field, and an empty `$guarded` means every column may be filled, so a posted role is written.
+          "4": As 3, and says nothing in the code had to be wrong for this to work — it is the framework doing exactly what it was told.
+      - dimension: Takes only what the action may set
+        description: Validate, and pass named fields — not the request.
+        weight: 35
+        levels:
+          "0": No change, or removing the role column from the response.
+          "1": Guards the wrong layer with confidence — hiding the field in the form, validating on the client, checking for a role field in middleware, or listing every column that must not be written rather than the few that may.
+          "2": Names the guard or the validator — `$fillable`, `#[Fillable]`, `validated()` — without saying which fields or why those.
+          "3": Validates the request and passes only the fields sign-up is allowed to set, and names what may be filled on the model as well.
+          "4": As 3, and says anything that decides permissions should not be settable from a request at all, whatever the guard list says.
+      - dimension: Assumes it is not the only one
+        description: A pattern used once is used everywhere; the next step is finding the rest.
+        weight: 25
+        levels:
+          "0": Fixes this controller and stops.
+          "1": Says they would "be careful in future", or add it to the code review checklist.
+          "2": Says there may be others without a way of finding them.
+          "3": Searches for the same pattern across the codebase, and checks which models have no guard at all.
+          "4": As 3, and treats the account that was created as an incident — it is found, removed, and what it did while it had the role is checked.
+
+  - slug: worker-deploy-diagnosis
+    name: A long-running process that missed the deploy
+    criteria:
+      - dimension: Says why the worker kept the old code
+        description: It loaded the application once when it started, and a deploy does not restart it.
+        weight: 40
+        levels:
+          "0": Blames the deploy, a cache, or the code not having been pushed.
+          "1": A confident wrong cause — an opcode or config cache, the jobs having been serialised with the old class, the deploy having skipped the worker's directory, a stale branch.
+          "2": Says the worker "needs restarting" without saying why it kept working with the old code.
+          "3": Says the worker is one long-lived process holding the application in memory, so replacing the files on disk changes nothing it is running.
+          "4": As 3, and contrasts it with the web side, where each request is served by a process that picks up the new files — which is why one was right and the other was not.
+      - dimension: Restarts it as part of deploying
+        description: The deploy ends by telling the workers to finish and exit.
+        weight: 35
+        levels:
+          "0": No change; would restart by hand when it is noticed.
+          "1": Restarts in a way that loses work or does not take — killing the process outright, restarting before the files are in place, clearing the cache instead.
+          "2": Says to "restart the workers" without saying what puts it in the deploy.
+          "3": Puts the restart in the deploy itself, using the graceful signal so a job in flight is finished rather than cut off.
+          "4": As 3, and says what the process manager then has to do — bring the worker back — because a graceful stop that nothing restarts is an outage of a different kind.
+      - dimension: Makes the next person's version visible
+        description: Something should say which version each worker is running.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Would add a comment, a runbook note, or remember next time.
+          "2": Says it should be "monitored" without saying what would be visible.
+          "3": Logs or reports the version each worker is running, so a mismatch is a thing that can be seen rather than deduced.
+          "4": As 3, and notes the jobs already in the queue carry the old payload, which the restart does not fix and which needs its own decision.
+
+  - slug: ignored-error-diagnosis
+    name: An error that was discarded
+    criteria:
+      - dimension: Says what happens when the call fails
+        description: The error is thrown away and the value returned is the zero value of the type.
+        weight: 40
+        levels:
+          "0": Believes the handler would fail or panic.
+          "1": A confident wrong account — that the customer would be nil and the encoder would panic, that the handler returns 500 because the encoder errors, that the discard only applies to a not-found.
+          "2": Says the error is ignored without saying what the value then is.
+          "3": Says the error is assigned to the blank identifier and the returned struct is its zero value — empty strings, zero numbers.
+          "4": "As 3, and says that is why it looks like success: a zero-value struct serialises into a complete, plausible-looking customer."
+      - dimension: Says why the client cannot tell
+        description: Nothing sets a status, so the response is a 200 carrying a record that does not exist.
+        weight: 25
+        levels:
+          "0": Does not address the status.
+          "1": Believes the status reflects the failure somehow — that the empty body would be caught, that the encoder sets it, that a middleware would notice.
+          "2": Says the status is wrong without saying what it should have been.
+          "3": Says writing to the response without setting a status sends 200, so a failure is indistinguishable from an empty record.
+          "4": As 3, and separates the two cases the client needs to tell apart — a customer that does not exist and a database that is unreachable are not the same answer.
+      - dimension: Handles it, and says which failure it was
+        description: Check the error, choose a status, and give the log enough to locate the call.
+        weight: 35
+        levels:
+          "0": No change, or logging the error and continuing.
+          "1": Checks the error and collapses every case into one — a 500 for everything, or a 404 for everything — described as sufficient.
+          "2": Says to check the error without saying what the handler then does.
+          "3": Checks it, distinguishes not-found from a failure to reach the store, and returns a status for each.
+          "4": As 3, and wraps or logs it with which call failed and for which id, so the next person reading the log is not looking at a bare message.
+
+  - slug: sync-over-async-diagnosis
+    name: Blocking a thread to wait for an async call
+    criteria:
+      - dimension: Says what the thread is doing
+        description: It is held, not working, until the call returns — so the pool drains under concurrency.
+        weight: 40
+        levels:
+          "0": Blames the client library, the provider, or the machine.
+          "1": Names the classic deadlock — the synchronisation context, `.Result` deadlocking — which is the old framework's failure and not this one's. It is the most widely repeated wrong answer here.
+          "2": Says `.Result` is "blocking" without saying what runs out.
+          "3": Says the thread is held while it waits instead of being returned, so concurrent requests exhaust the pool and new ones queue for a thread.
+          "4": As 3, and explains the idle CPU — the threads are not computing, they are waiting, so the machine looks unloaded while the application is stuck.
+      - dimension: Says why it gets worse gradually
+        description: The pool adds threads slowly, so the queue grows before the capacity does.
+        weight: 25
+        levels:
+          "0": Does not address it.
+          "1": Attributes the slope to something else — a memory leak, connections accumulating, the provider degrading under load.
+          "2": Says it "gets worse with traffic" without connecting it to the pool.
+          "3": Says the pool grows only gradually when it runs short, so arriving requests wait even though threads will eventually be added.
+          "4": As 3, and says what that looks like from outside — latency climbing over minutes and then timeouts, rather than a clean failure.
+      - dimension: Awaits it properly, all the way down
+        description: "`async Task<IActionResult>` and `await`, and no blocking call left anywhere in the path."
+        weight: 35
+        levels:
+          "0": No change, or a larger minimum thread count as the fix.
+          "1": Keeps the blocking call and works around it — `ConfigureAwait(false)`, `GetAwaiter().GetResult()`, raising the pool minimum — presented as the correct fix.
+          "2": Says to "make it async" without saying what the thread then does.
+          "3": Makes the action `async Task<IActionResult>` and awaits the call, so the thread is returned to the pool while waiting.
+          "4": As 3, and says it has to be awaited the whole way down, because one blocking call anywhere in the path puts the behaviour back.
+
+  - slug: model-callback-judgement
+    name: Side effects attached to saving a record
+    criteria:
+      - dimension: Traces all three symptoms to one cause
+        description: The import, the two hours and the slow tests are the same callback firing on every save.
+        weight: 40
+        levels:
+          "0": Treats them as three separate problems.
+          "1": Gives each a plausible separate cause — the import needing batching, the mailer needing a faster provider, the tests needing better fixtures — and never reaches the callback.
+          "2": Identifies the callback for one of the three, usually the emails.
+          "3": Says any save fires both callbacks, so a bulk import sends in bulk, waits for the mail server each time, and makes every test that saves a vendor do real work.
+          "4": As 3, and notes the record does not know why it is being saved — a correction to a spelling sends a welcome email exactly as a new signup does.
+      - dimension: Gets it out of the save
+        description: The work leaves the callback, or at least stops happening inside the transaction.
+        weight: 35
+        levels:
+          "0": No change, or a flag on the import to skip callbacks.
+          "1": Narrows when it fires rather than moving it — `after_create` instead of `after_save`, a conditional on the record, an environment check that disables it in tests.
+          "2": Says to "use a background job" without saying what that changes about the import or the tests.
+          "3": Enqueues instead of delivering inline, so the save no longer waits for the mail server.
+          "4": As 3, and moves the decision to whatever actually signs a vendor up, because enqueuing four thousand emails is still four thousand emails nobody meant to send.
+      - dimension: Says what a callback is for
+        description: Keeping the record consistent with itself, not reaching outside it.
+        weight: 25
+        levels:
+          "0": Treats callbacks as the normal place for this work.
+          "1": States a rule that is really the fix — "callbacks should be asynchronous", "use `deliver_later` in callbacks" — or that callbacks should never be used at all.
+          "2": Says callbacks are "overused" without a line between what belongs and what does not.
+          "3": Says a callback should do things to the record itself, and anything that touches the outside world belongs to the action that caused the save.
+          "4": As 3, and gives the test that decides it — whether the behaviour should happen for every save from every caller, including a console session and an import.

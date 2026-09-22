@@ -77,3 +77,36 @@ topics:
   - slug: defect-reporting
     name: Defect reporting and triage
     description: Reports a developer can act on, and judging severity honestly.
+
+  # Added 2026-09-22 with the backend bank. Seven topics the backend blueprint derived from
+  # `docs/role-catalogue.md`; five of the seven are reused by DevOps, data engineering and
+  # full-stack when those waves land, which is why they are named for the thing rather than for
+  # the role. `indexing and transactions` is deliberately *not* here — a question about an index
+  # is a question about the database, so both are subtopics of `databases`.
+  - slug: caching
+    name: Caching
+    description: What is worth holding on to, how long for, and how the held copy is replaced when the truth changes.
+
+  - slug: async-work
+    name: Background and queued work
+    description: Work taken out of the request — queues, retries, and what happens when a job runs twice.
+
+  - slug: auth
+    name: Authentication and authorisation
+    description: Proving who someone is, deciding what they may do, and storing credentials safely.
+
+  - slug: concurrency
+    name: Concurrency and race conditions
+    description: Two requests at once — lost updates, check-then-act, and the guarantees the database offers.
+
+  - slug: backend-testing
+    name: Testing backend code
+    description: What a test should own, what it should stand in for, and tests that fail for a real reason.
+
+  - slug: observability
+    name: Logging, metrics and knowing it broke
+    description: Finding out what happened after the fact, and finding out before the user tells you.
+
+  - slug: system-design-basics
+    name: Designing something that has to grow
+    description: When to add a cache, a queue or a second machine, what each one costs, and what breaks first.
