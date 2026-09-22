@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/content/career-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentController_careerRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/content/track": {
         parameters: {
             query?: never;
@@ -221,6 +237,102 @@ export interface paths {
         };
         get?: never;
         put: operations["ContentAdminController_updateTopic"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/career-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listCareerRoles"];
+        put?: never;
+        post: operations["ContentAdminController_createCareerRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/career-roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getCareerRole"];
+        put: operations["ContentAdminController_updateCareerRole"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/career-levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listCareerLevels"];
+        put?: never;
+        post: operations["ContentAdminController_createCareerLevel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/career-levels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getCareerLevel"];
+        put: operations["ContentAdminController_updateCareerLevel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/stacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_listStacks"];
+        put?: never;
+        post: operations["ContentAdminController_createStack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/content/stacks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ContentAdminController_getStack"];
+        put: operations["ContentAdminController_updateStack"];
         post?: never;
         delete?: never;
         options?: never;
@@ -719,6 +831,30 @@ export interface components {
             experience: components["schemas"]["CvExperience"][];
             gaps: string[];
         };
+        CandidateCareerRole_Output: {
+            slug: string;
+            name: string;
+            summary: string | null;
+            supported_question_types: components["schemas"]["QuestionType_Output"][];
+            level_options: components["schemas"]["CandidateCareerLevel_Output"][];
+            stacks: components["schemas"]["CandidateStack_Output"][];
+        };
+        /** @enum {string} */
+        QuestionType_Output: "behavioral" | "technical" | "scenario" | "test_design";
+        CandidateCareerLevel_Output: {
+            slug: string;
+            name: string;
+            summary: string | null;
+        };
+        CandidateStack_Output: {
+            slug: string;
+            name: string;
+            summary: string | null;
+            is_default: boolean;
+        };
+        CareerRolesResponseDto_Output: {
+            roles: components["schemas"]["CandidateCareerRole_Output"][];
+        };
         CandidateModule_Output: {
             slug: string;
             title: string;
@@ -754,8 +890,6 @@ export interface components {
                 id: string;
             };
         };
-        /** @enum {string} */
-        QuestionType_Output: "behavioral" | "technical" | "scenario" | "test_design";
         CandidatePracticeResponseDto_Output: {
             items: components["schemas"]["CandidatePracticeItem_Output"][];
         };
@@ -793,6 +927,150 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        CareerRoleListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            position: number;
+            level_count: number;
+            stack_count: number;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+        };
+        /** @enum {string} */
+        ContentStatus_Output: "draft" | "in_review" | "published" | "retired";
+        CareerRoleListResponseDto_Output: {
+            items: components["schemas"]["CareerRoleListItem_Output"][];
+            next_cursor: string | null;
+        };
+        /** @enum {string} */
+        QuestionType: "behavioral" | "technical" | "scenario" | "test_design";
+        CareerRoleStackInput: {
+            /** Format: uuid */
+            stack_id: string;
+            is_default: boolean;
+        };
+        CareerRoleInputDto: {
+            slug: string;
+            name: string;
+            summary: string | null;
+            position: number;
+            supported_question_types: components["schemas"]["QuestionType"][];
+            levels: string[];
+            stacks: components["schemas"]["CareerRoleStackInput"][];
+        };
+        CareerRoleStackInput_Output: {
+            /** Format: uuid */
+            stack_id: string;
+            is_default: boolean;
+        };
+        CareerRoleDto_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            summary: string | null;
+            position: number;
+            supported_question_types: components["schemas"]["QuestionType_Output"][];
+            levels: string[];
+            stacks: components["schemas"]["CareerRoleStackInput_Output"][];
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+        };
+        CareerLevelListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            rank: number;
+            role_count: number;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+        };
+        CareerLevelListResponseDto_Output: {
+            items: components["schemas"]["CareerLevelListItem_Output"][];
+            next_cursor: string | null;
+        };
+        CareerLevelInputDto: {
+            slug: string;
+            name: string;
+            summary: string | null;
+            rank: number;
+        };
+        CareerLevelDto_Output: {
+            slug: string;
+            name: string;
+            summary: string | null;
+            rank: number;
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+        };
+        StackListItem_Output: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            role_count: number;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+        };
+        StackListResponseDto_Output: {
+            items: components["schemas"]["StackListItem_Output"][];
+            next_cursor: string | null;
+        };
+        StackInputDto: {
+            slug: string;
+            name: string;
+            summary: string | null;
+        };
+        StackDto_Output: {
+            slug: string;
+            name: string;
+            summary: string | null;
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["ContentStatus_Output"];
+            version: number;
+            /** Format: date-time */
+            updated_at: string;
+            seed_managed: boolean;
+            ai_draft_unreviewed: boolean;
+            /** Format: date-time */
+            reviewed_at: string | null;
+        };
         TrackListItem_Output: {
             /** Format: uuid */
             id: string;
@@ -810,8 +1088,6 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
-        /** @enum {string} */
-        ContentStatus_Output: "draft" | "in_review" | "published" | "retired";
         TrackListResponseDto_Output: {
             items: components["schemas"]["TrackListItem_Output"][];
             next_cursor: string | null;
@@ -1087,8 +1363,6 @@ export interface components {
         DuplicateWarningsResponseDto_Output: {
             matches: components["schemas"]["DuplicateMatch_Output"][];
         };
-        /** @enum {string} */
-        QuestionType: "behavioral" | "technical" | "scenario" | "test_design";
         QuestionInputDto: {
             slug: string;
             roles: components["schemas"]["TargetRole"][];
@@ -1161,7 +1435,7 @@ export interface components {
             acknowledge_unreviewed: boolean;
         };
         /** @enum {string} */
-        ContentEntityPath_Output: "tracks" | "lessons" | "questions" | "rubrics";
+        ContentEntityPath_Output: "tracks" | "lessons" | "questions" | "rubrics" | "career-roles" | "career-levels" | "stacks";
         ContentTransitionResponseDto_Output: {
             entity: components["schemas"]["ContentEntityPath_Output"];
             /** Format: uuid */
@@ -1197,7 +1471,7 @@ export interface components {
             versions: components["schemas"]["ContentVersionSummary_Output"][];
         };
         /** @enum {string} */
-        ContentEntityType_Output: "track" | "module" | "lesson" | "question" | "rubric";
+        ContentEntityType_Output: "track" | "module" | "lesson" | "question" | "rubric" | "career_role" | "career_level" | "stack";
         ContentVersionResponseDto_Output: {
             entity_type: components["schemas"]["ContentEntityType_Output"];
             /** Format: uuid */
@@ -1327,7 +1601,7 @@ export interface components {
         /** @enum {string} */
         ContentStatus: "draft" | "in_review" | "published" | "retired";
         /** @enum {string} */
-        ContentEntityPath: "tracks" | "lessons" | "questions" | "rubrics";
+        ContentEntityPath: "tracks" | "lessons" | "questions" | "rubrics" | "career-roles" | "career-levels" | "stacks";
     };
     responses: never;
     parameters: never;
@@ -1705,6 +1979,25 @@ export interface operations {
             };
         };
     };
+    ContentController_careerRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerRolesResponseDto_Output"];
+                };
+            };
+        };
+    };
     ContentController_track: {
         parameters: {
             query?: {
@@ -1876,6 +2169,339 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ContentAdminController_listCareerRoles: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerRoleListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createCareerRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareerRoleInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerRoleDto_Output"];
+                };
+            };
+            /** @description Slug already in use (code `content_slug_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_getCareerRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerRoleDto_Output"];
+                };
+            };
+            /** @description No such role (code `career_role_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateCareerRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareerRoleInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerRoleDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_listCareerLevels: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerLevelListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createCareerLevel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareerLevelInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerLevelDto_Output"];
+                };
+            };
+            /** @description Slug already in use (code `content_slug_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_getCareerLevel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerLevelDto_Output"];
+                };
+            };
+            /** @description No such level (code `career_level_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateCareerLevel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CareerLevelInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareerLevelDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_listStacks: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ContentStatus"];
+                q?: string;
+                role?: components["schemas"]["TargetRole"];
+                level?: components["schemas"]["ExperienceLevel"];
+                type?: components["schemas"]["QuestionType"];
+                topic_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StackListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    ContentAdminController_createStack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StackInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StackDto_Output"];
+                };
+            };
+            /** @description Slug already in use (code `content_slug_taken`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_getStack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StackDto_Output"];
+                };
+            };
+            /** @description No such stack (code `stack_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContentAdminController_updateStack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StackInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StackDto_Output"];
+                };
             };
         };
     };
@@ -2408,7 +3034,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`) */
+            /** @description Wrong status (`content_transition_invalid`), or a publish rule refuses: `rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, `track_already_published`, `career_role_has_no_published_level`, or in production an unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`); or a retire rule refuses because a published role still offers it (`level_in_use`, `stack_in_use`) */
             409: {
                 headers: {
                     [name: string]: unknown;

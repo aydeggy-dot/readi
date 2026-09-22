@@ -1,8 +1,15 @@
 import type {
+  CandidateCareerRole,
   CandidateLessonResponse,
   CandidateModule,
   CandidatePracticeItem,
   CandidateTrackResponse,
+  CareerLevel,
+  CareerLevelInput,
+  CareerLevelListItem,
+  CareerRole,
+  CareerRoleInput,
+  CareerRoleListItem,
   Lesson,
   LessonInput,
   LessonListItem,
@@ -14,6 +21,9 @@ import type {
   Rubric,
   RubricInput,
   RubricListItem,
+  Stack,
+  StackInput,
+  StackListItem,
   Topic,
   Track,
   TrackInput,
@@ -344,4 +354,175 @@ export const toCandidatePracticeItem = (
   prompt: row.prompt,
   context: row.context,
   topic: toTopic(row.topic),
+});
+
+// -----------------------------------------------------------------------------------------------
+// The catalogue: career roles, career levels and stacks (ADR-0015). Same three families as above —
+// admin shapes, list rows and content projections — plus one candidate shape, which carries
+// resolved names because a picker cannot draw a uuid.
+
+const byPositionOnly = [{ position: Prisma.SortOrder.asc }];
+
+/** What the CMS edits: the links in display order, as ids. */
+export const careerRoleInclude = {
+  levels: { orderBy: byPositionOnly },
+  stacks: { orderBy: byPositionOnly },
+} satisfies Prisma.CareerRoleInclude;
+
+/**
+ * What a candidate is offered: the same links, resolved, and **published only**. A level or stack
+ * retired after its role was published stops being offered rather than being offered and refused.
+ */
+export const publishedCareerRoleInclude = {
+  levels: {
+    where: { level: { status: "published" as const } },
+    orderBy: byPositionOnly,
+    include: { level: true },
+  },
+  stacks: {
+    where: { stack: { status: "published" as const } },
+    orderBy: byPositionOnly,
+    include: { stack: true },
+  },
+} satisfies Prisma.CareerRoleInclude;
+
+export type CareerRoleRow = Prisma.CareerRoleGetPayload<{ include: typeof careerRoleInclude }>;
+export type PublishedCareerRoleRow = Prisma.CareerRoleGetPayload<{
+  include: typeof publishedCareerRoleInclude;
+}>;
+export type CareerLevelRow = Prisma.CareerLevelGetPayload<Record<string, never>>;
+export type StackRow = Prisma.StackGetPayload<Record<string, never>>;
+
+export const toCareerRole = (row: CareerRoleRow): CareerRole => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  position: row.position,
+  supported_question_types: row.supportedQuestionTypes,
+  levels: row.levels.map((link) => link.levelId),
+  stacks: row.stacks.map((link) => ({ stack_id: link.stackId, is_default: link.isDefault })),
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toCareerLevel = (row: CareerLevelRow): CareerLevel => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  rank: row.rank,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toStack = (row: StackRow): Stack => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toCareerRoleListItem = (
+  row: Prisma.CareerRoleGetPayload<{
+    include: { _count: { select: { levels: true; stacks: true } } };
+  }>,
+): CareerRoleListItem => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  position: row.position,
+  level_count: row._count.levels,
+  stack_count: row._count.stacks,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toCareerLevelListItem = (
+  row: Prisma.CareerLevelGetPayload<{ include: { _count: { select: { roles: true } } } }>,
+): CareerLevelListItem => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  rank: row.rank,
+  role_count: row._count.roles,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+export const toStackListItem = (
+  row: Prisma.StackGetPayload<{ include: { _count: { select: { roles: true } } } }>,
+): StackListItem => ({
+  id: row.id,
+  slug: row.slug,
+  name: row.name,
+  role_count: row._count.roles,
+  status: row.status,
+  version: row.version,
+  seed_managed: row.seedManaged,
+  ...review(row),
+  updated_at: iso(row.updatedAt),
+});
+
+/**
+ * What a role's editor edits. Unlike a track's topics, the links are **not** sorted into a
+ * canonical order before comparing: their order is the content — it is what a candidate sees in
+ * the picker — so reordering a role's stacks is a change, and earns a version.
+ */
+export const careerRoleContent = (row: CareerRoleRow): CareerRoleInput => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  position: row.position,
+  supported_question_types: row.supportedQuestionTypes,
+  levels: row.levels.map((link) => link.levelId),
+  stacks: row.stacks.map((link) => ({ stack_id: link.stackId, is_default: link.isDefault })),
+});
+
+export const careerLevelContent = (row: CareerLevelRow): CareerLevelInput => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  rank: row.rank,
+});
+
+export const stackContent = (row: StackRow): StackInput => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+});
+
+export const toCandidateCareerRole = (row: PublishedCareerRoleRow): CandidateCareerRole => ({
+  slug: row.slug,
+  name: row.name,
+  summary: row.summary,
+  supported_question_types: row.supportedQuestionTypes,
+  level_options: row.levels.map((link) => ({
+    slug: link.level.slug,
+    name: link.level.name,
+    summary: link.level.summary,
+  })),
+  stacks: row.stacks.map((link) => ({
+    slug: link.stack.slug,
+    name: link.stack.name,
+    summary: link.stack.summary,
+    is_default: link.isDefault,
+  })),
 });

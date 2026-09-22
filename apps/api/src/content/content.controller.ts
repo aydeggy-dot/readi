@@ -11,6 +11,7 @@ import {
   CandidatePracticeResponse,
   CandidateTrackQuery,
   CandidateTrackResponse,
+  CareerRolesResponse,
   CONTENT_LIMITS,
   SLUG_PATTERN,
 } from "@readi/shared-types";
@@ -25,6 +26,7 @@ class CandidateTrackResponseDto extends createZodDto(CandidateTrackResponse) {}
 class CandidatePracticeQueryDto extends createZodDto(CandidatePracticeQuery) {}
 class CandidatePracticeResponseDto extends createZodDto(CandidatePracticeResponse) {}
 class CandidateLessonResponseDto extends createZodDto(CandidateLessonResponse) {}
+class CareerRolesResponseDto extends createZodDto(CareerRolesResponse) {}
 class SlugParamsDto extends createZodDto(
   z.object({
     slug: z.string().min(1).max(CONTENT_LIMITS.slugMaxLength).regex(new RegExp(SLUG_PATTERN)),
@@ -42,6 +44,18 @@ class SlugParamsDto extends createZodDto(
 @Controller("content")
 export class ContentController {
   constructor(private readonly content: ContentService) {}
+
+  /**
+   * The catalogue a candidate chooses from: published roles, each with the levels and stacks it
+   * offers, and the labels to draw them with (ADR-0015). Read by onboarding and, from M3, by the
+   * session setup screen.
+   */
+  @Get("career-roles")
+  @ZodSerializerDto(CareerRolesResponseDto)
+  @ApiOkResponse({ type: CareerRolesResponseDto.Output })
+  careerRoles(): Promise<CareerRolesResponse> {
+    return this.content.candidateCareerRoles();
+  }
 
   /** The published track for a role and level, defaulting to the candidate's own profile. */
   @Get("track")

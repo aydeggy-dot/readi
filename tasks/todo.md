@@ -532,6 +532,62 @@ erasure like the other authorship columns.
 - [x] Docs: ADR-0014 decision 7 and its consequences and alternatives, CLAUDE.md §5,
       `content/seed/README.md`, `content/seed/REVIEW.md`, the handover
 
+## M2.5 — roles, levels and stacks become content (branch `feat/m2.5-roles`, from `main` at `833e3fa`)
+
+Plan: `docs/plans/m2.5-roles-levels-stacks.md`, approved by the owner on 2026-09-22 with four
+decisions — launch content is frontend, backend, QA and full-stack; data analyst moves to wave 2 and
+cannot launch before a SQL practice surface exists; AI/LLM Engineer moves from wave 3 to wave 2,
+ahead of DevOps and Mobile, with no content in this milestone; and the wave order stays marked as
+argued, not measured. The catalogue is `docs/role-catalogue.md` (committed at `9ece769`).
+
+### Phase 1 — the catalogue exists, beside the enums (done, 2026-09-22)
+
+- [x] `packages/shared-types/src/contracts/catalogue.ts`: `CareerRole`, `CareerLevel`, `Stack`,
+      their inputs, admin list items and the candidate shapes, with `CATALOGUE_LIMITS`. A role's
+      `levels` and `stacks` are arrays in **display order** — the order is the content, so
+      reordering earns a version, unlike a track's topics which are a set
+- [x] `ContentEntityPath` gains `career-roles`, `career-levels`, `stacks`; `CONTENT_ENTITY_TYPES`
+      and the Postgres enum gain `career_role`, `career_level`, `stack`
+- [x] Prisma: the three entities with the full content-workflow column set, plus `CareerRoleLevel`
+      and `CareerRoleStack` (the `TrackTopic` shape, with `position` and `is_default`). Migration
+      `catalogue_roles_levels_stacks`, hand-edited to drop Prisma's proposed
+      `DROP INDEX questions_embedding_hnsw` — verified still present afterwards
+- [x] `ContentService`: CRUD, transitions, version snapshots, audit, `seed_managed` and review
+      state for all three; `guardedUpdate` refactored into two switches over the now **seven**
+      publishable entities rather than a nested ternary
+- [x] **Publishing a role needs a published level** (`career_role_has_no_published_level`): the
+      candidate catalogue shows published levels only, so otherwise a role would appear in
+      onboarding with nothing to choose. Stacks are deliberately not required
+- [x] **Retiring is refused while in use**: `level_in_use` / `stack_in_use` when a _published_ role
+      still offers it. `role_in_use` waits for phase 3, when tracks, questions and profiles start
+      pointing at roles — the code says so where the check will go
+- [x] Admin routes for all three under `/api/admin/content/`, and the candidate read
+      `GET /api/content/career-roles` (published roles, each with its published levels and stacks)
+- [x] `content/seed/levels.yaml`, `stacks.yaml`, `roles.yaml`; the importer creates the catalogue
+      **first**, resolves level and stack slugs to ids, and raises `SeedReferenceError` naming the
+      file for a slug nothing defines
+- [x] Erasure: six new authorship columns in `TOMBSTONED_COLUMNS` and in `eraseUser` (ADR-0011)
+- [x] Tests: `catalogue.test.ts` (shared-types), `content-catalogue.int.spec.ts` (14 cases), a
+      catalogue corpus in `content-seed.int.spec.ts`, and the new candidate route added to the
+      leak test's exercisers. Lint, typecheck, `pnpm test` (310 API tests), `pnpm test:e2e`
+- [x] `pnpm db:seed` twice: 2 levels, 19 stacks, 3 roles created, then nothing
+
+**Decisions taken in the phase, for the owner to confirm:**
+
+- **A `Stack` is the interview _variant_, not a technology.** The plan said the seed stacks would
+  come from `STACK_SUGGESTIONS` (`JavaScript`, `React`, `Postman`…), but those are one-tap
+  suggestions for the free-text list of things a candidate knows. The entity M3 needs is the
+  variant a question is tagged for — "Java / Spring" rather than "Java" — so `stacks.yaml` carries
+  the variants from `docs/role-catalogue.md`. `stack-suggestions.ts` stays where it is for now;
+  phase 4 decides whether the technologies field keeps its own suggestions.
+- **The level slug is `intern-junior`, not `intern_junior`.** A slug cannot contain an underscore
+  (`SLUG_PATTERN`), so phase 3's wire format for a level changes by one character. Everything that
+  sends `level: intern_junior` — `profiles.ts`, the seed tracks, the e2e specs — changes with it in
+  that phase; nothing does yet.
+- **A candidate role's levels are `level_options`.** The leak detector treats any key containing
+  `levels` as a rubric's level descriptors, which is answer key. Renaming the field was the honest
+  fix; weakening the detector was not. Recorded in the contract and in a test.
+
 ## Carried forward
 
 - **M3/M4 — pin the content a session was scored against.** Every `InterviewSession` must record the
@@ -550,7 +606,7 @@ erasure like the other authorship columns.
   interview. The wave-2 roles do not all have that shape: an analyst is scored on metric definition and
   explaining to non-technical stakeholders, a TPM on discovery and prioritisation, support on customer
   tone. M2's rubric model already allows any dimensions per rubric, so the question is only how they
-  roll up into one score — whether the three buckets are per-role weights, per-role bucket *names*, or
+  roll up into one score — whether the three buckets are per-role weights, per-role bucket _names_, or
   a wider set. Decide it in M6, while the formula is being written and has no history behind it;
   changing the split after candidates have scores means either rescoring or a versioned discontinuity.
   Raised by `docs/role-catalogue.md` § "What this implies for the product beyond M2.5" (owner, 2026-09-22).

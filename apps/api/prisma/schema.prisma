@@ -336,8 +336,132 @@ enum ContentEntityType {
   lesson
   question
   rubric
+  career_role
+  career_level
+  stack
 
   @@map("content_entity_type")
+}
+
+// ---------------------------------------------------------------------------------------------
+// The catalogue (ADR-0015): career roles, the levels each is hired at, and the stack variants a
+// candidate can be interviewed for. Publishable content with the same workflow, history, audit
+// trail and review state as a question — so adding a role is a content task, not a migration.
+//
+// `TargetRole` and `ExperienceLevel` are still the enums tracks, questions and profiles use; they
+// are replaced by these tables in M2.5 phase 3, which is why nothing references them yet.
+
+/// One role a candidate prepares for (frontend, backend, QA…). `slug` is what the wire carries.
+model CareerRole {
+  id                     String         @id @default(uuid()) @db.Uuid
+  slug                   String         @unique
+  name                   String
+  summary                String?
+  /// Order in the list a candidate chooses from; ties break by name.
+  position               Int
+  /// Which kinds of question a session for this role may use (M3 reads it).
+  supportedQuestionTypes QuestionType[] @map("supported_question_types")
+  status                 ContentStatus  @default(draft)
+  version                Int            @default(1)
+  /// See `Topic.seedManaged`: `/content/seed` owns this row's content until the CMS edits it.
+  seedManaged            Boolean        @default(false) @map("seed_managed")
+  createdByUserId        String?        @map("created_by_user_id") @db.Uuid
+  publishedAt            DateTime?      @map("published_at") @db.Timestamptz(6)
+  /// See `Track.aiDraftUnreviewed` (ADR-0014 decision 6).
+  aiDraftUnreviewed      Boolean        @default(false) @map("ai_draft_unreviewed")
+  reviewedByUserId       String?        @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt             DateTime?      @map("reviewed_at") @db.Timestamptz(6)
+  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  levels CareerRoleLevel[]
+  stacks CareerRoleStack[]
+
+  @@index([status])
+  /// The CMS list order (`updated_at desc, id desc`).
+  @@index([updatedAt, id])
+  @@map("career_roles")
+}
+
+/// One rung of the ladder (intern/junior, mid, senior). `rank` orders levels against each other.
+model CareerLevel {
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
+  name              String
+  summary           String?
+  /// Lowest first, sparse by convention so a level can be inserted without renumbering.
+  rank              Int
+  status            ContentStatus @default(draft)
+  version           Int           @default(1)
+  /// See `Topic.seedManaged`.
+  seedManaged       Boolean       @default(false) @map("seed_managed")
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(6)
+  /// See `Track.aiDraftUnreviewed` (ADR-0014 decision 6).
+  aiDraftUnreviewed Boolean       @default(false) @map("ai_draft_unreviewed")
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  roles CareerRoleLevel[]
+
+  @@index([status])
+  @@index([updatedAt, id])
+  @@map("career_levels")
+}
+
+/// A technology variant a role is interviewed for ("Java / Spring", not "backend").
+model Stack {
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
+  name              String
+  summary           String?
+  status            ContentStatus @default(draft)
+  version           Int           @default(1)
+  /// See `Topic.seedManaged`.
+  seedManaged       Boolean       @default(false) @map("seed_managed")
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(6)
+  /// See `Track.aiDraftUnreviewed` (ADR-0014 decision 6).
+  aiDraftUnreviewed Boolean       @default(false) @map("ai_draft_unreviewed")
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  roles CareerRoleStack[]
+
+  @@index([status])
+  @@index([updatedAt, id])
+  @@map("stacks")
+}
+
+/// Which levels a role is hired at, in display order. The `TrackTopic` shape.
+model CareerRoleLevel {
+  roleId   String      @map("role_id") @db.Uuid
+  role     CareerRole  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  levelId  String      @map("level_id") @db.Uuid
+  level    CareerLevel @relation(fields: [levelId], references: [id])
+  position Int
+
+  @@id([roleId, levelId])
+  @@index([levelId])
+  @@map("career_role_levels")
+}
+
+/// Which stack variants a role offers, in display order; `is_default` is where a picker starts.
+model CareerRoleStack {
+  roleId    String     @map("role_id") @db.Uuid
+  role      CareerRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  stackId   String     @map("stack_id") @db.Uuid
+  stack     Stack      @relation(fields: [stackId], references: [id])
+  position  Int
+  isDefault Boolean    @map("is_default")
+
+  @@id([roleId, stackId])
+  @@index([stackId])
+  @@map("career_role_stacks")
 }
 
 /// The curated topic taxonomy shared across tracks (spec §4.2). Referenced, never duplicated.

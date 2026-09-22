@@ -100,7 +100,16 @@ export const CONTENT_STATUSES = ["draft", "in_review", "published", "retired"] a
 export const QUESTION_TYPES = ["behavioral", "technical", "scenario", "test_design"] as const;
 
 /** Entities that carry version history, in `content_versions.entity_type`. */
-export const CONTENT_ENTITY_TYPES = ["track", "module", "lesson", "question", "rubric"] as const;
+export const CONTENT_ENTITY_TYPES = [
+  "track",
+  "module",
+  "lesson",
+  "question",
+  "rubric",
+  "career_role",
+  "career_level",
+  "stack",
+] as const;
 
 /** Why a candidate flagged a question (spec §6.1 `ContentFlag`). */
 export const CONTENT_FLAG_REASONS = [
@@ -199,6 +208,20 @@ export const CONTENT_LIMITS = {
   pageSize: { default: 20, max: 100 },
   /** Keyset cursors are base64url of `{updated_at, id}`; this leaves room for both. */
   cursorMaxLength: 200,
+} as const;
+
+/**
+ * The catalogue: career roles, the levels each offers, and the technology stacks a candidate can
+ * be interviewed for (ADR-0015). Roles, levels and stacks are content, not enums, so these are
+ * limits on a form rather than a closed set — a role with thirty stacks is a mistake, not a plan.
+ */
+export const CATALOGUE_LIMITS = {
+  /** Levels one role offers, e.g. intern/junior, mid, senior. */
+  roleLevels: 8,
+  /** Stack variants one role offers, e.g. React + TypeScript, Vue / Nuxt. */
+  roleStacks: 20,
+  /** Orders levels against each other; a junior ranks below a senior. Sparse on purpose. */
+  levelRankMax: 1_000,
 } as const;
 
 /**

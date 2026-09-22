@@ -1,13 +1,17 @@
 import type {
+  CareerLevelInput,
+  CareerRoleInput,
   ContentStatus,
   LessonInput,
   ModuleInput,
   QuestionInput,
   RubricInput,
+  SeedCareerRole,
   SeedFile,
   SeedModule,
   SeedQuestion,
   SeedTrack,
+  StackInput,
   TopicInput,
 } from "@readi/shared-types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -60,7 +64,16 @@ export interface SeedCounts {
   published: string[];
 }
 
-export type SeedEntityKind = "topics" | "rubrics" | "questions" | "tracks" | "modules" | "lessons";
+export type SeedEntityKind =
+  | "career_levels"
+  | "stacks"
+  | "career_roles"
+  | "topics"
+  | "rubrics"
+  | "questions"
+  | "tracks"
+  | "modules"
+  | "lessons";
 
 export interface SeedOptions {
   /** Report the plan without writing anything. */
@@ -92,6 +105,10 @@ const emptyCounts = (): SeedCounts => ({
 });
 
 const emptyReport = (): SeedReport => ({
+  // In import order: a role names levels and stacks, so they exist before it does.
+  career_levels: emptyCounts(),
+  stacks: emptyCounts(),
+  career_roles: emptyCounts(),
   topics: emptyCounts(),
   rubrics: emptyCounts(),
   questions: emptyCounts(),
@@ -108,7 +125,12 @@ const PENDING_ID = "00000000-0000-0000-0000-000000000000";
 
 export class SeedImporter {
   /** Slugs the files themselves define, so a dry run can tell "not yet created" from "a typo". */
-  private readonly defined = { topics: new Set<string>(), rubrics: new Set<string>() };
+  private readonly defined = {
+    topics: new Set<string>(),
+    rubrics: new Set<string>(),
+    career_levels: new Set<string>(),
+    stacks: new Set<string>(),
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -191,7 +213,15 @@ export class SeedImporter {
     for (const { data } of files) {
       for (const topic of data.topics ?? []) this.defined.topics.add(topic.slug);
       for (const rubric of data.rubrics ?? []) this.defined.rubrics.add(rubric.slug);
+      for (const level of data.career_levels ?? []) this.defined.career_levels.add(level.slug);
+      for (const stack of data.stacks ?? []) this.defined.stacks.add(stack.slug);
     }
+    // The catalogue first: a role names the levels and stacks it offers (ADR-0015).
+    for (const { data } of files)
+      await this.forFile(data, () => this.importCareerLevels(data, report));
+    for (const { data } of files) await this.forFile(data, () => this.importStacks(data, report));
+    for (const { file, data } of files)
+      await this.forFile(data, () => this.importCareerRoles(file, data, report));
     for (const { data } of files) await this.forFile(data, () => this.importTopics(data, report));
     for (const { data } of files) await this.forFile(data, () => this.importRubrics(data, report));
     for (const { file, data } of files)
@@ -208,6 +238,126 @@ export class SeedImporter {
   }
 
   // -------------------------------------------------------------------------------------------
+
+  private async importCareerLevels(data: SeedFile, report: SeedReport): Promise<void> {
+    for (const level of data.career_levels ?? []) {
+      const input: CareerLevelInput = {
+        slug: level.slug,
+        name: level.name,
+        summary: level.summary,
+        rank: level.rank,
+      };
+      const existing = await this.prisma.careerLevel.findUnique({ where: { slug: level.slug } });
+      if (!existing) {
+        if (!this.options.dryRun) await this.content.createCareerLevel(this.actor, input);
+        report.career_levels.created += 1;
+        continue;
+      }
+      const current: CareerLevelInput = {
+        slug: existing.slug,
+        name: existing.name,
+        summary: existing.summary,
+        rank: existing.rank,
+      };
+      await this.applyChange(
+        report.career_levels,
+        level.slug,
+        existing,
+        () => Promise.resolve(sameContent(current, input)),
+        () =>
+          this.content.updateCareerLevel(existing.id, input, {
+            actor: this.actor,
+            note: this.note,
+          }),
+        () =>
+          this.content.syncSeedReviewState(
+            this.actor,
+            "career-levels",
+            existing.id,
+            this.options.dryRun === true,
+          ),
+      );
+    }
+  }
+
+  private async importStacks(data: SeedFile, report: SeedReport): Promise<void> {
+    for (const stack of data.stacks ?? []) {
+      const input: StackInput = { slug: stack.slug, name: stack.name, summary: stack.summary };
+      const existing = await this.prisma.stack.findUnique({ where: { slug: stack.slug } });
+      if (!existing) {
+        if (!this.options.dryRun) await this.content.createStack(this.actor, input);
+        report.stacks.created += 1;
+        continue;
+      }
+      const current: StackInput = {
+        slug: existing.slug,
+        name: existing.name,
+        summary: existing.summary,
+      };
+      await this.applyChange(
+        report.stacks,
+        stack.slug,
+        existing,
+        () => Promise.resolve(sameContent(current, input)),
+        () => this.content.updateStack(existing.id, input, { actor: this.actor, note: this.note }),
+        () =>
+          this.content.syncSeedReviewState(
+            this.actor,
+            "stacks",
+            existing.id,
+            this.options.dryRun === true,
+          ),
+      );
+    }
+  }
+
+  private async importCareerRoles(file: string, data: SeedFile, report: SeedReport): Promise<void> {
+    for (const role of data.career_roles ?? []) {
+      const input = await this.careerRoleInput(file, role);
+      const existing = await this.prisma.careerRole.findUnique({
+        where: { slug: role.slug },
+        include: {
+          levels: { orderBy: { position: "asc" } },
+          stacks: { orderBy: { position: "asc" } },
+        },
+      });
+      if (!existing) {
+        if (!this.options.dryRun) await this.content.createCareerRole(this.actor, input);
+        report.career_roles.created += 1;
+        continue;
+      }
+      const current: CareerRoleInput = {
+        slug: existing.slug,
+        name: existing.name,
+        summary: existing.summary,
+        position: existing.position,
+        supported_question_types: existing.supportedQuestionTypes,
+        levels: existing.levels.map((link) => link.levelId),
+        stacks: existing.stacks.map((link) => ({
+          stack_id: link.stackId,
+          is_default: link.isDefault,
+        })),
+      };
+      await this.applyChange(
+        report.career_roles,
+        role.slug,
+        existing,
+        () => Promise.resolve(sameContent(current, input)),
+        () =>
+          this.content.updateCareerRole(existing.id, input, {
+            actor: this.actor,
+            note: this.note,
+          }),
+        () =>
+          this.content.syncSeedReviewState(
+            this.actor,
+            "career-roles",
+            existing.id,
+            this.options.dryRun === true,
+          ),
+      );
+    }
+  }
 
   private async importTopics(data: SeedFile, report: SeedReport): Promise<void> {
     for (const topic of data.topics ?? []) {
@@ -494,6 +644,47 @@ export class SeedImporter {
     };
   }
 
+  private async careerRoleInput(file: string, role: SeedCareerRole): Promise<CareerRoleInput> {
+    return {
+      slug: role.slug,
+      name: role.name,
+      summary: role.summary,
+      position: role.position,
+      supported_question_types: role.supported_question_types,
+      levels: await Promise.all(role.levels.map((slug) => this.careerLevelId(file, role, slug))),
+      stacks: await Promise.all(
+        role.stacks.map(async (link) => ({
+          stack_id: await this.stackId(file, role, link.stack),
+          is_default: link.default,
+        })),
+      ),
+    };
+  }
+
+  private async careerLevelId(file: string, role: SeedCareerRole, slug: string): Promise<string> {
+    const level = await this.prisma.careerLevel.findUnique({ where: { slug } });
+    const id = level?.id ?? this.pending("career_levels", slug);
+    if (!id) {
+      throw new SeedReferenceError(
+        file,
+        `role ${role.slug} names level ${slug}, which no seed file defines`,
+      );
+    }
+    return id;
+  }
+
+  private async stackId(file: string, role: SeedCareerRole, slug: string): Promise<string> {
+    const stack = await this.prisma.stack.findUnique({ where: { slug } });
+    const id = stack?.id ?? this.pending("stacks", slug);
+    if (!id) {
+      throw new SeedReferenceError(
+        file,
+        `role ${role.slug} names stack ${slug}, which no seed file defines`,
+      );
+    }
+    return id;
+  }
+
   private async topicId(file: string, slug: string): Promise<string> {
     const topic = await this.prisma.topic.findUnique({ where: { slug } });
     const id = topic?.id ?? this.pending("topics", slug);
@@ -507,7 +698,7 @@ export class SeedImporter {
    * create — to a placeholder, so that it can report the whole plan instead of stopping at the
    * first forward reference. A slug no file defines still fails, in either mode.
    */
-  private pending(kind: "topics" | "rubrics", slug: string): string | null {
+  private pending(kind: keyof SeedImporter["defined"], slug: string): string | null {
     return this.options.dryRun && this.defined[kind].has(slug) ? PENDING_ID : null;
   }
 

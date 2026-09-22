@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CONTENT_LIMITS, DIFFICULTY_RANGE, SLUG_PATTERN } from "../constants.js";
+import { CATALOGUE_LIMITS, CONTENT_LIMITS, DIFFICULTY_RANGE, SLUG_PATTERN } from "../constants.js";
 import { QuestionType, RubricCriterionInput, weightsTotalCorrectly } from "./content.js";
 import { ExperienceLevel, TargetRole } from "./profiles.js";
 
@@ -37,6 +37,43 @@ export const SeedTopic = z
   .object({ slug: slug(), name: title(), description: summary() })
   .meta({ id: "SeedTopic" });
 export type SeedTopic = z.infer<typeof SeedTopic>;
+
+// -----------------------------------------------------------------------------------------------
+// The catalogue (ADR-0015). Roles, levels and stacks are content now, so they are seeded like
+// content: by slug, as drafts, for the CMS to publish.
+
+export const SeedCareerLevel = z
+  .object({
+    slug: slug(),
+    name: title(),
+    summary: summary(),
+    /** Lowest first, sparse by convention (10, 20, 30…) so a level fits between two others. */
+    rank: z.int().min(0).max(CATALOGUE_LIMITS.levelRankMax),
+  })
+  .meta({ id: "SeedCareerLevel" });
+export type SeedCareerLevel = z.infer<typeof SeedCareerLevel>;
+
+export const SeedStack = z
+  .object({ slug: slug(), name: title(), summary: summary() })
+  .meta({ id: "SeedStack" });
+export type SeedStack = z.infer<typeof SeedStack>;
+
+export const SeedCareerRole = z
+  .object({
+    slug: slug(),
+    name: title(),
+    summary: summary(),
+    position: z.int().min(0).max(999),
+    supported_question_types: z.array(QuestionType).min(1),
+    /** Level slugs, from `levels.yaml`, in the order a candidate should see them. */
+    levels: z.array(slug()).max(CATALOGUE_LIMITS.roleLevels),
+    /** Stack slugs, from `stacks.yaml`; `default` is what the onboarding picker starts on. */
+    stacks: z
+      .array(z.object({ stack: slug(), default: z.boolean() }))
+      .max(CATALOGUE_LIMITS.roleStacks),
+  })
+  .meta({ id: "SeedCareerRole" });
+export type SeedCareerRole = z.infer<typeof SeedCareerRole>;
 
 export const SeedRubric = z
   .object({
@@ -127,6 +164,9 @@ export const SeedFile = z.object({
   version: z.literal(1),
   author: SeedAuthor,
   status: z.literal("draft"),
+  career_levels: z.array(SeedCareerLevel).max(20).optional(),
+  stacks: z.array(SeedStack).max(100).optional(),
+  career_roles: z.array(SeedCareerRole).max(50).optional(),
   topics: z.array(SeedTopic).max(100).optional(),
   rubrics: z.array(SeedRubric).max(100).optional(),
   questions: z.array(SeedQuestion).max(200).optional(),

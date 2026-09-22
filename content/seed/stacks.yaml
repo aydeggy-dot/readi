@@ -1,0 +1,91 @@
+# The stack variants a candidate can be interviewed for (ADR-0015).
+#
+# A stack is the *variant of a role* — "Java / Spring" rather than "backend" — so that a Spring
+# candidate and a Node candidate are not asked the same questions. It is not the free-text list of
+# technologies on a candidate's profile; that is `technologies`, and it stays free text.
+#
+# Which role offers which stack is in `roles.yaml`. A stack no role offers is harmless, so this
+# file can run slightly ahead of the roles that will use it.
+version: 1
+author: ai_draft
+status: draft
+
+stacks:
+  # Frontend
+  - slug: react-typescript
+    name: React + TypeScript
+    summary: null
+
+  - slug: nextjs
+    name: Next.js
+    summary: null
+
+  - slug: vue-nuxt
+    name: Vue / Nuxt
+    summary: null
+
+  - slug: angular
+    name: Angular
+    summary: null
+
+  - slug: vanilla-js
+    name: Vanilla JS + a CSS framework
+    summary: null
+
+  # Backend
+  - slug: nodejs
+    name: Node.js (Express / NestJS)
+    summary: null
+
+  - slug: java-spring
+    name: Java / Spring
+    summary: null
+
+  - slug: python-backend
+    name: Python (Django / FastAPI)
+    summary: null
+
+  - slug: php-laravel
+    name: PHP / Laravel
+    summary: null
+
+  - slug: golang
+    name: Go
+    summary: null
+
+  - slug: dotnet
+    name: .NET
+    summary: null
+
+  - slug: ruby-rails
+    name: Ruby on Rails
+    summary: null
+
+  # QA
+  - slug: manual-exploratory
+    name: Manual / exploratory testing
+    summary: null
+
+  - slug: selenium-java
+    name: Selenium + Java
+    summary: null
+
+  - slug: cypress
+    name: Cypress
+    summary: null
+
+  - slug: playwright
+    name: Playwright
+    summary: null
+
+  - slug: api-testing
+    name: API testing (Postman / RestAssured)
+    summary: null
+
+  - slug: appium
+    name: Appium (mobile)
+    summary: null
+
+  - slug: performance-testing
+    name: Performance testing (k6 / JMeter)
+    summary: null

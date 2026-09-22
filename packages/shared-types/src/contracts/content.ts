@@ -501,7 +501,16 @@ export type CandidatePracticeQuery = z.infer<typeof CandidatePracticeQuery>;
  * purpose: it is structural, so it is versioned as part of its track (ADR-0014).
  */
 export const ContentEntityPath = z
-  .enum(["tracks", "lessons", "questions", "rubrics"])
+  .enum([
+    "tracks",
+    "lessons",
+    "questions",
+    "rubrics",
+    // The catalogue (ADR-0015): roles, levels and stacks move through the same workflow.
+    "career-roles",
+    "career-levels",
+    "stacks",
+  ])
   .meta({ id: "ContentEntityPath" });
 export type ContentEntityPath = z.infer<typeof ContentEntityPath>;
 

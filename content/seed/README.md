@@ -8,6 +8,9 @@ Written by hand in YAML, reviewed by human experts, and imported idempotently.
 ## Layout
 
 ```
+levels.yaml            the ladder: intern/junior, mid                 (the catalogue, ADR-0015)
+stacks.yaml            the variants a role is interviewed for         (the catalogue)
+roles.yaml             the roles, and which levels and stacks each offers
 topics.yaml            the shared taxonomy every question and lesson hangs from
 rubrics.shared.yaml    rubrics used by more than one role
 frontend/              track.yaml, rubrics.yaml, questions.yaml   (the full set)
@@ -16,8 +19,13 @@ review/                generated review pages — do not edit by hand
 ```
 
 Files refer to each other **by slug**: a question names its `topic` and its `rubric`, a track names
-its `topics`. The importer resolves those to database ids, and fails with the file name if a slug
-is not defined anywhere.
+its `topics`, a role names its `levels` and `stacks`. The importer resolves those to database ids,
+and fails with the file name if a slug is not defined anywhere. The catalogue is imported first,
+because a role cannot name a level that does not exist yet.
+
+**Roles, levels and stacks are content now** (ADR-0015), not enums: adding a role is an entry in
+`roles.yaml` — or, just as legitimately, a form in `/admin/content` — and never a migration. The
+same workflow applies to them as to a question: they arrive as drafts, and an admin publishes.
 
 ## Commands
 

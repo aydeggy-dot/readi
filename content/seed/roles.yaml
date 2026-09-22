@@ -1,0 +1,57 @@
+# The roles a candidate prepares for (ADR-0015), and what each offers: the levels it is hired at
+# and the stack variants it is interviewed for.
+#
+# Which roles come next, and why, is `docs/role-catalogue.md`. Wave 1 is frontend, backend, QA and
+# full-stack; full-stack is deliberately **not** in this file, because it needs the many-to-many
+# question↔role link that arrives in M2.5 phase 3 — adding it through the CMS, with no code change
+# and no migration, is this milestone's acceptance criterion.
+#
+# `supported_question_types` is what a session for this role may contain (M3 reads it). QA carries
+# `test_design` because a QA interview is largely "here is a feature — how would you test it?".
+version: 1
+author: ai_draft
+status: draft
+
+career_roles:
+  - slug: frontend
+    name: Frontend engineer
+    summary: Builds what runs in the browser — interfaces, state, and performance on the devices people actually own.
+    position: 0
+    supported_question_types: [technical, scenario, behavioral]
+    levels: [intern-junior, mid]
+    stacks:
+      - { stack: react-typescript, default: true }
+      - { stack: nextjs, default: false }
+      - { stack: vue-nuxt, default: false }
+      - { stack: angular, default: false }
+      - { stack: vanilla-js, default: false }
+
+  - slug: backend
+    name: Backend engineer
+    summary: APIs, data and the services behind them — the most requested hire in this market, local and remote.
+    position: 1
+    supported_question_types: [technical, scenario, behavioral]
+    levels: [intern-junior, mid]
+    stacks:
+      - { stack: nodejs, default: true }
+      - { stack: java-spring, default: false }
+      - { stack: python-backend, default: false }
+      - { stack: php-laravel, default: false }
+      - { stack: golang, default: false }
+      - { stack: dotnet, default: false }
+      - { stack: ruby-rails, default: false }
+
+  - slug: qa
+    name: QA engineer
+    summary: Designs the tests, finds what breaks, and says clearly why it matters.
+    position: 2
+    supported_question_types: [test_design, scenario, technical, behavioral]
+    levels: [intern-junior, mid]
+    stacks:
+      - { stack: manual-exploratory, default: true }
+      - { stack: selenium-java, default: false }
+      - { stack: cypress, default: false }
+      - { stack: playwright, default: false }
+      - { stack: api-testing, default: false }
+      - { stack: appium, default: false }
+      - { stack: performance-testing, default: false }

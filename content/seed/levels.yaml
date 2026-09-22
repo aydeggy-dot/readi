@@ -1,0 +1,19 @@
+# The ladder a role is hired at (ADR-0015). A level is content, not an enum: adding "senior" is an
+# entry in this file and a publish in the CMS, not a migration.
+#
+# `rank` orders levels against each other, lowest first, and is sparse on purpose — a level can be
+# inserted between two others without renumbering the catalogue.
+version: 1
+author: ai_draft
+status: draft
+
+career_levels:
+  - slug: intern-junior
+    name: Intern / Junior
+    summary: First tech job, or up to about a year in one. Interviews test fundamentals and whether you can be taught.
+    rank: 10
+
+  - slug: mid
+    name: Mid-level
+    summary: Roughly two to five years. Interviews test judgement — trade-offs, debugging, and owning a feature end to end.
+    rank: 20

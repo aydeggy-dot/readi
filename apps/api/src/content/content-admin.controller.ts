@@ -17,6 +17,12 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import {
+  CareerLevel,
+  CareerLevelInput,
+  CareerLevelListResponse,
+  CareerRole,
+  CareerRoleInput,
+  CareerRoleListResponse,
   ContentEntityPath,
   ContentListQuery,
   ContentReviewRequest,
@@ -38,6 +44,9 @@ import {
   Rubric,
   RubricInput,
   RubricListResponse,
+  Stack,
+  StackInput,
+  StackListResponse,
   Topic,
   TopicInput,
   TopicsResponse,
@@ -58,6 +67,15 @@ class VersionParamsDto extends createZodDto(
   z.object({ entity: ContentEntityPath, id: z.uuid(), version: z.coerce.number().int().min(1) }),
 ) {}
 
+class CareerRoleInputDto extends createZodDto(CareerRoleInput) {}
+class CareerRoleDto extends createZodDto(CareerRole) {}
+class CareerRoleListResponseDto extends createZodDto(CareerRoleListResponse) {}
+class CareerLevelInputDto extends createZodDto(CareerLevelInput) {}
+class CareerLevelDto extends createZodDto(CareerLevel) {}
+class CareerLevelListResponseDto extends createZodDto(CareerLevelListResponse) {}
+class StackInputDto extends createZodDto(StackInput) {}
+class StackDto extends createZodDto(Stack) {}
+class StackListResponseDto extends createZodDto(StackListResponse) {}
 class TopicInputDto extends createZodDto(TopicInput) {}
 class TopicDto extends createZodDto(Topic) {}
 class TopicsResponseDto extends createZodDto(TopicsResponse) {}
@@ -125,6 +143,122 @@ export class ContentAdminController {
     @Body() body: TopicInputDto,
   ): Promise<Topic> {
     return this.content.updateTopic(user, params.id, body);
+  }
+
+  // --- The catalogue: career roles, levels and stacks (ADR-0015) -------------------------------
+
+  /** Career roles, newest edit first. Understands `status`, `q`, `cursor`, `limit`. */
+  @Get("career-roles")
+  @ZodSerializerDto(CareerRoleListResponseDto)
+  @ApiOkResponse({ type: CareerRoleListResponseDto.Output })
+  listCareerRoles(@Query() query: ContentListQueryDto): Promise<CareerRoleListResponse> {
+    return this.content.listCareerRoles(query);
+  }
+
+  @Post("career-roles")
+  @ZodSerializerDto(CareerRoleDto)
+  @ApiOkResponse({ type: CareerRoleDto.Output })
+  @ApiConflictResponse({ description: "Slug already in use (code `content_slug_taken`)" })
+  createCareerRole(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CareerRoleInputDto,
+  ): Promise<CareerRole> {
+    return this.content.createCareerRole(user, body);
+  }
+
+  @Get("career-roles/:id")
+  @ZodSerializerDto(CareerRoleDto)
+  @ApiOkResponse({ type: CareerRoleDto.Output })
+  @ApiNotFoundResponse({ description: "No such role (code `career_role_not_found`)" })
+  getCareerRole(@Param() params: IdParamsDto): Promise<CareerRole> {
+    return this.content.getCareerRole(params.id);
+  }
+
+  @Put("career-roles/:id")
+  @ZodSerializerDto(CareerRoleDto)
+  @ApiOkResponse({ type: CareerRoleDto.Output })
+  async updateCareerRole(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: IdParamsDto,
+    @Body() body: CareerRoleInputDto,
+  ): Promise<CareerRole> {
+    const { entity } = await this.content.updateCareerRole(params.id, body, { actor: user });
+    return entity;
+  }
+
+  /** Career levels, newest edit first. Understands `status`, `q`, `cursor`, `limit`. */
+  @Get("career-levels")
+  @ZodSerializerDto(CareerLevelListResponseDto)
+  @ApiOkResponse({ type: CareerLevelListResponseDto.Output })
+  listCareerLevels(@Query() query: ContentListQueryDto): Promise<CareerLevelListResponse> {
+    return this.content.listCareerLevels(query);
+  }
+
+  @Post("career-levels")
+  @ZodSerializerDto(CareerLevelDto)
+  @ApiOkResponse({ type: CareerLevelDto.Output })
+  @ApiConflictResponse({ description: "Slug already in use (code `content_slug_taken`)" })
+  createCareerLevel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: CareerLevelInputDto,
+  ): Promise<CareerLevel> {
+    return this.content.createCareerLevel(user, body);
+  }
+
+  @Get("career-levels/:id")
+  @ZodSerializerDto(CareerLevelDto)
+  @ApiOkResponse({ type: CareerLevelDto.Output })
+  @ApiNotFoundResponse({ description: "No such level (code `career_level_not_found`)" })
+  getCareerLevel(@Param() params: IdParamsDto): Promise<CareerLevel> {
+    return this.content.getCareerLevel(params.id);
+  }
+
+  @Put("career-levels/:id")
+  @ZodSerializerDto(CareerLevelDto)
+  @ApiOkResponse({ type: CareerLevelDto.Output })
+  async updateCareerLevel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: IdParamsDto,
+    @Body() body: CareerLevelInputDto,
+  ): Promise<CareerLevel> {
+    const { entity } = await this.content.updateCareerLevel(params.id, body, { actor: user });
+    return entity;
+  }
+
+  /** Stacks, newest edit first. Understands `status`, `q`, `cursor`, `limit`. */
+  @Get("stacks")
+  @ZodSerializerDto(StackListResponseDto)
+  @ApiOkResponse({ type: StackListResponseDto.Output })
+  listStacks(@Query() query: ContentListQueryDto): Promise<StackListResponse> {
+    return this.content.listStacks(query);
+  }
+
+  @Post("stacks")
+  @ZodSerializerDto(StackDto)
+  @ApiOkResponse({ type: StackDto.Output })
+  @ApiConflictResponse({ description: "Slug already in use (code `content_slug_taken`)" })
+  createStack(@CurrentUser() user: AuthenticatedUser, @Body() body: StackInputDto): Promise<Stack> {
+    return this.content.createStack(user, body);
+  }
+
+  @Get("stacks/:id")
+  @ZodSerializerDto(StackDto)
+  @ApiOkResponse({ type: StackDto.Output })
+  @ApiNotFoundResponse({ description: "No such stack (code `stack_not_found`)" })
+  getStack(@Param() params: IdParamsDto): Promise<Stack> {
+    return this.content.getStack(params.id);
+  }
+
+  @Put("stacks/:id")
+  @ZodSerializerDto(StackDto)
+  @ApiOkResponse({ type: StackDto.Output })
+  async updateStack(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: IdParamsDto,
+    @Body() body: StackInputDto,
+  ): Promise<Stack> {
+    const { entity } = await this.content.updateStack(params.id, body, { actor: user });
+    return entity;
   }
 
   // --- Tracks and modules ----------------------------------------------------------------------
@@ -335,8 +469,10 @@ export class ContentAdminController {
     description:
       "Wrong status (`content_transition_invalid`), or a publish rule refuses: " +
       "`rubric_weights_invalid`, `question_rubric_not_published`, `track_has_no_modules`, " +
-      "`track_already_published`, or in production an unreviewed AI draft " +
-      "(`content_unreviewed_ai_draft`, overridable with `acknowledge_unreviewed`)",
+      "`track_already_published`, `career_role_has_no_published_level`, or in production an " +
+      "unreviewed AI draft (`content_unreviewed_ai_draft`, overridable with " +
+      "`acknowledge_unreviewed`); or a retire rule refuses because a published role still offers " +
+      "it (`level_in_use`, `stack_in_use`)",
   })
   transition(
     @CurrentUser() user: AuthenticatedUser,

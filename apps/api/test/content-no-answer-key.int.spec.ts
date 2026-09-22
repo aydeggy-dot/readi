@@ -68,6 +68,8 @@ describe("candidate content never carries the answer key", () => {
 
   /** The candidate GET routes, exactly as the API publishes them. */
   const exercisers = (): Record<string, () => request.Test> => ({
+    "/api/content/career-roles": () =>
+      http().get("/api/content/career-roles").set("cookie", candidateCookie),
     "/api/content/track": () => http().get("/api/content/track").set("cookie", candidateCookie),
     "/api/content/practice": () =>
       http().get("/api/content/practice").set("cookie", candidateCookie),
