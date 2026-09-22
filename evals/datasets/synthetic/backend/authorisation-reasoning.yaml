@@ -1,0 +1,124 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: authorisation-reasoning
+question: who-is-allowed-to-see-this
+# `fluent-but-wrong` names the bug correctly as IDOR and then fixes the wrong half of it:
+# unguessable, HMAC-signed opaque references resolved in middleware, so "the handler stays as it
+# is". No ownership comparison is made anywhere, and the middleware is shared — which is why it
+# reaches a 2 on criterion 3. 1/1/2 against `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      So requireSignIn only answers "is this somebody", not "is this their invoice". It validates
+      the session or the token and puts a user on the request, and then the handler goes straight
+      to findById on whatever id is in the URL — nothing ever compares the invoice's owner to the
+      person asking. So any signed-in user can just walk the ids. What's missing is the ownership
+      check: once you've loaded it, if invoice.user_id isn't req.user.id — or in a B2B case if the
+      invoice's org isn't one the user belongs to — you don't hand it over. I'd return 404 rather
+      than 403 there, so you're not confirming the row exists. Better than checking it in the
+      handler, though, is pushing it into the query: findOne where id and owner, so the invoice
+      never loads unless it's theirs. And for the next route, I'd make it default deny — a route
+      has to declare who may reach it, and the data layer takes the actor, instead of trusting
+      every developer to remember.
+    expected:
+      - dimension: Separates who you are from what you may do
+        score: 4
+        because: '`requireSignIn` answers "is this somebody", not "is this theirs" — so any signed-in user can walk the ids.'
+      - dimension: Writes a check that cannot return the row
+        score: 3
+        because: Asks by id and owner so the invoice never loads unless it is theirs; does not say what that buys over comparing afterwards.
+      - dimension: Puts it where it cannot be forgotten
+        score: 3
+        because: Default deny at the route and the data layer taking the actor, so it is not left to remembering.
+  - kind: weak
+    text: |
+      Okay so requireSignIn is the login check, it makes sure you're signed in before you can hit
+      the endpoint. And the problem is the tester changed the id in the URL and got somebody
+      else's invoice. So I think what's missing is validation on the id — you should validate it's
+      a proper format, a UUID or whatever, before you use it in the query, otherwise people can
+      put anything in there. I'd add a validation middleware for that. Probably rate limiting too,
+      because if somebody's going through ids one after another you want to block them, that's
+      basically what he was doing. And I'd fix it on the frontend as well, the app should only
+      render links to your own invoices so a normal user would never land on somebody else's. For
+      where to put it, I'd register the validation middleware in the app file so it runs for every
+      route and then the next one gets it automatically.
+    expected:
+      - dimension: Separates who you are from what you may do
+        score: 1
+        because: Puts the fault in the id — validate the format, rate-limit the enumeration, hide the links in the app.
+      - dimension: Writes a check that cannot return the row
+        score: 1
+        because: "Hides the row rather than refusing it: a well-formed id check and a frontend that does not link to it."
+      - dimension: Puts it where it cannot be forgotten
+        score: 1
+        because: Registers a format-validation middleware globally, which is not the check that was missing.
+  - kind: fluent-but-wrong
+    text: |
+      So there are two layers and only one is present. requireSignIn is authentication — valid
+      session, user on the request. What's missing is authorisation, and the specific class of bug
+      is IDOR, insecure direct object reference. You're exposing the database's own primary key in
+      the URL, so the identifier is enumerable, and the tester just incremented it. The fix is to
+      stop handing out direct references at all. Give invoices an external identifier that can't
+      be guessed — a v4 UUID, or better, an HMAC-signed opaque token over the id using a server-
+      side secret — and have the route resolve by that. Then changing the number in the address
+      bar produces a token whose signature doesn't verify, and you 404 before you ever touch the
+      database. And to make the next route inherit it, put it in middleware: a resolveReference
+      middleware that verifies and decodes the signed reference for any route with an :id
+      parameter, so no handler ever sees a raw primary key. Fixed once, for everything, and the
+      handler stays as it is.
+    expected:
+      - dimension: Separates who you are from what you may do
+        score: 1
+        because: IDOR named, and the cause put in the identifier being enumerable rather than in the missing comparison.
+      - dimension: Writes a check that cannot return the row
+        score: 1
+        because: An HMAC-signed opaque reference so the number cannot be guessed — the row is hidden, not refused.
+      - dimension: Puts it where it cannot be forgotten
+        score: 2
+        because: A shared `resolveReference` middleware for every `:id` route — shared, and not the ownership check.
+  - kind: correct-poorly-explained
+    text: |
+      Right so — the check that's there isn't the check you need. It's the "are you logged in"
+      one, which passes for literally every account, and then nothing after it looks at whose
+      invoice this is, it just findById's the params id and sends it, so of course the tester got
+      somebody else's. What you want is that the row isn't even findable unless it's his. So, you
+      could load it and compare, invoice.owner against req.user.id, and bounce it, that works, but
+      I'd rather the where clause carries the user id, then it comes back empty and you 404, which
+      also doesn't leak that the invoice exists, which is a thing people forget. And the other
+      routes, the real problem is remembering, so don't depend on remembering — deny by default at
+      the router, every route declares who may, and the repository takes the actor rather than the
+      handler deciding. Sorry, that came out backwards, but that's the shape of it.
+    expected:
+      - dimension: Separates who you are from what you may do
+        score: 3
+        because: '"It''s the ''are you logged in'' one, which passes for literally every account", and nothing after it looks at whose invoice it is.'
+      - dimension: Writes a check that cannot return the row
+        score: 3
+        because: The where clause carries the user id so it comes back empty — which also does not leak that the invoice exists.
+      - dimension: Puts it where it cannot be forgotten
+        score: 3
+        because: Deny by default at the router and the repository taking the actor, because "the real problem is remembering".
+  - kind: nigerian-english
+    text: |
+      See, requireSignIn is only asking "you sign in?" — e no dey ask "this invoice na your own?".
+      E go validate the session, attach the user, then the handler just carry whatever id dey
+      inside the URL go findById. Nowhere for that code dem compare the invoice owner with the
+      person wey dey ask. So any person wey sign in fit just dey change the number and dey read
+      another person invoice. Wetin miss na the ownership check — after you load am, if
+      invoice.user_id no be req.user.id, or the org no be the org wey the person belong to, you no
+      go return am. I go even return 404 instead of 403, so you no dey confirm say the row dey
+      there. But better pass, make the query itself carry the owner — findOne where id and
+      owner_id — so the invoice no go load at all unless na him own. And for the next route, make
+      e be default deny: every route must declare who fit reach am, and the data layer go collect
+      the actor, instead of trusting every developer to remember.
+    expected:
+      - dimension: Separates who you are from what you may do
+        score: 4
+        because: "Same as `strong`: the check asks whether you signed in, not whether the invoice is yours."
+      - dimension: Writes a check that cannot return the row
+        score: 3
+        because: "Same: `findOne` by id and owner, so it never loads unless it is theirs."
+      - dimension: Puts it where it cannot be forgotten
+        score: 3
+        because: "Same: default deny per route, and the data layer taking the actor."

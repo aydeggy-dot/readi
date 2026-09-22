@@ -1,0 +1,124 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: scaling-out-reasoning
+question: one-server-to-two
+# `fluent-but-wrong` uses IP-hash sticky sessions to argue the state problems disappear — in-
+# memory sessions are fine, uploads stay on local disk with a nightly rsync — and names DNS TTL as
+# the real risk. It names the right breakages and argues every one of them away. 0/1/1 against
+# `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      Okay. What breaks the moment you add the second box — three things. Sessions, if they're in
+      memory, because now half your requests land somewhere that's never heard of you and people
+      get logged out at random. Uploaded files, because they're on the disk of box one, so
+      anything uploaded there is a 404 from box two. And anything scheduled — if there's a cron or
+      a background job in the app, it now runs twice, which for something like sending emails is a
+      real problem. Before I start I'd want to know what's actually saturating: CPU, memory, disk
+      I/O, database connections. Because if it's the database that's pegged, a second API box
+      makes it worse, not better — you've just doubled the connections into a database that's
+      already struggling. Order-wise: move sessions out to Redis first, move uploads to S3 or R2
+      and serve them from there, make the job runner single-instance or put it behind a lock, and
+      only then bring up box two. Session and file fixes are safe on one machine, so you can ship
+      them one at a time.
+    expected:
+      - dimension: Knows what breaks the moment there are two
+        score: 4
+        because: Sessions, uploaded files and the scheduled job that now runs twice — including what each looks like to a user.
+      - dimension: Finds out what is actually saturated
+        score: 3
+        because: Names CPU, memory, disk and database connections, and says a second API box makes a pegged database worse.
+      - dimension: Does it in an order that works
+        score: 4
+        because: "State out first, then the machine — and says why: the session and file fixes are safe on one box, so they ship one at a time."
+  - kind: weak
+    text: |
+      Right, so you'd get a load balancer and point it at both machines and it spreads the
+      traffic, so each one gets half, which should make it twice as fast. I'd probably use nginx
+      for that, or whatever the cloud provider has. Before I start I'd want to take a backup,
+      definitely, in case something goes wrong. And then I'd copy the whole thing onto the second
+      machine — same code, same setup, just clone it — and make sure it's running the same
+      version. Things that break… you'd have to change the DNS, and DNS takes time to propagate,
+      so there might be a gap where some users still go to the old place. And the database — I
+      suppose the second machine needs to reach the database, so it'd need the right connection
+      details and the firewall opening. After that I think it should mostly just work? I'd test it
+      and watch the error rate for a bit.
+    expected:
+      - dimension: Knows what breaks the moment there are two
+        score: 1
+        because: A plausible wrong set — DNS propagation, firewall rules, cloning the machine — and nothing that is actually shared.
+      - dimension: Finds out what is actually saturated
+        score: 1
+        because: Asserts that half the traffic each makes it twice as fast, without checking anything.
+      - dimension: Does it in an order that works
+        score: 1
+        because: Adds the machine, then tests and watches the error rate.
+  - kind: fluent-but-wrong
+    text: |
+      Sure. The thing that makes this straightforward is sticky sessions — you configure the load
+      balancer with IP hash, so a given client always hashes to the same backend for the life of
+      their connection to the site. Once you've done that, the two classic problems disappear. In-
+      memory sessions are fine, because that user only ever touches the box holding their session.
+      Local uploads are fine too, because the person who uploaded the file is the same person who
+      requests it back, and they land on the same machine — so you keep the uploads folder local
+      and just rsync it across nightly, purely as a backup. Database stays on box one, box two
+      dials in over the private network, no change there. What I'd actually measure beforehand is
+      DNS: drop the TTL on the record to sixty seconds a day ahead, because that's the real risk —
+      clients pinned to the old single-server record while you cut over. Order: lower the TTL,
+      build box two, enable IP hash, flip DNS.
+    expected:
+      - dimension: Knows what breaks the moment there are two
+        score: 0
+        because: Sticky sessions taken to make the state problems disappear — in-memory sessions and local uploads both declared fine.
+      - dimension: Finds out what is actually saturated
+        score: 1
+        because: Measures DNS TTL, which is not the constraint, and asserts everything else is unchanged.
+      - dimension: Does it in an order that works
+        score: 1
+        because: An order that adds the machine and changes nothing else, because nothing is believed to break.
+  - kind: correct-poorly-explained
+    text: |
+      The files are the thing people forget. Like, you upload a CV, it's on box one, then the next
+      request goes to box two and it's just not there, so it looks like the file vanished even
+      though it didn't. So that has to go to object storage, S3, before you do anything else, same
+      with sessions — if the session is in the process memory then half your requests are logged
+      out, so that goes to Redis. Oh and cron, I forgot, if there's a cron job in the app it's now
+      going to run on both of them, so you'd send the same email twice, which is worse than being
+      slow honestly. Measuring — yeah, you'd want to know what's actually maxed out first, because
+      if it's the database then two app servers just means more connections hammering the same
+      database and you've made it worse. So check that. And I'd do the session and the file move
+      first, on the one machine, then add the second one last, because those are reversible.
+    expected:
+      - dimension: Knows what breaks the moment there are two
+        score: 4
+        because: Files, sessions and cron running twice — and "sending the same email twice is worse than being slow".
+      - dimension: Finds out what is actually saturated
+        score: 3
+        because: If it is the database, two app servers means more connections hammering it, so check that first.
+      - dimension: Does it in an order that works
+        score: 4
+        because: Session and file moves first because those are reversible, the second machine last.
+  - kind: nigerian-english
+    text: |
+      Three things go break the moment you add the second machine. One, sessions — if dem dey
+      inside memory, person go login for box one, next request land for box two, and e go just log
+      out anyhow. Two, the uploaded files. Dem dey for box one disk, so if request go box two, the
+      file no dey — 404, and the person go think say him file don spoil. Three, anything wey dey
+      run on schedule — cron, background job — e go now run for both, so na double email you go
+      send. Before I start anything, make I first measure wetin dey choke: CPU, memory, disk,
+      database connections. Because if na the database dey tired, adding second API server go make
+      am worse, you don just double the connections wey dey enter am. The order I go follow: move
+      sessions go Redis, move the uploads go S3 or R2, make the scheduler run for one place only
+      or put lock on am — all that one you fit do while na still one machine, so e safe. Na after
+      that I go bring the second box up.
+    expected:
+      - dimension: Knows what breaks the moment there are two
+        score: 4
+        because: "Same as `strong`: sessions, uploads, and anything scheduled now running on both."
+      - dimension: Finds out what is actually saturated
+        score: 3
+        because: "Same: measure CPU, memory, disk and database connections before moving anything."
+      - dimension: Does it in an order that works
+        score: 4
+        because: Same order, with the same reason — all of it can be done safely while there is still one machine.

@@ -1233,7 +1233,7 @@ questions — if a topic supports two good ones, write two and say so.**
       docs contradicting themselves, or whether it gives the game away.
 - [x] **1b. How a question is marked version-sensitive** is now a hard rule in `SKILL.md`: the
       `reviewer_notes` opens with `**Version-sensitive: <claim>, checked against <source> on
-    <date>.**`, plus `— needs a <X> specialist` where it needs one. No schema field, because the
+<date>.**`, plus `— needs a <X> specialist` where it needs one. No schema field, because the
       seed contract would only carry it to a database column nothing reads;
       `grep -l 'Version-sensitive' content/seed/*/questions.yaml` finds them across every bank and
       `grep -o '\*\*Version-sensitive:[^*]*'` prints the claims with their dates. Six questions in
@@ -1266,3 +1266,60 @@ questions — if a topic supports two good ones, write two and say so.**
       `reviewer_notes` on both for the reviewers to confirm against what this audience learned on.
 - [x] **6. The descriptor finding applied across all 34 rubrics** — 82 descriptors rewritten so a
       confident, specific, wrong answer has words to land on. See the blueprint's Appendix B2.
+
+## Question banks — backend (the same branch, `content/catalogue-banks`)
+
+- [x] **7 new topics** in `topics.yaml` — `caching`, `async-work`, `auth`, `concurrency`,
+      `backend-testing`, `observability`, `system-design-basics`. Five will be reused by DevOps,
+      data engineering and full-stack.
+- [x] **The bank: 3 questions → 37** (25 general, 12 stack-tagged), 35 new rubrics — 33 in
+      `backend/rubrics.yaml`, plus `escalating-early` and `unfamiliar-code-approach` in
+      `rubrics.shared.yaml` for the two role-general questions the frontend pass said belonged here.
+      Every target in the blueprint's `targets` block is met, and the two shortfalls
+      `check-bank.mjs` had been reporting since the frontend pass (`written-communication` and
+      `own-work` at 1 of 2) are closed.
+- [x] **Fact-check against vendor docs**, dated, in Appendix A. **Four of nine claims had moved**,
+      and one was a defect in a question rather than in a note: `spring-default-error-body` showed a
+      body with `trace` and `message` in it, and both are **off by default** with the keys omitted
+      entirely, so the snippet was not something anyone would see out of the box. Also: the docs
+      document Spring self-injection as an alternative rather than warning against it, so the rubric
+      no longer scores it at level 1; Laravel 13 has moved to PHP attributes; and Node's own API docs
+      and learn page disagree about `worker_threads`.
+- [x] **Four critique passes, run separately.** ~110 findings; 64 applied as edits, 19 left in
+      `reviewer_notes`. Counts and what changed: `content/seed/blueprints/backend.md` Appendix B.
+- [x] **Rubric stress test — 37 rubrics × 5 answers = 185 answers**, written from the prompts alone
+      by seven subagents that never opened a rubric, then scored. `evals/datasets/synthetic/backend/`.
+      All 37 pass the two separations. It broke one rubric outright and sharpened 23 descriptors
+      (Appendix B2).
+- [ ] **Stop: the owner reads the bank.** Appendix C lists the six things that need a decision,
+      in order. The first two are the ones that matter.
+
+### What this pass found that is worth remembering
+
+- **A house rule can smuggle back the defect it was written to remove.** The descriptor rule added
+  after the frontend stress test read "a descriptor that fits a **confident**, specific, wrong
+  answer" — and writing it that way put the word _confident_ into **34 level-1 descriptors across
+  both banks** before two critique passes caught it independently. Every word in a descriptor is a
+  scoring instruction, so that one told the evaluator to attend to how an answer sounded, which is
+  exactly what `rubrics.shared.yaml` had been reworked to stop that same morning. `SKILL.md` now
+  says **"name the belief, never the manner"** with the story attached.
+- **Two factual defects in questions a model wrote, both found by reading rather than by checking a
+  vendor.** `db-money-as-a-float` asked why naira totals drift a few kobo over a month; `double
+precision` carries fifteen to sixteen significant digits and float errors largely cancel, so the
+  rubric was charging 30% for an explanation that is not true — _and_ the example value, 1500.50,
+  is exactly representable, so the premise was false of the number on screen. `node-async-error-
+never-caught` said the request hangs; since Node 15 an unhandled rejection exits the process.
+  **A fact-check against vendor docs would have caught neither.** Both came from a critique pass
+  doing arithmetic.
+- **The prompt-clause rule is not learned once.** "Every criterion must have a clause in the spoken
+  prompt that asks for it" was the frontend pass's best finding and is a hard rule in `SKILL.md` —
+  and the backend bank still broke it **eighteen times**. It needs a check, not a rule.
+- **The stress test paid for itself again, and differently.** On frontend it changed three rubrics;
+  here it _proved_ something two critique passes had only argued: `behavioural-answer-quality`
+  could not tell a story about the candidate's own break from a polished story about somebody
+  else's — 3.70 against 3.70, identical. `incident-you-contributed-to` now has `incident-ownership`.
+  A judgement becomes a defect the moment a mechanical check fails on it.
+- **A local caveat, not a defect:** `pnpm db:seed -- --dry-run` reports ten rows as "left alone —
+  published" on this machine, now including `api-error-shape`, `n-plus-one-diagnosis` and their
+  rubrics, because this pass edited them. ADR-0014 decision 7 working as designed; a fresh database
+  takes everything, and `-- --force` is the way through on a developer one.

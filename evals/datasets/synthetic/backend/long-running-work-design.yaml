@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: long-running-work-design
+question: the-feature-that-needs-a-queue
+# The pairing this rubric had to survive: `fluent-but-wrong` argues a queue is over-engineering
+# because forty seconds is I/O-dominated on an async runtime, and prescribes a chunked in-request
+# response with a raised upstream timeout — an answer that sounds like restraint and is the
+# failure mode the question is about. 1/1/1 against `strong`'s 3/3/4.
+answers:
+  - kind: strong
+    text: |
+      Right, so forty seconds means it can't happen inside the request. The button POSTs to
+      something like `/exports`, we write a row — status pending, an id — push a job onto the
+      queue, and return 202 with that id straight away. The user sees "we're building it, we'll
+      email you when it's ready", and the page polls the status endpoint. A worker picks the job
+      up, builds the PDF, puts it in S3, flips the row to ready, and we email a signed link that
+      expires — it's everything they've ever done, not a URL you want guessable. Now, a hundred at
+      once. The API's fine, it did nothing but write a row. What holds up is the workers — if
+      there's four of them and each job is forty seconds, the hundredth person waits about
+      seventeen minutes. So the queue depth is the thing to watch and alarm on, and you scale
+      workers against it. Also, a hundred workers scanning full histories will hurt the database
+      serving the site, so I'd read from a replica. And the job's idempotent, deduped, so a
+      double-click doesn't cost two renders.
+    expected:
+      - dimension: Takes the work out of the request
+        score: 3
+        because: 202 with an id, a row, a job on the queue, and the work elsewhere; does not say what that buys beyond the timeout.
+      - dimension: Says what the user experiences
+        score: 3
+        because: Polling and an email with a signed expiring link, and the file from S3 rather than through the API; says nothing about failure reaching the user.
+      - dimension: Holds up under a hundred at once
+        score: 4
+        because: The API did nothing but write a row, so the workers are the constraint — queue depth watched and alarmed, a replica for the reads, and deduping the double press.
+  - kind: weak
+    text: |
+      Okay, so I'd have an endpoint that generates the PDF, and when they click the button it
+      calls it and the browser downloads it. Forty seconds is long so I'd put a spinner on the
+      button and disable it so they don't click twice, and maybe a progress bar. If it times out
+      I'd increase the timeout in nginx and in the frontend fetch so it has enough time. For a
+      hundred people at once... the server would be doing a lot of work, so I'd add more servers
+      behind the load balancer, or upgrade the instance to one with more memory, because PDFs take
+      memory. Um, I could also cache the PDF so if they ask again it's instant. I've not really
+      built something that takes that long before, most of my endpoints return quickly. I'd
+      probably look at how other people do exports and follow that pattern.
+    expected:
+      - dimension: Takes the work out of the request
+        score: 1
+        because: Keeps it in the request and makes it feel shorter — a spinner, a progress bar, and a raised nginx timeout.
+      - dimension: Says what the user experiences
+        score: 1
+        because: A spinner and a download, which follows from a design that cannot work.
+      - dimension: Holds up under a hundred at once
+        score: 1
+        because: "More servers and a bigger instance: scaling the part that was never the constraint."
+  - kind: fluent-but-wrong
+    text: |
+      So the instinct is to reach for a queue and I think that's over-engineering it — you get a
+      job table, a worker fleet, retries, dead letters, and all of it to avoid a problem you don't
+      have on an async runtime. Forty seconds is I/O-dominated: you're pulling rows and streaming
+      them into the renderer, so every await yields the event loop and the process happily
+      interleaves hundreds of these. CPU is barely touched, which is the tell. So I'd do it in-
+      request, but stream it: respond immediately with `Transfer-Encoding: chunked` and `Content-
+      Disposition: attachment`, and flush each page as the renderer produces it. The browser
+      starts the download on the first chunk, so the user sees it saving within a second or two
+      and there's no perceived wait at all, and because bytes are flowing the connection never
+      goes idle, so no proxy or load-balancer timeout fires. Then the only tuning is raising the
+      upstream read timeout to, say, ninety seconds and bumping the worker count so there are
+      enough processes to hold the sockets. A hundred concurrent is genuinely fine on that shape.
+    expected:
+      - dimension: Takes the work out of the request
+        score: 1
+        because: Keeps it in the request and streams it, presented as the design and as avoiding over-engineering.
+      - dimension: Says what the user experiences
+        score: 1
+        because: A download that starts in a second or two — an experience that does not follow, because the renderer is not producing pages to flush.
+      - dimension: Holds up under a hundred at once
+        score: 1
+        because: Raises the upstream read timeout and adds web processes to hold sockets.
+  - kind: correct-poorly-explained
+    text: |
+      So you wouldn't, um, you wouldn't do it in the request, obviously, because forty seconds,
+      the load balancer will cut it off anyway, so — okay, you'd return straight away. With an id.
+      And a 202, I think that's the one for accepted. And then there's a worker somewhere that
+      actually does it, it takes the job off a queue, Redis or SQS or whatever, and it makes the
+      PDF, uploads it, and then flips a flag. And the frontend is polling, like every few seconds,
+      asking is it done, is it done, and when it's done it shows the download. Or you email them,
+      which is better if it's slow, because they'll have closed the tab. Um. The hundred people —
+      the API's fine, it's the workers, because if you only have a few workers and each one takes
+      forty seconds then it's just a queue, people wait. So you'd look at the queue length, and
+      add workers. And the database gets hammered too, by the workers, all reading history at
+      once.
+    expected:
+      - dimension: Takes the work out of the request
+        score: 3
+        because: 202 and an id, a worker off a queue, upload, flip a flag — the load balancer reason given first.
+      - dimension: Says what the user experiences
+        score: 3
+        because: Polling every few seconds, or an email because they will have closed the tab.
+      - dimension: Holds up under a hundred at once
+        score: 3
+        because: The API is fine, the workers are the queue; look at queue length and add workers, and the database gets hammered too.
+  - kind: nigerian-english
+    text: |
+      Forty seconds, e no fit happen inside the request, e go just hang. So the button go POST to
+      `/exports`, we go write one row — status pending, plus id — push job enter queue, and return
+      202 immediately. The user go see "we dey build am, we go email you when e ready", and the
+      page go dey poll the status endpoint. Worker go pick the job, build the PDF, drop am for S3,
+      change the row to ready, then email one signed link wey go expire — na everything the person
+      don ever do dey inside, you no want link wey person fit guess. If na hundred people press am
+      together, the API dey fine, na only row e write. Na the workers go hold up. If na four
+      workers and every job na forty seconds, number hundred go wait seventeen minutes. So na
+      queue depth you go dey watch and alarm on, then scale workers against am. The database go
+      feel am too, so I go read from replica. And make the job idempotent, so if person double-
+      click we no go render am twice.
+    expected:
+      - dimension: Takes the work out of the request
+        score: 3
+        because: "Same as `strong`: 202 with an id, a pending row, the job on a queue."
+      - dimension: Says what the user experiences
+        score: 3
+        because: "Same: a polling status page and an email with a signed link that expires."
+      - dimension: Holds up under a hundred at once
+        score: 4
+        because: "Same: workers are the constraint, queue depth is the thing to alarm on, a replica for the reads, and no double render on a double click."

@@ -233,7 +233,7 @@ rubrics:
         weight: 30
         levels:
           "0": Neither an occasion nor a position — answers about how they generally communicate.
-          "1": A situation with no detail that fixes it in time or place.
+          "1": A situation with no detail that fixes it in time or place — or a specific one in which nobody was told, offered as the right outcome.
           "2": One occasion, with what happened but not what they did about it — or says plainly they have never owned such a date, with nothing about what they would do.
           "3": One occasion, what they said and when, and how it landed — including plainly saying they left it too long. A candidate with no such occasion reaches 3 by saying so and reasoning it through.
           "4": As 3, and something specific they changed afterwards about how they estimate or when they raise it.
@@ -268,3 +268,46 @@ rubrics:
           "2": Describes the change without a reason for its size.
           "3": A change narrow enough to reason about, and they can say what they deliberately did not touch.
           "4": As 3, and says what they wrote down for whoever reads it next — including what they were still unsure of, and what they left alone because they did not understand it yet.
+
+  # `incident-you-contributed-to` used `behavioural-answer-quality` until 2026-09-22, when two
+  # critique passes said independently that it could not score what the question asks — owning a
+  # share of the fault, telling someone early, a change that outlived the incident — and the stress
+  # test then proved it mechanically: a polished story about diagnosing **somebody else's** outage
+  # scored identically to the candidate's own break, 3.70 against 3.70. Same treatment as
+  # `help-seeking-judgement` and `handling-review-feedback`: the middle criterion stays close to the
+  # shared one, and the first and last become what this question is actually about.
+  - slug: incident-ownership
+    name: A break you had a hand in causing
+    criteria:
+      - dimension: A break that was theirs
+        description: >-
+          One occasion, and their own part in it established — not a story about diagnosing
+          somebody else's. A personal project that broke for real users counts the same as
+          production.
+        weight: 30
+        levels:
+          "0": No occasion, or one where nothing was theirs.
+          "1": A specific, well-told incident in which their own part is never established — including an account of diagnosing or resolving one somebody else caused.
+          "2": Their own change, with nothing about what was wrong with it.
+          "3": Their own change, what it did, and who it reached.
+          "4": As 3, and says what they had not thought of, rather than only what went wrong.
+      - dimension: What they did once it was known
+        description: What the candidate personally did, in what order, in enough detail to judge.
+        weight: 35
+        levels:
+          "0": No action attributable to the candidate, even after the interviewer asks which part was theirs.
+          "1": Actions are generic ("I fixed it") and could describe anyone.
+          "2": Some of their own actions, but the sequence or the reasoning is missing.
+          "3": What they did and in what order is recoverable — including stopping it before understanding it, where that was the cheaper move.
+          "4": As 3, including a decision they weighed under time pressure and what they gave up by taking it.
+      - dimension: Who knew, and what outlived it
+        description: >-
+          How it was found, how long it ran before anyone knew, and one change that is still there.
+          Scored on the disclosure, not on who they were able to disclose to.
+        weight: 35
+        levels:
+          "0": Neither how it was found nor anything that changed.
+          "1": Says it was fixed, with nothing about who knew or what changed afterwards.
+          "2": One of the two — somebody was told, or something changed — but not both.
+          "3": Says how it was found and names a durable change; a candidate with no colleagues says who they would have told and why.
+          "4": As 3, and says plainly how long it ran before anyone knew, and what would shorten that next time.

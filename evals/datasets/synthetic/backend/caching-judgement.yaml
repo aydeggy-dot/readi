@@ -1,0 +1,122 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: caching-judgement
+question: what-to-cache-and-for-how-long
+# `fluent-but-wrong` puts a full-page cache at the edge on the belief that HTTP caching varies on
+# the session cookie by default — so a per-user saved-jobs list is safe in a shared cache — and
+# adds a database query cache that "invalidates itself" on any write. Both are false, and together
+# they are a data-exposure design. 1/1/1 against `strong`'s 3/3/4.
+answers:
+  - kind: strong
+    text: |
+      Okay, so before I cache anything I want to know which of the three is actually hurting. If
+      the database is struggling at peak, I'd look at the slow query log or pg_stat_statements and
+      see which one is eating the time. Honestly, the categories query is probably tiny, and if
+      the open jobs query is slow it might just be missing an index, and I'd rather fix that than
+      cache a bad query — caching a bad query means you still pay for it, just less often. After
+      that, yes, I'd cache. Categories I'd cache for a long time, like an hour, because they
+      barely change, and I'd bust it when someone edits a category. The open jobs list I'd cache
+      for a short time, maybe thirty or sixty seconds, because a new job appearing a minute late
+      is fine and that's the one every visitor hits. The saved jobs I would not put in a shared
+      cache — that's per user, and the risk of showing one person another person's saved jobs
+      isn't worth it. So: key by user if anything, and short.
+    expected:
+      - dimension: Discriminates between the three
+        score: 3
+        because: Separates them on what actually differs — shared versus per-user, how often each changes — and refuses the shared cache for saved jobs.
+      - dimension: Gives each one a way to stop being wrong
+        score: 3
+        because: A long life for categories busted on edit, thirty to sixty seconds for the jobs list; nothing about what happens when an entry disappears under load.
+      - dimension: Knows what the cache is hiding
+        score: 4
+        because: Would find which query is actually slow first, because caching a bad query means you still pay for it, just less often.
+  - kind: weak
+    text: |
+      Yeah, caching is the answer for sure — if the database is struggling you take the load off
+      the database, that's the whole point of caching. So I'd put Redis in, and I'd cache all
+      three of them, because all three are running on every page load and that's three queries
+      you're not doing anymore. For the time, I'd probably do… an hour? Maybe a day, so it really
+      doesn't hit the database much. Actually, an hour sounds safer. And for the stale thing —
+      Redis has a TTL so it deletes itself, so you don't really need to do anything else, it
+      handles it. If someone complains that something is old you can always clear the cache
+      manually, we did that at my last place, there's a command for it. And if it's still slow
+      after that then maybe you need a bigger database server, like more RAM, because at some
+      point the machine is just the machine.
+    expected:
+      - dimension: Discriminates between the three
+        score: 1
+        because: Caches all three on one rule — an hour, maybe a day — because "caching takes load off the database".
+      - dimension: Gives each one a way to stop being wrong
+        score: 1
+        because: '"Redis has a TTL so it deletes itself, so you don''t really need to do anything else."'
+      - dimension: Knows what the cache is hiding
+        score: 0
+        because: Caching offered as the fix for a struggling database, then a bigger machine.
+  - kind: fluent-but-wrong
+    text: |
+      Sure. I'd put a full-page cache in front of this rather than caching queries one by one,
+      because you want to stop the request before it ever reaches the application. So, Cloudflare
+      or Varnish in front, cache the jobs board page for an hour keyed on the URL. The saved jobs
+      are safe in there, because HTTP caching varies on the session cookie by default — same URL,
+      different cookie, different cache entry — so each signed-in person gets their own copy and
+      nobody sees somebody else's saved jobs. Then for the two shared queries underneath, I'd
+      switch on the database's own query cache, because that invalidates itself: the moment anyone
+      writes to the jobs table, every cached result that touched that table is dropped
+      automatically. That's the part people miss. It means you can set a very generous TTL, a day
+      even, and still never serve a stale list, because the write path clears it for you. So: one
+      hour at the edge, query cache underneath, and no manual invalidation code to maintain.
+    expected:
+      - dimension: Discriminates between the three
+        score: 1
+        because: One hour at the edge for the whole page, on the belief that the cache varies on the session cookie by itself.
+      - dimension: Gives each one a way to stop being wrong
+        score: 1
+        because: Invalidation described as something the database's query cache does for you, so a day-long TTL is safe.
+      - dimension: Knows what the cache is hiding
+        score: 1
+        because: Argues for stopping the request before it reaches the application, so the queries underneath never come up.
+  - kind: correct-poorly-explained
+    text: |
+      So — I mean, you'd cache, but not all of them, that's the thing. The saved jobs one, no.
+      Because it's the user's own, so if you cache it in the shared place then someone else can
+      get it, which is bad, obviously. The other two, yes. Categories is — like, how often does a
+      category change? Never. So that one you can hold for an hour, longer even, and when someone
+      edits it you just delete the key at the same time. And the jobs list, everyone hits that, so
+      that's the one that's actually costing you, but it changes, so you'd do it short — a minute,
+      thirty seconds, something like that, so nobody really notices. Although, sorry, before all
+      that — if a query is slow you should check whether it's just missing an index, because
+      caching a slow query still leaves the slow query there, it just runs less. So probably look
+      at the slow log first. Then cache.
+    expected:
+      - dimension: Discriminates between the three
+        score: 3
+        because: Saved jobs excluded because it is the user's own; categories long, jobs list short — reached in the wrong order.
+      - dimension: Gives each one a way to stop being wrong
+        score: 3
+        because: Delete the key where the edit happens for categories, a short life for the jobs list.
+      - dimension: Knows what the cache is hiding
+        score: 4
+        because: '"Caching a slow query still leaves the slow query there, it just runs less" — would look at the slow log first.'
+  - kind: nigerian-english
+    text: |
+      Before I go cache anything, make I first find out which one of the three is actually paining
+      the database. I go check the slow query log or pg_stat_statements make I see where the time
+      dey go. Because categories query, that one is small, e no fit be am. And if the open jobs
+      query is the one dragging, maybe na index e need — if you cache a bad query, the query still
+      bad, you just dey run am less. After that, yes now, I go cache. Categories, I hold am for
+      one hour easy, because e no dey change, and whenever admin edit category, I clear the key
+      for the same place wey the edit dey happen. The open jobs list, that one na everybody dey
+      hit am, so short — thirty seconds, one minute — new job showing one minute late no go kill
+      anybody. But the saved jobs, I no go put am for shared cache at all. That one na per person,
+      and if e mix, one person go see another person own. Na so trouble dey start.
+    expected:
+      - dimension: Discriminates between the three
+        score: 3
+        because: "Same as `strong`: the three separated on shared versus per-user, and saved jobs kept out of a shared cache."
+      - dimension: Gives each one a way to stop being wrong
+        score: 3
+        because: "Same: clear the key where the edit happens, short life for the list everyone hits."
+      - dimension: Knows what the cache is hiding
+        score: 4
+        because: "Same: find which query is paining the database first, because caching a bad query leaves it bad."

@@ -1,0 +1,129 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: incident-ownership
+question: incident-you-contributed-to
+# **This set is why the question has its own rubric.** `fluent-but-wrong` is a polished, specific,
+# well-told story about diagnosing somebody *else's* Friday-evening outage — a manual migration
+# holding a lock — with real actions, a real durable change, and no break of their own anywhere in
+# it. Against the shared `behavioural-answer-quality` it scored 3.70, identical to `strong`.
+# `incident-ownership` catches it on criterion 1 alone, which is why **+1.25 is the narrowest
+# separation in the bank** and the one to watch.
+answers:
+  - kind: strong
+    text: |
+      Yeah, okay. So last year I shipped the thing that normalises phone numbers on sign-up —
+      everything into E.164 before we store it. I tested it with numbers typed the normal way,
+      zero-eight-zero and so on, which is how most people type it. What I didn't test was numbers
+      already coming in as plus-two-three-four. My code stripped a digit off those anyway, so we
+      saved a number that wasn't real. And the OTP goes to that number. So for two days, anybody
+      who typed it that way could sign up and then just... never get their code. We found out from
+      support — three tickets one morning, same shape. First thing I did was roll back the deploy,
+      before I fully understood it, because rollback was cheap. Then I wrote a script to find the
+      mangled rows, about two hundred, and repaired them from the raw input we'd logged. What
+      actually changed after was the test file — I put in a table of every format people really
+      type, pulled from our own data. And we put an alert on the OTP failure rate, because support
+      shouldn't be the monitoring.
+    expected:
+      - dimension: A break that was theirs
+        score: 4
+        because: Their own normaliser, what it did (a digit stripped from numbers already in international format) and who it reached — and what they had not thought to test.
+      - dimension: What they did once it was known
+        score: 4
+        because: Rolled back before understanding it because rollback was cheap, then repaired about two hundred rows from the logged input.
+      - dimension: Who knew, and what outlived it
+        score: 4
+        because: Found by support after two days, and the durable change is an alert on the OTP failure rate — "support shouldn't be the monitoring".
+  - kind: weak
+    text: |
+      Um, okay. So... I've broken things, yeah, definitely. Most of mine are in my own projects, I
+      haven't been on a big production team that long. There was one where I deployed and the site
+      just went down, like completely, and it was — I think it was an environment variable I
+      forgot to set on the server. It worked on my laptop, obviously, because it was in my .env
+      there. So users, well, in that case it was a school project so it was mostly just my group
+      members, but they couldn't log in. I fixed it by adding the variable and redeploying. It
+      took maybe an hour because I didn't know where to look at first, I was just checking the
+      code over and over. Afterwards I, um... I try to be more careful now. I double-check before
+      I push, and I test on the live one after deploying instead of assuming. I think that's the
+      main lesson — test after you deploy, not only before. Yeah. That's really the main one I can
+      think of.
+    expected:
+      - dimension: A break that was theirs
+        score: 2
+        because: Their own deploy, but the account of what was wrong stops at forgetting an environment variable.
+      - dimension: What they did once it was known
+        score: 2
+        because: Added the variable and redeployed; the hour of looking is described without a sequence.
+      - dimension: Who knew, and what outlived it
+        score: 2
+        because: Something changed — testing on the live one after deploying — with nothing about who knew.
+  - kind: fluent-but-wrong
+    text: |
+      Sure. So the one that stands out — we had an outage on our orders service, Friday evening,
+      checkout returning 500s for about forty minutes. I wasn't on call but I saw the channel and
+      jumped in. And what I did first was get a timeline: I pulled the deploy log, pulled the
+      error rate graph, and lined them up. The errors started eleven minutes after a deploy, which
+      everyone was treating as the cause, but the deploy was a copy change, so I said no, this is
+      a coincidence, let's keep looking. I went into the database metrics and found connection
+      waits climbing from about ten minutes before. It was a migration someone had run manually
+      that took an exclusive lock. So I got them to kill it, checkout recovered, and then I ran
+      the migration properly overnight in batches. What changed afterwards is that I wrote the
+      runbook for that service, and I set up the dashboard that puts deploys and error rate on the
+      same axis, which the team still uses. I'm usually the person who stays calm and drives the
+      timeline in those situations.
+    expected:
+      - dimension: A break that was theirs
+        score: 1
+        because: "A specific, well-told incident that is somebody else's: they saw the channel, jumped in, and drove the diagnosis."
+      - dimension: What they did once it was known
+        score: 4
+        because: Detailed and weighed — deploy log against error rate, rejecting the obvious cause, getting the migration killed and rerun in batches.
+      - dimension: Who knew, and what outlived it
+        score: 3
+        because: A runbook and a dashboard the team still uses; how it was found is theirs, but nothing about how long it ran unnoticed.
+  - kind: correct-poorly-explained
+    text: |
+      Right so, there was — it was the phone number thing, the formatting. Basically people
+      weren't getting their OTPs, which, we didn't know at first, support told us, and the reason
+      was the normaliser, which I wrote, was taking numbers that came in already in international
+      format and chopping a digit, because I'd only, sort of, I wrote it assuming everyone types
+      zero-eight-zero, which most people do but not everyone, and so those rows were saved wrong
+      and the SMS goes nowhere. I rolled back. Like straight away, before I knew exactly, because
+      — well, it's cheaper. Then found the rows after, there were a couple hundred, and fixed them
+      from the logged input. And, yeah, the test now has all the real formats in it, I took them
+      from the actual data, and there's an alert on failed sends now, which, honestly that's the
+      bigger one, because we only knew because somebody complained, which isn't, that shouldn't be
+      how you find out. Two days it was broken. Two days.
+    expected:
+      - dimension: A break that was theirs
+        score: 4
+        because: Same incident as `strong`, arrived at sideways, including what they assumed about how people type a number.
+      - dimension: What they did once it was known
+        score: 4
+        because: '"I rolled back. Like straight away, before I knew exactly, because — well, it''s cheaper."'
+      - dimension: Who knew, and what outlived it
+        score: 4
+        because: '"Two days it was broken. Two days." — and the alert named as the bigger of the two changes.'
+  - kind: nigerian-english
+    text: |
+      Okay, so. Last year na me write the phone number normaliser — the thing wey dey convert
+      everything to E.164 before we save am. When I dey test, I was using the normal zero-eight-
+      zero format, because na so everybody dey type their number. The ones wey come in as plus-
+      two-three-four already, I no test am at all. So my code go still remove one digit from those
+      ones, and the number we save no be correct number. And na that number OTP dey go. So for two
+      days, person go sign up finish, the code no go come. The thing no dey show anywhere — na
+      support tell us, three tickets one morning, all the same. First thing I do na roll back the
+      deploy, before I even understand the bug well, because rollback no dey cost anything. After
+      that I write script find the ones wey scatter, around two hundred, repair them from the raw
+      input we logged. Then I put every real format inside the test file. And we add alert on OTP
+      failures, because support is not supposed to be our monitoring.
+    expected:
+      - dimension: A break that was theirs
+        score: 4
+        because: "Same as `strong`: their own normaliser, the untested format, and the number that was saved wrong."
+      - dimension: What they did once it was known
+        score: 4
+        because: "Same: roll back first because it costs nothing, then a script to repair the rows."
+      - dimension: Who knew, and what outlived it
+        score: 4
+        because: "Same: found by support after two days, and an alert added because support is not supposed to be the monitoring."

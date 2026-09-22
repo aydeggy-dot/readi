@@ -1,0 +1,121 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: api-error-contract
+question: api-error-shape
+# The pairing this rubric had to survive: `fluent-but-wrong` argues that HTTP status is not part
+# of the contract because mobile HTTP stacks swallow non-2xx bodies, so everything should be 200
+# with the outcome in the body, and the client should branch on a substring of the message. It is
+# coherent, it cites real libraries, and it inverts the whole question — 1/0/1 against `strong`'s
+# 3/3/4.
+answers:
+  - kind: strong
+    text: |
+      Okay so, the status line is the class of the problem, and the body is the detail. So 400 if
+      the request itself is malformed, 401 if you're not signed in, 403 if you are but you're not
+      allowed, 404 not there, 409 if it clashes with something — like the email's already taken —
+      429 if they're hammering us, and 5xx only when it's actually our fault, not the caller's.
+      That last bit matters because ops alert on 5xx, so if I return 500 for a bad phone number
+      I've just woken somebody up for nothing. In the body I'd put a stable machine code,
+      something like `card_declined`, plus a human message, plus field paths for validation errors
+      so the form can put the message under the right input, plus a request id so support can find
+      the log line. The client switches on the code, never on the message text — the message is
+      English, it's for us, and the app has its own copy in its own language. Um, and nothing
+      internal in there. No stack trace, no SQL.
+    expected:
+      - dimension: Gives clients something to branch on
+        score: 3
+        because: A stable code per error plus a human message, and the client switches on the code; does not say where the code list is documented.
+      - dimension: Uses status codes honestly
+        score: 3
+        because: Correct categories including 401, 403 and 409, and 5xx reserved for our own fault.
+      - dimension: Says enough, and no more
+        score: 4
+        because: Field paths for validation, nothing internal, and a request id so support can find the log line.
+  - kind: weak
+    text: |
+      Right, so errors. I think you want to tell the user what went wrong, so I'd send back a
+      message like, "Something went wrong, please try again later," and the app just shows that in
+      a toast. Status code... I'd probably use 500 because it's an error, that's what 500 means,
+      yeah. Or 400, one of those. Honestly I usually just check if the response has an error field
+      and if it does I show it. For the mobile app it'd be the same endpoint so it'd be the same
+      thing, they'd both just show the message. I'd also log it so we can look at it later. Um,
+      what else... if it's a login thing you'd say wrong password. I know there are a lot of
+      status codes, I'd have to look them up, I normally just copy what the rest of the codebase
+      is doing, to be honest.
+    expected:
+      - dimension: Gives clients something to branch on
+        score: 0
+        because: A message only — "something went wrong, please try again later" — with nothing to branch on.
+      - dimension: Uses status codes honestly
+        score: 1
+        because: '"500 because it''s an error... or 400, one of those": 400 and 500 only, picked by how they sound.'
+      - dimension: Says enough, and no more
+        score: 1
+        because: One generic message for every failure.
+  - kind: fluent-but-wrong
+    text: |
+      So the thing people get wrong here is treating HTTP status as part of the contract, and it
+      isn't, because it doesn't survive the trip. Mobile HTTP stacks intercept non-2xx before your
+      code sees it — URLSession and OkHttp both throw on 4xx and 5xx and discard the body, so your
+      carefully designed error payload never reaches the handler, and intermediaries like
+      Cloudflare will substitute their own error page on a 5xx. So the rule I follow is: always
+      200 on the status line, always. The body carries the real outcome — `{ "ok": false, "error":
+      { "message": "..." } }` — and the client branches on `ok`. That gives you one code path for
+      both apps and nothing gets swallowed. For what the client does with it, I key off the
+      message string; it's the only field you can rely on being there, so a contains-check on
+      "declined" or "expired" is enough to decide whether to retry. And because everything's 200,
+      your uptime monitor stays clean too.
+    expected:
+      - dimension: Gives clients something to branch on
+        score: 1
+        because: Always 200, and the client keyed off a substring of the message — matching on its text, by design rather than by default.
+      - dimension: Uses status codes honestly
+        score: 0
+        because: Everything is a 200, argued as a rule, so the status line carries no information at all.
+      - dimension: Says enough, and no more
+        score: 1
+        because: A generic message body, offered as the whole contract.
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so, um, the message — you shouldn't show the message, the one from the server, because
+      it's, well it's in English and it's kind of for us, so you'd have a code as well, like a
+      short string, and that's the thing the app actually looks at and then it picks its own text,
+      and, sorry, I should have said the status first. The status is like the category. So if they
+      sent rubbish it's a 400, if it's us that broke it's a 500, and there's 401 and 403 which are
+      different, one is you're not logged in and the other one is you are but no. And 409 for like
+      duplicates. Um, and for a form you need more than the code, you need to know which field, so
+      an array of, like, field and what's wrong with it. And an id, a request id, so when somebody
+      complains you can actually find it in the logs. That's mostly it I think.
+    expected:
+      - dimension: Gives clients something to branch on
+        score: 3
+        because: Gets to a short code the app looks at, and its own text for the user — arrived at after starting with the message.
+      - dimension: Uses status codes honestly
+        score: 3
+        because: Categories right, 401 and 403 separated, 409 for duplicates.
+      - dimension: Says enough, and no more
+        score: 4
+        because: An array of field and what is wrong with it, plus a request id.
+  - kind: nigerian-english
+    text: |
+      So the status line na the category, and the body na the details. If wetin them send no
+      correct, that one na 400. If you never sign in, 401. If you sign in but the thing no be your
+      own, 403. If e no dey there at all, 404. If e clash with something wey dey ground already —
+      like the email don register before — na 409. And I go only use 500 when na us cause am, no
+      be when the caller type rubbish, because ops dey get alert for 5xx, so if I return 500 for
+      wrong phone number I don wake somebody up for midnight for nothing. Inside the body I go put
+      one code wey no dey change, like `card_declined`, then the message, then the field path for
+      every validation error so the form go show the error under the correct input, then request
+      id so support fit trace am for log. The app go switch on the code, e no go read the message
+      — the message na English, na for us. And nothing internal go enter there, no stack trace.
+    expected:
+      - dimension: Gives clients something to branch on
+        score: 3
+        because: "Same as `strong`: a code that does not change, plus the message, and the app switches on the code."
+      - dimension: Uses status codes honestly
+        score: 3
+        because: Same categories, including 5xx only when it is our fault and why that matters to whoever is paged.
+      - dimension: Says enough, and no more
+        score: 4
+        because: "Same: field paths per validation error, a request id, and nothing internal."

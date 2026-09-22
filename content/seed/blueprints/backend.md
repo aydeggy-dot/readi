@@ -1,6 +1,7 @@
 # Backend engineer — question bank blueprint
 
-**Wave 1. Status: blueprint drafted 2026-09-22; the bank is 3 questions and is being extended.**
+**Wave 1. Status: drafted, critiqued, fact-checked and stress-tested 2026-09-22. The bank is 37
+questions — 25 general and 12 stack-tagged — and goes next to a human expert.**
 Derived from `docs/role-catalogue.md` § Backend Engineer.
 
 ## What the role is
@@ -168,17 +169,17 @@ marker `**Version-sensitive: <claim>, checked against <source> on <date>.**`, so
 
 **Four of the nine had moved, and one of those was a defect in the question rather than in a note.**
 
-| Question                             | Claim                                                                                          | Checked against                                     | Outcome                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spring-default-error-body`          | The `{timestamp, status, error, trace, message, path}` body is what a default Boot app returns | docs.spring.io, Spring Boot 4.1                     | **Moved, and the question was wrong.** `trace`, `message` and `errors` are **off by default** and the keys are omitted entirely, so a default app returns only `{timestamp, status, error, path}` — the body in the snippet was not plausible out of the box. The prompt now says the service has switched those settings on. Also: in Boot 4.0 the properties moved from `server.error.*` to `spring.web.error.*` |
-| `spring-transaction-did-not-roll-back` | Self-invocation bypasses the `@Transactional` proxy; the docs prefer moving the boundary to self-injecting | docs.spring.io, Spring Framework 7.0                | **Half moved.** The mechanism holds verbatim — "only external method calls coming in through the proxy are intercepted". But the docs rank *three* fixes and **document self-injection as an alternative**; only `AopContext.currentProxy()` is "highly discouraged". The rubric scored a self reference at level 1 and now credits it at 3, with the refactor preferred at 4                           |
-| `laravel-mass-assignment`            | `protected $guarded = []` disables mass-assignment protection                                  | laravel.com, Laravel 13                             | **Behaviour holds, syntax moved.** Laravel 13 documents PHP attributes — `#[Fillable]`, `#[Guarded]`, `#[Unguarded]` — and no longer shows the properties, though the upgrade guide lists no breaking change so they still work. The snippet stays in the property form, which is what an existing codebase looks like, and the answer key and rubric now credit either form |
-| `node-blocked-event-loop`            | `worker_threads` and streaming are the documented remedies for CPU work in a handler           | nodejs.org API docs vs the "Don't Block" learn page | **Unresolved, and Node's own docs disagree.** The API docs call `worker_threads` stable and useful for CPU-intensive JavaScript; the learn guide never mentions it and still points at C++ addons, an abandoned npm package, child processes and cluster. A worker thread and a separate process are credited equally                                             |
-| `python-blocking-call-in-async`      | A plain `def` path operation runs in a threadpool; `async def` runs on the loop                | fastapi.tiangolo.com                                | Holds, verbatim, and the guidance ("if you just don't know, use normal `def`") is unchanged — which is what makes the last answer-key point true                                                                                                                                                                                                              |
-| `django-save-overwrote-a-change`     | `save()` writes all fields; `update_fields` writes some; `QuerySet.update()` writes without reading | docs.djangoproject.com                              | Holds. Two nuances worth crediting that the answer key does not yet name: a model loaded with `only()`/`defer()` writes only the loaded fields, and the docs point at `F()` expressions for avoiding exactly this race                                                                                                                                       |
-| `laravel-worker-running-old-code`    | A queue worker holds the booted application in memory and misses deployed changes              | laravel.com, Laravel 13                             | Holds, verbatim: "queue workers are long-lived processes and store the booted application state in memory… they will not notice changes in your code base after they have been started"                                                                                                                                                                       |
-| `dotnet-blocking-on-async`           | No synchronisation context on ASP.NET Core, so `.Result` starves the thread pool rather than deadlocking | learn.microsoft.com, rule CA2007                    | Holds, and the citation changed: the ASP.NET Core best-practices page no longer uses the term, CA2007 does. **Caveat added:** Blazor *does* have a synchronisation context, so a candidate who asks which part of ASP.NET Core is ahead of the question                                                                                                        |
-| `rails-callback-that-did-too-much`   | `after_save` runs inside the save, so `deliver_now` blocks it; the guide cautions against side effects | guides.rubyonrails.org, Rails 8.1                   | Holds. The guide's current answer for reaching outside the record is `after_commit`, "most useful when your Active Record models need to interact with external systems", and its own example uses `deliver_later`                                                                                                                                             |
+| Question                               | Claim                                                                                                      | Checked against                                     | Outcome                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `spring-default-error-body`            | The `{timestamp, status, error, trace, message, path}` body is what a default Boot app returns             | docs.spring.io, Spring Boot 4.1                     | **Moved, and the question was wrong.** `trace`, `message` and `errors` are **off by default** and the keys are omitted entirely, so a default app returns only `{timestamp, status, error, path}` — the body in the snippet was not plausible out of the box. The prompt now says the service has switched those settings on. Also: in Boot 4.0 the properties moved from `server.error.*` to `spring.web.error.*` |
+| `spring-transaction-did-not-roll-back` | Self-invocation bypasses the `@Transactional` proxy; the docs prefer moving the boundary to self-injecting | docs.spring.io, Spring Framework 7.0                | **Half moved.** The mechanism holds verbatim — "only external method calls coming in through the proxy are intercepted". But the docs rank _three_ fixes and **document self-injection as an alternative**; only `AopContext.currentProxy()` is "highly discouraged". The rubric scored a self reference at level 1 and now credits it at 3, with the refactor preferred at 4                                      |
+| `laravel-mass-assignment`              | `protected $guarded = []` disables mass-assignment protection                                              | laravel.com, Laravel 13                             | **Behaviour holds, syntax moved.** Laravel 13 documents PHP attributes — `#[Fillable]`, `#[Guarded]`, `#[Unguarded]` — and no longer shows the properties, though the upgrade guide lists no breaking change so they still work. The snippet stays in the property form, which is what an existing codebase looks like, and the answer key and rubric now credit either form                                       |
+| `node-blocked-event-loop`              | `worker_threads` and streaming are the documented remedies for CPU work in a handler                       | nodejs.org API docs vs the "Don't Block" learn page | **Unresolved, and Node's own docs disagree.** The API docs call `worker_threads` stable and useful for CPU-intensive JavaScript; the learn guide never mentions it and still points at C++ addons, an abandoned npm package, child processes and cluster. A worker thread and a separate process are credited equally                                                                                              |
+| `python-blocking-call-in-async`        | A plain `def` path operation runs in a threadpool; `async def` runs on the loop                            | fastapi.tiangolo.com                                | Holds, verbatim, and the guidance ("if you just don't know, use normal `def`") is unchanged — which is what makes the last answer-key point true                                                                                                                                                                                                                                                                   |
+| `django-save-overwrote-a-change`       | `save()` writes all fields; `update_fields` writes some; `QuerySet.update()` writes without reading        | docs.djangoproject.com                              | Holds. Two nuances worth crediting that the answer key does not yet name: a model loaded with `only()`/`defer()` writes only the loaded fields, and the docs point at `F()` expressions for avoiding exactly this race                                                                                                                                                                                             |
+| `laravel-worker-running-old-code`      | A queue worker holds the booted application in memory and misses deployed changes                          | laravel.com, Laravel 13                             | Holds, verbatim: "queue workers are long-lived processes and store the booted application state in memory… they will not notice changes in your code base after they have been started"                                                                                                                                                                                                                            |
+| `dotnet-blocking-on-async`             | No synchronisation context on ASP.NET Core, so `.Result` starves the thread pool rather than deadlocking   | learn.microsoft.com, rule CA2007                    | Holds, and the citation changed: the ASP.NET Core best-practices page no longer uses the term, CA2007 does. **Caveat added:** Blazor _does_ have a synchronisation context, so a candidate who asks which part of ASP.NET Core is ahead of the question                                                                                                                                                            |
+| `rails-callback-that-did-too-much`     | `after_save` runs inside the save, so `deliver_now` blocks it; the guide cautions against side effects     | guides.rubyonrails.org, Rails 8.1                   | Holds. The guide's current answer for reaching outside the record is `after_commit`, "most useful when your Active Record models need to interact with external systems", and its own example uses `deliver_later`                                                                                                                                                                                                 |
 
 Nothing in the general set names a product, a version, a price or a benchmark, so nothing there can
 go stale silently. **The nine above are the re-check list**, and `tasks/todo.md` carries the open
@@ -187,13 +188,179 @@ the same as making them checked.
 
 ## Appendix B — what the critique passes changed
 
-| Pass                         | Findings | Applied | To `reviewer_notes` |
-| ---------------------------- | -------- | ------- | ------------------- |
-| Senior interviewer (Nigeria) |          |         |                     |
-| Hiring manager (remote)      |          |         |                     |
-| Nervous junior               |          |         |                     |
-| Fairness                     |          |         |                     |
+Four passes, run separately as parallel subagents, each given the bank and its own brief and nothing
+about the other three (`.claude/skills/question-bank/references/critique.md`).
+
+| Pass                         | Raised | Applied as edits | Left in `reviewer_notes` |
+| ---------------------------- | ------ | ---------------- | ------------------------ |
+| Senior interviewer (Nigeria) | 26     | 12               | 6                        |
+| Hiring manager (remote)      | 26     | 9                | 8                        |
+| Nervous junior               | 31     | 24               | 2                        |
+| Fairness reviewer            | 27     | 19               | 3                        |
+
+**Two passes independently named the same worst problem, and it was the drafter's own from that
+morning.** The house rule added after the frontend stress test read "a descriptor that fits a
+**confident**, specific, wrong answer" — and writing it that way put the word _confident_,
+_confidently_ or _with conviction_ into **34 level-1 descriptors across both banks**. Every word in
+a descriptor is a scoring instruction, so that one told the evaluator to attend to how an answer
+sounded: the exact defect `rubrics.shared.yaml` had been reworked to remove that same day,
+reintroduced by the fix for a different problem. It also did no work — what separates level 1 from
+level 2 is that **level 1 names a specific wrong mechanism and level 2 is vague**, and a hesitant
+candidate naming the same wrong mechanism has to land in the same band. All 34 are rewritten to name
+the belief, and `SKILL.md` now carries "name the belief, never the manner" with the story attached
+so the next bank does not repeat it.
+
+**Two factual defects in questions the drafter wrote**, both found by reading rather than by
+checking a vendor:
+
+- `db-money-as-a-float` asked why daily naira totals drift a few kobo and get worse over a month.
+  `double precision` carries fifteen to sixteen significant digits, so a total would have to reach
+  about ₦10^14 before losing a kobo — **and float errors are signed and largely cancel rather than
+  accumulating**, so the rubric's second criterion was charging 30% for an explanation that is not
+  true. The fairness pass found the same thing from the other end: the example value, 1500.50, is
+  exactly representable in binary, so the premise was false of the number on screen and the
+  candidate who understands floating point best was the one most likely to be marked down. The
+  question now turns on an equality comparison, which is what binary floats actually break, and the
+  criterion was replaced.
+- `node-async-error-never-caught` said the request hangs until it times out. Since Node 15 an
+  unhandled rejection is an uncaught exception and **the process exits**, taking every other request
+  in flight with it. That is the better question, and the prompt now asks it.
+
+**The systemic defect the frontend pass found nine times, found here eighteen times**: a criterion
+carrying 20–40% for something the spoken prompt never asks for. `api-error-shape` charged 35% for
+status codes in a prompt that never said the word; `what-to-cache-and-for-how-long` scored level 0
+for treating caching as the fix for a struggling database, which is the premise it handed the
+candidate; `cache-key-that-leaked` asked "what would you do first" and scored the obvious answer at
+level 0. All eighteen prompts fixed. Five snippets were also wrong or gave the game away: an
+undefined Rails callback that would raise on every save, a Go handler whose return type decided the
+whole first criterion and was not shown, a Node comment that labelled the expensive line, Django
+comments that pre-answered a criterion, and a Spring snippet that did not say whether the exception
+was checked.
+
+**The fairness pass's findings were, almost without exception, the bank scoring employment rather
+than competence**, and all of these are applied:
+
+- `cache-key-diagnosis` required standing to turn a feature off; "take it straight to whoever owns
+  this and ask" now scores the same as doing it yourself.
+- `duplicate-job-reasoning` asked a junior to contact a vendor about money, which in many places
+  would be a firing offence; it now asks that the vendor be told by whoever the right person is.
+- `alerting-judgement` scored a free uptime check at 1, when it is often the only monitoring this
+  audience has ever had access to — it is now a 2, "a real signal that would not have caught this
+  one". The same rubric required converting "one in twelve" to "eight percent" aloud.
+- `sync-over-async-diagnosis` scored the .NET deadlock answer at 1, although it is what almost all
+  freely available material still teaches; it is out of date rather than misunderstood, and is now
+  a 2 — which is also what that question's own `reviewer_notes` already claimed.
+- `authorisation-reasoning` and `mass-assignment-diagnosis` both scored code review at 1 as a
+  quality mechanism, when it is the one many of this audience have seen work.
+- `escalating-early` capped a candidate who has never owned a committed date at 60%, and its
+  level 1 scored waiting-for-certainty as a judgement failure — which is learned behaviour where
+  raising a slip early marks you as unreliable. Reweighted 40/30/30 toward the message, with the
+  `help-seeking-judgement` construction ("a fact about the workplace, not a fault in the
+  candidate") copied into the description.
+
+**Weights both the senior and the hiring-manager pass wanted moved**, applied:
+`transaction-boundary-reasoning` criterion 3 (dealing with the rows that are already wrong) from 25%
+to 35%, because it is the most predictive criterion in the question and carried the least;
+`spring-transaction-diagnosis` criterion 1 from 45% to 35%, because self-invocation is the
+most-published Spring interview answer in existence and a listicle read the night before scores the
+same as having debugged it; `framework-error-body-judgement` criterion 2 from 30% to 20%, because a
+framework version in a stack trace is a minor exposure and enforcing one error shape is not.
+
+## Appendix B2 — what the rubric stress test changed
+
+Five answers per rubric — **37 rubrics, 185 answers** — written from the prompts alone by seven
+subagents that never opened a rubric file, then scored against the criteria.
+`check-stress.mjs` enforces the two separations mechanically. **Every rubric passes**:
+`fluent-but-wrong` falls between 1.25 and 3.35 points below `strong`, `correct-poorly-explained`
+sits 1.70 to 3.00 above `weak`, and `nigerian-english` is within one point of `strong` on every
+criterion of every rubric.
+
+**The exercise broke one rubric outright and sharpened twenty-three descriptors.**
+
+The outright break was `behavioural-answer-quality` on `incident-you-contributed-to`. Two critique
+passes had already said independently that the shared rubric could not score what that question asks
+— owning a share of the fault, telling someone early, a change that outlived the incident all sat in
+`ideal_points` with no criterion to land on — and it was left as a judgement for the reviewer. The
+stress test then proved it: a polished, specific, well-told story about diagnosing **somebody
+else's** Friday-evening outage, with real actions and a real durable change, scored **3.70 against
+`strong`'s 3.70**. Identical. The question now has `incident-ownership`, built the way
+`help-seeking-judgement` and `handling-review-feedback` already were — the middle criterion stays
+close to the shared one, and the first and last become what this question is actually about. The
+same answer now scores 2.75, which is the narrowest separation in the bank and honestly so: it is a
+good answer to a different question, and criterion 1 is the only thing that catches it.
+
+The twenty-three sharpenings were all the same shape — **a wrong answer with nowhere to land**:
+
+- `query-performance-diagnosis` demanded an execution plan at level 3, so a `strong` answer that
+  counts the queries — which is the right move for an N+1 — was capped at 2 on a 40% criterion.
+- `lost-update-reasoning` had no descriptor for a durability setting; `event-loop-blocking-diagnosis`
+  none for tuning the infrastructure around work that never left the thread;
+  `collection-endpoint-design` none for a migration plan that is _believed_ compatible and quietly
+  gives the old app two hundred rows of forty thousand.
+- `scaling-out-reasoning` level 0 read "expects it to work"; the fluent-wrong answer names every
+  breakage correctly and argues each one away with sticky sessions, which is not the same thing.
+- `two-people-bought-the-last-one` had no home for "routes the read somewhere fresher", and
+  `go-the-error-nobody-checked` none for "skips the error and tests the returned value instead".
+
+**The three narrowest separations are the three to watch**: `incident-ownership` (+1.25),
+`mass-assignment-diagnosis` (+1.55) and `async-error-path-diagnosis` (+1.70). The last is the
+interesting one — its fluent-wrong answer is _right_ about where the error goes and about Node 15
+making an unhandled rejection fatal, and wrong only about the fix (Express 5 will not rescue a
+handler that never returns its promise). A rubric that separated that answer further would be
+punishing a correct diagnosis.
+
+Three rubrics were reached by `correct-poorly-explained` scoring **above** `strong` —
+`collection-endpoint-design`, `query-performance-diagnosis` and `test-isolation-diagnosis` were all
+within 0.3, and in each case the rambling answer genuinely contains more (the sunset plan for the
+old route; changing the assertion as well as the isolation). That is the rubrics working: a rubric
+with delivery in its descriptors would have reversed them.
 
 ## Appendix C — coverage after drafting
 
-_Filled at the end of the role's pass._
+**37 questions, 25 general and 12 stack-tagged**, against a blueprint that asked for about 34. A
+backend candidate is offered **41**, because four role-general questions live in the frontend bank
+and carry this role too; stack tagging means any one candidate actually sees about **28**. Every
+target in the `targets` block is met, including the two topics the frontend pass created and said
+would be finished here — `written-communication` and `own-work` each gained their second question
+(`the-estimate-that-slipped`, `the-part-you-did-not-write`), which closes both shortfalls that
+`check-bank.mjs` had been reporting since that pass.
+
+Seven new topic rows (`caching`, `async-work`, `auth`, `concurrency`, `backend-testing`,
+`observability`, `system-design-basics`), five of which DevOps, data engineering and full-stack will
+reuse.
+
+**What the reviewer has to decide, in order of how much it matters:**
+
+1. **The level split.** Twenty of the twenty-five general questions carry _both_ `intern-junior` and
+   `mid`, so the two pools are nearly the same bank and the level tag does very little work. A
+   critique pass named ten it would keep at junior and would make the rest mid only. That is a
+   judgement about the audience rather than about the questions, and taking it would put several
+   core topics below the blueprint's floor at `intern-junior` — which is either a reason not to take
+   it or a reason to write more junior questions. It is not a change a drafter should make alone.
+2. **Three questions two passes wanted cut**: `api-error-shape` (subsumed by
+   `api-status-code-choice`, which asks it better with an artifact), `the-counter-that-lost-updates`
+   (the same read-modify-write as `two-people-bought-the-last-one`, at lower stakes) and
+   `what-happens-when-it-is-down` (no artifact; its strongest answer is a product decision). Each
+   carries the argument in its own `reviewer_notes`.
+3. **The shape of the bank.** Twenty-two of thirty-seven questions hand the candidate a snippet with
+   a planted defect. A remote hiring manager called that the format that least predicts month six —
+   nobody hands a new hire six lines and says the bug is in there. The behavioural share is 3 of 37,
+   or 7 of 41 counting the inherited ones, against the blueprint's own stated target of about one in
+   four. The next slots spent on this role should be judgement and communication, not more snippets.
+4. **Four questions a remote hiring manager would add**, none of which need code or a diagram: an
+   ambiguous ticket whose author is offline for eight hours; shipping to production with nobody else
+   awake; explaining a cause to support and to a team lead in two registers; and reviewing somebody
+   else's change when you are not certain. The bank covers receiving a code review and has nothing
+   on giving one.
+5. **`dotnet`, `golang` and `ruby-rails` have one question each**, and the blueprint's own rule says
+   a variant with one question is a variant we are not really serving. Two passes said the single
+   slot is better spent on something a colleague experiences than on a language trap. Each earns a
+   second question or comes off `roles.yaml`.
+6. **Eight untagged questions carry JavaScript snippets** (`db.query`, `app.get`, `res.json`). A
+   Laravel, Spring or Django candidate meets them with no warning that the language is not theirs.
+   Either the prompt says so, or the general snippets are written in pseudocode.
+
+What this bank still does not prepare a candidate for: a live coding round and live SQL (out of
+scope by the engine, stated on the role's page), a full system-design round (two conversational
+questions are not one), and an `intern-junior` track — backend's only track is at `mid`, which
+`check-bank.mjs` reports every run.

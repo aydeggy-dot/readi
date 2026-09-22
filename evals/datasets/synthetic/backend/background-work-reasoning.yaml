@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: background-work-reasoning
+question: email-in-the-request
+# `fluent-but-wrong` believes `await` blocks Node's event loop and that an un-awaited promise is
+# handed to the libuv thread pool on a real OS thread — so it drops the `await`, raises
+# `UV_THREADPOOL_SIZE`, calls a queue "a thread pool you have to operate yourself", and concludes
+# delivery is guaranteed. It is the fire-and-forget answer with a mechanism attached. 1/1/1
+# against `strong`'s 4/4/3.
+answers:
+  - kind: strong
+    text: |
+      Okay, so the problem is the handler is doing two things and only one of them is actually
+      sign-up. Creating the user is our work, sending the welcome email is somebody else's server,
+      and we're making the person wait for it. That's your four seconds — that's the provider's
+      latency, not ours. And worse, if the send throws, the await throws, the whole handler fails,
+      so the user gets an error even though we already created them. So they've got an account and
+      they're being told they don't. Then they retry and now it's a duplicate email error, which
+      is confusing. What I'd do is finish the request as soon as the user row is committed —
+      respond 201 there — and push the email onto a queue. Redis, BullMQ, whatever we already use.
+      The job retries with backoff, and if it exhausts retries it goes somewhere a human can see.
+      For the user, the page should just say the account is created, check your email, and it can
+      take a minute — with a resend button that actually works. Don't block sign-in on the email
+      either; the account exists.
+    expected:
+      - dimension: Says what the user is paying for
+        score: 4
+        because: The account is created and the user is told it is not — the failure is dishonest, not only slow.
+      - dimension: Gets the work out of the request
+        score: 4
+        because: "A queue with backoff, and what that buys: a job that lands somewhere a human can see rather than a send that is simply lost."
+      - dimension: Says what the user is told
+        score: 3
+        because: Account created, check your email, it can take a minute, with a resend that works; does not stop short of claiming the send happened.
+  - kind: weak
+    text: |
+      So, um, four seconds is quite slow, yeah. I think the issue might be that the email is slow,
+      so the user waits. What I would do is maybe make the email send faster, like use a faster
+      provider, or check if we can reduce the timeout so it doesn't hang so long. Also I would add
+      a try-catch around the sendWelcomeEmail so that if it fails the whole thing doesn't fail —
+      because right now if it throws, the user sees an error. So wrap it in try-catch, log the
+      error, and continue. And for the user, I'd show a nicer error message instead of a raw
+      error, something like "something went wrong, please try again". Maybe also a loading spinner
+      so they know it's working and don't click twice. If the email never arrives... I think they
+      should contact support, or we could have a button to resend it. I'm not too sure how you'd
+      track that it didn't arrive, to be honest. Probably logging.
+    expected:
+      - dimension: Says what the user is paying for
+        score: 1
+        because: Names the wrong cost — the provider being slow and needing to be swapped, or a shorter timeout.
+      - dimension: Gets the work out of the request
+        score: 1
+        because: "A `try`/`catch` that logs and carries on: fire and forget, given as the fix."
+      - dimension: Says what the user is told
+        score: 1
+        because: A nicer error and a spinner, and the question treated as answered.
+  - kind: fluent-but-wrong
+    text: |
+      Right, so the core issue here is that this is Node, which is single-threaded, and `await`
+      blocks the event loop. While that await on sendWelcomeEmail is pending, the process can't
+      pick up any other request — so under load you're serialising every sign-up behind the email
+      provider. That's the four seconds, and it's four seconds for everybody, not just the one
+      person. The fix is to drop the await. If you call sendWelcomeEmail without awaiting, Node
+      hands it off to the libuv thread pool and it runs on a real OS thread, in parallel, so the
+      main thread goes straight to res.status(201) and the response is instant. You don't need a
+      queue for something this small — a queue is just a thread pool you have to operate yourself.
+      I'd also bump UV_THREADPOOL_SIZE, since the default four threads is the actual ceiling on
+      concurrent sends. For the user, nothing changes in the copy: we return 201 immediately and
+      the thread completes the send, so the email is guaranteed to go out. If it never arrives
+      it's the provider's spam filter, and that's a support conversation.
+    expected:
+      - dimension: Says what the user is paying for
+        score: 1
+        because: The wrong cost named with a mechanism — four seconds for everybody, because `await` is believed to block the loop.
+      - dimension: Gets the work out of the request
+        score: 1
+        because: Drops the `await` and leaves the call in the handler, described as not needing a queue at all.
+      - dimension: Says what the user is told
+        score: 1
+        because: '"Nothing changes in the copy" — a 201 returned and the send assumed to have happened.'
+  - kind: correct-poorly-explained
+    text: |
+      So the email shouldn't be there, in the request, that's the thing. Because — okay, two
+      problems, which are kind of the same problem. One is time, the four seconds is the provider,
+      we're just sitting there. The other one, which is worse actually, is if it throws. Because
+      then the whole handler throws, so it's a 500 or whatever, but the user is already in the
+      database, createUser already ran and committed, so they've got an account and we told them
+      they haven't. Then they try again and it says email already taken. So. Put it on a queue.
+      Respond as soon as the user is saved, then a worker sends it, and it retries, and if it
+      keeps failing after a few tries it lands in a dead letter thing for someone to look at. The
+      message should say account created, check your inbox, might take a minute, and have a
+      resend. And — sorry, one more — they should be able to log in regardless. The account is
+      real. The email is not the account.
+    expected:
+      - dimension: Says what the user is paying for
+        score: 4
+        because: '"They''ve got an account and we told them they haven''t. Then they try again and it says email already taken."'
+      - dimension: Gets the work out of the request
+        score: 3
+        because: A queue, a worker, retries and a dead letter; says less about what that buys than `strong` does.
+      - dimension: Says what the user is told
+        score: 3
+        because: Account created, check your inbox, might take a minute, a resend — and sign-in does not depend on it.
+  - kind: nigerian-english
+    text: |
+      Okay. The handler is doing two different things. Creating the user na our own work, but
+      sending the email na another person server — the provider. So we're making the person wait
+      for something that's not even ours. Na that one be the four seconds. And if the send fail,
+      the await go throw, the whole handler go fail, so the user go see error even though we don
+      done create the account already. So the account dey there but we tell am say e no work. He
+      go try again, now it will say the email is already taken. Confusion. What I go do: once the
+      user row don commit, respond 201 that moment, and push the email go queue — Redis, BullMQ,
+      whichever one we dey use. The job go retry with backoff, and if e finish the retries, e go
+      land somewhere person fit see am. For the user, just say account created, check your email,
+      e fit take one minute, and put resend button wey dey work. And make sign-in no depend on the
+      email at all — the account exists.
+    expected:
+      - dimension: Says what the user is paying for
+        score: 4
+        because: "Same as `strong`: the account exists and the person is told it does not."
+      - dimension: Gets the work out of the request
+        score: 4
+        because: "Same: respond once the row commits, the email on a queue with backoff and somewhere to land."
+      - dimension: Says what the user is told
+        score: 3
+        because: "Same: check your email, it may take a minute, a resend button that works, and sign-in independent of it."

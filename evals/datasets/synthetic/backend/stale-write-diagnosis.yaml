@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: stale-write-diagnosis
+question: django-save-overwrote-a-change
+# `fluent-but-wrong` asserts Django dirty-tracks assigned fields so `save()` emits `is_verified`
+# alone — the exact inverse of the fact the question turns on — and builds a complete snapshot-
+# isolation story on top of it, prescribing an isolation-level change and `select_for_update`.
+# 1/1/1 against `strong`'s 3/4/4.
+answers:
+  - kind: strong
+    text: |
+      Okay so the problem is the `get` and then the `save`. The `get` pulls the whole row into a
+      Python object — every field, including the phone number exactly as it was at that moment.
+      Then there's the slow provider call, and while we're sitting there waiting, support opens
+      the record, changes the phone number, and their write commits perfectly fine. Then we come
+      back, set `is_verified`, call `save()` — and Django's default save writes every field on the
+      model back, not just the one you touched. So it puts the phone number it read a minute ago
+      straight over support's edit. That's a lost update. And the minute is simply how long the
+      provider call takes; that's the window. Normally the read and the write are a few
+      milliseconds apart so you'd never see it, but here we're holding stale data across a network
+      call. What I'd write instead is `Customer.objects.filter(pk=pk).update(is_verified=True)` —
+      one UPDATE, one column, no read at all, so there's nothing stale to write back.
+      `save(update_fields=["is_verified"])` would also do it. And honestly that provider call
+      shouldn't be in the view.
+    expected:
+      - dimension: Says what `save()` writes
+        score: 3
+        because: "`get` loads every field and `save()` writes them all back, so a minute-old phone number lands over support's edit."
+      - dimension: Says what made the window wide
+        score: 4
+        because: The provider call is the window, and normally a read and a write are milliseconds apart so nobody ever sees it.
+      - dimension: Writes only what changed
+        score: 4
+        because: "`filter(pk=pk).update(...)` with no read at all, `update_fields` named as the alternative, and the provider call moved out of the view."
+  - kind: weak
+    text: |
+      So, um, I think the issue is that the code is saving the customer and the customer object is
+      old. Maybe it's cached. Django caches querysets I believe, so the `get` might be handing
+      back an old version of the customer from cache rather than the database. I'd add a refresh —
+      I think there's `refresh_from_db` — I'd put that in before the save. The one minute, maybe
+      that's how long the cache lives before it expires, like a timeout setting somewhere in
+      settings. For what I'd write instead, I'd probably wrap the whole thing in
+      `transaction.atomic`, because that's what makes database operations safe. And maybe support
+      shouldn't be editing at the same time verification is running, so we could ask them to wait
+      until it finishes. Sorry, I've used Django mostly for CRUD, so the concurrency side I
+      haven't really had to deal with before.
+    expected:
+      - dimension: Says what `save()` writes
+        score: 1
+        because: A specific wrong cause — Django caching the queryset and handing back an old customer.
+      - dimension: Says what made the window wide
+        score: 1
+        because: A cache lifetime somewhere in settings, offered as why it is a minute.
+      - dimension: Writes only what changed
+        score: 1
+        because: "`refresh_from_db` before the save, and `transaction.atomic` around it — the window narrowed, not closed."
+  - kind: fluent-but-wrong
+    text: |
+      So the ORM isn't the culprit here — Django tracks which fields have been assigned on the
+      instance, so `save()` emits an UPDATE for `is_verified` only. The phone column isn't in that
+      statement at all. What's actually happening is snapshot isolation. `ATOMIC_REQUESTS` is on,
+      so the transaction opens at the `get()` and Postgres pins a snapshot of that row at that
+      instant. Support's update commits inside our window, but our transaction can't see it, and
+      when we commit, the row version we're holding is written back out of the snapshot —
+      support's version is superseded and their phone number goes. And that's precisely why it's a
+      minute rather than a millisecond: the transaction stays open for the whole provider call, so
+      the snapshot is a minute stale by the time we commit. The fix is at the isolation level, not
+      in the code — take this view out of `ATOMIC_REQUESTS`, or move it to READ COMMITTED so the
+      row is re-read at commit time, and take `select_for_update` on the `get()` so support queues
+      behind us instead of being lost.
+    expected:
+      - dimension: Says what `save()` writes
+        score: 1
+        because: Dirty-tracking asserted, so the phone column is believed not to be in the statement at all.
+      - dimension: Says what made the window wide
+        score: 1
+        because: A transaction held open across the provider call, given as why the snapshot is a minute stale.
+      - dimension: Writes only what changed
+        score: 1
+        because: An isolation-level change and `select_for_update`; `save()` still writes every field, because it is believed not to.
+  - kind: correct-poorly-explained
+    text: |
+      Right so — `filter(pk=pk).update(is_verified=True)`, that's what I'd write, one line. Sorry,
+      let me say why. The `save()` is the problem because it sends all the columns, not just the
+      one, and one of those columns is the phone number, which came from the `get` at the top,
+      which was — that's the thing — that was a minute ago. Because the provider call is sitting
+      in between and it's slow, so the object is going stale in memory while support is, yeah,
+      while support is changing the number in the database. Then we save, and ours is older but it
+      wins because it lands later. So it's not that the save is wrong exactly, it's that it's
+      writing something it read far too long ago. `update_fields` would also work if you want to
+      keep the save. And I'd move the provider call out of the view into Celery or something,
+      because a minute inside a request is, yeah, that's its own problem.
+    expected:
+      - dimension: Says what `save()` writes
+        score: 3
+        because: "`save()` sends all the columns, and one of them came from the `get` a minute ago."
+      - dimension: Says what made the window wide
+        score: 3
+        because: The provider call sits in between and is slow, so the object goes stale in memory.
+      - dimension: Writes only what changed
+        score: 3
+        because: "`filter(pk=pk).update(is_verified=True)`, with `update_fields` offered as the alternative and no preference between them."
+  - kind: nigerian-english
+    text: |
+      The wahala na the `get` and the `save`. The `get` go carry the whole row put inside one
+      Python object — every field, including the phone number as e dey that moment. Then that slow
+      provider call go start, and as we dey wait, support go open the same record, change the
+      phone number, and their own go commit well well. Now we come back, we set `is_verified`, we
+      call `save()` — and Django default save dey write every field wey dey the object, no be only
+      the one you touch. So e go carry the old phone number wey we read one minute ago go cover
+      support own. Na lost update be that. And the one minute na just how long the provider call
+      take — na that one be the window. Normally read and write dey happen back to back for
+      milliseconds, so you no go notice anything. Wetin I go write instead na
+      `Customer.objects.filter(pk=pk).update(is_verified=True)` — one UPDATE, one column, no read
+      at all, so nothing stale dey to write. `save(update_fields=['is_verified'])` go work too.
+      And that provider call no suppose dey inside the view at all.
+    expected:
+      - dimension: Says what `save()` writes
+        score: 3
+        because: "Same as `strong`: the whole row into the object, and every field written back over support's change."
+      - dimension: Says what made the window wide
+        score: 4
+        because: "Same: the provider call is the window, and milliseconds apart would never show it."
+      - dimension: Writes only what changed
+        score: 4
+        because: "Same: `filter(...).update(...)`, `update_fields` as the alternative, and the provider call out of the view."

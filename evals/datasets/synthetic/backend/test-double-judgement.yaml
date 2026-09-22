@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: test-double-judgement
+question: mocking-what-you-do-not-own
+# `fluent-but-wrong` claims a stub generated from the provider's OpenAPI spec *is* a contract test
+# by construction, so the integration was already proven and two days of failures must be
+# transport-level. It then makes the double stricter against assumptions we wrote ourselves, adds
+# retries and a breaker, and refuses to call the sandbox because "a red build nobody believes is
+# worse than no build". 0/1/1 against `strong`'s 3/3/4.
+answers:
+  - kind: strong
+    text: |
+      So what those tests proved is that our code calls our payment client, and that when
+      something hands it back the success shape we invented, we do the right thing with it. That's
+      genuinely all. They proved nothing about the provider — not that the field names are right,
+      not the error codes, not auth, not timeouts, not what a `pending` status even looks like.
+      And because the fake always says yes, every failure path is completely untested, which is
+      exactly where a live payment breaks. What I'd change about them: keep them, they're fine as
+      unit tests, but build the fake from real captured responses rather than from my head, and
+      add cases for a decline, a timeout, a duplicate charge. Then a separate, smaller set of
+      tests that actually hit the provider's sandbox — on a schedule, not on every pull request,
+      so we hear about it when they change something. And honestly, two days is a monitoring
+      failure more than a testing one. I'd alert on payment success rate over a window, and on
+      anything stuck pending for more than a few minutes.
+    expected:
+      - dimension: Says what the tests were proving
+        score: 3
+        because: They proved our code handles the success shape we invented, and nothing about the provider; does not go as far as saying they were no evidence at all.
+      - dimension: Improves the double without removing it
+        score: 3
+        because: Keeps them, builds the fake from captured responses, and adds a decline, a timeout and a duplicate charge.
+      - dimension: Puts something outside the tests
+        score: 4
+        because: The sandbox on a schedule rather than per pull request — and names two days as a monitoring failure more than a testing one.
+  - kind: weak
+    text: |
+      Hmm, okay. So the tests passed but the payment failed, which means the tests weren't testing
+      the right thing. I think the problem is we don't have enough tests — like there might be a
+      case we didn't think of. So I'd write more of them, cover more of the code, try to get the
+      coverage up, because if coverage is high you catch more bugs. Maybe also the mock needs to
+      be more realistic, so I'd ask the payments provider for a better example response. Um, and
+      we should test in staging before we deploy, manually, just click through a payment and see.
+      For catching it — two days is too long, so someone should be checking. Maybe a daily report
+      of failed payments that goes to the team? Or the support people would tell us. Sorry, I know
+      this isn't a great answer, I haven't worked with a payment provider before.
+    expected:
+      - dimension: Says what the tests were proving
+        score: 1
+        because: Blames coverage — more tests, more cases — and asks the provider for a better example.
+      - dimension: Improves the double without removing it
+        score: 2
+        because: The fake should be "more realistic", with no account of where realism would come from.
+      - dimension: Puts something outside the tests
+        score: 1
+        because: More tests and a manual click-through in staging; a daily report, or support telling us.
+  - kind: fluent-but-wrong
+    text: |
+      Right, so the key thing is where the fake sits. Ours is generated from the provider's
+      OpenAPI spec, so the stub and the real service are conformant to the same contract by
+      construction — that is a contract test, it runs offline. So the tests did prove the
+      integration: our request satisfies their schema and we handle their response schema. What
+      they didn't cover is the transport, and that's where two days of failures actually come from
+      — TLS renegotiation, DNS, their edge dropping connections. So what I'd change is to make the
+      double strict: assert exact call counts, assert every argument with matchers, and fail the
+      test if any unexpected call happens, because a loose mock is what lets a drifted call slip
+      past. Then wrap the client in retries with exponential backoff and a circuit breaker, so
+      transport blips self-heal. What I would not do is call their sandbox from CI — sandboxes
+      drift from production, they go down, and a red build nobody believes is worse than no build.
+      Regenerate the stub from their spec on a nightly job instead, and you get the same signal
+      deterministically.
+    expected:
+      - dimension: Says what the tests were proving
+        score: 0
+        because: Concludes the tests did prove the integration, because the stub and the service share a schema.
+      - dimension: Improves the double without removing it
+        score: 1
+        because: Tightens the double against assumptions we wrote ourselves — exact call counts, strict matchers, nightly regeneration from the spec.
+      - dimension: Puts something outside the tests
+        score: 1
+        because: Retries and a circuit breaker, and the sandbox refused on principle.
+  - kind: correct-poorly-explained
+    text: |
+      They proved our side. That's it, basically — like, given a yes, we do the yes thing. But the
+      yes came from us, so, yeah. Sorry, let me — the fake always succeeds, so the whole other
+      half, declines, timeouts, the card being refused, none of that ever ran, and that's the half
+      that breaks in real life. And nothing checked that what we think their response looks like
+      is what it actually looks like, because we wrote both sides. So I'd keep the tests but the
+      fake should use responses we copied off a real call, not made up, and there should be a
+      declined one and a timed-out one and one where it's still pending. And then separately
+      something that really talks to their sandbox, not every commit, maybe nightly, so when they
+      rename a field we find out. Oh and — two days. Nobody knew for two days. So an alarm on the
+      success rate, if payments drop below whatever's normal for an hour, somebody gets woken up.
+      That's the bit that actually saves you.
+    expected:
+      - dimension: Says what the tests were proving
+        score: 3
+        because: '"They proved our side... but the yes came from us" — and the whole failure half never ran.'
+      - dimension: Improves the double without removing it
+        score: 3
+        because: Responses copied off a real call rather than made up, with a declined one, a timed-out one and a pending one.
+      - dimension: Puts something outside the tests
+        score: 4
+        because: Something that really talks to the sandbox nightly — and an alarm on the success rate, "that's the bit that actually saves you".
+  - kind: nigerian-english
+    text: |
+      Wetin those tests prove be say our own code dey work — if something give am the success
+      response wey we ourselves write, we go handle am well. It no prove anything about the
+      provider: not the field names, not the error codes, not auth, not timeout, not even wetin
+      "pending" dey look like. And because the fake dey always say yes, every failure path never
+      run at all — and na there live payment dey break. So wetin I go change: the tests fit stay,
+      but make we build the fake from real response wey we capture from them, not from my head,
+      and add case for decline, for timeout, for duplicate charge. Then make we get small separate
+      test wey dey really hit their sandbox — not on every PR, make e run on schedule, so if dem
+      change anything we go hear. But to be honest, two days na monitoring problem pass testing
+      problem. I go put alert on the payment success rate, and if any payment remain for pending
+      pass some minutes, make person sabi. That one for tell us within one hour.
+    expected:
+      - dimension: Says what the tests were proving
+        score: 3
+        because: "Same as `strong`: it proved our code, not the provider — not the field names, the error codes, auth or timeouts."
+      - dimension: Improves the double without removing it
+        score: 3
+        because: "Same: build the fake from a captured response, and add decline, timeout and duplicate cases."
+      - dimension: Puts something outside the tests
+        score: 4
+        because: "Same: the sandbox on a schedule, and the two days named as the monitoring problem."

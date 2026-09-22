@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: duplicate-job-reasoning
+question: the-job-that-ran-twice
+# `fluent-but-wrong` says the broker acknowledges on receipt and keeps the dedupe window in the
+# worker's memory, so the restart lost it. It then buys exactly-once at the broker and concludes
+# idempotency keys at the payment provider are unnecessary — and would let the vendor find out at
+# month-end reconciliation. 1/0/1 against `strong`'s 3/4/3.
+answers:
+  - kind: strong
+    text: |
+      So queues are at-least-once. The worker picks the message up, it doesn't ack or delete it
+      until the job finishes, and if the worker dies halfway the broker waits out the visibility
+      timeout and hands the same message to somebody else. From its side nothing went wrong — it
+      can't tell a crash before the work from a crash after. So assume every job runs twice. Which
+      means the fix isn't in the queue, it's in the payout. I'd give every payout its own id in
+      our database and send that id to the payment provider as an idempotency key — most of them
+      support it, and then the second call just returns the first payout instead of moving money
+      again. And on our side, a row per payout with a unique constraint and a status, set to
+      "sending" before we call out, so a duplicate can't even start. For the vendor, I'd call them
+      the same day, before finance spots it. Say plainly we paid twice, give the date and
+      reference, ask whether they'd rather refund it or we net it off the next invoice, and
+      confirm in writing.
+    expected:
+      - dimension: Knows why a queue re-delivers
+        score: 3
+        because: "At-least-once by design: the message is not deleted until the job finishes, and the broker cannot tell a crash before the work from one after."
+      - dimension: Makes the job safe to run twice
+        score: 4
+        because: The payout's own id sent as the provider's idempotency key, plus a unique constraint and a status set before the call goes out.
+      - dimension: Says what happens to the money and the vendor
+        score: 3
+        because: Called the same day, before finance spots it, with the choice of a refund or a net-off confirmed in writing.
+  - kind: weak
+    text: |
+      Okay so it ran twice because the worker restarted, so I think the job started again from the
+      beginning when the server came back up. To stop it, I'd put a check at the top of the job —
+      check if this payout was already paid, and if yes, just return. Or a flag in the database,
+      paid true or false. I could also add a try-catch so that if something fails it doesn't
+      retry. Maybe the retry setting is too high as well, so I'd set retries to zero, then it
+      can't run twice at all. For the vendor, I'd apologise and explain there was a technical
+      issue on our side and it won't happen again. The money coming back — I think the finance
+      team handles that part, they'd know the process for that. I'd definitely tell my lead before
+      I message the vendor, since it's money, I wouldn't want to say the wrong thing to them.
+    expected:
+      - dimension: Knows why a queue re-delivers
+        score: 1
+        because: A specific wrong account — retries set to zero so it cannot run twice.
+      - dimension: Makes the job safe to run twice
+        score: 1
+        because: "A paid flag checked at the top of the job: a read before a write, with the same gap."
+      - dimension: Says what happens to the money and the vendor
+        score: 2
+        because: Apologise and explain a technical issue; the money is finance's to handle.
+  - kind: fluent-but-wrong
+    text: |
+      Right. So the reason a queue does that is that the broker acknowledges on receipt, not on
+      completion — the message is marked delivered the moment the worker pulls it, and the dedupe
+      window lives in the worker's memory. When the process restarted, that in-memory dedupe
+      window went with it, so on the scheduler's next tick the broker had no record that this
+      payout id had ever been seen, and handed it out again. That's why the restart is the trigger
+      — it's the lost dedupe state, not a missing ack. The fix is exactly-once semantics at the
+      broker: enable the idempotent producer, turn on transactional delivery, give each worker a
+      stable transactional id, and the broker guarantees the consumer observes each message once,
+      across restarts, because the dedupe window moves into the broker's log instead of the
+      worker's heap. Once you have that, you don't need idempotency keys down at the payment
+      provider — that's belt and braces, and a round trip per payout. For the vendor, I'd let it
+      surface at month-end reconciliation and net it off there; raising it before the numbers are
+      confirmed just creates noise.
+    expected:
+      - dimension: Knows why a queue re-delivers
+        score: 1
+        because: A dedupe record the broker is believed to keep, lost with the worker's memory on restart.
+      - dimension: Makes the job safe to run twice
+        score: 0
+        because: Asks the queue for exactly-once and says the provider needs no key — the job itself is unchanged.
+      - dimension: Says what happens to the money and the vendor
+        score: 1
+        because: Would let it surface at month-end reconciliation and net it off, because raising it earlier "just creates noise".
+  - kind: correct-poorly-explained
+    text: |
+      So the money — okay, the vendor. I'd tell them straight away, same day, say we paid twice,
+      give them the reference, ask whether they want to send it back or we take it off the next
+      invoice, and put all of it in writing. Sorry, the why. The queue... it didn't actually do
+      anything wrong, that's the thing. It only deletes the message when you tell it you're done,
+      and the worker never told it, because it died in the middle, so after the timeout it gave it
+      to another worker. That's at-least-once, that's normal, you can't really turn it off. So the
+      job has to be the thing that's safe to run twice, not the queue. Which is — an id per
+      payout, ours, sent to the provider as the idempotency key so their side ignores the second
+      one, and a unique constraint on our payouts table so we can't even insert the second row.
+      Yeah. The constraint is the one I trust more, honestly, because it's ours.
+    expected:
+      - dimension: Knows why a queue re-delivers
+        score: 3
+        because: "The queue did nothing wrong: it deletes only when told, and it was never told."
+      - dimension: Makes the job safe to run twice
+        score: 4
+        because: An id per payout sent as the provider's idempotency key, and a unique constraint they trust more "because it's ours".
+      - dimension: Says what happens to the money and the vendor
+        score: 3
+        because: Told the same day with the reference, and the choice between a refund and the next invoice, in writing.
+  - kind: nigerian-english
+    text: |
+      Queue na at-least-once. The worker go collect the message, but e no go delete am until the
+      job finish. So if the worker die for middle, the broker go wait the visibility timeout and
+      give another worker the same message — e no fit know whether the first one finish before e
+      die. So you must assume say every job go run twice. Meaning the fix no dey inside the queue,
+      na inside the payout. I go give every payout im own id for our database, then send that id
+      to the payment provider as idempotency key — most of dem support am, so the second call go
+      just return the first payout. Then for our own side, one row per payout with unique
+      constraint and a status, we set am to "sending" before we call out, so the duplicate no fit
+      even start. For the vendor, I go call them that same day before finance see am. Tell them
+      say we paid twice, give the date and reference, ask whether dem go refund or make we remove
+      am from the next invoice, and confirm am for email.
+    expected:
+      - dimension: Knows why a queue re-delivers
+        score: 3
+        because: "Same as `strong`: the message is not deleted until the job finishes, so assume every job runs twice."
+      - dimension: Makes the job safe to run twice
+        score: 4
+        because: "Same: the payout's id as the provider's idempotency key, a unique constraint, and a status set before the call."
+      - dimension: Says what happens to the money and the vendor
+        score: 3
+        because: "Same: call the same day before finance sees it, offer refund or net-off, confirm by email."

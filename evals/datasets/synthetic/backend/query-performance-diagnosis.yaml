@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: query-performance-diagnosis
+question: n-plus-one-diagnosis
+# `fluent-but-wrong` blames connection lifecycle: the session closing when the controller returns,
+# a cold pool, a TCP and TLS handshake per lazy load — and arrives at almost exactly three seconds
+# from arithmetic that is invented. It leaves the query untouched by design. 1/2/1 against
+# `strong`'s 4/4/3. Scoring it also broke criterion 1: level 3 demanded an execution plan, so a
+# strong answer that counts queries — which is the right move for an N+1 — was capped at 2 on a
+# 40% criterion. Rewritten.
+answers:
+  - kind: strong
+    text: |
+      Okay so — first thing, I don't trust my machine, because on my machine the database is on
+      localhost. So I'd go and look at the real request in production. If we have APM, Sentry or
+      Datadog or whatever, I open a trace for that endpoint and look at the span breakdown. If we
+      don't have that, I switch on SQL logging for that one route, or use the ORM's query counter,
+      and just count how many queries one request makes. My bet is it's not one query, it's
+      twenty-one — one to fetch the records and then one per record, because something in the
+      serializer is touching a relation lazily. On my laptop each of those costs a fraction of a
+      millisecond, so twenty-one of them is invisible. In production the database is on another
+      box, so every one is a network round trip, and you pay it twenty-one times. The fix is to
+      load the relation up front — an include or a join, one query — and then I'd add a test that
+      asserts the query count so it can't creep back in.
+    expected:
+      - dimension: Looks at what actually ran
+        score: 4
+        because: Goes to production and counts what the request actually made, and says why the laptop lies — the database is on localhost there.
+      - dimension: Recognises the pattern
+        score: 4
+        because: Twenty-one queries rather than one, and names the cost as a network round trip paid twenty-one times.
+      - dimension: Fixes it without creating the next problem
+        score: 3
+        because: Loads the relation up front in one query, and adds a test that asserts the query count; says nothing about what a join then over-fetches.
+  - kind: weak
+    text: |
+      Hmm. Three seconds is a lot, yeah. So… I'd probably first check the server, like, is the
+      server under load, maybe the CPU is high or the memory is full, because sometimes production
+      just has more traffic than your laptop. I'd restart the service and see if it still does it,
+      honestly, because sometimes it's just a thing that fixes itself. Then maybe I'd add caching?
+      Like put Redis in front of that endpoint so the second person doesn't wait three seconds.
+      Sorry — I'd also look at the logs, definitely check the logs, see if there's an error in
+      there or a warning. And the database is bigger in production so maybe the query is just
+      slower because there's more data, so maybe an index would help. I don't know exactly which
+      index without looking. If none of that works I'd ask whoever wrote the endpoint what it's
+      doing, or a senior, because they'd probably know where to look faster than me.
+    expected:
+      - dimension: Looks at what actually ran
+        score: 1
+        because: Checks CPU, memory and the logs, and would restart the service — never looks at what ran.
+      - dimension: Recognises the pattern
+        score: 1
+        because: '"The database is bigger in production so maybe the query is just slower" — no pattern named.'
+      - dimension: Fixes it without creating the next problem
+        score: 0
+        because: Would put Redis in front of the endpoint.
+  - kind: fluent-but-wrong
+    text: |
+      Right, this is a connection lifecycle problem, and it's classic. Locally your ORM session
+      stays open for the whole request, so the lazy loads on those twenty records all reuse one
+      connection. In production, open-session-in-view is off and the session closes when the
+      controller returns, so every lazy load has to go back to the pool and, because the pool's
+      idle timeout is shorter than the gap between requests, it doesn't get a warm connection — it
+      opens a new one. And a new connection to a managed Postgres means a fresh TCP handshake plus
+      a TLS handshake, which is about a hundred and forty milliseconds over the wire. Twenty
+      records, twenty handshakes, three seconds. That's your number, almost exactly. So the fix is
+      at the connection layer: raise the minimum idle connections so the pool stays warm, push the
+      idle timeout above your traffic gap, and turn on TCP keep-alive so the sockets survive
+      between requests. Nothing in the query needs to change — the query's fine, it's only ever
+      been the reconnects.
+    expected:
+      - dimension: Looks at what actually ran
+        score: 1
+        because: Looks at the connection pool rather than at the queries, and says so deliberately — "nothing in the query needs to change".
+      - dimension: Recognises the pattern
+        score: 2
+        because: Names a different pattern — cold-pool reconnects and TLS handshakes — and argues it in full, down to the millisecond count.
+      - dimension: Fixes it without creating the next problem
+        score: 1
+        because: Raises the pool minimum and the idle timeout; the query is left exactly as it was.
+  - kind: correct-poorly-explained
+    text: |
+      So the thing is it's fine locally because — okay. Twenty records. Twenty records is nothing,
+      so the code isn't the problem, it's how many times it goes. Sorry, let me say it properly.
+      You'd have to log the SQL, or there's a thing in the ORM that counts them, and I think what
+      you'd see is like twenty-something queries instead of one, because when you loop over the
+      records and read the related thing, each read goes and fetches. Which on your laptop is
+      nothing because the database is right there, it's the same machine, but in production it's
+      over the network so each one is maybe a hundred milliseconds of just going there and coming
+      back, times twenty, and that's your three seconds. So you'd fix it by pulling the related
+      stuff in the first query instead, the include thing, eager loading. And yeah, then you'd
+      want something that fails if the query count goes up again, a test, otherwise someone adds a
+      field and it comes back.
+    expected:
+      - dimension: Looks at what actually ran
+        score: 4
+        because: Gets to twenty-something queries instead of one, and to the laptop having the database on the same machine.
+      - dimension: Recognises the pattern
+        score: 3
+        because: Names the shape — each read goes and fetches — and the round trip, without separating it from row-scanning cost.
+      - dimension: Fixes it without creating the next problem
+        score: 3
+        because: Eager loading, and a test that fails if the count climbs back.
+  - kind: nigerian-english
+    text: |
+      Ah, the first thing I go tell you is: my laptop dey lie to me. The database dey the same
+      machine, so everything fast, na network I never pay for. So I go straight to production. If
+      we get APM, I open the trace and look where the time dey go. If we no get, I turn on SQL
+      logging for that route alone and I count am — how many queries one request dey do? And
+      normally, you go see say na twenty-one. One to bring the twenty records, then one each,
+      because something inside the serializer is touching a relation and it go fetch am one by
+      one. For my laptop, that one na nothing, less than a millisecond each. For production, the
+      database dey another server, so every single one is a round trip going and coming, twenty-
+      one times, and that's how e take reach three seconds. So make you load the relation from the
+      beginning — include am, join am, make e be one query — and then write a test wey go fail if
+      the query count climb back up.
+    expected:
+      - dimension: Looks at what actually ran
+        score: 4
+        because: 'Same as `strong`: "my laptop dey lie to me", then counts the queries in production.'
+      - dimension: Recognises the pattern
+        score: 4
+        because: "Same: twenty-one queries, and the round trip paid every time because the database is on another server."
+      - dimension: Fixes it without creating the next problem
+        score: 3
+        because: "Same: load the relation from the beginning, and a test that fails if the count climbs."

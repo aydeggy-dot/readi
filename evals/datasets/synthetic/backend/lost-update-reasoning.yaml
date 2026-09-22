@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: lost-update-reasoning
+question: the-counter-that-lost-updates
+# The pairing this rubric had to survive: `fluent-but-wrong` builds a detailed Postgres story —
+# group commit collapsing two updates to the same 8K page into one WAL record — that gets the
+# *scaling* argument structurally right from a mechanism that does not exist, and prescribes a
+# durability setting. 1/1/1 against `strong`'s 4/4/4.
+answers:
+  - kind: strong
+    text: |
+      So it's a read-modify-write, and there's a gap in the middle of it. Two requests both read
+      four hundred, both add one, both write four hundred and one. Two views, one counted. Nothing
+      errors because both writes succeeded — they just wrote the same number. The reason it gets
+      proportionally worse with popularity is the gap is a fixed length, right, it's however long
+      the round trip takes, maybe a few milliseconds. What changes is how many other views land
+      inside that window. At one view a minute, nobody's ever in your gap. At ten a second,
+      there's usually somebody, sometimes three people, and all of them collapse into one
+      increment. So the loss isn't a fixed number of views, it's a fraction, and the fraction
+      climbs with the rate. The fix is to stop reading it into the app at all — `UPDATE listings
+      SET views = views + 1 WHERE id = ?`, one statement, the database does the add while it holds
+      the row lock. If it's really hot I'd not write per view at all, I'd count in Redis and flush
+      periodically.
+    expected:
+      - dimension: Finds the read-modify-write
+        score: 4
+        because: Both read four hundred, both write four hundred and one — and nothing errors because both writes were valid.
+      - dimension: Says why it scales with traffic
+        score: 4
+        because: The gap is a fixed round trip and the arrivals inside it scale with traffic, so a fraction is lost rather than a number; nine hundred to four hundred fits.
+      - dimension: Moves the arithmetic to where the row is
+        score: 4
+        because: One statement in the database, and would count in Redis and flush periodically if it were hot enough not to need exactness.
+  - kind: weak
+    text: |
+      Right, so the count is wrong, it's lower than it should be. I'd guess some of the requests
+      are failing before they get here — maybe the page is cached so the code never runs for some
+      people, or people have ad blockers, something like that. Or bots getting filtered out of one
+      of the numbers. I'd compare the log count and the database count for one specific listing
+      over a day and see where they diverge. Um, in the code, `findById` then `update`, that looks
+      okay to me, it reads it and adds one. Maybe the update is failing silently sometimes? I'd
+      add a try-catch and log it, and check the database for errors. It could also be that views
+      is an integer and it's overflowing, though four hundred is small. As it gets more popular
+      there's more traffic so more chance of something failing, I suppose. I'd mainly want to add
+      logging first and then see.
+    expected:
+      - dimension: Finds the read-modify-write
+        score: 1
+        because: A specific wrong cause — the counter overflowing, requests failing silently, bots filtered out of one of the numbers.
+      - dimension: Says why it scales with traffic
+        score: 1
+        because: '"More traffic so more chance of something failing" — the growth attributed to something else.'
+      - dimension: Moves the arithmetic to where the row is
+        score: 0
+        because: Would add logging and compare counts; no change to where the adding happens.
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, this is a write-coalescing problem, it's below the application. Both updates are
+      UPDATEs to the same row, and in Postgres the same row lives in the same 8K page. Updates are
+      applied to the page in the buffer cache, and the commits are batched — group commit gathers
+      everything in a short window and flushes the WAL once. When two updates to the same row land
+      in the same group-commit window, the second one writes over the first in the page image
+      before it's ever flushed, and you get one WAL record, not two. The earlier increment is
+      gone. That's why the loss scales with popularity: the window is a fixed few milliseconds, so
+      the hotter the row, the more updates fall into each window and get collapsed. It's silent
+      because both transactions did commit — they just committed one page. The fixes follow:
+      `synchronous_commit = on` for that write so it flushes per transaction and stops coalescing,
+      and longer term take the counter off the listings row into its own counts table so the hot
+      row isn't sharing a page with anything else.
+    expected:
+      - dimension: Finds the read-modify-write
+        score: 1
+        because: Group commit collapsing two updates into one page image — a specific mechanism, argued from the storage layer, that is not what happens.
+      - dimension: Says why it scales with traffic
+        score: 1
+        because: The growth attributed to a commit window that is not there, although the shape of the argument is right.
+      - dimension: Moves the arithmetic to where the row is
+        score: 1
+        because: "`synchronous_commit` and a separate counts table: a setting change that does not touch where the adding happens."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so, um, it's, the line where it adds one — the adding is happening here, in Node, not
+      in the database, and that's, yeah, that's what does it. Because you read four hundred,
+      right, and then in between reading it and writing it, someone else reads it, and they also
+      get four hundred, so you both write four-oh-one. So you lost one. And, um, the more popular
+      it is the worse it is, because the bit in between, the gap, it stays the same size, it's
+      just a network round trip, but there's more people arriving inside it, so, like, if three
+      people are in there you lose two instead of one. It's a percentage thing rather than a fixed
+      thing, that's why it gets worse. And it doesn't error because, well, both of the updates
+      worked fine, they just wrote the same number. You'd do it in SQL instead — views equals
+      views plus one, in the update — then it's one statement and nothing can get in between.
+    expected:
+      - dimension: Finds the read-modify-write
+        score: 4
+        because: The adding happens in Node, not the database; both updates worked fine and wrote the same number.
+      - dimension: Says why it scales with traffic
+        score: 3
+        because: '"It''s a percentage thing rather than a fixed thing" — the proportion, without saying what it predicts.'
+      - dimension: Moves the arithmetic to where the row is
+        score: 3
+        because: Views equals views plus one, in the update, so nothing can get in between.
+  - kind: nigerian-english
+    text: |
+      Na read-modify-write, and gap dey inside am. Two request go read four hundred together, both
+      of them go add one, both go write four hundred and one. Two views, but na one we count.
+      Nothing go error because the two write succeed — na the same number them write. The reason e
+      dey worse as the listing dey popular: the gap na fixed length, just the round trip, few
+      milliseconds. Wetin dey change na how many views go land inside that window. If na one view
+      per minute, nobody go enter your gap. But if na ten per second, person go dey inside every
+      time, and all of them go squeeze into one increment. So no be fixed number of views we dey
+      lose, na fraction, and the fraction dey climb with traffic. The fix na to stop bringing the
+      number come app at all — `UPDATE listings SET views = views + 1 WHERE id = ?`, one
+      statement, make database do the addition while e hold the row lock. If the thing hot well
+      well, I fit count for Redis then flush am small small.
+    expected:
+      - dimension: Finds the read-modify-write
+        score: 4
+        because: "Same as `strong`: two requests read four hundred, one increment survives, and nothing errors."
+      - dimension: Says why it scales with traffic
+        score: 4
+        because: "Same: a fixed gap, more arrivals inside it, a fraction rather than a number."
+      - dimension: Moves the arithmetic to where the row is
+        score: 4
+        because: "Same: one statement in the database, and Redis with a periodic flush if it is hot enough."

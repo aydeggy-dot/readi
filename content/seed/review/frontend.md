@@ -58,7 +58,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 Not that it was overwritten too quickly to see — that no frame was painted between the two assignments, so there was never anything to see.
 
 - **0 (absent):** Concludes the line did not run, or that the code is wrong.
-- **1 (weak):** A story about the writes rather than about painting — too quick to see, the second line overwriting the first, the two assignments batched together so only the last survived — however confidently told.
+- **1 (weak):** A story about the writes rather than about painting — too quick to see, the second line overwriting the first, the two assignments batched together so only the last survived.
 - **2 (partial):** Says the screen did not update, without saying why the update never reached it.
 - **3 (solid):** Says the text was set but the browser never painted between the two assignments.
 - **4 (excellent):** As 3, and says what was on screen for those two seconds instead — whatever the tap found there.
@@ -68,7 +68,7 @@ Not that it was overwritten too quickly to see — that no frame was painted bet
 One thread runs the handler and draws the page and cannot do both at once, so the frame comes after the handler returns.
 
 - **0 (absent):** Treats drawing the page as something that happens independently of the code.
-- **1 (weak):** A mechanism that is not this one — the browser batching updates for performance, rendering on another thread, `textContent` being asynchronous — however precisely it is put.
+- **1 (weak):** A mechanism that is not this one — the browser batching updates for performance, rendering on another thread, `textContent` being asynchronous.
 - **2 (partial):** Says the thread is busy, without connecting that to when the page can be drawn.
 - **3 (solid):** Says the same thread runs the handler and paints, so no frame can be produced until the handler returns.
 - **4 (excellent):** As 3, and extends it to the rest of the page — the tap that goes unanswered, the scroll that stalls — because they wanted the same thread.
@@ -127,7 +127,7 @@ What they would change, and how they would know it had worked.
 The outer function never returns anything; the `return` inside belongs to the callback.
 
 - **0 (absent):** Sees nothing wrong, or blames the data.
-- **1 (weak):** Puts the fault somewhere it is not — the `if`, the property name, an empty array — whether guessed at or argued in detail.
+- **1 (weak):** Puts the fault somewhere it is not — the `if`, the property name, an empty array — whether guessed at or worked through.
 - **2 (partial):** Notices that `openJobs` returns nothing, without saying what the inner `return` does instead — or gives that `return` a behaviour it does not have and makes the missing assignment the whole of the bug.
 - **3 (solid):** Says the `return` ends the arrow function and the outer one falls off the end, so the caller gets `undefined`.
 - **4 (excellent):** As 3, and says the loop itself runs correctly — nothing is broken except what is done with the result.
@@ -137,7 +137,7 @@ The outer function never returns anything; the `return` inside belongs to the ca
 That it throws away whatever the callback returns, so no `return` inside it can produce a value.
 
 - **0 (absent):** Treats `forEach` as interchangeable with any other loop.
-- **1 (weak):** Gives `forEach` a behaviour it does not have — that the `return` skips to the next item and is otherwise fine, that it stops the loop, that it collects what is returned — however confidently.
+- **1 (weak):** Gives `forEach` a behaviour it does not have — that the `return` skips to the next item and is otherwise fine, that it stops the loop, that it collects what is returned.
 - **2 (partial):** Says `forEach` "does not return anything" without connecting that to the callback's value.
 - **3 (solid):** Says `forEach` ignores what the callback gives back, and is there for side effects.
 - **4 (excellent):** As 3, and separates it from the methods whose whole purpose is the value the callback returns.
@@ -194,7 +194,7 @@ Loading, empty, error and data — with empty treated as normal, not as an error
 Knows that `fetch` resolves for a 404 or a 500 and that the status must be checked — the single most common mistake in this area.
 
 - **0 (absent):** No error handling at all.
-- **1 (weak):** Relies on the request rejecting — a `try`/`catch` only, or a confident claim that `fetch` throws on a 404 or a 500.
+- **1 (weak):** Relies on the request rejecting — a `try`/`catch` only, or the claim that `fetch` throws on a 404 or a 500.
 - **2 (partial):** Checks the status, but treats every failure the same way.
 - **3 (solid):** Checks `response.ok`, and separates "the request failed" from "the server said no".
 - **4 (excellent):** As 3, and distinguishes statuses that deserve different handling (401 vs 404 vs 500).
@@ -242,7 +242,7 @@ Local, lifted to the nearest common parent, in the URL, or in a server cache —
 
 - **0 (absent):** No decision, or "put it in a global store" with no reasoning.
 - **1 (weak):** Picks a place but cannot say why that one.
-- **2 (partial):** Lifts higher than necessary, or reaches for a global store first — including a confident case for the store built on a claim about re-renders that this tree does not support.
+- **2 (partial):** Lifts higher than necessary, or reaches for a global store first — including a case for the store built on a claim about re-renders that this tree does not support.
 - **3 (solid):** Lifts to the nearest component that needs it, and says why there.
 - **4 (excellent):** As 3, and recognises the kind of state it is (server data, UI state, or a URL concern).
 
@@ -266,7 +266,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 - **3 (solid):** Names the real cost of their choice and when it would push them to a different one.
 - **4 (excellent):** As 3, and gives the signal they would watch for to change the decision later.
 
-> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should *live*, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
+> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -770,11 +770,26 @@ Ephemeral interface state — an open menu, an unsent draft — is not a URL con
 **Setup the candidate is given**
 
 > ```css
-> .cards { display: grid; grid-template-columns: 1fr; }
+> .cards {
+>   display: grid;
+>   grid-template-columns: 1fr;
+> }
 >
-> @media (min-width: 480px) { .cards { grid-template-columns: 1fr 1fr; } }
-> @media (min-width: 768px) { .cards { grid-template-columns: 1fr 1fr 1fr; } }
-> @media (min-width: 1024px) { .cards { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+> @media (min-width: 480px) {
+>   .cards {
+>     grid-template-columns: 1fr 1fr;
+>   }
+> }
+> @media (min-width: 768px) {
+>   .cards {
+>     grid-template-columns: 1fr 1fr 1fr;
+>   }
+> }
+> @media (min-width: 1024px) {
+>   .cards {
+>     grid-template-columns: 1fr 1fr 1fr 1fr;
+>   }
+> }
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -870,7 +885,7 @@ Names the specific failures — overflow from an unbroken string, uneven heights
 
 Wrapping, space reserved for what may not arrive, and sizes the content can flow inside.
 
-- **0 (absent):** No technique, or fixed sizes that assume the sample data — including a confident set of them that would clip the content instead.
+- **0 (absent):** No technique, or fixed sizes that assume the sample data — including a specific set of them that would clip the content instead.
 - **1 (weak):** Would fix each case as it is reported.
 - **2 (partial):** One technique, applied narrowly.
 - **3 (solid):** Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
@@ -880,7 +895,7 @@ Wrapping, space reserved for what may not arrive, and sizes the content can flow
 
 Deliberately trying the worst content available rather than the sample you built against.
 
-- **0 (absent):** Nothing left to test — the sample data is assumed representative, or the geometry is presented as a guarantee.
+- **0 (absent):** Nothing left to test — the sample data is assumed representative, or the geometry is treated as a guarantee.
 - **1 (weak):** Would wait for a bug report.
 - **2 (partial):** Says they would "test with different data" without saying which.
 - **3 (solid):** Describes trying the longest, the shortest and the missing, before it ships.
@@ -974,7 +989,7 @@ That six large photographs may be a product decision rather than a delivery prob
 
 That a timeout says nothing about whether the server acted — the commonest wrong assumption here.
 
-- **0 (absent):** Assumes a timeout means the payment did not happen — plainly, or argued in detail from what the connection did.
+- **0 (absent):** Assumes a timeout means the payment did not happen — plainly, or from an account of what the connection did.
 - **1 (weak):** Says the request "failed" and moves on to retrying it.
 - **2 (partial):** Notices the uncertainty when prompted but does not build for it.
 - **3 (solid):** Says that the charge may have gone through and that the client has no way to know.
@@ -1290,7 +1305,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 - **1 (weak):** Updates the class names in all eleven tests and moves on.
 - **2 (partial):** Rewrites some selectors without a rule for the rest.
 - **3 (solid):** Selects by role, label or visible text, so the next refactor does not break them.
-- **4 (excellent):** As 3, and names a change to this screen that *should* break a test, so the fix is not "make the tests never fail".
+- **4 (excellent):** As 3, and names a change to this screen that _should_ break a test, so the fix is not "make the tests never fail".
 
 > **The drafter is unsure about:** This is the strongest testing question in the bank in my view, but it assumes the candidate has lived with a test suite long enough to have felt the cost, which many juniors here will not have. Two passes said mid only; one said keep both levels but move criterion 2's weight onto the two criteria that test reasoning rather than experience. I have done neither, because both are judgements about this market rather than defects. Which would you take?
 
@@ -1450,9 +1465,11 @@ A missing property means data that was assumed to be there was not.
 > 3. Ada Nwosu
 >
 > ```jsx
-> {applications.map((application, index) => (
->   <ApplicationRow key={index} application={application} />
-> ))}
+> {
+>   applications.map((application, index) => (
+>     <ApplicationRow key={index} application={application} />
+>   ));
+> }
 > ```
 >
 > `ApplicationRow` keeps the note the user is typing in its own `useState`. The tester then
@@ -1748,7 +1765,7 @@ Reactivity belongs to the container, not to the value taken out of it.
 - Reloading the jobs leaves the old filtered list on screen until the next keystroke.
 - The filtered list is derived from two things, so it should be computed rather than stored.
 - A computed value recalculates when either of them changes, and there is then only one list.
-- A watcher is still right for something that has to *happen* on a change — sending an analytics event, saving a draft.
+- A watcher is still right for something that has to _happen_ on a change — sending an analytics event, saving a draft.
 
 **Rubric: Diagnosing a stored list that drifts from its source** (`derived-list-diagnosis`)
 
@@ -1782,7 +1799,7 @@ Something that has to happen when a value changes, as opposed to a value that fo
 - **3 (solid):** Gives an example that has to happen rather than be shown — analytics, saving a draft, a request.
 - **4 (excellent):** As 3, and separates it from the filtered list by asking whether anything outside the component has to change.
 
-> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when *is* a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
+> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when _is_ a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1872,7 +1889,9 @@ Anything started in a component — subscription, timer, listener — is ended w
 > @Component({
 >   selector: "job-list",
 >   changeDetection: ChangeDetectionStrategy.OnPush,
->   template: `@for (job of jobs; track job.id) { <job-row [job]="job" /> }`,
+>   template: `@for (job of jobs; track job.id) {
+>     <job-row [job]="job" />
+>   }`,
 > })
 > export class JobListComponent {
 >   @Input() jobs: Job[] = [];
@@ -1924,7 +1943,7 @@ Angular re-renders on a short list of notifications; an assignment to a plain fi
 Replace the value rather than editing it, and treat a forced refresh as a smell.
 
 - **0 (absent):** Forces a refresh and stops.
-- **1 (weak):** Forces a refresh with no alternative — acknowledged as not ideal, or aimed confidently at a cause this code does not have.
+- **1 (weak):** Forces a refresh with no alternative — acknowledged as not ideal, or aimed at a cause this code does not have.
 - **2 (partial):** Replaces the value in this case without a general rule.
 - **3 (solid):** Assigns a new value so the change is visible, and explains why that is enough.
 - **4 (excellent):** As 3, and says that needing to force a check usually means the real cause is still there.
@@ -2151,7 +2170,7 @@ What the thing did, what it was built with, what was hard — detail an intervie
 A point where there were at least two options, and why they took the one they did.
 
 - **0 (absent):** No decision; a tour of the finished thing.
-- **1 (weak):** A choice presented as the only possibility ("I used React").
+- **1 (weak):** A choice given as the only possibility ("I used React").
 - **2 (partial):** A choice with a general reason that is not about their situation ("it is popular").
 - **3 (solid):** A choice with an alternative named, and a reason grounded in what they were building.
 - **4 (excellent):** As 3, and says what the choice cost them — the thing that got harder because of it.
@@ -2166,7 +2185,7 @@ Something specific they would do differently, and why they did not know it then.
 - **3 (solid):** Names a specific change and what went wrong that taught them it.
 - **4 (excellent):** As 3, and separates what they could reasonably have known at the time from what only experience gives.
 
-> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the *shape* of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
+> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2311,13 +2330,13 @@ JSON — and the difference between a junior and a mid-level engineer is usually
 much of that they thought about.
 
 **`fetch` only rejects when the request could not be made at all.** A 404 or a 500 is a
-*successful* fetch with an unhappy status. This is the single most common mistake in
+_successful_ fetch with an unhappy status. This is the single most common mistake in
 frontend error handling:
 
 ```js
 const response = await fetch(url);
 if (!response.ok) throw new Error(`HTTP ${response.status}`); // without this, a 500
-const data = await response.json();                          // becomes a parse error
+const data = await response.json(); // becomes a parse error
 ```
 
 **Every screen that loads data has four states**, and all four need a design: loading,
@@ -2332,7 +2351,7 @@ user can choose.
 response did not arrive can take money twice — that is why the API gives you an
 idempotency key. When in doubt, ask, and say so in the interview.
 
-Finally: show *something* useful while waiting. A skeleton that matches the shape of
+Finally: show _something_ useful while waiting. A skeleton that matches the shape of
 the content beats a spinner, because the page does not jump when the data lands.
 
 - [ ] the lessons above are accurate, current, and worth a junior's time
@@ -2369,7 +2388,7 @@ useEffect(() => setTotal(items.reduce(sum, 0)), [items]);
 const total = items.reduce(sum, 0);
 ```
 
-**Server data is not UI state.** A list of jobs fetched from an API is a *cache* of
+**Server data is not UI state.** A list of jobs fetched from an API is a _cache_ of
 something that lives elsewhere: it can be stale, it can fail, it needs refetching. Copying
 it into `useState` and editing it by hand is how lists get out of step with the server.
 This is what TanStack Query and friends exist for.
@@ -2384,7 +2403,7 @@ back button. It costs nothing and interviewers notice.
 
 `useEffect` is for synchronising with something **outside** React — the network, a
 timer, a subscription, the document title, a map widget. Almost every other use of it
-is a bug waiting to happen, because an effect runs *after* render, which means the user
+is a bug waiting to happen, because an effect runs _after_ render, which means the user
 sees one frame of the wrong thing first.
 
 Three patterns worth recognising, because interviewers ask about all three:
@@ -2393,8 +2412,8 @@ Three patterns worth recognising, because interviewers ask about all three:
 during render. An effect that calls `setState` from props causes a second render every
 time.
 
-**2. Reacting to an event in an effect.** If something should happen *because the user
-clicked*, do it in the click handler. An effect watching a state variable cannot tell
+**2. Reacting to an event in an effect.** If something should happen _because the user
+clicked_, do it in the click handler. An effect watching a state variable cannot tell
 "the user did this" from "this arrived from the server", and it will fire in cases you
 did not intend.
 
@@ -2465,7 +2484,7 @@ well-known fixes.
 most of what it cost to download. `srcset` and `sizes` let the browser choose. Prefer
 modern formats (WebP, AVIF) with a fallback. Always set `width` and `height` — the
 browser then reserves the space and the text below does not jump when the image lands.
-Use `loading="lazy"` for anything below the fold, and *not* for the main image, which
+Use `loading="lazy"` for anything below the fold, and _not_ for the main image, which
 you want early.
 
 **Fonts.** A custom font blocks the text that uses it. `font-display: swap` shows the

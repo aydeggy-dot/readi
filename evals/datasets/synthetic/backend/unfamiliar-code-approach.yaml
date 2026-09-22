@@ -1,0 +1,123 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: unfamiliar-code-approach
+question: the-part-you-did-not-write
+# `fluent-but-wrong` is a polished three-week story about teaching itself Django from the official
+# tutorial and the ORM docs, with a Notion page and a repeatable method. It is specific, well
+# told, and never navigates anyone else's code, never judges a change safe, and never changes
+# anything — so it scores 0 on all three. 0/0/0 against `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      This was at my internship. There was an invoicing service nobody owned anymore — the guy who
+      wrote it had left months before — and I was asked to add a VAT line to the invoice email.
+      I'd never opened the repo. First thing I did was run it and send myself an invoice, so I had
+      real output in front of me. Then I searched the codebase for a string from that email,
+      "Thank you for your business", and that dropped me into the template, and from there I
+      followed it backwards to the function building the context. I also ran git log on that file,
+      which paid off, because one commit message explained why the totals were rounded in a
+      strange way — I'd have "fixed" that otherwise. For safety, I grepped for everything calling
+      that function, it was two places, and there was already a test on the totals, so I added a
+      failing one for VAT first. And I asked my lead one specific question, not "explain this to
+      me", just whether anyone besides customers used that email. Finance forwarded it, so I kept
+      the layout.
+    expected:
+      - dimension: A way in that is not reading it all
+        score: 4
+        because: Ran it and sent themselves an invoice, searched a string from the output into the template, and followed it back to what builds it.
+      - dimension: How they decided a change was safe
+        score: 3
+        because: Grepped every caller, found an existing test on the totals, wrote a failing one for VAT first; does not say what that left uncovered.
+      - dimension: The change they made
+        score: 3
+        because: A VAT line and the layout deliberately left alone, because `git log` explained why the rounding was odd.
+  - kind: weak
+    text: |
+      Yeah, so there was a project — a group project at school, my teammate wrote the backend part
+      and I had to add a new page to it. I didn't really understand his code, it was quite long.
+      So what I did was read it from top to bottom, and then I copied one of the functions he
+      already had and changed the parts I needed, because if it works for his one it should work
+      for mine as well. It took a while because there were errors. I asked him a few times on
+      WhatsApp and he explained some of it. To know it was safe, I ran the app after, and the page
+      loaded and the data showed, so it was fine. I ended up adding the page and it worked. I
+      think the main thing I learned is that you should comment your code so other people can read
+      it, because his had no comments anywhere.
+    expected:
+      - dimension: A way in that is not reading it all
+        score: 1
+        because: Read it top to bottom, then copied an existing function — a method that is not a way in.
+      - dimension: How they decided a change was safe
+        score: 1
+        because: '"I ran the app after, and the page loaded and the data showed, so it was fine."'
+      - dimension: The change they made
+        score: 2
+        because: A page added by copying a function, with no reason for the shape or size of the change.
+  - kind: fluent-but-wrong
+    text: |
+      Absolutely, and this is something I'm genuinely proud of. Last December I was handed a
+      Django project, and at that point I'd never written a line of Python — I was a pure
+      JavaScript person. So I built myself a plan. Week one, the official Django tutorial end to
+      end, the polls app, twice, the second time without looking. Week two I went through the ORM
+      docs properly — querysets, select_related, migrations — and I kept a Notion page where I
+      wrote every concept in my own words, because if I can't write it plainly I don't really have
+      it. Week three I built a small clone of the kind of thing I'd be working on, a little
+      inventory API, just to feel the request cycle myself. By the time I sat down for real, I
+      could read Python comfortably. And the habit stuck — when I picked up Celery in March I did
+      the same three weeks and it took half the time. That's really what I'd bring: a repeatable
+      method for getting up to speed on anything.
+    expected:
+      - dimension: A way in that is not reading it all
+        score: 0
+        because: No code of anyone else's — the story is three weeks of tutorials and a method for learning a language.
+      - dimension: How they decided a change was safe
+        score: 0
+        because: Nothing was changed, so nothing had to be judged safe.
+      - dimension: The change they made
+        score: 0
+        because: No change at all; the outcome is being able to read Python comfortably.
+  - kind: correct-poorly-explained
+    text: |
+      So there was this cron thing at my last place — a script, Python, pulled reports — and I had
+      to make it skip weekends. I didn't write it. Um. Right, so what I actually did first, before
+      anything, was run it, because reading it wasn't doing anything for me, and then once I could
+      see what it printed I could match the prints to the code, and that's when it started making
+      sense. Git blame too, on the weird parts, there was a hardcoded date and the commit said
+      why, which stopped me touching it. Safe — I mean, I checked what called it, which was just
+      the crontab, so nothing else depended on it, and then I ran it against a copy of last
+      month's data and diffed the output before and after, and only the weekend rows were gone,
+      so. That was the real check. The change itself was small, three lines, a weekday check at
+      the top. Sorry, I should have said that part earlier.
+    expected:
+      - dimension: A way in that is not reading it all
+        score: 3
+        because: Ran it because reading was not working, then matched the printed output back to the code; `git blame` on the odd parts.
+      - dimension: How they decided a change was safe
+        score: 3
+        because: Checked what called it — only the crontab — then ran it against a copy of last month's data and diffed before and after.
+      - dimension: The change they made
+        score: 3
+        because: Three lines, a weekday check at the top, and a hardcoded date deliberately left alone.
+  - kind: nigerian-english
+    text: |
+      Na for my internship. There was one invoicing service wey nobody own again — the person wey
+      write am don comot — and dem tell me add VAT line to the invoice email. First thing I do na
+      to run am and send myself one invoice, so I go see the output. Then I search one line from
+      that email, the "Thank you for your business" part, and e carry me straight to the template.
+      From there I follow am backwards reach the function wey build the context. I run git log on
+      that file too — one commit message explain why dem round the totals somehow, if not I for
+      "fix" am and scatter something. To know say e safe, I grep for anybody wey dey call that
+      function — na two places, and test dey for the totals, so I write one failing test for VAT
+      first. Then I ask my lead one straight question — not "explain this code" — just whether
+      person besides customers dey use that email. Finance dey forward am, so I leave the layout
+      as e be.
+    expected:
+      - dimension: A way in that is not reading it all
+        score: 4
+        because: "Same as `strong`: ran it, sent an invoice, searched the string into the template and followed it back."
+      - dimension: How they decided a change was safe
+        score: 3
+        because: "Same: grepped the callers, found a test on the totals, wrote a failing VAT test first."
+      - dimension: The change they made
+        score: 3
+        because: "Same: the VAT line added and the layout kept, because finance forwards that email."

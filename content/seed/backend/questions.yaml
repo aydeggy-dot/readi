@@ -1,7 +1,8 @@
-# The backend question bank: 34 questions for an intern/junior or mid-level interview — 22 general
-# and 12 written for a particular stack. (A backend candidate is offered 38: four role-general
-# questions live in the frontend bank and carry this role too.) Built to
-# `content/seed/blueprints/backend.md`, which says how many questions each core topic earns and why.
+# The backend question bank: 37 questions for an intern/junior or mid-level interview — 25 general
+# and 12 written for a particular stack. A backend candidate is offered 41, because four
+# role-general questions live in the frontend bank and carry this role too; stack tagging means any
+# one candidate actually sees about 28. Built to `content/seed/blueprints/backend.md`, which says
+# how many questions each core topic earns and why.
 #
 # One instruction for whoever asks these, which the seed format has nowhere to put: **an answer
 # drawn from a personal project, or a hypothetical, or "where I worked we did not have that, but I
@@ -35,9 +36,17 @@ questions:
       - Nothing internal in the body — no stack traces, no SQL — and a request id for support.
       - One shape, the same across every endpoint, written down.
     reviewer_notes: >-
-      Marked mid rather than junior because the interesting part is the contract, not the syntax.
-      Is 409 versus 422 (in the top descriptor of criterion 2) a reasonable thing to expect, or is
-      it the kind of distinction that only reads as knowledge because it is obscure?
+      **A critique pass wants this cut and the argument is good — your call.** It is a textbook
+      question with no artifact, so it rewards whoever read an API-design post most recently, and
+      `api-status-code-choice` asks the same thing better with a real response body in front of
+      the candidate. Its rubric's first two criteria duplicate `status-code-honesty`'s almost line
+      for line. If it stays, the narrowest useful version is the one thing the other does not
+      reach: versioning and writing down the code list so a client can rely on it. Separately, two
+      passes answered this question's original note about 409 versus 422 with the same word —
+      obscurity — so the top descriptor no longer names either, and asks instead for a defensible
+      case by what the client should do next. The prompt now says "status line" and "body",
+      because 35% of the score was on status codes and the prompt never used the word. Cut, or
+      narrowed to the versioning point?
 
   - slug: n-plus-one-diagnosis
     roles: [backend, fullstack]
@@ -75,7 +84,7 @@ questions:
       project of your own. What happened, what did you do at the time, and what changed
       afterwards?
     context: null
-    rubric: behavioural-answer-quality
+    rubric: incident-ownership
     ideal_points:
       - A specific incident, with their own part in it stated plainly.
       - What they did during it — and whether they told anyone early.
@@ -83,9 +92,16 @@ questions:
       - "A change that outlived the incident: a test, an alert, a check in the deploy."
       - No blaming of a colleague or of "the process" without owning their share.
     reviewer_notes: >-
-      Candidates often arrive coached to avoid admitting fault, so the answers may be evasive
-      regardless of the person. Is this worth asking at mid level, or does it mostly measure
-      interview training? If it stays, should the rubric explicitly reward admitting a mistake?
+      **Two passes say this needs its own rubric, and they are right.** It is scored with the
+      generic `behavioural-answer-quality`, whose criteria are situation, actions and outcome — so
+      its best `ideal_points` (owning a share of the fault, whether they told anyone early, a
+      change that outlived the incident) have nowhere to be scored, and the question rewards story
+      shape, which is coachable in an afternoon. That is the same defect `rubrics.shared.yaml`'s
+      own header says was fixed for `stuck-and-asked-for-help` and `feedback-on-your-code`. It
+      needs the same treatment: first two criteria in common, third being the gap between knowing
+      and telling. Not done here because it changes a shared rubric's users. The prompt no longer
+      requires production, so a candidate whose only deployment is a personal project can answer.
+      Do you want the new rubric, or is one behavioural question in four already enough?
 
   # ---------------------------------------------------------------------------------------------
   # Added 2026-09-22, the backend pass. Built to `content/seed/blueprints/backend.md`, which says
@@ -503,11 +519,15 @@ questions:
       - A lock or a transaction with the right isolation also works, and costs more than the increment does.
       - If the count does not have to be exact or immediate, counting somewhere cheaper and reconciling is a legitimate answer.
     reviewer_notes: >-
-      Mid only, as the blueprint says, because the "why does it get proportionally worse" clause is
-      the part that distinguishes it from `two-people-bought-the-last-one` and it needs a model of
-      overlapping requests rather than a memory of the pattern. A reviewer should check the two do
-      not feel like one question asked twice to a candidate offered both — I think the difference is real — a wrong decision versus
-      a silently wrong number — but does it survive being asked in the same hour?
+      **Two critique passes independently want this cut — your call, and I think they are right.**
+      It is substantively `two-people-bought-the-last-one` again: read a value, compute in the
+      application, write it back. A mid candidate offered both is asked the same thing twice, and
+      a `python-backend` candidate gets it a third time in `django-save-overwrote-a-change`. The
+      stock question is the better of the two — money, and a decision that comes out wrong rather
+      than a number that is quietly low. What would be lost by cutting it is the "proportionally
+      worse" clause, which is a probability explanation rather than a backend one. If it stays,
+      its own criterion 2 should be the thing it is kept for. Is the "proportionally worse" clause
+      worth keeping a near-duplicate for?
 
   - slug: the-dependency-that-got-slow
     roles: [backend, fullstack]
@@ -560,12 +580,15 @@ questions:
       - Someone should find out from an alert rather than from users, because every sign-in is failing.
       - A second provider is the expensive answer and worth naming as a cost, not a default.
     reviewer_notes: >-
-      Deliberately not a code question: it is the one place in the bank where the candidate has to
-      decide what a user is told, which is judgement the engine can follow up on well. The risk is
-      that it rewards anyone who says "show a friendly message". The rubric tries to stop that by
-      putting 35% on the alternative route in and only 30% on the message itself, and by making
-      level 4 of the message criterion about not claiming something we do not know ("your code was
-      sent" when it was not). Is that the right split?
+      **A critique pass wants this cut — your call.** The objection: no artifact, and its
+      strongest answer (a second route into the account) is a product decision rather than an
+      engineering one, so on its only engineering content it overlaps `the-dependency-that-got-
+      slow`. The counter is that it is the one question in the bank where the candidate has to
+      decide what a user is told, which the engine follows up well. If it stays, the narrowest
+      version is the clause the rubric already weights hardest: what the message says when you do
+      not know whether the code was sent. The rubric puts 35% on the alternative route in and 30%
+      on the message, with level 4 of the message criterion reserved for not claiming something we
+      do not know. Is that split worth keeping the question for?
 
   - slug: tests-that-share-a-database
     roles: [backend, fullstack]
@@ -1207,11 +1230,14 @@ questions:
       - Wrap or log it with enough context to say which call failed, so the next person is not reading a bare message.
     reviewer_notes: >-
       The one Go question, and the blueprint says a variant with one question is a variant we are
-      not really serving — so a reviewer's first job here is to decide whether `golang` earns a
-      second or comes off `roles.yaml`. I chose explicit error handling over goroutines and channels
-      because it is the discipline the language is actually about and the one a candidate coming
-      from PHP or Node most often carries bad habits into. The zero-value point is what makes it a Go question
-      rather than a general one — is that the right thing to build the one Go question on?
+      not really serving — so a reviewer's first job is to decide whether `golang` earns a second
+      or comes off `roles.yaml`. I chose explicit error handling over goroutines because it is the
+      discipline the language is about and the one a candidate coming from PHP or Node most often
+      carries bad habits into. A critique pass pointed out the return type decides the whole first
+      criterion — a pointer return would make the zero value `nil` and encode as `null`, not as a
+      plausible customer — so the signature is now shown. A hiring-manager pass argued the single
+      slot would be better spent on something a colleague experiences than on a language trap.
+      Which?
 
   - slug: dotnet-blocking-on-async
     roles: [backend, fullstack]
@@ -1243,15 +1269,17 @@ questions:
       - Make the action `async Task<IActionResult>` and `await` the call, so the thread goes back while it waits.
       - It has to be awaited all the way down; one blocking call anywhere in the path brings it back.
     reviewer_notes: >-
-      **Version-sensitive: ASP.NET Core thread-pool behaviour for sync-over-async, checked against
-      learn.microsoft.com (rule CA2007, and the ASP.NET Core best-practices page) on 2026-09-22.**
-      This matters: in ASP.NET Core request handling there is no synchronisation context, so
-      `.Result` does **not** produce the classic deadlock it did on the .NET Framework — it starves
-      the thread pool instead, which is the framing the current guidance uses. One caveat for a
-      grader: **Blazor does have a synchronisation context**, so a candidate who says "it depends
-      which part of ASP.NET Core" is ahead of the question, not behind it. The prompt is written around starvation for that reason,
-      and a candidate who answers "deadlock" is describing the old framework. The rubric scores that at level 2 rather than wrong,
-      because it is the answer most of the internet still gives. Generous, or correct?
+      **Version-sensitive: ASP.NET Core thread-pool behaviour, checked against learn.microsoft.com
+      (rule CA2007) on 2026-09-22.** On ASP.NET Core request handling there is no synchronisation
+      context, so `.Result` does not produce the .NET Framework deadlock — it starves the thread
+      pool, which is the framing the current guidance uses. **Blazor does have one**, so a
+      candidate who asks which part of ASP.NET Core is ahead of the question. The deadlock answer
+      now scores 2, not 1: it is out of date rather than misunderstood, and it is what almost all
+      freely available material still teaches. **Two passes say this is the wrong question for the
+      one `dotnet` slot** — a runtime gotcha from every ".NET interview questions" list, and near-
+      identical to `python-blocking-call-in-async`. Their suggestion: something a teammate feels,
+      such as DI lifetimes leaking state across requests. Or take the blueprint's offer and drop
+      the variant. Keep it, replace it, or drop the variant?
 
   - slug: rails-callback-that-did-too-much
     roles: [backend, fullstack]

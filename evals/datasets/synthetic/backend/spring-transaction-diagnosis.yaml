@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: spring-transaction-diagnosis
+question: spring-transaction-did-not-roll-back
+# The pairing this rubric had to survive: `fluent-but-wrong` claims `SimpleJpaRepository`'s write
+# methods are declared `REQUIRES_NEW`, so each save commits its own transaction before the outer
+# one can roll back. It is specific, it names a real class, and it reaches a correct third
+# criterion from a false first one — 1/1/3 against `strong`'s 3/4/4.
+answers:
+  - kind: strong
+    text: |
+      Yeah, so the annotation is on a method that's being called from inside the same class.
+      `@Transactional` is done with a proxy — Spring wraps the bean and starts the transaction
+      when the call comes in through the proxy. But `placeOrder` calls `saveOrderAndPayment` on
+      `this`, it's a plain Java method call, it never goes out through the proxy, so no
+      transaction gets started at all. Each `save` then runs in its own little transaction from
+      the repository, so the order is committed and gone before the payment blows up, and there's
+      nothing to roll back. The fix is to move the annotation onto `placeOrder` — it's the entry
+      point, it's the unit of work. If you needed the split, pull the inner method into its own
+      bean and inject it, so the call goes through a proxy. On what belongs inside — the two
+      saves, yes. Validation can be outside, it's just CPU. And the payment provider call and the
+      confirmation email must be outside, because you don't hold a database connection while you
+      wait on somebody else's HTTP, and you can't unsend an email if it rolls back.
+    expected:
+      - dimension: Says why the annotation did not apply
+        score: 3
+        because: The annotation is applied by a proxy and `this.saveOrderAndPayment` never reaches it, so no transaction starts.
+      - dimension: Puts the boundary where the work is
+        score: 4
+        because: Moves the boundary to `placeOrder` as the unit of work, and calls self-injection a smell rather than the answer.
+      - dimension: Knows what a transaction is being asked to cover
+        score: 4
+        because: The two saves inside; the provider call and the email outside, because you do not hold a connection across someone else's HTTP and cannot un-send an email.
+  - kind: weak
+    text: |
+      Okay so it's annotated but it's not rolling back. I think `@Transactional` only rolls back
+      on some exceptions, so I'd add `rollbackFor = Exception.class` to make it roll back on
+      everything, that's usually the fix for this. It might also be that the exception is being
+      caught somewhere and swallowed, so I'd look at whether there's a try-catch around it. Um, or
+      the database table isn't InnoDB — I've seen that with MySQL, if it's MyISAM transactions
+      just don't work at all, so I'd check the engine. I'd also add some logging to confirm the
+      payment save is actually throwing. What goes inside the transaction — I'd put everything in
+      it really, the whole method, so that if anything fails nothing is saved, that seems safest.
+      I've used `@Transactional` but mostly it just worked, I haven't had to dig into how it
+      actually does it.
+    expected:
+      - dimension: Says why the annotation did not apply
+        score: 1
+        because: A specific wrong cause — `rollbackFor`, a swallowed exception, the table not being InnoDB.
+      - dimension: Puts the boundary where the work is
+        score: 1
+        because: "`rollbackFor = Exception.class`: a fix with the proxy never involved."
+      - dimension: Knows what a transaction is being asked to cover
+        score: 1
+        because: '"I''d put everything in it really, the whole method" — widened as a way of being safe.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, this is propagation. Spring Data's `SimpleJpaRepository` — the base class every
+      repository inherits from — is itself annotated, and its write methods, `save` and `delete`,
+      are declared `REQUIRES_NEW`. So each `save` call suspends whatever transaction is running
+      and opens its own, commits it at the end of the call, and resumes the outer one. That's why
+      the order survives: `orderRepository.save` opened transaction B, committed it, returned, and
+      by the time the payment save throws, B is long gone and rolling back A can't touch it. The
+      outer `@Transactional` is doing exactly what it says — it's just enclosing two transactions
+      that have already committed themselves. The fix is to force participation: annotate the
+      service method `@Transactional(propagation = Propagation.REQUIRED)` and override the
+      repository methods with `REQUIRED` too, or use the `EntityManager` directly for the two
+      writes so no repository proxy is in the path. As for scope — validation and any payment-
+      gateway call stay outside; only the two persists belong in the boundary.
+    expected:
+      - dimension: Says why the annotation did not apply
+        score: 1
+        because: "`SimpleJpaRepository` declaring its writes `REQUIRES_NEW` — the repositories opening their own transactions, given as the whole story."
+      - dimension: Puts the boundary where the work is
+        score: 1
+        because: "Overrides the repository methods' propagation, or uses the `EntityManager` directly: the proxy is never the thing being fixed."
+      - dimension: Knows what a transaction is being asked to cover
+        score: 3
+        because: "Correct, and reached from a false diagnosis: validation and the gateway call outside, only the two persists inside."
+  - kind: correct-poorly-explained
+    text: |
+      Um, so, the annotation. It's not that the annotation is wrong, it's that it's, um, it's not
+      being used, if that makes sense, because — Spring makes a proxy, right, it makes a copy of
+      the class basically that wraps it, and the transaction gets started in the wrapper. And the
+      wrapper only runs if the call comes from outside. But here the call is
+      `saveOrderAndPayment`, and that's called from `placeOrder`, which is, they're in the same
+      object, so it's just `this.saveOrderAndPayment`, and the proxy isn't in the way, so, nothing
+      starts. And then each save just does its own thing, commits by itself, so the order is
+      already saved and then the payment throws and there's no transaction to undo. So put it on
+      `placeOrder` instead, that's the simplest. Or another bean. And, um, the things that
+      shouldn't be in there — anything over the network, like calling the payment provider, or
+      emails, because you'd be holding the connection, and also you can't un-email somebody.
+    expected:
+      - dimension: Says why the annotation did not apply
+        score: 3
+        because: '"Spring makes a proxy... the proxy isn''t in the way, so nothing starts" — arrived at in one tangled pass.'
+      - dimension: Puts the boundary where the work is
+        score: 3
+        because: Put it on `placeOrder`, or another bean; no preference stated between them.
+      - dimension: Knows what a transaction is being asked to cover
+        score: 4
+        because: Anything over the network out, because you would be holding the connection and cannot un-email somebody.
+  - kind: nigerian-english
+    text: |
+      Na because the method dey call the other one from inside the same class. `@Transactional`
+      dey work with proxy — Spring go wrap the bean, and na when the call pass through that proxy
+      the transaction go start. But here, `placeOrder` dey call `saveOrderAndPayment` on `this`,
+      na ordinary Java method call, e no pass through the proxy at all, so no transaction start.
+      Each `save` go now run for him own small transaction from the repository, so the order don
+      commit and gone before the payment go throw, and nothing dey to roll back. The fix na to
+      move the annotation go `placeOrder` — na the entry point, na the unit of work. If you really
+      need the split, carry that inner method put for another bean, inject am, make the call pass
+      through proxy. For wetin suppose dey inside: the two saves, yes. Validation fit stay
+      outside, na CPU work. But the payment provider call and the email must dey outside, because
+      you no go hold database connection dey wait another person HTTP, and if the transaction roll
+      back, you no fit un-send email.
+    expected:
+      - dimension: Says why the annotation did not apply
+        score: 3
+        because: "Same as `strong`: an ordinary Java call on `this` that never passes through the proxy."
+      - dimension: Puts the boundary where the work is
+        score: 4
+        because: "Same: the annotation belongs on the entry point, and self-injection works but is not clean."
+      - dimension: Knows what a transaction is being asked to cover
+        score: 4
+        because: "Same: the two saves inside, the provider call and the email outside, with the connection-holding reason."

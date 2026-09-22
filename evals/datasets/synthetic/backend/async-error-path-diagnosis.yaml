@@ -1,0 +1,129 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: async-error-path-diagnosis
+question: node-async-error-never-caught
+# `fluent-but-wrong` gets the diagnosis largely right — the frame is gone before the promise
+# rejects, and since Node 15 an unhandled rejection is a hard exit — and then goes wrong on the
+# fix: upgrade to Express 5 so this exact handler works unchanged (it will not; the handler never
+# returns the promise), and a `process.on('unhandledRejection')` that responds and keeps the
+# process alive. **+1.70 is the third-narrowest separation in the bank**, and honestly so: the
+# answer is right about where the error goes and wrong about what to do. 3/3/1 against `strong`'s
+# 4/4/4.
+answers:
+  - kind: strong
+    text: |
+      So createOrder returns a promise, and the try block is finished the moment that promise is
+      handed back — the call itself doesn't throw. When the database is down the promise rejects
+      later, in a microtask, and by then there's no try around anything. There's no catch on the
+      then either, so that's an unhandled rejection, and modern Node treats an unhandled rejection
+      as fatal, so the process exits and takes every other in-flight request with it, and the
+      supervisor restarts it. The client never sees the 500, the connection just drops. How I'd
+      write it: make the handler async, await createOrder inside the try, then the catch genuinely
+      covers it, and in the catch either call next(err) or send 500 with a stable code. One thing
+      people miss is checking res.headersSent before you send, because if the response already
+      went out you'll throw again inside the catch. I'd still keep an unhandledRejection handler,
+      but to log and exit cleanly, not to pretend the process is healthy.
+    expected:
+      - dimension: Says where the error goes
+        score: 4
+        because: The promise is handed back and the `try` is over — and there is no `.catch` beside the `.then`, which is why the success path works and the failure path does not.
+      - dimension: Says why it takes the service down
+        score: 4
+        because: An unhandled rejection is fatal, so the process exits and takes every in-flight request with it; the client sees a dropped connection, not a 500.
+      - dimension: Writes it so failures have a path
+        score: 4
+        because: "`async` handler, `await` inside the `try`, `next(err)` or a 500 with a stable code — plus a framework-level handler and a `headersSent` check."
+  - kind: weak
+    text: |
+      So the try catch is there but it's not catching, which is confusing because it looks right
+      to me. I think the problem is the error happens inside the then, and try catch doesn't reach
+      inside a callback, so it escapes. To fix it I'd add a catch onto the promise — then
+      something, catch, and inside the catch send the 500. Or wrap the body of the then in its own
+      try catch, that would work too. For why the whole service goes down, I'm not honestly sure —
+      maybe the database driver crashes when the connection dies? Or it retries until it runs out
+      of memory? I'd want to look at the logs. I'd probably add a process.on uncaughtException so
+      it stops exiting, and let PM2 restart it if it still does. Main thing is the catch though, I
+      think that covers most of it, and then test it by stopping the database locally and hitting
+      the route.
+    expected:
+      - dimension: Says where the error goes
+        score: 2
+        because: '"Try catch doesn''t reach inside a callback" — close to the shape, and the account of what is actually thrown is wrong.'
+      - dimension: Says why it takes the service down
+        score: 1
+        because: Attributes the crash elsewhere — the driver crashing, or retries exhausting memory.
+      - dimension: Writes it so failures have a path
+        score: 3
+        because: A `.catch` on the chain that sends the 500 — correct, with nothing about the next route.
+  - kind: fluent-but-wrong
+    text: |
+      Right. The try/catch is synchronous and the frame is gone by the time the promise rejects —
+      everyone gets that part. What people miss is why it's fatal rather than just a swallowed
+      rejection, and that's the framework, not your code. Express 4 calls your handler and throws
+      away whatever it returns, so a rejection has nowhere to go: it can't reach the error-
+      handling middleware, it escapes to the process, and since Node 15 an unhandled rejection is
+      a hard exit by default. So the real fix is configuration, not a rewrite. One, upgrade to
+      Express 5 — it awaits the value the handler returns and forwards a rejection to next
+      automatically, so this exact handler starts returning its 500 with no code change. Two,
+      until you can upgrade, register process.on('unhandledRejection') and respond from there;
+      that restores Node's pre-15 behaviour, the process stays alive, and the in-flight requests
+      survive. The try/catch can stay where it is — it's harmless, it's just never the thing that
+      fires.
+    expected:
+      - dimension: Says where the error goes
+        score: 3
+        because: Right about the frame being gone before the rejection, and right that Node 15 made it fatal.
+      - dimension: Says why it takes the service down
+        score: 3
+        because: Names the hard exit correctly, and knows the in-flight requests are what is at stake.
+      - dimension: Writes it so failures have a path
+        score: 1
+        because: Express 5 said to fix this handler unchanged — it will not, the handler never returns the promise — and an `unhandledRejection` responder to keep the process alive.
+  - kind: correct-poorly-explained
+    text: |
+      So the catch never runs because — okay, the thing is createOrder doesn't throw, it returns.
+      It returns a promise, and the returning is the only synchronous part, so the try is already
+      over by the time anything goes wrong, and there's no .catch on the chain, so that rejection
+      is just loose, and Node kills the process over a loose rejection these days. Which is why it
+      isn't one bad request, it's all of them, plus the restart. On an older Node you'd have got a
+      warning and a request that hangs forever, which is arguably worse to find. So — async
+      handler, await inside the try, catch sends the 500, or next(err) and let one error
+      middleware own the response shape so every route answers the same way. And check headersSent
+      before you send in the catch, because if you've already responded you'll throw inside the
+      catch and you're back where you started. Keep unhandledRejection wired, but to log and shut
+      down properly.
+    expected:
+      - dimension: Says where the error goes
+        score: 4
+        because: '"The returning is the only synchronous part", and the rejection is loose because nothing is attached to it.'
+      - dimension: Says why it takes the service down
+        score: 4
+        because: Node kills the process over a loose rejection, so it is all the requests plus the restart — and an older Node would have hung instead.
+      - dimension: Writes it so failures have a path
+        score: 4
+        because: "`async`, `await` inside the `try`, `next(err)` to one error middleware, and `headersSent` checked before responding."
+  - kind: nigerian-english
+    text: |
+      Okay so createOrder dey return promise, and the try block don finish immediately the promise
+      comot — the call itself no throw anything. When the database no dey available, na later the
+      promise go reject, inside microtask, and by that time no try dey around am again. And
+      nothing dey catch the then, so na unhandled rejection be that, and new Node go just kill the
+      process for that one. That's why no be only this request wey fail — every other request wey
+      still dey inside go die with am, then the supervisor go restart the service. The client no
+      even see 500, the connection just cut. How I for write am: make the handler async, await
+      createOrder inside the try, then the catch go really cover am, and for the catch you call
+      next(err) or send 500 with a stable code. One thing wey dey catch people: check
+      res.headersSent first, because if you don already respond, you go throw again inside the
+      catch. I go still keep unhandledRejection, but na to log and exit well, no be to pretend say
+      the process dey fine.
+    expected:
+      - dimension: Says where the error goes
+        score: 4
+        because: "Same as `strong`: the `try` is finished the moment the promise comes back, and nothing catches the `then`."
+      - dimension: Says why it takes the service down
+        score: 4
+        because: "Same: the process is killed, every other request in flight dies, and the client sees the connection cut."
+      - dimension: Writes it so failures have a path
+        score: 4
+        because: "Same: `async` handler, `await` in the `try`, `next(err)`, `headersSent` checked, and `unhandledRejection` kept only to log and exit."

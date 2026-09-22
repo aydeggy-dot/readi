@@ -1,0 +1,129 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: transaction-boundary-reasoning
+question: db-half-finished-transfer
+# `fluent-but-wrong` calls it a lost update, claiming `balance = balance - $1` is a non-atomic
+# read-modify-write, and then says the crash story does not apply because consecutive statements
+# on a pooled connection already run in an implicit transaction — so an explicit `BEGIN` would
+# change nothing. It prescribes `SELECT ... FOR UPDATE`. Every step is specific and the money
+# still disappears. 1/1/2 against `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      Okay so the first thing is there's no transaction here. These are separate awaits, and each
+      UPDATE is its own little transaction that commits on its own. So the debit commits, and then
+      anything can go wrong before the credit — notify throws because the email provider is down,
+      or the pod restarts mid-deploy — and the money's just gone. So, two changes. Wrap both
+      updates in one transaction, begin, both updates, commit, so either both land or neither
+      does. And move notify after the commit, because you don't want a flaky email service
+      deciding whether money moves. Ideally you write a "notify this person" row in the same
+      transaction and a worker picks it up. For the rows that are already wrong — honestly the
+      problem is you can't find them, there's no record a transfer was even attempted, just two
+      balance updates. So I'd add a transfers table, and for the existing damage I'd go to the
+      notification logs and match debits that never got a matching credit, then correct them in a
+      script that's idempotent, so running it twice doesn't pay somebody twice.
+    expected:
+      - dimension: Sees the gap between the two writes
+        score: 4
+        because: Each statement commits on its own, and the notification in the middle widens the window and can itself be what fails.
+      - dimension: Puts a boundary in the right place
+        score: 3
+        because: Both updates in one transaction and the notification moved out, ideally to a row written in the same transaction; the balance check is not raised.
+      - dimension: Deals with the rows that are already wrong
+        score: 3
+        because: There is no record a transfer was attempted, so a transfers table is added, and the damage is found by matching debits with no credit and repaired idempotently.
+  - kind: weak
+    text: |
+      Right, so, money's leaving and not arriving. I think the issue might be that the second
+      query is failing silently? Like, there's no try-catch anywhere, so if something throws we'd
+      never know about it. So I'd definitely wrap the whole thing in a try-catch and log the
+      error, that way at least when it happens we can see it in the logs and go and fix it. Maybe
+      also check that the toId actually exists before you run the update, because if the account
+      isn't there the update just does nothing and returns zero rows and nobody notices. And I'd
+      add a retry, like if it fails, try again a couple of times, because a lot of these things
+      are just temporary network blips. For the bad rows... I'd probably ask whoever's on support
+      to send me the list of affected accounts and then write a query to add the money back for
+      each one. I'd want to be careful with that though, obviously, it's people's money.
+    expected:
+      - dimension: Sees the gap between the two writes
+        score: 1
+        because: Puts the fault in a silent failure of the second query, and in the missing account.
+      - dimension: Puts a boundary in the right place
+        score: 0
+        because: A `try`/`catch`, logging and a retry in place of any boundary.
+      - dimension: Deals with the rows that are already wrong
+        score: 2
+        because: Recognises the rows are wrong, and would ask support for the list of affected accounts.
+  - kind: fluent-but-wrong
+    text: |
+      Right, this is a lost update — classic read-modify-write race. `balance = balance - $1`
+      looks atomic but it isn't: Postgres reads the current balance into memory, subtracts, and
+      writes it back, and under READ COMMITTED two concurrent transfers on the same account both
+      read the same starting balance, so one write just overwrites the other. That's your missing
+      money. And people miss it because the crash story doesn't apply — consecutive statements on
+      the same pooled connection run inside an implicit transaction that commits when the request
+      ends, so you already get all-or-nothing. That's why an explicit BEGIN wouldn't change
+      anything. The fix is locking. Take both rows with `SELECT balance FROM accounts WHERE id =
+      $1 FOR UPDATE`, lowest id first so you don't deadlock, do the arithmetic, then write. Or go
+      SERIALIZABLE and retry on a serialization failure. For the existing rows, since it's a
+      concurrency loss and not a partial transfer, the credit side is fine — it's the debited
+      account that's short — so I'd recompute those balances from the account history and top them
+      back up.
+    expected:
+      - dimension: Sees the gap between the two writes
+        score: 1
+        because: A lost-update race inside a single `UPDATE`, argued in detail, with the crash story explicitly dismissed.
+      - dimension: Puts a boundary in the right place
+        score: 1
+        because: Argues a transaction is already there and adds `FOR UPDATE` locking instead — the two writes still commit separately.
+      - dimension: Deals with the rows that are already wrong
+        score: 2
+        because: Would recompute balances from history, on an inverted account of which side is short.
+  - kind: correct-poorly-explained
+    text: |
+      So, um, the notify thing is a problem, that's, I'd move that. Because — okay, what happens
+      is, it's not in a transaction, that's the actual thing, so the first update, that one just
+      goes through on its own and it's committed, it's done, and then if the process dies or
+      notify blows up, the second one never runs and there's nothing to roll back because it
+      already committed, they're separate, each statement is its own transaction, so you get the
+      debit and no credit. So you'd, you know, begin and commit around the two of them, both
+      updates inside, and then the notify after the commit or better in a queue, because you don't
+      want, um, an email service being able to stop money moving, or worse, send the "transfer
+      sent" message when the transfer didn't happen, which it's doing right now actually. The
+      broken rows — you can't really find them cleanly is the honest answer, there's no transfer
+      record, so you're reconciling from whatever you do have, notification logs maybe, and fixing
+      them with a script you can run twice safely.
+    expected:
+      - dimension: Sees the gap between the two writes
+        score: 4
+        because: Each statement is its own transaction, and the notification can send "transfer sent" when the transfer did not happen.
+      - dimension: Puts a boundary in the right place
+        score: 3
+        because: Begin and commit around both updates, with the notification after the commit or on a queue.
+      - dimension: Deals with the rows that are already wrong
+        score: 3
+        because: '"You can''t really find them cleanly" — reconcile from the notification logs with a script that is safe to run twice.'
+  - kind: nigerian-english
+    text: |
+      Main thing wey I see be say no transaction dey at all. Each query dey commit by itself, so
+      the first one go debit the person and e don enter. Now if notify throw — maybe the email
+      provider down — or the server restart that moment, the second query no go run, and nothing
+      dey to roll back because the first one don commit. Na so money go leave one side and no
+      reach the other. So wetin I go change: put the two updates inside one transaction, begin and
+      commit — na either both happen or none happen. Then notify, I go carry am comot put am after
+      the commit, or write am into a table inside the same transaction make worker pick am — email
+      service no suppose decide whether money move. For the rows wey don spoil, e hard, because no
+      transfers table dey. So I go add one. Then I go use the notification log, match debits wey
+      no get matching credit, and run correction script wey be idempotent, so if I run am twice I
+      no go pay person double.
+    expected:
+      - dimension: Sees the gap between the two writes
+        score: 4
+        because: "Same as `strong`: each query commits alone, and the notification in the middle is what can stop the second one."
+      - dimension: Puts a boundary in the right place
+        score: 3
+        because: "Same: both updates in one transaction, the notification after the commit or written for a worker."
+      - dimension: Deals with the rows that are already wrong
+        score: 3
+        because: "Same: add a transfers table, match debits with no credit, and repair with an idempotent script."

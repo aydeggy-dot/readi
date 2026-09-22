@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: collection-endpoint-design
+question: api-list-that-grew
+# `fluent-but-wrong` blames `res.json` buffering, streams the array with chunked encoding, and
+# concludes pagination is "a UI concern rather than an API one". Its migration plan is the
+# dangerous part: an optional `?page=` whose absence serves page one with a limit of two hundred,
+# described as backwards compatible — it silently gives the old Android app two hundred of forty
+# thousand jobs. 1/1/1 against `strong`'s 3/3/3.
+answers:
+  - kind: strong
+    text: |
+      Okay so — at forty thousand the server is pulling every row, turning all of it into one JSON
+      array, and pushing, I don't know, tens of megabytes down the wire. It hurts everybody. The
+      database is scanning the whole table, the Node process sits there building that string so
+      other requests queue behind it, and then the phone has to download it and parse it, so the
+      list screen takes forever on a 3G connection and burns the person's data bundle before
+      they've seen anything. What I'd change is paginate it. Cursor-based — you pass back the last
+      id, or created_at plus id, and the client asks for the next page with that. Not offset,
+      because offset gets slower the deeper you go and it skips rows when something gets inserted.
+      And I'd cut the payload down to the fields the list screen actually shows, not the whole job
+      object. For the old app — I can't change what `GET /jobs` returns, that's twenty thousand
+      phones broken. So the new shape goes on a new version of the route and the old one stays.
+    expected:
+      - dimension: Names what it costs and who pays
+        score: 3
+        because: The table scanned, the process building the string while others queue, and a phone on 3G burning a data bundle before anything is on screen.
+      - dimension: Changes the endpoint, not the size of the answer
+        score: 3
+        because: Cursor pagination with the reason offset is wrong, and the fields cut to what the list shows; nothing about filtering on the server.
+      - dimension: Does not break the callers it already has
+        score: 3
+        because: The old route left exactly as it is because twenty thousand phones depend on it, and the new shape on a new version.
+  - kind: weak
+    text: |
+      Right, so forty thousand is a lot of jobs. Um. The endpoint is probably just slow because
+      there's too much data, so I think the main problem is performance — like the server has to
+      work harder. I'd maybe add caching, so the second person who calls it gets it faster, Redis
+      or something. And an index on the table, indexes make queries faster. Maybe we could also
+      compress the response? I think there's a gzip setting you can turn on. For the Android
+      app... hmm. That's tricky because they won't update. Maybe we can force an update, like show
+      a screen that says you must update to continue? A lot of apps do that. Or we could just tell
+      them in the app store. Sorry — I think the honest answer is I'd ask the mobile person what
+      the app can handle and then decide, because I don't know how their list screen is built. But
+      yeah, caching and an index would be where I'd start.
+    expected:
+      - dimension: Names what it costs and who pays
+        score: 1
+        because: Names the wrong cost — "the server has to work harder" — with nothing about the phone or the data.
+      - dimension: Changes the endpoint, not the size of the answer
+        score: 1
+        because: "Caching, an index and gzip: the same forty thousand rows, made cheaper to send."
+      - dimension: Does not break the callers it already has
+        score: 1
+        because: A forced-update screen, with no account of the phones that will never update.
+  - kind: fluent-but-wrong
+    text: |
+      So the bottleneck isn't the number of jobs, it's the serialisation. `res.json` on a forty-
+      thousand-element array buffers the whole thing twice — once as the object graph, once as the
+      string — before a single byte goes out, and that buffering is what everyone's waiting on. So
+      the fix is to stream it: a streaming JSON serialiser, pipe straight from a database cursor
+      into the response with chunked transfer encoding, and the client parses it incrementally as
+      it arrives. Time-to-first-byte drops to milliseconds and the endpoint scales to any size,
+      because nothing is ever held whole. Pagination is really a UI concern rather than an API one
+      once you're streaming. Then I'd turn on gzip — JSON of repeated job objects compresses about
+      ten to one. For the old Android app, the nice thing is this is backwards compatible: I add
+      an optional `?page=` parameter, and when it's absent we serve page one with a default limit
+      of two hundred, which is exactly what those phones were built against. So they keep working
+      untouched and we don't need a v2 at all.
+    expected:
+      - dimension: Names what it costs and who pays
+        score: 1
+        because: Names serialisation buffering as the bottleneck rather than the size of the answer.
+      - dimension: Changes the endpoint, not the size of the answer
+        score: 1
+        because: Streams and gzips the same forty thousand rows, and says pagination is not an API concern once you stream.
+      - dimension: Does not break the callers it already has
+        score: 1
+        because: A default limit of two hundred, believed compatible, which quietly gives the old app two hundred of forty thousand.
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so it's — the thing is you can't send forty thousand of anything, so like the endpoint
+      needs a limit, that's the main one. Sorry. So the users, the app users, they're waiting, and
+      also the server, because while it's making the JSON it's not doing anything else, and the
+      database too. So I'd put a limit on it. Not the page-number kind — because if you're on page
+      fifty and someone adds a job then everything shifts and you see the same one twice, or you
+      miss one — so the other kind, where you send back where you stopped, the last id, and they
+      give you that back. Cursor. And don't send the whole job, just what the list needs. The
+      Android thing — no, you can't change it, they'll break, twenty thousand of them, so the old
+      URL has to keep doing exactly what it does now and the new one goes somewhere else, like a
+      version in the path, and then later when hardly anyone's calling the old one you turn it
+      off.
+    expected:
+      - dimension: Names what it costs and who pays
+        score: 3
+        because: The users waiting, the server not doing anything else while it builds the JSON, and the database.
+      - dimension: Changes the endpoint, not the size of the answer
+        score: 3
+        because: A cursor rather than page numbers, with the reason — a job inserted shifts everything — and only the fields the list needs.
+      - dimension: Does not break the callers it already has
+        score: 4
+        because: The old URL keeps doing exactly what it does, the new shape gets a version, and it is turned off later when hardly anyone calls it.
+  - kind: nigerian-english
+    text: |
+      Forty thousand jobs and you're sending everything at once. Database go do full scan, then
+      Node will now sit down there building that one big JSON string — and while e dey do am,
+      nobody else's request is moving. Then the phone self must download maybe twenty megabyte and
+      parse am. On 3G here, the thing go just hang, and the person's data don finish before the
+      list even shows. So make we paginate am. I go use cursor — you send back the last id or
+      created_at plus the id, and the client uses that one to ask for the next page. Page number
+      own, the deeper you go the slower it is, and if new job enter, you go skip row. Then I'll
+      cut the fields to only what the list is showing. For the old Android app, twenty thousand
+      phones — you can't change what `/jobs` is returning, you go break all of them. So I go leave
+      that one as it is, put the new shape on a new version of the route, then watch the logs
+      before I kill the old one.
+    expected:
+      - dimension: Names what it costs and who pays
+        score: 3
+        because: "Same as `strong`: a full scan, the process stuck building one string, and a data bundle gone before the list shows."
+      - dimension: Changes the endpoint, not the size of the answer
+        score: 3
+        because: "Same: cursor rather than page number, and the fields cut to what is displayed."
+      - dimension: Does not break the callers it already has
+        score: 4
+        because: Same, plus watching the logs before killing the old route.

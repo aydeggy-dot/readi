@@ -1,0 +1,129 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: sync-over-async-diagnosis
+question: dotnet-blocking-on-async
+# The pairing this rubric had to survive: `fluent-but-wrong` gives the classic
+# `SynchronizationContext` deadlock — which is the .NET Framework's failure, not ASP.NET Core's —
+# and prescribes `ConfigureAwait(false).GetAwaiter().GetResult()` so the signature can stay
+# synchronous. It scores 2 rather than 1 on criterion 1 because it is out of date rather than
+# misunderstood, and it is what almost all freely available material still teaches. 2/1/1 against
+# `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      So `.Result` blocks. The request comes in on a thread-pool thread, that thread calls
+      `.Result`, and then it just sits there doing nothing until the HTTP call to the rates
+      service comes back — say two hundred milliseconds — and for that whole time the thread is
+      parked and can't serve anybody else. Which is why CPU is flat. It's not working, it's
+      waiting. Under test there's one request, so who cares. Under load, every concurrent request
+      eats a thread, and once you're past the pool's current count, the pool only injects new
+      threads slowly, one or two a second, so the queue builds up faster than it can grow, and
+      latency goes through the floor for everybody, including the endpoints that were written
+      properly. That's the bit people miss, it's not just this action that gets slow, it's the
+      whole app, because they share the pool. The fix is to not block: make the action `public
+      async Task<IActionResult> GetRates()` and `var rates = await _ratesClient.GetRatesAsync();`.
+      Async all the way up, no `.Result`, no `.Wait()`. And I'd add an analyzer so nobody puts it
+      back.
+    expected:
+      - dimension: Says what the thread is doing
+        score: 4
+        because: The thread is parked and cannot serve anybody else, which is why the CPU is flat — waiting, not working.
+      - dimension: Says why it gets worse gradually
+        score: 3
+        because: The pool injects new threads slowly so the queue builds faster than capacity; does not say what that looks like from outside.
+      - dimension: Awaits it properly, all the way down
+        score: 4
+        because: "`async Task<IActionResult>` and `await`, async all the way up, and an analyzer so nobody puts it back."
+  - kind: weak
+    text: |
+      Okay, so it's a performance thing. `.Result` gets the value out of the task, so that's just
+      waiting for it to finish, which it has to do anyway. If CPU isn't busy then the bottleneck
+      is probably the rates service being slow, so I'd look at that — maybe add a cache so we're
+      not calling it on every request, that would take a lot of load off. Or increase the timeout
+      so requests don't fail. I'd also check memory and see if it's garbage collection pausing
+      things. For the rewrite, um, I'd make it async, I know you're meant to use async and await
+      rather than `.Result`, it's the recommended way, so `await _ratesClient.GetRatesAsync()` and
+      mark the method async. I'm not totally sure why it's faster, I think async is just more
+      efficient. I'd also scale out to more instances if the traffic is genuinely higher.
+    expected:
+      - dimension: Says what the thread is doing
+        score: 1
+        because: The rates service being slow, a cache, garbage collection — put somewhere else entirely.
+      - dimension: Says why it gets worse gradually
+        score: 1
+        because: Garbage collection pausing things; the slope attributed to something else.
+      - dimension: Awaits it properly, all the way down
+        score: 2
+        because: '"You''re meant to use async and await rather than `.Result`", with no account of what the thread then does.'
+  - kind: fluent-but-wrong
+    text: |
+      Classic sync-over-async deadlock. Here's the mechanism: when `GetRatesAsync` hits its first
+      `await`, it captures the current SynchronizationContext — the ASP.NET request context — so
+      it can resume on it. But the request context allows one thread in at a time, and that one
+      thread is the one sitting in `.Result` holding it. So the continuation is queued onto a
+      context that will never be free, and the request deadlocks until the HttpClient's hundred-
+      second timeout fires and unwinds it. It's traffic-dependent because with light load the
+      context is usually free enough that the continuation slips through; past a threshold
+      contention on the context is constant and you deadlock most of the time. CPU is idle
+      precisely because everyone is parked on the context, not running. The fix is to stop
+      capturing it: `_ratesClient.GetRatesAsync().ConfigureAwait(false).GetAwaiter().GetResult()`
+      here, and `ConfigureAwait(false)` on every await inside the rates client library. Once the
+      continuation is free to resume on any pool thread the deadlock can't form, and you can keep
+      the signature synchronous.
+    expected:
+      - dimension: Says what the thread is doing
+        score: 2
+        because: The classic deadlock and the captured synchronisation context — ASP.NET Core has none in request handling, so this is the old framework's failure. Out of date rather than misunderstood.
+      - dimension: Says why it gets worse gradually
+        score: 1
+        because: Contention on a context that is not there, offered as why it is traffic-dependent.
+      - dimension: Awaits it properly, all the way down
+        score: 1
+        because: "`ConfigureAwait(false).GetAwaiter().GetResult()` so the signature can stay synchronous — the blocking call kept and worked around."
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so the CPU thing is, um, that's the clue, because it's not doing work, it's, the
+      threads are just sat there. So `.Result` — it waits, but it waits by blocking, so the thread
+      is stuck, it can't go and pick up another request while it's waiting for the rates thing to
+      come back over the network. And there's a limited number of threads, it's a pool, and, um,
+      it does grow but it grows really slowly, like one a second or something, so if a lot of
+      requests come in at once they all grab a thread and then there's none left and everything
+      else queues, and that's why the rest of the app goes slow too, not just this one, because
+      it's the same pool. Under test there's only you so you never run out. And you'd write it,
+      um, `async Task<IActionResult>` and then `await` the call instead of `.Result`, and it has
+      to be await the whole way down, you can't do it halfway.
+    expected:
+      - dimension: Says what the thread is doing
+        score: 4
+        because: The threads are sat there not doing work, which is why the CPU is idle — said first and then explained.
+      - dimension: Says why it gets worse gradually
+        score: 3
+        because: The pool grows "like one a second", so requests queue while it catches up.
+      - dimension: Awaits it properly, all the way down
+        score: 4
+        because: "`async Task<IActionResult>` and await, and it has to be await the whole way down."
+  - kind: nigerian-english
+    text: |
+      `.Result` dey block, that's all. The request go come in on one thread-pool thread, that
+      thread go call `.Result`, and e go just sit down there dey do nothing until the HTTP call to
+      the rates service come back — maybe two hundred milliseconds — and for that whole time the
+      thread don park, e no fit serve another person. Na why CPU flat: the thing no dey work, na
+      waiting e dey wait. For test, na only you dey there, so nobody go notice. But under traffic,
+      every concurrent request go chop one thread, and once you pass the pool count, the pool dey
+      inject new thread slowly, one or two per second, so the queue go dey grow pass how e fit
+      grow, and latency go scatter for everybody — even the endpoints wey them write well, na the
+      same pool them dey share. Na that part people dey miss. The fix na make you no block:
+      `public async Task<IActionResult> GetRates()` and `var rates = await
+      _ratesClient.GetRatesAsync();`. Async all the way up, no `.Result`, no `.Wait()`. I go add
+      analyzer so person no go put am back.
+    expected:
+      - dimension: Says what the thread is doing
+        score: 4
+        because: "Same as `strong`: the thread parks and cannot serve another person, so the CPU stays flat."
+      - dimension: Says why it gets worse gradually
+        score: 3
+        because: "Same: the pool injects one or two a second and the queue grows past it."
+      - dimension: Awaits it properly, all the way down
+        score: 4
+        because: "Same: async all the way up, no `.Result`, no `.Wait()`, plus an analyzer."

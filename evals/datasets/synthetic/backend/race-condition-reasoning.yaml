@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: race-condition-reasoning
+question: two-people-bought-the-last-one
+# `fluent-but-wrong` uses Node's single thread to rule the interleaving out — "check and decrement
+# in the same tick" — and substitutes read-replica lag, which explains the rarity and the peak
+# timing perfectly. It prescribes routing the read to the primary, leaving the check and the write
+# two separate steps. 1/1/1 against `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      So the problem is you're checking and then acting, and there's a gap in between. Request A
+      reads stock as one, decides fine, and before it gets to the update request B also reads
+      stock as one — it hasn't been decremented yet — so B also thinks it's fine. Both then write
+      stock minus one from the value they read, and both create an order. It's rare because that
+      gap is a few milliseconds and both requests have to land inside it, which only happens when
+      there's enough traffic that two people hit the same item at the same moment. That's why it's
+      peak-only and why you'll never reproduce it by hand. The fix is to stop reading first and
+      let the database decide — one statement, `UPDATE items SET stock = stock - 1 WHERE id = $1
+      AND stock >= 1`, then check how many rows it affected. Zero is your out-of-stock, return the
+      409. One means you got it. And the order creation should be in the same transaction as the
+      decrement, otherwise you can decrement, fail to create the order, and lose a unit.
+    expected:
+      - dimension: Sees the gap between the read and the write
+        score: 4
+        because: Both read one before either writes, and the write is as bad as the check — `stock - 1` computed from the value read earlier.
+      - dimension: Says why it is rare rather than constant
+        score: 3
+        because: A few milliseconds that both requests have to land inside, which peak supplies; says you cannot reproduce it by hand but not what to do instead.
+      - dimension: Makes it impossible rather than unlikely
+        score: 3
+        because: One conditional statement and the rows affected used to decide, with the order created in the same transaction; no constraint on negative stock.
+  - kind: weak
+    text: |
+      Yeah so it's a race condition, two people hitting it at the same time. I think the issue is
+      that the check and the update aren't fast enough, so there's a window. What I'd do is move
+      the stock check into the update, or maybe add a lock — I'd have to look up how you do that
+      properly in this ORM but I know there's a way to lock a row. You could also maybe put a
+      unique constraint somewhere so the second order fails. Actually the simplest thing might be
+      to just re-check the stock after you do the update, like read it again, and if it's gone
+      negative then you know two people got through and you cancel one of the orders and refund
+      them, and send them an apology email. It's not perfect but it happens once a week so it's
+      not a huge number of orders. Long term I'd probably want a queue so the requests are
+      processed one at a time instead of all at once.
+    expected:
+      - dimension: Sees the gap between the read and the write
+        score: 2
+        because: '"It''s a race condition" and "the check and the update aren''t fast enough", without naming the two operations.'
+      - dimension: Says why it is rare rather than constant
+        score: 0
+        because: Not addressed.
+      - dimension: Makes it impossible rather than unlikely
+        score: 2
+        because: Names locking or moving the check into the update without saying what the code would then do; would otherwise cancel and refund.
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so people say "race condition" here but that can't be it — Node's single-threaded, so
+      this handler runs to completion on the event loop — check and decrement in the same tick,
+      nothing else runs in between. So the interleaving story doesn't hold. What's actually
+      happening is read replica lag. `findById` is a read, so your data layer routes it to a
+      replica, and the decrement is a write, so it goes to the primary. Under normal load
+      replication lag is a few milliseconds and you never see it. At peak, the WAL stream backs up
+      and lag stretches to two or three hundred milliseconds, so the second customer's `findById`
+      hits a replica that hasn't received the first decrement yet and still reports stock as one.
+      That's why it's rare and always at peak — the fault is proportional to lag. So the fix is
+      read-your-writes: route this read to the primary, or turn on session pinning so every read
+      for that item goes to the primary for a few hundred milliseconds after a write. Then the
+      second request sees the true stock and gets its 409.
+    expected:
+      - dimension: Sees the gap between the read and the write
+        score: 1
+        because: The interleaving ruled out by the single thread, and replica lag put in its place.
+      - dimension: Says why it is rare rather than constant
+        score: 1
+        because: The rarity explained by WAL lag stretching at peak — something that is not there.
+      - dimension: Makes it impossible rather than unlikely
+        score: 1
+        because: "Routes the read to the primary: a staleness removed that was never the cause, with the check and the write still separate."
+  - kind: correct-poorly-explained
+    text: |
+      So the thing is, both of them read one. That's — okay. The update is fine on its own, it's
+      the reading that's the problem, or rather it's that you read and then you decide, and by the
+      time you decide the number you're deciding on is, you know, old. Both requests go through
+      the if because when they each read it, it still said one, nobody had written yet. And then
+      both do the subtract from the one they read so it ends up at zero instead of minus one, and
+      both create orders. Peak is when it happens because you need two requests basically on top
+      of each other, milliseconds, so normally there's no overlap and everything's fine, which is
+      also why you can't reproduce it locally. What you want is the database to do the deciding,
+      so it's one statement, update stock to stock minus one where id is this and stock is at
+      least one, and then you look at the row count and zero means out of stock, and the order
+      goes in the same transaction as that.
+    expected:
+      - dimension: Sees the gap between the read and the write
+        score: 4
+        because: '"Both do the subtract from the one they read so it ends up at zero instead of minus one."'
+      - dimension: Says why it is rare rather than constant
+        score: 3
+        because: Two requests on top of each other, milliseconds apart, which is also why it will not reproduce locally.
+      - dimension: Makes it impossible rather than unlikely
+        score: 3
+        because: One statement conditioned on stock, the row count read, and the order in the same transaction.
+  - kind: nigerian-english
+    text: |
+      The code go check first, then e go act, and space dey between the check and the act. So
+      request A go read stock, e see one, e say fine. Before A reach the update line, B don also
+      read am, e still dey see one because nobody don decrement yet. So the two pass the if, both
+      write stock minus one from the number wey dem read, and both create order. Na why e rare be
+      say that gap na small milliseconds, so the two requests must land inside am — na only when
+      traffic plenty, that's why na peak time. If you try am by hand you no go see am. The fix: no
+      read first — let database decide. Use one statement — update items set stock equals stock
+      minus one where id be this one and stock dey at least one — then check rows affected. Zero
+      na out of stock — return 409. One mean the person get am. And createOrder must enter the
+      same transaction with the decrement, otherwise you fit decrement, order go fail, and you don
+      lose one unit.
+    expected:
+      - dimension: Sees the gap between the read and the write
+        score: 4
+        because: "Same as `strong`: both pass the `if` because neither has written yet, and both subtract from what they read."
+      - dimension: Says why it is rare rather than constant
+        score: 3
+        because: "Same: the gap is milliseconds, so only peak supplies two requests inside it."
+      - dimension: Makes it impossible rather than unlikely
+        score: 3
+        because: "Same: one conditional update, rows affected checked, and `createOrder` in the same transaction."

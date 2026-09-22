@@ -158,7 +158,7 @@ Build, environment, device, time, and an attachment that shows it.
 The answer is about one thing that actually happened, with concrete detail — the task, the system, when, who else if anyone — rather than a general description of how the candidate likes to work.
 
 - **0 (absent):** No situation given; answers in generalities ("I always communicate early").
-- **1 (weak):** Nothing that fixes it in time or place — a situation named with no detail, or a confident account that turns out to be how they usually work rather than one occasion.
+- **1 (weak):** Nothing that fixes it in time or place — a situation named with no detail, or an account that turns out to be how they usually work rather than one occasion.
 - **2 (partial):** One situation with some context; the task or the timeframe is missing.
 - **3 (solid):** One situation, with the context an outsider needs in order to follow it.
 - **4 (excellent):** As 3, and says what made it hard — the constraint, the deadline, the thing that was unknown.

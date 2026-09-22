@@ -42,9 +42,9 @@ rubrics:
         weight: 40
         levels:
           "0": Guesses at a cause and starts changing code.
-          "1": Reads the application code only.
-          "2": Logs the queries but does not read a plan.
-          "3": Finds the queries and would read an execution plan for the worst one, against data of a realistic size.
+          "1": Looks anywhere but at what ran — the application code, the server's CPU and memory, the error log.
+          "2": Logs the queries but does not look at what any of them cost.
+          "3": Finds the queries the request actually made — counted, traced or logged — and reads a plan for the worst one where the count is not the story.
           "4": As 3, and says why the development dataset would not have shown it — the row counts and the round trips are both different.
       - dimension: Recognises the pattern
         description: Names the N+1, or whatever the real shape of the problem is.
@@ -52,7 +52,7 @@ rubrics:
         levels:
           "0": No diagnosis.
           "1": '"The database is slow."'
-          "2": Suspects the right area without naming the pattern.
+          "2": Suspects the right area without naming the pattern — or names a different pattern, such as connection churn, and argues it in full.
           "3": Identifies the N+1 (or the missing index) and explains why it costs what it does.
           "4": As 3, and distinguishes round-trip cost from row-scanning cost.
       - dimension: Fixes it without creating the next problem
@@ -60,7 +60,7 @@ rubrics:
         weight: 25
         levels:
           "0": No fix, or caching over the top of it.
-          "1": Adds indexes broadly.
+          "1": A change aimed at something the diagnosis did not point to — indexes added broadly, or connection and pool settings tuned while the query is left alone.
           "2": Fixes this query in a way that will not generalise.
           "3": Fetches the related rows in one query, or adds the index the plan calls for.
           "4": As 3, and notes the cost — write amplification from indexes, or over-fetching from a join.
@@ -98,7 +98,7 @@ rubrics:
         weight: 30
         levels:
           "0": Treats the status as something only this client sees.
-          "1": Says it is "good practice" or "the standard" with nothing that follows from getting it wrong.
+          "1": Nothing follows from getting it wrong — "good practice" or "the standard" — or the proxies and caches are named correctly and taken as the reason to keep meaning out of the status line.
           "2": Names one other reader without saying what it does wrong.
           "3": Names something in the path that acts on a 200 — a cache storing it, a retry not happening, an error rate that looks clean.
           "4": "As 3, and says the monitoring is the expensive one: a failure that reports as success is invisible until a customer calls."
@@ -129,9 +129,9 @@ rubrics:
         weight: 30
         levels:
           "0": Changes the shape and does not consider who is calling it.
-          "1": Says the clients "will need to update", with no account of the ones that will not — an installed app on a phone nobody updates.
+          "1": No account of the clients that will not update — "they will need to", a forced-update screen, or a change believed to be compatible that quietly gives the old app less than it asked for.
           "2": Mentions versioning as a word, with no plan for this endpoint.
-          "3": Keeps the old behaviour working while clients move — a default, a version, or a new path — and says how it ends.
+          "3": Keeps the old behaviour working while clients move — a default, a version, or a new path.
           "4": As 3, and says how they would know it is safe to remove the old one, rather than picking a date.
 
   - slug: money-storage-reasoning
@@ -182,7 +182,7 @@ rubrics:
         weight: 40
         levels:
           "0": No transaction; a retry, a try/catch, or an alert instead.
-          "1": Compensates rather than rolls back — reverses the first update in a `catch` — which fails in exactly the same window.
+          "1": Never gets a boundary round both writes — compensating in a `catch`, which fails in the same window, or arguing a transaction is already there and adding locking instead.
           "2": Says "wrap it in a transaction" without saying what goes inside and what does not.
           "3": Both updates in one transaction, committed or rolled back together, with the notification moved out.
           "4": As 3, and puts the balance check inside the same transaction, because a check made before it opens proves nothing by the time it writes.
@@ -297,7 +297,7 @@ rubrics:
         weight: 35
         levels:
           "0": Treats it as a bug in the queue, or as two jobs having been enqueued.
-          "1": A specific wrong account — the queue being misconfigured, the retry count needing to be zero, a duplicate enqueue upstream — argued without the worker restart.
+          "1": A specific wrong account — the queue misconfigured, the retry count needing to be zero, a duplicate enqueue upstream, or a dedupe record the broker is believed to keep and to have lost.
           "2": Connects it to the restart without saying why the restart causes a repeat.
           "3": Says a worker that dies mid-job never acknowledges it, so the queue hands it out again — which is the queue doing its job.
           "4": "As 3, and says the alternative is worse: a queue that only delivers once loses work whenever a worker dies, which is not a trade a payout system makes."
@@ -378,7 +378,7 @@ rubrics:
         levels:
           "0": Would add the check to this handler and consider the class of bug closed.
           "1": Says they would "be careful", with nothing that would catch the next one.
-          "2": Says it should be shared without saying what would enforce it — or names review or a checklist and can say why that fails, because one missed route is one missed route.
+          "2": Says it should be shared without saying what would enforce it, shares a check that is not the ownership one, or names review and can say why that fails — one missed route is one missed route.
           "3": Makes the fetch always take the user, wherever the fetching lives, so a new route gets the check by default rather than by remembering.
           "4": As 3, and says how they would find the routes that already lack it, rather than assuming this was the only one.
 
@@ -408,7 +408,7 @@ rubrics:
         weight: 40
         levels:
           "0": No change, or a delay, a retry, or a check done twice.
-          "1": Wraps the same read-then-write in a transaction and stops there, on the belief that a transaction makes the sequence atomic.
+          "1": Leaves the check and the write as separate steps — a transaction wrapped round them on the belief that makes the sequence atomic, or a staleness removed that was never the cause.
           "2": Names locking or an atomic update without saying what the code would then do.
           "3": Decrements conditionally in one statement — only where stock is still above zero — and uses what the database reports to decide whether the order happens.
           "4": As 3, and adds a constraint that forbids negative stock, so the rule survives the next piece of code that forgets it.
@@ -439,7 +439,7 @@ rubrics:
         weight: 35
         levels:
           "0": No change, or recounting from the logs.
-          "1": Keeps the read and the write and narrows the gap — re-reading later, retrying, a short sleep — or wraps them in a transaction and stops there.
+          "1": Leaves the addition in the application — narrowing the gap by re-reading, retrying or sleeping, wrapping it in a transaction and stopping there, or changing a database setting that does not touch where the adding happens.
           "2": Says the database should do the increment without saying what that changes.
           "3": Increments in the database in one statement, so the value is never held in the application to be overwritten.
           "4": As 3, and says when they would not bother being exact — a view count that can be counted elsewhere and reconciled is cheaper than making every view a write.
@@ -532,7 +532,7 @@ rubrics:
         weight: 40
         levels:
           "0": Makes the tests pass by running them in a fixed order, or by deleting the failing ones.
-          "1": Adds a sleep, a retry, or a shared fixture that every test depends on — trading one order dependency for another.
+          "1": Adds a sleep, a retry, a cache reset, or a shared fixture every test depends on — trading one order dependency for another.
           "2": Says tests should "clean up after themselves" without a mechanism.
           "3": Isolates the data — a transaction rolled back, or the tables cleared between tests — so nothing survives a test.
           "4": As 3, and changes the assertion as well, so it checks for the row it created rather than the size of the table and cannot be broken by a stray row.
@@ -554,7 +554,7 @@ rubrics:
         weight: 30
         levels:
           "0": No change to the tests.
-          "1": Removes the double and calls the real provider from the test suite, presented as the rigorous option.
+          "1": Changes the double in a way that cannot find drift — the real provider called from the suite, or the fake tightened against assumptions we wrote ourselves.
           "2": Says the fake should be "more realistic" without saying where realism would come from.
           "3": Would capture a real response and build the fake from that, and adds the provider's failures — declines, timeouts, malformed bodies — as cases.
           "4": As 3, and says what still will not be caught, so the fake is not asked to do a job it cannot.
@@ -668,7 +668,7 @@ rubrics:
         description: Anything held on the machine — memory, local disk, scheduled jobs — stops being one thing.
         weight: 40
         levels:
-          "0": Expects it to work; the load balancer shares the traffic.
+          "0": Expects it to work — the load balancer shares the traffic, or sticky sessions are taken to make the state problems disappear.
           "1": Names a plausible wrong set — that the database will need sharding, that the code needs to be stateless in some unspecified way, that it is a deployment problem.
           "2": Names one thing, usually sessions, and stops.
           "3": Names state in memory and files on local disk, and says what each looks like to the user — being signed out at random, an upload that is there half the time.
@@ -720,7 +720,7 @@ rubrics:
         weight: 35
         levels:
           "0": No change, or a faster machine.
-          "1": Keeps the work on the thread and rearranges it — a promise around the same loop, `setImmediate` between rows, `async` on the map function.
+          "1": Leaves the work on the thread — a promise around the same loop, `setImmediate` between rows, `async` on the map function, or infrastructure tuned around it.
           "2": Says to "use worker threads" or "make it a job" without saying what the request then returns.
           "3": Puts the work somewhere that is not the request thread, and says what the endpoint returns instead.
           "4": As 3, and offers streaming as the cheaper answer — rows written out as they arrive, so nothing large is ever held or built.
@@ -875,7 +875,7 @@ rubrics:
         weight: 25
         levels:
           "0": Not addressed.
-          "1": Believes `async def` is always the faster or more correct choice, and says so as a rule.
+          "1": Gets the two the wrong way round — `async def` believed to be always the faster or more correct choice, or believed to be the one the framework runs in a thread.
           "2": Mentions that `def` and `async def` differ without saying how.
           "3": Says a plain `def` path operation is run in a threadpool, so the same code in a `def` would not have blocked the loop.
           "4": As 3, and draws the rule from it — declare `async def` only when what is inside actually awaits, because the declaration is a promise the framework believes.
@@ -990,7 +990,7 @@ rubrics:
         weight: 25
         levels:
           "0": Does not address the status.
-          "1": Believes the status reflects the failure somehow — that the empty body would be caught, that the encoder sets it, that a middleware would notice.
+          "1": Nothing accounts for the 200 — the empty body believed to be caught, the encoder believed to set a status, a middleware believed to notice, or a status simply prescribed.
           "2": Says the status is wrong without saying what it should have been.
           "3": Says writing to the response without setting a status sends 200, so a failure is indistinguishable from an empty record.
           "4": As 3, and separates the two cases the client needs to tell apart — a customer that does not exist and a database that is unreachable are not the same answer.
@@ -999,7 +999,7 @@ rubrics:
         weight: 35
         levels:
           "0": No change, or logging the error and continuing.
-          "1": Checks the error and collapses every case into one — a 500 for everything, or a 404 for everything — described as sufficient.
+          "1": Collapses every case into one — a 500 for everything, a 404 for everything — or skips the error and tests the returned value instead.
           "2": Says to check the error without saying what the handler then does.
           "3": Checks it, distinguishes not-found from a failure to reach the store, and returns a status for each.
           "4": As 3, and wraps or logs it with which call failed and for which id, so the next person reading the log is not looking at a bare message.
@@ -1043,7 +1043,7 @@ rubrics:
         weight: 40
         levels:
           "0": Treats them as three separate problems.
-          "1": Gives each a plausible separate cause — the import needing batching, the mailer needing a faster provider, the tests needing better fixtures — and never reaches the callback.
+          "1": A cause that is not this one — each symptom given its own (batching, a faster mail provider, better fixtures), or all three traced to a single mechanism the code does not have.
           "2": Identifies the callback for one of the three, usually the emails.
           "3": Says any save fires both callbacks, so a bulk import sends in bulk, waits for the mail server each time, and makes every test that saves a vendor do real work.
           "4": As 3, and notes the record does not know why it is being saved — a correction to a spelling sends a welcome email exactly as a new signup does.

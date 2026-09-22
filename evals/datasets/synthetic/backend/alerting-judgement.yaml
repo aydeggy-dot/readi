@@ -1,0 +1,128 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: alerting-judgement
+question: how-would-you-know-it-broke
+# `fluent-but-wrong` frames it as an SLO problem and then gets all three parts backwards: a
+# thirty-day window argued to be *more* sensitive than five minutes, a synthetic probe on
+# `/health` standing in for real checkout success, and absolute daily error counts preferred to a
+# ratio. It is the most professional-sounding answer in the set and it would have caught nothing.
+# 1/1/2 against `strong`'s 3/3/4.
+answers:
+  - kind: strong
+    text: |
+      The gap isn't that nothing was measured — it's that nothing was measured from the user's
+      side. I'd want checkout emitting a count of requests broken down by outcome — success versus
+      failure, and failures split by status and by which downstream failed, so payment provider
+      timeouts don't look like our own bugs. From that you get a ratio, and the alert I'd write is
+      on the ratio, not a count: if more than two percent of checkout attempts fail over a
+      fifteen-minute window, page someone. One in twelve is eight percent, so that fires in
+      fifteen minutes on day one, not three days later. I'd probably also want a burn-rate thing
+      where a severe spike fires in five minutes and a slow leak fires over a few hours. For
+      anyone to act on it — it has to go where a human is actually looking, so an on-call rotation
+      with a real page, not a Slack channel that's already full of noise. It has to name the
+      endpoint and link to the traces. And it has to be believable: if half the pages are nonsense
+      people start ignoring it.
+    expected:
+      - dimension: Measures the right thing
+        score: 3
+        because: Requests by outcome per endpoint, failures split by which downstream caused them; latency and volume are not raised.
+      - dimension: Knows what "worse than usual" means
+        score: 3
+        because: Two percent over fifteen minutes, derived from what checkout normally does, and one in twelve placed far outside it.
+      - dimension: Makes it reach someone who can act
+        score: 4
+        because: An on-call rotation that actually pages rather than a noisy channel — and "if half the pages are nonsense people start ignoring it".
+  - kind: weak
+    text: |
+      Okay so first thing, monitoring. I'd add logging to the checkout endpoint so every error
+      gets logged with the stack trace, and then we can search the logs when something goes wrong.
+      I'd also set up Sentry or something like that, because Sentry emails you when there's an
+      exception, so we'd have known on day one. For metrics I'd track CPU and memory and response
+      time on the server, because usually when something's failing the server's under stress, and
+      then you can see the spike on the dashboard. I'd set up a dashboard with those graphs and
+      we'd check it, like, in the morning standup. Maybe also an uptime checker that pings the
+      site every five minutes and emails us if it's down. For people acting on it — I think it's
+      mostly about making sure the right person gets the email, so I'd add the team's email to the
+      alert list. And write it down somewhere so people know what to do when it comes.
+    expected:
+      - dimension: Measures the right thing
+        score: 1
+        because: CPU, memory, response time and an uptime ping — none of which would have seen one request in twelve failing.
+      - dimension: Knows what "worse than usual" means
+        score: 0
+        because: No threshold; a dashboard checked at standup.
+      - dimension: Makes it reach someone who can act
+        score: 1
+        because: The team's email added to the alert list, described as covered.
+  - kind: fluent-but-wrong
+    text: |
+      I'd frame this as an SLO problem. Set an availability objective on checkout — ninety-nine
+      point nine — and alert on the error budget. The key thing people get wrong is the window:
+      you want a thirty-day rolling window, because a longer window is more sensitive. A five-
+      minute window only sees five minutes of traffic, so an eight percent failure rate is
+      statistically indistinguishable from noise at that sample size, so you'd get constant false
+      pages; over thirty days the same rate is unmistakable, so that's the window that would have
+      caught this. Then I'd put the probe on the health endpoint — a synthetic check hitting
+      `/health` every minute from outside — because checkout depends on the same database and
+      payment client that `/health` exercises, so a real checkout failure surfaces there first,
+      without instrumenting business logic. And for paging I'd use absolute error counts rather
+      than a ratio: ratios are unstable at low traffic and page you at three in the morning
+      because two of six requests failed. Five hundred errors in a day is a real incident; under
+      that is background. Plus a runbook on the alert.
+    expected:
+      - dimension: Measures the right thing
+        score: 1
+        because: A synthetic probe on `/health` and absolute daily error counts — measures that could not have caught this one.
+      - dimension: Knows what "worse than usual" means
+        score: 1
+        because: Ninety-nine point nine over thirty days, picked from the objective rather than from what this endpoint does.
+      - dimension: Makes it reach someone who can act
+        score: 2
+        because: Paging and a runbook mentioned, with nobody named and nothing about what they would do first.
+  - kind: correct-poorly-explained
+    text: |
+      Um. So the thing you want is, it's a rate, not a number, that's the main thing. Because one
+      in twelve of a small number is nothing and one in twelve of a big number is a lot, but the
+      ratio is the same either way and the ratio is what's actually broken. So you'd count
+      checkouts and count the ones that failed, and I'd split the failures up by where they came
+      from, like was it us or was it the payment provider timing out, because that changes who
+      you'd wake up. And then the alert — you compare failed over total for some window, ten,
+      fifteen minutes, and if it's over a small percentage, one or two, it fires, and this one was
+      at eight so it'd have gone off basically in the first hour. The window matters, too short
+      and it's noisy, too long and it takes days, which is sort of the failure here. And the
+      acting-on-it part — it has to page someone on call, with the endpoint in the title, and it
+      has to not be crying wolf, otherwise people mute it.
+    expected:
+      - dimension: Measures the right thing
+        score: 3
+        because: '"It''s a rate, not a number", with failures split by whether it was us or the provider.'
+      - dimension: Knows what "worse than usual" means
+        score: 3
+        because: One or two percent over ten or fifteen minutes, and eight would have fired in the first hour; the window is named as the failure here.
+      - dimension: Makes it reach someone who can act
+        score: 4
+        because: Pages someone on call with the endpoint in the title, "and it has to not be crying wolf, otherwise people mute it".
+  - kind: nigerian-english
+    text: |
+      The real problem no be say nothing dey measured — na say nobody measure from the customer
+      side. So I want make checkout dey emit count of requests, split am by outcome — success and
+      failure — and split the failures by status and by which downstream cause am, so payment
+      provider timeout no go look like our own bug. From there you get ratio. The alert I go write
+      na on the ratio, not raw count: if pass two percent of checkout attempts fail inside fifteen
+      minutes, e go page somebody. One in twelve na eight percent, so e for fire the first fifteen
+      minutes, not three days later. I go like make two dey — one wey fire quick when the spike
+      serious, one slow one for the small leak. For person to act on am: e must land where human
+      being dey look — on-call rotation wey go actually page, no be Slack channel wey noise don
+      full. E must talk which endpoint, and link to the traces. And e must be believable — if e
+      dey cry wolf, everybody go silence am.
+    expected:
+      - dimension: Measures the right thing
+        score: 3
+        because: "Same as `strong`: counts by outcome, split by which downstream, measured from the customer's side."
+      - dimension: Knows what "worse than usual" means
+        score: 3
+        because: "Same: two percent over fifteen minutes, with one in twelve well outside it."
+      - dimension: Makes it reach someone who can act
+        score: 4
+        because: "Same: an on-call rotation that pages, the endpoint named, links to the traces, and believable enough not to be silenced."

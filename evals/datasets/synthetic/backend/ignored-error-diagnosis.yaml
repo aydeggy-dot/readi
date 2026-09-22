@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: ignored-error-diagnosis
+question: go-the-error-nobody-checked
+# `fluent-but-wrong` denies that the discard is what produces the empty customer, claims a
+# database outage panics in the driver and is caught by chi's `Recoverer` — so a 200 proves the
+# query succeeded — and that `Scan` on an empty result returns a nil error. It therefore detects
+# not-found by testing `customer.ID == ""` and never checks the error at all. 1/1/1 against
+# `strong`'s 4/4/4.
+answers:
+  - kind: strong
+    text: |
+      So the `_` is throwing the error away. `FindCustomer` returns two things and the code says
+      "I don't care about the second one." When the database is down it returns a zero Customer
+      and an error, and because the error goes in the bin, `customer` is just the zero value —
+      empty strings, zero balance — and that gets encoded straight out. And since nobody calls
+      `WriteHeader`, the first write to the ResponseWriter sends a 200 automatically. So the
+      client gets 200 and a customer that looks real but is empty, which is worse than an error,
+      because now you might show somebody a zero balance. How I'd write it: take the error, `if
+      err != nil`, log it with the id — server-side, not to the user — and return a 500 with a
+      generic message. Not found has to be a different branch: the store gives back its own
+      `ErrNotFound`, or a wrapped `sql.ErrNoRows`, and the handler does `errors.Is` and returns
+      404. Two different errors, two different statuses, and neither of them 200.
+    expected:
+      - dimension: Says what happens when the call fails
+        score: 4
+        because: The error goes in the bin and the zero struct is encoded — "a customer that looks real but is empty, which is worse than an error".
+      - dimension: Says why the client cannot tell
+        score: 4
+        because: Nobody calls `WriteHeader`, so the first write sends 200, and not-found and an unreachable database need different answers.
+      - dimension: Handles it, and says which failure it was
+        score: 4
+        because: "`errors.Is` against the store's own sentinel for 404, a 500 with a generic message for the rest, and the id logged server-side."
+  - kind: weak
+    text: |
+      Okay so the underscore there, that's ignoring the return, yeah. So we're not checking
+      whether it worked. So the fix is basically to check it — assign it to `err` instead of
+      underscore and then if `err` is not nil, return an error. I'd probably do `http.Error` with
+      a 500 and the error message so the client knows what went wrong, and log it too. For the
+      not-exists case, hmm, I think that would also come back as an error so it'd get caught by
+      the same check, which is fine because either way the customer isn't there and the client
+      can't have it. Maybe you'd want a different message. I'd also add a nil check on `customer`
+      before encoding it just to be safe, in case it comes back as nothing. And the reason nothing
+      is logged is there's no logger set up in this handler at all, so I'd pass one in or use the
+      standard `log` package.
+    expected:
+      - dimension: Says what happens when the call fails
+        score: 2
+        because: The discard identified, with no account of what the returned value then is.
+      - dimension: Says why the client cannot tell
+        score: 1
+        because: Prescribes a 500 without saying why a 200 came out in the first place.
+      - dimension: Handles it, and says which failure it was
+        score: 1
+        because: Collapses not-found into the same check — "either way the customer isn't there".
+  - kind: fluent-but-wrong
+    text: |
+      Right. First thing to be clear about: discarding the error with `_` isn't what produces the
+      empty customer. The comment tells you `FindCustomer` returns a zero Customer *and* an error,
+      and in Go the value return and the error return are independent, so you get the zero struct
+      whether or not you read the error. And a genuine database outage doesn't come back as an
+      error at all — `database/sql` panics in the driver when the connection is gone, and chi's
+      Recoverer catches that and turns it into a 500. So a clean 200 tells you the driver did
+      *not* fail: the query ran and came back with no row. `Scan` on an empty result set leaves
+      the struct untouched and returns a nil error, which is why nothing was logged. So this is a
+      not-found being silently rendered as an empty object. The fix follows: after the call, test
+      the zero value — `if customer.ID == ""` — and return 404, since that's the only reliable
+      not-found signal Go gives you. Add `omitempty` so you're not shipping fake zeros, and make
+      sure Recoverer is mounted and logging.
+    expected:
+      - dimension: Says what happens when the call fails
+        score: 1
+        because: The discard denied as the cause, and a driver panic caught by `Recoverer` put in its place.
+      - dimension: Says why the client cannot tell
+        score: 1
+        because: A clean 200 taken as proof the query succeeded, because a middleware is believed to have caught any real failure.
+      - dimension: Handles it, and says which failure it was
+        score: 1
+        because: Skips the error entirely and tests the returned value — `customer.ID == ""` — as the only reliable signal.
+  - kind: correct-poorly-explained
+    text: |
+      The underscore is the problem, yeah. So, when the DB is down you get an error back but it's
+      going to underscore so it's discarded, and the customer that comes with it is the zero
+      value, and nobody checks anything so it just gets encoded, and that's your empty name and
+      zero balance. The 200 is — you never wrote a status, and if you don't write one, writing the
+      body writes 200 for you, that's just how the ResponseWriter works. So it looks like success
+      because nothing in the code ever said it wasn't. What I'd do, obviously capture the err, if
+      it's not nil, log it, with the customer id so you can find it, and 500 back, with a plain
+      message, not the database error, you don't want to leak that. And not-found should be
+      separate, it's not a 500, the store should hand back a distinct error, wrapped `ErrNoRows`
+      or its own sentinel, and then `errors.Is` in the handler, and that one's a 404.
+    expected:
+      - dimension: Says what happens when the call fails
+        score: 4
+        because: The error discarded, the zero value encoded, "and that's your empty name and zero balance".
+      - dimension: Says why the client cannot tell
+        score: 4
+        because: '"If you don''t write one, writing the body writes 200 for you" — and not-found is not a 500.'
+      - dimension: Handles it, and says which failure it was
+        score: 4
+        because: Capture the error, log it with the id, a plain 500 that does not leak the database error, and a wrapped sentinel with `errors.Is` for 404.
+  - kind: nigerian-english
+    text: |
+      The underscore na the main problem — dem dey throw the error away. `FindCustomer` dey return
+      two things, and the code dey talk say "I no send the second one." So when database no dey
+      reachable, e go return zero Customer plus error, and because dem throw the error comot,
+      wetin remain na the zero value: empty string for name, zero for balance. Then dem encode am
+      like that. And since nobody call `WriteHeader`, the first write to the ResponseWriter go
+      automatically send 200. Na why e dey look like say everything work. E worse pass ordinary
+      error sef, because customer fit see zero balance and think say na him money. How I go write
+      am: collect the error, `if err != nil`, log am with the id — for server log, not for the
+      user face — then return 500 with generic message. Then not-found must be separate branch.
+      Make the store return im own `ErrNotFound`, or wrapped `sql.ErrNoRows`, and for the handler
+      you do `errors.Is` and return 404. Two different errors, two different status, and none of
+      them suppose be 200.
+    expected:
+      - dimension: Says what happens when the call fails
+        score: 4
+        because: "Same as `strong`: the error thrown away, the zero value encoded, and it looks worse than an error would."
+      - dimension: Says why the client cannot tell
+        score: 4
+        because: "Same: no `WriteHeader`, so the first write sends 200, and not-found needs its own branch."
+      - dimension: Handles it, and says which failure it was
+        score: 4
+        because: "Same: check the error, log it with the id server-side, 500 generic, and `errors.Is` for a 404."

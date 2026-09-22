@@ -1,0 +1,124 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: cache-key-diagnosis
+question: cache-key-that-leaked
+# The pairing this rubric had to survive: `fluent-but-wrong` says the key is fine and blames the
+# Redis client multiplexing commands over one connection and pairing replies by arrival order,
+# which would explain the intermittency perfectly. It prescribes a connection per request. 1/1/0
+# against `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      Ah, okay, the key. The key is the string "dashboard" — one key for everybody. So whoever
+      gets there first builds their dashboard, it goes into Redis under that name, and for the
+      next five minutes every other signed-in user gets handed that person's data. The auth
+      middleware's fine, that's the trap — they are logged in, we just gave them the wrong thing
+      after checking. It's intermittent because it depends on who warmed it and when. If you
+      refresh and the five minutes has rolled over and you happen to be the one who rebuilds it,
+      you see your own again, so it looks random and it looks like it fixes itself. Before
+      touching the code — I'd treat it as a data breach, honestly. Tell whoever owns incidents,
+      get the cache flushed so the leak stops now, then work out from the logs who could have seen
+      whose dashboard, because that's a notification question, not an engineering one. Then fix
+      it: scope the key by user id. Um, and check nothing else in the codebase is doing the same
+      thing.
+    expected:
+      - dimension: Finds the shared key
+        score: 4
+        because: The key is a constant, and names the trap — the request is authenticated and then answered with somebody else's data.
+      - dimension: Explains why it comes and goes
+        score: 3
+        because: "Ties it to the lifetime: wrong until it expires, right again for whoever refills it."
+      - dimension: Treats it as an exposure, not a bug
+        score: 4
+        because: Treats it as a breach first — tell whoever owns incidents, flush, then work out from the logs who could have seen whose dashboard.
+  - kind: weak
+    text: |
+      Okay so it's a caching bug, the cache is giving stale data. Five minutes is quite long, so
+      I'd bring the TTL down, maybe thirty seconds, so it refreshes more often and people don't
+      see the old stuff. That's probably why refreshing fixes it, because it goes and gets it
+      again. Um, it might also be that the dashboard is being built before the user is loaded,
+      like a timing thing with the auth. I'd add some logging to see what's in the cache. I'd
+      probably also clear the cache when the user updates their profile, so it stays in sync. To
+      be honest I haven't used Redis that much, we had it on a project but somebody else set it
+      up. But yeah, I think shortening the time and maybe invalidating it on changes would sort it
+      out, and then I'd ask my lead to have a look at it with me.
+    expected:
+      - dimension: Finds the shared key
+        score: 1
+        because: A specific wrong cause — the TTL being too long, and a timing problem with auth — argued from the code without reaching the key.
+      - dimension: Explains why it comes and goes
+        score: 1
+        because: Explains the refresh by the cache being refetched, which is staleness rather than the wrong person.
+      - dimension: Treats it as an exposure, not a bug
+        score: 0
+        because: Never treats it as an exposure; ships a TTL change and asks the lead to look.
+  - kind: fluent-but-wrong
+    text: |
+      Right, I've seen this one. The key's fine — it's one logical cache entry per endpoint,
+      that's normal. The problem is the Redis client. The node-redis client multiplexes every
+      command in the process over a single TCP connection and matches replies to callers by
+      arrival order, not by a request id. Under concurrency, two requests that issue `GET
+      dashboard` and `SET dashboard` in an interleaved order get their replies paired to the wrong
+      promise — so request A awaits the GET and is handed the reply that belongs to request B,
+      which is B's freshly-serialised dashboard. That's exactly why it's intermittent: it needs
+      two dashboard requests inside the same event-loop tick, so it only shows up under load, and
+      a refresh almost always lands alone and comes back correct. The fix is to stop sharing the
+      connection: `redis.duplicate()` per request, or a proper connection pool so each request
+      owns its socket for the round trip. Before the code, I'd reproduce it with a load test —
+      fire fifty concurrent requests as two different users and watch the mismatch rate climb.
+    expected:
+      - dimension: Finds the shared key
+        score: 1
+        because: The Redis connection being shared, in detail, and the key explicitly exonerated.
+      - dimension: Explains why it comes and goes
+        score: 1
+        because: Explains the intermittency with something that is not there — two requests inside the same event-loop tick.
+      - dimension: Treats it as an exposure, not a bug
+        score: 0
+        because: Would reproduce it with a load test; nobody is told and nothing is turned off.
+  - kind: correct-poorly-explained
+    text: |
+      So, um, refreshing works but it doesn't always work, which is the clue, sort of, because
+      it's five minutes and whoever, whoever's request lands when it's empty is the one who fills
+      it, so it's kind of whoever got there first, and everyone else after that is looking at, um,
+      their dashboard, that person's. Because the name of the thing in Redis, it's just
+      "dashboard", there's nothing about who. The id is in `buildDashboard`, it's in the call, but
+      it's not in the key, and that's the whole bug really. So you'd put the user id in the key.
+      But, before that — I mean people have seen other people's figures, so that's not just a bug,
+      is it, someone needs to know, and you'd flush it first so it stops, and then go through the
+      logs and try to work out, um, who saw what, because you'd have to tell them. Then fix the
+      key.
+    expected:
+      - dimension: Finds the shared key
+        score: 3
+        because: 'Gets there backwards: the name in Redis is just "dashboard", the id is in the call and not in the key.'
+      - dimension: Explains why it comes and goes
+        score: 3
+        because: Whoever lands when it is empty fills it, and everyone after that sees their dashboard.
+      - dimension: Treats it as an exposure, not a bug
+        score: 4
+        because: People have seen other people's figures, so flush first, go through the logs to work out who saw what, and tell them.
+  - kind: nigerian-english
+    text: |
+      Ahh, na the key. The key na just "dashboard" — one key for everybody. So whoever reach
+      first, we go build him own dashboard, store am for Redis under that name, and for the next
+      five minutes every person wey sign in go collect that person him data. The auth middleware
+      dey work o, na there the trap dey — them sign in well well, na the thing we give them after
+      we check no be their own. E dey do am one-one because e depend on who warm the cache. If you
+      refresh and the five minutes don finish, and na you rebuild am, you go see your own again,
+      so e go be like say the thing dey fix imself. Before I go near code, I go treat am as data
+      breach. I go tell whoever dey handle incident, flush the cache make the leaking stop now-
+      now, then use log check who fit don see who own — that one na notification matter, no be
+      code matter. Then I go put user id inside the key, and check whether another place dey do
+      am.
+    expected:
+      - dimension: Finds the shared key
+        score: 4
+        because: "Same as `strong`: one key for everybody, and the auth middleware working is the trap."
+      - dimension: Explains why it comes and goes
+        score: 3
+        because: "Same: whoever warms it after expiry sees their own, so it looks like it fixes itself."
+      - dimension: Treats it as an exposure, not a bug
+        score: 4
+        because: "Same: treat it as a breach, tell whoever handles incidents, flush, then use the logs to work out who saw who."

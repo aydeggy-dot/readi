@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: model-callback-judgement
+question: rails-callback-that-did-too-much
+# `fluent-but-wrong` blames row-lock contention — `after_save` running inside the transaction
+# while SMTP is open — and prescribes `after_commit` plus one wrapping transaction, claiming Rails
+# then batches four thousand deliveries into a single SMTP session. It also counts `after_commit`
+# not firing under transactional fixtures as the fix for the slow tests, which is a test suite
+# that stops exercising the behaviour. 1/1/1 against `strong`'s 4/4/3.
+answers:
+  - kind: strong
+    text: |
+      Right, so all three come from the same line. The after_save fires for every record, and
+      deliver_now sends the email there and then, in the middle of the import — so four thousand
+      records is four thousand SMTP calls one after another, each one a second or two waiting on
+      the mail provider. That's your two hours, and that's also your four thousand emails, because
+      an import isn't a sign-up and those vendors never asked us for anything. And the tests are
+      slow for the same reason — every factory that creates a vendor is triggering the mailer, so
+      a test that just wanted a vendor to exist is now doing mail work. What I'd do is take the
+      email out of the model and put it where the sign-up actually happens — the controller, or a
+      service object — so the import simply doesn't send. And use deliver_later so it's a
+      background job, not the request. A callback is fine for things that belong to the record
+      itself, like normalising a field or setting a slug before save. Not for reaching out to the
+      world.
+    expected:
+      - dimension: Traces all three symptoms to one cause
+        score: 4
+        because: All three from one line, and notices the import is not a sign-up — those vendors never asked us for anything.
+      - dimension: Gets it out of the save
+        score: 4
+        because: Moves the email to where the sign-up actually happens, so the import simply does not send, and uses `deliver_later` besides.
+      - dimension: Says what a callback is for
+        score: 3
+        because: A callback is for things that belong to the record itself; does not give the test that decides a borderline case.
+  - kind: weak
+    text: |
+      Okay, so the emails — four thousand emails is too many, so I'd add a check so it doesn't
+      send that many. Maybe a condition on the callback, like only send if the vendor is new, or
+      add a flag you can set during the import to skip it, like skip_email equals true, and then
+      in the import you set it. That would fix the emails. For the two hours, I think it's just a
+      lot of records — four thousand records is big, so maybe you do it in batches, like insert
+      them in chunks of five hundred so it's not all at once. And for the tests being slow, I'd
+      mock the mailer in the tests so it doesn't actually try to send anything, because in tests
+      you don't want to hit a real mail server anyway. So yeah, three fixes — a flag, batching,
+      and stubbing the mailer in the test setup.
+    expected:
+      - dimension: Traces all three symptoms to one cause
+        score: 1
+        because: Each symptom given its own cause — a skip flag, batching, and stubbing the mailer in tests.
+      - dimension: Gets it out of the save
+        score: 1
+        because: Narrows when it fires with a flag and an environment check rather than moving it.
+      - dimension: Says what a callback is for
+        score: 0
+        because: Callbacks treated as the normal place for this work.
+  - kind: fluent-but-wrong
+    text: |
+      So the bug is the hook, not the mail. after_save runs inside the wrapping transaction, and
+      deliver_now opens its own SMTP connection while that transaction is still open — so every
+      record holds a row lock for the full duration of the SMTP handshake. Four thousand records,
+      four thousand handshakes, each one serialised behind the lock: that's your two hours. It's
+      lock contention, not volume. The fix is one word, after_commit instead of after_save. Once
+      it's after_commit, you can wrap the whole import in a single transaction, which means the
+      callbacks all fire at the very end, on one connection — Rails batches the deliveries into
+      that one SMTP session rather than opening four thousand, and the import drops to a couple of
+      minutes. And it fixes the tests for free, which is the elegant part: transactional fixtures
+      roll back, so after_commit never fires in the test suite at all, so nothing touches the
+      mailer. Same model, same behaviour in production, one word changed.
+    expected:
+      - dimension: Traces all three symptoms to one cause
+        score: 1
+        because: All three traced to one mechanism the code does not have — row locks held across the SMTP handshake, "lock contention, not volume".
+      - dimension: Gets it out of the save
+        score: 1
+        because: "`after_commit` instead of `after_save`: when it fires is narrowed, and it still fires for every save."
+      - dimension: Says what a callback is for
+        score: 1
+        because: The rule offered is the fix restated, and the slow tests are "fixed" by the callback never running in them.
+  - kind: correct-poorly-explained
+    text: |
+      It's the same cause for all three, that's the thing. Because it's on the model, anything
+      that saves a vendor sends an email — so the import saves four thousand times and sends four
+      thousand emails, which, they didn't sign up, we just imported them, so that's bad on its
+      own. And deliver_now means it waits for the mail server each time, inline, so if it's a
+      second each, that's — yeah, that's your two hours right there, it's not the database, it's
+      sitting waiting on SMTP four thousand times. And the tests, same thing, every time a test
+      makes a vendor it goes through the mailer, so they're all paying for it. So take it off the
+      model. The email belongs where the person actually signs up, the controller or a service,
+      and then the import just doesn't do it, without needing a flag. And deliver_later, so it's a
+      job. Callbacks are alright for stuff about the record, like downcasing an email or setting a
+      slug. Not for sending things to people.
+    expected:
+      - dimension: Traces all three symptoms to one cause
+        score: 4
+        because: Same cause for all three, and "they didn't sign up, we just imported them".
+      - dimension: Gets it out of the save
+        score: 4
+        because: Take it off the model to the controller or a service, so the import does not do it without needing a flag.
+      - dimension: Says what a callback is for
+        score: 3
+        because: Callbacks are for things about the record, like downcasing an email or setting a slug.
+  - kind: nigerian-english
+    text: |
+      Na the same one line cause the three of them. The after_save dey fire for every single
+      record, and deliver_now go send the mail right there inside the import, so four thousand
+      vendors na four thousand SMTP calls, one after another, and each one fit take one, two
+      seconds dey wait for the mail provider. Na that one be your two hours, and na the same one
+      give you four thousand emails — these people no sign up o, na import we import dem, dem no
+      ask us for anything. And the tests too, same story: any factory wey create vendor go trigger
+      the mailer, so a test wey just want one vendor to exist don dey do mail work. Wetin I go do:
+      comot the email from the model, carry am go where the person actually dey sign up —
+      controller or service object — so the import no go send at all, no need for any skip flag.
+      And use deliver_later make e be background job. Callback is fine for things wey concern the
+      record itself, like setting slug or downcasing email. Not for reaching outside.
+    expected:
+      - dimension: Traces all three symptoms to one cause
+        score: 4
+        because: "Same as `strong`: one line, four thousand SMTP calls, and people who never signed up."
+      - dimension: Gets it out of the save
+        score: 4
+        because: "Same: move the email to where the person actually signs up, no skip flag needed, and `deliver_later`."
+      - dimension: Says what a callback is for
+        score: 3
+        because: "Same: a callback is fine for the record itself, not for reaching outside."

@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: money-storage-reasoning
+question: db-money-as-a-float
+# `fluent-but-wrong` asserts that doubles hold 45200.10 exactly because it is nowhere near fifteen
+# significant digits, and blames Postgres's parallel `SUM` combining partials in a non-
+# deterministic order. It prescribes `SUM(amount ORDER BY ...)` and says there is nothing to
+# migrate. Plausible, specific, and it leaves every row in the wrong type. 1/1/0 against
+# `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      Okay so, the column is double precision, which is binary floating point, and a naira amount
+      like 1500.10 just can't be written exactly in binary — same way you can't write a third
+      exactly in decimal. So every row in there is already a tiny bit off, and when you sum a few
+      hundred of them the errors pile up and you get 45200.100000000006 instead of 45200.10. Then
+      the triple equals is comparing two doubles that differ in the last bit, so it says no, and
+      the invoice never gets marked paid. What I'd store instead is integers — kobo, so 1500.10
+      becomes 150010, in a bigint. Then all the arithmetic is exact integer arithmetic and the
+      comparison just works. Numeric would do as well if you want the decimal point in the
+      database. For the rows already in there, you can't recover what finance actually typed, you
+      only have the nearest double, so in the migration I'd multiply by a hundred and round to the
+      nearest kobo, and diff the invoice totals before and after to see if anything moved.
+    expected:
+      - dimension: Names why the value is already wrong
+        score: 4
+        because: "Reads the snippet back: 1500.10 cannot be written in binary, so every row is already slightly off and the sum shows it."
+      - dimension: Knows why the comparison is the wrong operation
+        score: 3
+        because: Two doubles differing in the last bit, so the check says no; does not say why only a handful of invoices are stuck.
+      - dimension: Chooses a type, and moves the data into it
+        score: 3
+        because: Integer kobo in a bigint, or `numeric`, and a migration that multiplies, rounds and diffs the totals; the currency is not mentioned.
+  - kind: weak
+    text: |
+      Yeah, I've seen this — the number with the extra digits at the end, that .000000006 thing. I
+      think it's a rounding problem in JavaScript, JavaScript isn't very good with decimals. So
+      what I'd do is round both sides before comparing, toFixed(2) on each, then
+      45200.100000000006 becomes 45200.10 and they match and it marks it paid. Or compare with a
+      tolerance, like if the difference is under one naira treat it as paid, that's probably
+      safer. For the column, honestly double precision looks okay to me, it's holding the naira
+      and the kobo fine — maybe decimal if the database has that, I'd have to check. The rows
+      already there, I don't think you need to touch them, the values are right, it's the
+      comparison that's wrong. I'd fix the code first because that ships today, then watch whether
+      finance reports it again.
+    expected:
+      - dimension: Names why the value is already wrong
+        score: 1
+        because: '"JavaScript isn''t very good with decimals" — the type declared fine and the sum in need of rounding.'
+      - dimension: Knows why the comparison is the wrong operation
+        score: 2
+        because: "`toFixed(2)` or a one-naira tolerance, treated as the fix rather than as a patch."
+      - dimension: Chooses a type, and moves the data into it
+        score: 0
+        because: Double precision "looks okay", and the existing rows are said to need nothing.
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a float accumulation ordering problem, not a storage problem. Double
+      precision gives you fifteen, sixteen significant decimal digits, and 45200.10 is nowhere
+      near that limit, so the value sitting in each row is exact — it round-trips. What isn't
+      exact is the addition. Floating point addition isn't associative, so a plus b plus c can
+      differ in the last bit depending on the order you add them. And Postgres, once the table is
+      big enough to qualify, runs that SUM as a parallel aggregate: each worker sums its own slice
+      and the leader combines the partials, and the order the partials come back in isn't
+      deterministic. So you get 45200.100000000006 on one run and a clean 45200.1 on the next,
+      which is exactly why it's only a handful of invoices. The fix is to make the order
+      deterministic — SUM(amount ORDER BY created_at, id), or set max_parallel_workers_per_gather
+      to zero for that query. The rows already in the column are fine, the stored values are
+      exact, so there's nothing to migrate.
+    expected:
+      - dimension: Names why the value is already wrong
+        score: 1
+        because: The stored values asserted to be exact, with the drift moved into a parallel aggregate's combining order.
+      - dimension: Knows why the comparison is the wrong operation
+        score: 1
+        because: The comparison never questioned; the sum is made deterministic instead.
+      - dimension: Chooses a type, and moves the data into it
+        score: 0
+        because: '"The stored values are exact, so there''s nothing to migrate."'
+  - kind: correct-poorly-explained
+    text: |
+      So the thing is, it's — okay, kobo. Integers. That's where I end up. Because the reason it
+      doesn't match is the double, point one in binary goes on forever the way a third does in
+      decimal, so what's in the row isn't quite what was typed, and summing hundreds of them just
+      makes the wrongness bigger, and then triple equals is basically comparing bit patterns so it
+      fails even though both print as forty-five thousand two hundred naira ten kobo. So,
+      integers, times a hundred, bigint, and you never do fractional arithmetic at all. Numeric is
+      exact too, it's just slower, which at this size doesn't matter, so either. The old rows —
+      hmm. You can't get back what was meant, you've only got the nearest double, so round to the
+      nearest kobo as you copy across, and check the invoice totals before and after in case one
+      lands on a boundary. Sorry, I should have said the kobo part last.
+    expected:
+      - dimension: Names why the value is already wrong
+        score: 3
+        because: '"Point one in binary goes on forever the way a third does in decimal", and summing makes the wrongness bigger.'
+      - dimension: Knows why the comparison is the wrong operation
+        score: 3
+        because: Triple equals compares bit patterns, so it fails although both print as the same naira and kobo.
+      - dimension: Chooses a type, and moves the data into it
+        score: 3
+        because: Integers times a hundred in a bigint, `numeric` accepted, and round to the nearest kobo on the way across.
+  - kind: nigerian-english
+    text: |
+      Okay so the issue na the column type. Double precision na binary floating point, and naira
+      and kobo like 1500.10, binary no fit hold am exactly — e be like how one-third no dey ever
+      end for decimal. So every single row don already carry small error inside, and when you sum
+      like two hundred of them the errors go add up, that's why you dey see 45200.100000000006
+      instead of 45200.10. Then that triple-equals dey compare two doubles wey no match for the
+      last bit, so e say no, and the invoice no go ever mark as paid even though finance dey see
+      the same figure for screen. Wetin I go store instead na integer — kobo. 1500.10 becomes
+      150010, bigint, then all the arithmetic na plain integer, exact, and the comparison just
+      work. Numeric fine too if you want the decimal for the database side. For the rows wey dey
+      there already, you can't recover wetin person actually type, so for the migration I go
+      multiply by hundred, round to the nearest kobo, then diff the invoice totals before and
+      after make nothing shift quietly.
+    expected:
+      - dimension: Names why the value is already wrong
+        score: 4
+        because: "Same as `strong`: binary cannot hold 1500.10, so every row already carries a small error."
+      - dimension: Knows why the comparison is the wrong operation
+        score: 3
+        because: "Same: two doubles that do not match in the last bit, so the invoice is never marked paid."
+      - dimension: Chooses a type, and moves the data into it
+        score: 3
+        because: "Same: kobo in a bigint, `numeric` acceptable, and diff the totals before and after."

@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: degradation-reasoning
+question: what-happens-when-it-is-down
+# `fluent-but-wrong` treats a one-time code as a delivery guarantee: it retries in-request with
+# backoff up to sixty seconds, then queues the code and **returns success to the client**, extends
+# the code's lifetime to an hour, and argues explicitly against a circuit breaker. Every one of
+# those makes the outage worse, and the last one tells the user something untrue. 1/0/1 against
+# `strong`'s 3/4/4.
+answers:
+  - kind: strong
+    text: |
+      Right. So first thing, the code should not retry this in the request. The person is standing
+      there waiting, and if the provider is erroring for everybody, retrying just makes them wait
+      longer and adds load. So: short timeout, one attempt, maybe a second one, and then give up
+      fast. Fail closed — we don't let anybody in without the code, that's the whole point of the
+      code. But we say so honestly. Not "something went wrong", which makes them think they typed
+      their number wrong and try again five times. Something like, we can't send codes right now,
+      it's us not you, try again in a few minutes — and if we have their email, offer to send it
+      there instead, because a second channel is the real fix for this. Next time, what I'd want
+      true: an alert that fires on send failure rate, not on somebody tweeting at us. A circuit
+      breaker so we stop hammering a dead provider. And ideally a second SMS provider we can flip
+      to with a config change, already tested, not tested for the first time during the outage.
+    expected:
+      - dimension: Catches it rather than passing it on
+        score: 3
+        because: One attempt, short timeout, give up fast, fail closed; does not separate the provider being down from one number failing.
+      - dimension: Gives the person another way in
+        score: 4
+        because: Email as the second channel, and a second provider weighed honestly as real money and a real integration rather than assumed.
+      - dimension: Says what the person is told
+        score: 4
+        because: Says it is us and not them so the person does not retype their number five times — and an alert rather than somebody tweeting at us.
+  - kind: weak
+    text: |
+      Okay so if the SMS provider is down, then the user can't sign in. I would first put it in a
+      try-catch so the server doesn't crash, and log the error so we can see it. Then I'd probably
+      retry, because sometimes it's a temporary thing and the second time it works. Maybe retry
+      three times. If it still fails then show the user an error message saying please try again
+      later. I think the main thing is not to crash. For next time... I'd want to know about it
+      sooner, so maybe check the logs more often, or have the error go to Sentry so we get an
+      email. Um. Could we maybe let the user in without the code if we know it's our fault? I'm
+      not sure, that sounds like it might not be safe. Probably not. I'd ask the senior on the
+      team what the policy is for that, honestly, because it's a security thing and I wouldn't
+      want to decide it alone.
+    expected:
+      - dimension: Catches it rather than passing it on
+        score: 2
+        because: A `try`/`catch` and a generic error, with no account of what the sign-in attempt is left in.
+      - dimension: Gives the person another way in
+        score: 1
+        because: Raises letting them in without the code and then declines it; no route offered.
+      - dimension: Says what the person is told
+        score: 2
+        because: '"Please try again later", with nothing to do next.'
+  - kind: fluent-but-wrong
+    text: |
+      Sure. So the principle is that a one-time code is a delivery guarantee — we've committed to
+      getting that code to the user, so the code path should be durable, not fail-fast. What I'd
+      do is wrap the send in a retry with exponential backoff inside the request: 1s, 2s, 4s, 8s,
+      up to about sixty seconds, because provider blips are usually short and the user would much
+      rather wait than start over. If we're still failing at sixty, we enqueue the code for
+      delivery and return success to the client, so when the provider recovers every queued code
+      goes out and everyone can complete their sign-in. The verification window should be extended
+      to match — I'd push the code TTL out to an hour during an incident so nothing expires in the
+      queue. I'd deliberately not use a circuit breaker here: a breaker refuses requests that
+      might have succeeded, which on a partial outage means we reject users the provider could
+      still have served. Better to keep trying and let the backoff do the rate limiting for us.
+    expected:
+      - dimension: Catches it rather than passing it on
+        score: 1
+        because: Returns success and queues the code, so the failure is hidden from the user entirely.
+      - dimension: Gives the person another way in
+        score: 0
+        because: No alternative route at all; the user waits for the provider, by design.
+      - dimension: Says what the person is told
+        score: 1
+        because: Success returned for a code that was never sent — a message that is untrue.
+  - kind: correct-poorly-explained
+    text: |
+      So — don't retry. Well, once maybe. But the point is the person is sitting there, so
+      retrying in a loop just holds them longer and you're hitting a provider that's already
+      dying, so. Timeout short, give up. And you don't let them in. Obviously. Like, no code, no
+      session, that's — that's the point of the code, so fail closed. But the message matters more
+      than people think, because if you say "something went wrong" they think it's their number,
+      they'll retype it, they'll try four more times, now you've got more load from the same
+      person. So say it's us. Say try in a few minutes. And email — if we've got an email for
+      them, send it there, that's actually the real answer, having a second way. Next time:
+      alerting on the failure rate, that's one. A breaker so we're not pounding a dead thing. And
+      a second provider, configured, that someone has actually tested, not the first time you test
+      it being during the outage.
+    expected:
+      - dimension: Catches it rather than passing it on
+        score: 3
+        because: Short timeout, give up, fail closed — "no code, no session, that's the point of the code".
+      - dimension: Gives the person another way in
+        score: 4
+        because: Email as the real answer, and a second provider that somebody has actually tested before the outage.
+      - dimension: Says what the person is told
+        score: 4
+        because: Says it is us, because "something went wrong" makes them retype and adds load — plus alerting on the failure rate.
+  - kind: nigerian-english
+    text: |
+      Okay. First thing — the code no suppose retry inside the request. The person dey there
+      waiting. If the provider dey fail for everybody, retry na just to make am wait longer, and
+      you dey add load on top. So: small timeout, one try, then leave am. And we no go let anybody
+      enter without the code — na the code be the whole reason. But make we tell them the truth.
+      No be "something went wrong" — if you talk that one the person go think say na him number he
+      type wrong, he go type am five times. Better say, we cannot send codes right now, na us, try
+      again in a few minutes — and if we get their email, send am there, because that second
+      channel na the real solution. Next time: alert wey go fire on the failure rate, not that
+      somebody go tweet at us first. Circuit breaker so we no dey knock provider wey don die. And
+      second provider wey we fit switch to from config, wey person don test — not say na during
+      outage you go first test am.
+    expected:
+      - dimension: Catches it rather than passing it on
+        score: 3
+        because: "Same as `strong`: small timeout, one try, fail closed."
+      - dimension: Gives the person another way in
+        score: 4
+        because: "Same: email as the second channel, and a second provider tested before it is needed."
+      - dimension: Says what the person is told
+        score: 4
+        because: "Same: tell them it is us, and an alert rather than waiting to be tweeted at."

@@ -1,0 +1,123 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: test-isolation-diagnosis
+question: tests-that-share-a-database
+# `fluent-but-wrong` says the database is clean and the extra vendor is a stale hit in the ORM's
+# identity map leaking across files through a shared module registry. It even proposes a check
+# that would refute it — dumping the table from psql — which is why it takes a 2 on criterion 2
+# rather than a 1. 1/2/1 against `strong`'s 4/4/4.
+answers:
+  - kind: strong
+    text: |
+      So the test asserts `toHaveLength(1)`, and that only holds if that vendor is the only row in
+      the table. Run the file on its own and it is. Run everything and some other test has already
+      inserted a vendor and left it there, so you get two, and it fails. And which test happens to
+      leave a row behind depends on the order the files run in, which is exactly why the failures
+      move around. CI is worse because it runs the whole suite, usually several workers in
+      parallel against one database, all writing the same table. To confirm it — run the one file,
+      watch it pass; then run the suite and log a count of the vendors table before each test, and
+      you'll see it isn't zero. To fix it, two things. The assertion should be about its own data
+      — look for Adaeze Foods by name, not count the world. And the suite needs real isolation:
+      wrap each test in a transaction and roll it back, or truncate between tests, and give each
+      worker its own database. Then randomise the order in CI so it stays honest.
+    expected:
+      - dimension: Finds the shared state
+        score: 4
+        because: The assertion is about the whole table, and the failure moves because the order does.
+      - dimension: Confirms it before changing anything
+        score: 4
+        because: One file alone, then a count before each test in the full suite — and names what CI does differently rather than calling it flaky.
+      - dimension: Makes the suite independent again
+        score: 4
+        because: A transaction rolled back or a truncate, a database per worker, *and* the assertion changed to look for its own row.
+  - kind: weak
+    text: |
+      Hmm. So it passes alone and fails together, so the tests are affecting each other somehow.
+      Maybe it's a timing thing — the database is slow, and when you run everything it doesn't get
+      time to finish, so the insert hasn't landed by the time the check runs. I'd add an await, or
+      a small delay, like a setTimeout of 500 milliseconds before the expect. And CI is a slower,
+      busier machine, so that would explain why CI is worse than local. To confirm it I'd run it a
+      few more times and see if it's consistent. If it's still flaky I'd increase the test
+      timeout, or use the retry option so it tries again, because sometimes tests are just flaky,
+      that happens. I could also skip that one for now and open a ticket so the build goes green,
+      then come back to it later. Sorry, I haven't set up a test database myself before, I've
+      mostly written tests against one that was already configured.
+    expected:
+      - dimension: Finds the shared state
+        score: 1
+        because: A specific wrong cause — the insert not having landed, the database being slow under load.
+      - dimension: Confirms it before changing anything
+        score: 1
+        because: Would run it a few more times, raise the timeout, or skip it and open a ticket.
+      - dimension: Makes the suite independent again
+        score: 1
+        because: A `setTimeout` before the assertion, a longer timeout, and a retry.
+  - kind: fluent-but-wrong
+    text: |
+      This is a cache coherence problem, not a data problem. The ORM keeps a first-level identity
+      map — rows it has already materialised in this process — and the runner reuses one module
+      registry across files, so that map survives from file to file. `listVendors` checks the
+      identity map before it goes to the database, so what you're seeing is a hit on a vendor that
+      a previous file materialised, not a real row. The database is clean; connect and select and
+      the table's empty. And that's exactly the signature: it moves around because it depends on
+      which file warmed the map first, and CI is worse because CI runs single-process for speed,
+      so nothing evicts it, whereas locally each file tends to get a fresh process. I'd confirm it
+      by dumping the table straight from psql while the failure is live — empty table, failing
+      count, proved. The fix is to clear the identity map in `afterEach`, or set `cache: false` on
+      the model, and run with `--isolate` so the registry can't leak between files.
+    expected:
+      - dimension: Finds the shared state
+        score: 1
+        because: The ORM's identity map leaking across files — the framework's own caching, argued down to why CI differs.
+      - dimension: Confirms it before changing anything
+        score: 2
+        because: Would dump the table from psql while the failure is live; one check, without the pair that would actually locate it.
+      - dimension: Makes the suite independent again
+        score: 1
+        because: "Clears the cache in `afterEach` and adds `--isolate`: a reset, not isolation of the data."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so — `toHaveLength(1)`. That's the bit. Because it's not really testing this vendor,
+      it's testing the whole table, so any other test that puts a vendor in there and doesn't take
+      it out will break it, and, right, that's also why it moves around, because whichever file
+      went first decides who fails. Sorry — CI. CI is worse because it runs all of them, and in
+      parallel I think, several workers, one database. To prove it I'd count the rows just before
+      the test while the whole suite runs, and it won't be zero, and the one file on its own
+      passes, so, that's the pair. The fix — clean between tests, transaction and roll it back is
+      the nice one, or truncate, and the test should look for Adaeze Foods specifically instead of
+      counting. And a database per worker if it's parallel. Yeah, and honestly I'd change the
+      assertion first because that's two minutes and it'd probably stop failing.
+    expected:
+      - dimension: Finds the shared state
+        score: 4
+        because: "`toHaveLength(1)` tests the whole table, and whichever file went first decides who fails."
+      - dimension: Confirms it before changing anything
+        score: 3
+        because: Count the rows during the full suite and run the one file alone — "that's the pair".
+      - dimension: Makes the suite independent again
+        score: 4
+        because: Transaction and roll back, or truncate, a database per worker, and change the assertion first because it is two minutes.
+  - kind: nigerian-english
+    text: |
+      The test dey check `toHaveLength(1)`, so e go pass only if that vendor na the only row. If
+      you run the file alone, e correct. But when you run everything, another test don already put
+      vendor inside and e no clean am, so you go get two and the thing go fail. And which test
+      leave the row behind depend on the order wey the files run, na why the failure dey move up
+      and down. CI worse because e dey run the whole suite, plenty workers at once on top one
+      database, all dey write the same table. To confirm am, run the one file, e go pass; then run
+      everything and log the count of vendors before each test — you go see say e no be zero. To
+      fix am, two things: make the test look for "Adaeze Foods" by name instead of counting
+      everything, and give the suite real isolation — wrap every test inside transaction and roll
+      am back, or truncate, and give each worker im own database. Then make CI randomise the order
+      so the thing no go lie again.
+    expected:
+      - dimension: Finds the shared state
+        score: 4
+        because: "Same as `strong`: the count only holds if that row is the only one, and the order decides who fails."
+      - dimension: Confirms it before changing anything
+        score: 4
+        because: "Same: run the file alone, then log the count before each test in the full run."
+      - dimension: Makes the suite independent again
+        score: 4
+        because: "Same: name the row instead of counting, isolate with a transaction or truncate, a database per worker, and randomise the order."
