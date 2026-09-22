@@ -1,0 +1,123 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: review-you-give
+question: a-change-you-are-not-sure-about
+# `fluent-but-wrong` requests changes and holds the merge on an unmeasured hunch, and — the
+# interesting part — **suppresses the uncertainty on purpose**: "the moment you hedge, you've
+# handed them permission to dismiss it". It then mandates Redis and a denormalised summary in the
+# same change, because "performance follow-up tickets never get done". Every step is a defensible-
+# sounding principle and the whole thing is a blocker with a question mark on it. 1/1/1 against
+# `strong`'s 4/4/4.
+answers:
+  - kind: strong
+    text: |
+      So the first thing is, I wouldn't block it. I haven't measured it, so all I've actually got
+      is a feeling, and a feeling isn't a reason to stop somebody's work. I'd leave it as a
+      comment — a question, really — and I'd say up front that I might be wrong. Something like,
+      "I haven't measured this so take it with a pinch of salt, but do we know roughly how many
+      orders a big customer has, and is there an index on customer_id? Worth running an EXPLAIN
+      before this goes in?" The bit I would actually press on is if nothing limits the rows. If it
+      returns every order with no paging, that's not really a speed problem, that's the shape of
+      the endpoint, and once other teams are calling it you can't add paging without breaking
+      them. So that one I'd ask him to change. But if there's a limit, or the numbers are small,
+      or it's internal only — then I approve it, put a note on the ticket, and we find out from
+      the graphs.
+    expected:
+      - dimension: Says what the concern rests on
+        score: 4
+        because: '"All I''ve actually got is a feeling, and a feeling isn''t a reason to stop somebody''s work" — the uncertainty stated as the reason it is a comment.'
+      - dimension: Writes it so it can be acted on
+        score: 4
+        because: Cheap things for the author to check — the row count, the index, an `EXPLAIN` — and says which part is a comment and which part he is asking to be changed.
+      - dimension: Knows what would change their mind
+        score: 4
+        because: Approves on a small table or an internal caller, with a note on the ticket and the graphs as what tells us later.
+  - kind: weak
+    text: |
+      Hmm. Yeah, that's — so if I think it's going to be slow, I'd tell him. I'd probably just say
+      on the PR, like, "I think this might be slow", and see what he says. I don't really know how
+      you'd prove it without real data in there, so... I suppose you'd have to wait and see when
+      it's live? Maybe add a cache on it, caching makes things faster, so if it is slow then the
+      cache covers it. Honestly if he's more senior than me, or he's been in that part of the code
+      longer, I'd probably just approve it, because he'd know better than me whether it's actually
+      a problem, and I don't want to hold up the sprint over something I'm not even sure about. If
+      it does turn out slow we can always fix it after, right? So yeah. Approve it, but mention
+      it.
+    expected:
+      - dimension: Says what the concern rests on
+        score: 2
+        because: '"I think this might be slow" — a bare worry, with the author left to guess what is meant.'
+      - dimension: Writes it so it can be acted on
+        score: 2
+        because: Specific about the worry and nothing about resolving it; reaches for a cache instead.
+      - dimension: Knows what would change their mind
+        score: 1
+        because: Would approve because the author is more senior, to avoid holding up the sprint.
+  - kind: fluent-but-wrong
+    text: |
+      I'd request changes, and I'd hold the merge. And I would not say "I might be wrong" — that's
+      the mistake people make in reviews. The moment you hedge, you've handed them permission to
+      dismiss it, and your comment becomes noise. A review comment is either authoritative or it
+      shouldn't be on there. So I'd state it as fact: this endpoint will not hold up at production
+      volume. Then I'd tell him what it needs before it goes in — Redis in front of it with a
+      sensible TTL, and denormalise the order summary onto the customer row so the read is one row
+      instead of a scan. And I'd insist that lands in this change, not a follow-up ticket, because
+      performance follow-up tickets never get done, everybody knows that. You can't bolt
+      performance on afterwards, it's an architectural property of the thing. Measuring is fine,
+      but I don't need a number to know that a full read of the orders table per customer is
+      wrong. That's just experience.
+    expected:
+      - dimension: Says what the concern rests on
+        score: 1
+        because: States it as fact and leaves the uncertainty out on purpose, because hedging makes a comment dismissible.
+      - dimension: Writes it so it can be acted on
+        score: 1
+        because: Demands Redis and a denormalised summary in the same change rather than a follow-up.
+      - dimension: Knows what would change their mind
+        score: 1
+        because: Holds the merge on the unmeasured hunch; nothing short of the rewrite would change it.
+  - kind: correct-poorly-explained
+    text: |
+      Right so — the wording, I'd say, that's the, yeah. I'd put "I might be wrong here" in it,
+      deliberately, because — sorry, let me start again. I wouldn't block it. That's the main
+      thing. I haven't measured it, so I don't really have the standing to stop it, so it goes on
+      as a comment and not a change request. And in the comment the thing is to make it cheap for
+      him to check rather than me arguing — so, how many orders does a big customer have, is
+      customer_id indexed, can you run the EXPLAIN. And the "I might be wrong" bit isn't me being
+      soft about it, it's just, it's true, and it means he can say no to me without it turning
+      into a fight. The one bit I'd be firmer on is if there's nothing limiting how many rows come
+      back, because — that's the API shape, not the speed, and you can't take that back once
+      people are calling it. Otherwise, approve. We'd see it in the dashboards.
+    expected:
+      - dimension: Says what the concern rests on
+        score: 4
+        because: '"It''s just, it''s true, and it means he can say no to me without it turning into a fight."'
+      - dimension: Writes it so it can be acted on
+        score: 4
+        because: Makes it cheap for him to check rather than arguing — and it goes on as a comment, not a change request, except the one part.
+      - dimension: Knows what would change their mind
+        score: 4
+        because: '"Otherwise, approve. We''d see it in the dashboards."'
+  - kind: nigerian-english
+    text: |
+      First thing, I no go block am. I never measure the thing, so wetin I get na just feeling,
+      and feeling no be reason to hold person work. So I go put am as comment — question sef, no
+      be change request — and I go talk am plain say I fit dey wrong. Something like: "I never
+      measure this one o, but how many orders one big customer fit get? Index dey on customer_id?
+      Make we run EXPLAIN before we merge." The one wey I go press small na if nothing dey limit
+      the rows. If e go return every single order, no paging, that one no be speed problem again —
+      na the shape of the endpoint, and once other teams don dey call am, you no fit add paging
+      again without breaking them. So that one, I go ask am make e change am. But if limit dey, or
+      the numbers small, or na internal thing — I go approve am, put note for the ticket, make the
+      graphs tell us.
+    expected:
+      - dimension: Says what the concern rests on
+        score: 4
+        because: "Same as `strong`: a feeling is not a reason to hold someone's work, said plainly."
+      - dimension: Writes it so it can be acted on
+        score: 4
+        because: "Same: the row count, the index, `EXPLAIN` — and the one part he is asked to change."
+      - dimension: Knows what would change their mind
+        score: 4
+        because: "Same: approve on a small table or an internal caller, note on the ticket, graphs to tell us."

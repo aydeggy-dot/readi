@@ -311,3 +311,76 @@ rubrics:
           "2": One of the two — somebody was told, or something changed — but not both.
           "3": Says how it was found and names a durable change; a candidate with no colleagues says who they would have told and why.
           "4": As 3, and says plainly how long it ran before anyone knew, and what would shorten that next time.
+
+  # The two questions added on 2026-09-23. Both are asked of every wave-1 role, so their rubrics
+  # live here.
+
+  - slug: ambiguous-work-judgement
+    name: Working from a brief nobody can explain
+    criteria:
+      - dimension: Works out what is actually unclear
+        description: >-
+          Reads what already exists before asking, and narrows the unknowns to the ones that change
+          what gets built.
+        weight: 30
+        levels:
+          "0": Starts building on the first reading, or waits without looking at anything.
+          "1": Treats the whole ticket as unanswerable, or settles on one reading and never tests it against what is there.
+          "2": Says they would "look into it" without saying what they would look at.
+          "3": Looks at the page, the data and anything similar already built, and comes out with a short list of real unknowns.
+          "4": As 3, and separates the questions that change the work from the ones they can decide themselves.
+      - dimension: Writes something that can be answered asleep
+        description: >-
+          One message, the specific decisions needed, what will be assumed without a reply, and by
+          when the answer still helps.
+        weight: 35
+        levels:
+          "0": Waits to ask in person, or sends "are you around?".
+          "1": Asks nothing — the ambiguity is resolved alone and nobody is told, or the message is a list of everything they could possibly ask.
+          "2": Asks, but so broadly that the reply will be another question.
+          "3": Names the specific decisions, and says what they will assume if there is no answer.
+          "4": As 3, and says when the answer stops being useful, so the reader can judge it against their own morning.
+      - dimension: Does not lose the eight hours
+        description: Builds the part that is not in doubt, and does not build the part that is.
+        weight: 35
+        levels:
+          "0": Stops until somebody replies.
+          "1": Builds the whole thing on a guess and presents it as done, or justifies stopping as the professional move.
+          "2": Says they would "start on something else" with no account of what is safe to build here.
+          "3": Builds what is not in doubt — the shape of the page, the query, the tests — and leaves the ambiguous half until the answer comes.
+          "4": As 3, and builds it so the answer is cheap to apply either way, rather than betting on one reading.
+
+  - slug: review-you-give
+    name: Reviewing a change you are not sure about
+    criteria:
+      - dimension: Says what the concern rests on
+        description: >-
+          The worry, and the fact that it has not been measured, stated rather than hidden behind a
+          question.
+        weight: 35
+        levels:
+          "0": Says nothing, or approves without raising it.
+          "1": States the concern as settled fact, with the uncertainty deliberately left out because hedging is thought to weaken it.
+          "2": Raises it as a bare question — "have you thought about performance?" — leaving the author to guess what is meant.
+          "3": Names the concern and says plainly that it is a hunch they have not measured.
+          "4": As 3, and says why the uncertainty is worth stating — it tells the author how much weight to give the comment.
+      - dimension: Writes it so it can be acted on
+        description: Specific, on the change, and with what would settle it.
+        weight: 35
+        levels:
+          "0": Nothing the author could do anything with.
+          "1": A review of the person rather than the change, or a demand for a rewrite in the same change.
+          "2": Specific about the worry, with nothing about what would resolve it.
+          "3": Names what would settle it — the row count it starts to hurt at, or a plan against realistic data.
+          "4": As 3, and says plainly whether it blocks the change or is a note for later.
+      - dimension: Knows what would change their mind
+        description: >-
+          Approving is a real outcome. A review that can only be satisfied one way is a blocker with
+          a question mark on it.
+        weight: 30
+        levels:
+          "0": Nothing would; the change waits until the concern is gone.
+          "1": Holds the merge on the unmeasured hunch, or waves it through to avoid the conversation.
+          "2": Says they "might approve it" without saying on what.
+          "3": Names the conditions — a small table today, a ticket filed — under which they would approve it now.
+          "4": As 3, and pairs approving with something that would tell us when it starts to matter, so the concern is not simply dropped.

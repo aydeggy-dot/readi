@@ -3,37 +3,6 @@ author: ai_draft
 status: draft
 
 rubrics:
-  - slug: api-error-contract
-    name: Designing an error contract
-    criteria:
-      - dimension: Gives clients something to branch on
-        description: A stable code per error, separate from the human-readable message.
-        weight: 40
-        levels:
-          "0": Returns a message only.
-          "1": Returns a message and expects clients to match on its text.
-          "2": Has codes, but they are inconsistent or duplicated by the status code alone.
-          "3": A stable code per error, plus a message for humans.
-          "4": As 3, and versions or documents the codes so a client can rely on them.
-      - dimension: Uses status codes honestly
-        description: The right category, and 4xx versus 5xx placed by whose fault it is.
-        weight: 35
-        levels:
-          "0": Everything is a 200, or everything is a 500.
-          "1": Uses 400 and 500 only.
-          "2": Mostly right, with one clear misuse (e.g. 404 for a failed validation).
-          "3": Correct categories, including the distinction between 401, 403 and 404.
-          "4": As 3, and can justify a harder case — whichever one they pick — by what the client should do next, and says where the list of codes is written down.
-      - dimension: Says enough, and no more
-        description: Field-level detail for validation; no stack traces, SQL or internal identifiers.
-        weight: 25
-        levels:
-          "0": Either says nothing useful or returns the raw exception.
-          "1": A generic message for every failure.
-          "2": Some detail, but leaks something internal.
-          "3": Field-level validation detail and no internals.
-          "4": As 3, and returns a request id so support can find the log entry.
-
   - slug: query-performance-diagnosis
     name: Diagnosing a slow query path
     criteria:
@@ -413,37 +382,6 @@ rubrics:
           "3": Decrements conditionally in one statement — only where stock is still above zero — and uses what the database reports to decide whether the order happens.
           "4": As 3, and adds a constraint that forbids negative stock, so the rule survives the next piece of code that forgets it.
 
-  - slug: lost-update-reasoning
-    name: An update that overwrote another one
-    criteria:
-      - dimension: Finds the read-modify-write
-        description: The number is read, incremented in the application, and written back over whatever happened in between.
-        weight: 40
-        levels:
-          "0": Concludes the two numbers were never counting the same thing, and stops there.
-          "1": A specific wrong cause — a cache serving a stale count, the writes being throttled, the ORM batching updates, the counter overflowing.
-          "2": Says two requests "interfere" without naming the read and the write — or checks first that the two counts measure the same thing, which is a fair move, and does not get past it.
-          "3": Says two overlapping views read the same value and the later write replaces the earlier one, so one view is lost per collision.
-          "4": As 3, and notes nothing errors because both writes are perfectly valid — the row simply ends up one lower than it should be.
-      - dimension: Says why it scales with traffic
-        description: More concurrent views means more overlap, so a larger share is lost, not a constant number.
-        weight: 25
-        levels:
-          "0": Does not address it.
-          "1": Attributes the growth to something else — the database slowing down under load, a rate limiter, a queue dropping writes.
-          "2": Says "more traffic, more collisions" without connecting it to the proportion.
-          "3": Says the chance that a view overlaps another rises with how many are in flight, so the fraction lost rises rather than the count.
-          "4": As 3, and says what that predicts — the quiet listings are roughly right and the popular ones are badly wrong, which is what was observed.
-      - dimension: Moves the arithmetic to where the row is
-        description: One statement that increments the column, so no value travels through the application.
-        weight: 35
-        levels:
-          "0": No change, or recounting from the logs.
-          "1": Leaves the addition in the application — narrowing the gap by re-reading, retrying or sleeping, wrapping it in a transaction and stopping there, or changing a database setting that does not touch where the adding happens.
-          "2": Says the database should do the increment without saying what that changes.
-          "3": Increments in the database in one statement, so the value is never held in the application to be overwritten.
-          "4": As 3, and says when they would not bother being exact — a view count that can be counted elsewhere and reconciled is cheaper than making every view a write.
-
   - slug: slow-dependency-reasoning
     name: One slow dependency taking the service with it
     criteria:
@@ -476,35 +414,39 @@ rubrics:
           "4": As 3, and separates what must fail from what can still be served — the checkout stops, the rest of the site does not.
 
   - slug: degradation-reasoning
-    name: What the service does when something it needs is down
+    name: What a user is told when we do not know what happened
     criteria:
-      - dimension: Catches it rather than passing it on
-        description: The failure is handled where it happens; nothing half-created is left behind.
-        weight: 35
+      - dimension: Says something we know to be true
+        description: >-
+          The provider is failing and we cannot tell whether this code went out, so the message must
+          not say that it did.
+        weight: 40
         levels:
-          "0": The error reaches the user as a 500 or a blank page.
-          "1": Catches it and hides it — returns success, or logs and carries on as though the code was sent.
-          "2": Catches it and returns a generic error, with no account of what state the sign-in is left in.
-          "3": Fails the attempt cleanly, and says nothing is left behind that cannot be signed in to or retried.
-          "4": As 3, and separates the provider being down from a single number failing, because they deserve different handling.
-      - dimension: Gives the person another way in
-        description: A second route — email, an existing session, a different provider — turns an outage into an inconvenience.
-        weight: 35
-        levels:
-          "0": Not considered; the user waits for the provider.
-          "1": Offers a retry button as the alternative, or proposes letting them in without the code.
-          "2": Says a fallback "would be good" without naming one or what it costs.
-          "3": Names a route that does not depend on the failing provider, and says who it works for and who it does not.
-          "4": As 3, and weighs the cost honestly — a second SMS provider is real money and a real integration, so it is proposed as a decision rather than assumed.
-      - dimension: Says what the person is told
-        description: The message says what happened and what to do, and does not claim something that did not happen.
+          "0": Tells them something untrue — "your code has been sent, please check your phone" — when we do not know that.
+          "1": A raw error, a blank screen, or a success that hides the failure from the person entirely.
+          "2": A generic failure message that is not untrue, and says nothing about what is actually known.
+          "3": Says the code could not be sent and does not claim more than that.
+          "4": As 3, and is honest about the uncertainty where it matters — if a code may still arrive, says so rather than promising either way.
+      - dimension: Says whose problem it is
+        description: >-
+          Ours, not theirs — so the person does not conclude they mistyped their own number and start
+          again.
         weight: 30
         levels:
-          "0": No message, or an error code.
-          "1": A message that is untrue — "your code has been sent, please check your phone" when it has not.
-          "2": A generic apology with nothing to do next.
-          "3": Says the code could not be sent and what to do now — wait and try, or use the other route.
-          "4": As 3, and someone finds out from an alert rather than from users, because every sign-in is failing at once.
+          "0": Not addressed.
+          "1": Leaves them to assume it was something they did — a validation-shaped message, or nothing.
+          "2": Apologises without saying what failed, so the cause is still ambiguous to the reader.
+          "3": Says plainly that the problem is on our side and not with their number.
+          "4": As 3, and names what the vague version costs — the person retypes, resubmits, and adds load to a provider that is already failing.
+      - dimension: Gives them something to do
+        description: A next step, or another way in — not a dead end with an apology attached.
+        weight: 30
+        levels:
+          "0": No next step; the message ends there.
+          "1": '"Try again later" with no sense of when, or a retry button that hits the same provider immediately.'
+          "2": A next step that only works if the provider recovers, with nothing else offered.
+          "3": Says roughly when to try again, and offers another route in where one exists — email, or an existing session.
+          "4": As 3, and the sign-in still fails closed — no code, no session, whatever else is on screen.
 
   - slug: test-isolation-diagnosis
     name: A suite that depends on what ran before it
@@ -972,96 +914,3 @@ rubrics:
           "2": Says it should be "monitored" without saying what would be visible.
           "3": Logs or reports the version each worker is running, so a mismatch is a thing that can be seen rather than deduced.
           "4": As 3, and notes the jobs already in the queue carry the old payload, which the restart does not fix and which needs its own decision.
-
-  - slug: ignored-error-diagnosis
-    name: An error that was discarded
-    criteria:
-      - dimension: Says what happens when the call fails
-        description: The error is thrown away and the value returned is the zero value of the type.
-        weight: 40
-        levels:
-          "0": Believes the handler would fail or panic.
-          "1": A specific wrong account — that the customer would be nil and the encoder would panic, that the handler returns 500 because the encoder errors, that the discard only applies to a not-found.
-          "2": Says the error is ignored without saying what the value then is.
-          "3": Says the error is assigned to the blank identifier and the returned struct is its zero value — empty strings, zero numbers.
-          "4": "As 3, and says that is why it looks like success: a zero-value struct serialises into a complete, plausible-looking customer."
-      - dimension: Says why the client cannot tell
-        description: Nothing sets a status, so the response is a 200 carrying a record that does not exist.
-        weight: 25
-        levels:
-          "0": Does not address the status.
-          "1": Nothing accounts for the 200 — the empty body believed to be caught, the encoder believed to set a status, a middleware believed to notice, or a status simply prescribed.
-          "2": Says the status is wrong without saying what it should have been.
-          "3": Says writing to the response without setting a status sends 200, so a failure is indistinguishable from an empty record.
-          "4": As 3, and separates the two cases the client needs to tell apart — a customer that does not exist and a database that is unreachable are not the same answer.
-      - dimension: Handles it, and says which failure it was
-        description: Check the error, choose a status, and give the log enough to locate the call.
-        weight: 35
-        levels:
-          "0": No change, or logging the error and continuing.
-          "1": Collapses every case into one — a 500 for everything, a 404 for everything — or skips the error and tests the returned value instead.
-          "2": Says to check the error without saying what the handler then does.
-          "3": Checks it, distinguishes not-found from a failure to reach the store, and returns a status for each.
-          "4": As 3, and wraps or logs it with which call failed and for which id, so the next person reading the log is not looking at a bare message.
-
-  - slug: sync-over-async-diagnosis
-    name: Blocking a thread to wait for an async call
-    criteria:
-      - dimension: Says what the thread is doing
-        description: It is held, not working, until the call returns — so the pool drains under concurrency.
-        weight: 40
-        levels:
-          "0": Blames the client library, the provider, or the machine.
-          "1": Puts it somewhere else entirely — the client library, the provider, the machine being too small.
-          "2": Says `.Result` is "blocking" without saying what runs out — or names the classic deadlock and the synchronisation context, which is the .NET Framework's failure and not this one's. That answer is out of date rather than misunderstood, and most freely available material still teaches it.
-          "3": Says the thread is held while it waits instead of being returned, so concurrent requests exhaust the pool and new ones queue for a thread.
-          "4": As 3, and explains the idle CPU — the threads are not computing, they are waiting, so the machine looks unloaded while the application is stuck.
-      - dimension: Says why it gets worse gradually
-        description: The pool adds threads slowly, so the queue grows before the capacity does.
-        weight: 25
-        levels:
-          "0": Does not address it.
-          "1": Attributes the slope to something else — a memory leak, connections accumulating, the provider degrading under load.
-          "2": Says it "gets worse with traffic" without connecting it to the pool.
-          "3": Says the pool grows only gradually when it runs short, so arriving requests wait even though threads will eventually be added.
-          "4": As 3, and says what that looks like from outside — latency climbing over minutes and then timeouts, rather than a clean failure.
-      - dimension: Awaits it properly, all the way down
-        description: "`async Task<IActionResult>` and `await`, and no blocking call left anywhere in the path."
-        weight: 35
-        levels:
-          "0": No change, or a larger minimum thread count as the fix.
-          "1": Keeps the blocking call and works around it — `ConfigureAwait(false)`, `GetAwaiter().GetResult()`, raising the pool minimum — presented as the correct fix.
-          "2": Says to "make it async" without saying what the thread then does.
-          "3": Makes the action `async Task<IActionResult>` and awaits the call, so the thread is returned to the pool while waiting.
-          "4": As 3, and says it has to be awaited the whole way down, because one blocking call anywhere in the path puts the behaviour back.
-
-  - slug: model-callback-judgement
-    name: Side effects attached to saving a record
-    criteria:
-      - dimension: Traces all three symptoms to one cause
-        description: The import, the two hours and the slow tests are the same callback firing on every save.
-        weight: 40
-        levels:
-          "0": Treats them as three separate problems.
-          "1": A cause that is not this one — each symptom given its own (batching, a faster mail provider, better fixtures), or all three traced to a single mechanism the code does not have.
-          "2": Identifies the callback for one of the three, usually the emails.
-          "3": Says any save fires both callbacks, so a bulk import sends in bulk, waits for the mail server each time, and makes every test that saves a vendor do real work.
-          "4": As 3, and notes the record does not know why it is being saved — a correction to a spelling sends a welcome email exactly as a new signup does.
-      - dimension: Gets it out of the save
-        description: The work leaves the callback, or at least stops happening inside the transaction.
-        weight: 35
-        levels:
-          "0": No change, or a flag on the import to skip callbacks.
-          "1": Narrows when it fires rather than moving it — `after_create` instead of `after_save`, a conditional on the record, an environment check that disables it in tests.
-          "2": Says to "use a background job" without saying what that changes about the import or the tests.
-          "3": Enqueues instead of delivering inline, so the save no longer waits for the mail server.
-          "4": As 3, and moves the decision to whatever actually signs a vendor up, because enqueuing four thousand emails is still four thousand emails nobody meant to send.
-      - dimension: Says what a callback is for
-        description: Keeping the record consistent with itself, not reaching outside it.
-        weight: 25
-        levels:
-          "0": Treats callbacks as the normal place for this work.
-          "1": States a rule that is really the fix — "callbacks should be asynchronous", "use `deliver_later` in callbacks" — or that callbacks should never be used at all.
-          "2": Says callbacks are "overused" without a line between what belongs and what does not.
-          "3": Says a callback should do things to the record itself, and anything that touches the outside world belongs to the action that caused the save.
-          "4": As 3, and gives the test that decides it — whether the behaviour should happen for every save from every caller, including a console session and an import.

@@ -3,11 +3,13 @@ generated_by: ai_draft
 role: backend
 rubric: degradation-reasoning
 question: what-happens-when-it-is-down
-# `fluent-but-wrong` treats a one-time code as a delivery guarantee: it retries in-request with
-# backoff up to sixty seconds, then queues the code and **returns success to the client**, extends
-# the code's lifetime to an hour, and argues explicitly against a circuit breaker. Every one of
-# those makes the outage worse, and the last one tells the user something untrue. 1/0/1 against
-# `strong`'s 3/4/4.
+# **Rescored 2026-09-23** against the narrowed rubric — the question is now about what the user is
+# told, not about degrading generally. **The five answers predate the narrowing** and were written
+# to the wider prompt, so they carry unscored material about alerting and second providers; they
+# cover the message and the separations hold, but the set should be rewritten when the question is
+# next touched. `fluent-but-wrong` queues the code and **returns success to the client**, so the
+# one thing the rubric now scores hardest — not claiming something we do not know — it gets
+# exactly backwards. 0/0/1 against `strong`'s 3/4/4.
 answers:
   - kind: strong
     text: |
@@ -23,15 +25,15 @@ answers:
       breaker so we stop hammering a dead provider. And ideally a second SMS provider we can flip
       to with a config change, already tested, not tested for the first time during the outage.
     expected:
-      - dimension: Catches it rather than passing it on
+      - dimension: Says something we know to be true
         score: 3
-        because: One attempt, short timeout, give up fast, fail closed; does not separate the provider being down from one number failing.
-      - dimension: Gives the person another way in
+        because: Says the codes cannot be sent and does not claim more; does not address whether one might still arrive.
+      - dimension: Says whose problem it is
         score: 4
-        because: Email as the second channel, and a second provider weighed honestly as real money and a real integration rather than assumed.
-      - dimension: Says what the person is told
+        because: '"It''s us not you" — and names what the vague version costs, because they will retype their number five times.'
+      - dimension: Gives them something to do
         score: 4
-        because: Says it is us and not them so the person does not retype their number five times — and an alert rather than somebody tweeting at us.
+        because: Try again in a few minutes, email as the other route in, and the sign-in still fails closed.
   - kind: weak
     text: |
       Okay so if the SMS provider is down, then the user can't sign in. I would first put it in a
@@ -45,15 +47,15 @@ answers:
       team what the policy is for that, honestly, because it's a security thing and I wouldn't
       want to decide it alone.
     expected:
-      - dimension: Catches it rather than passing it on
+      - dimension: Says something we know to be true
         score: 2
-        because: A `try`/`catch` and a generic error, with no account of what the sign-in attempt is left in.
-      - dimension: Gives the person another way in
+        because: '"Please try again later" — not untrue, and says nothing about what is known.'
+      - dimension: Says whose problem it is
         score: 1
-        because: Raises letting them in without the code and then declines it; no route offered.
-      - dimension: Says what the person is told
+        because: Never says whose problem it is, so the reader is left to assume it was their number.
+      - dimension: Gives them something to do
         score: 2
-        because: '"Please try again later", with nothing to do next.'
+        because: A next step that only works if the provider recovers, with nothing else offered.
   - kind: fluent-but-wrong
     text: |
       Sure. So the principle is that a one-time code is a delivery guarantee — we've committed to
@@ -68,15 +70,15 @@ answers:
       might have succeeded, which on a partial outage means we reject users the provider could
       still have served. Better to keep trying and let the backoff do the rate limiting for us.
     expected:
-      - dimension: Catches it rather than passing it on
-        score: 1
-        because: Returns success and queues the code, so the failure is hidden from the user entirely.
-      - dimension: Gives the person another way in
+      - dimension: Says something we know to be true
         score: 0
-        because: No alternative route at all; the user waits for the provider, by design.
-      - dimension: Says what the person is told
+        because: Returns success to the client for a code that was never sent.
+      - dimension: Says whose problem it is
+        score: 0
+        because: Not addressed — the failure is hidden, so there is nothing to attribute.
+      - dimension: Gives them something to do
         score: 1
-        because: Success returned for a code that was never sent — a message that is untrue.
+        because: '"Try again" against a queue that only helps if the provider comes back, and the code''s lifetime stretched to an hour to cover it.'
   - kind: correct-poorly-explained
     text: |
       So — don't retry. Well, once maybe. But the point is the person is sitting there, so
@@ -91,15 +93,15 @@ answers:
       a second provider, configured, that someone has actually tested, not the first time you test
       it being during the outage.
     expected:
-      - dimension: Catches it rather than passing it on
+      - dimension: Says something we know to be true
         score: 3
-        because: Short timeout, give up, fail closed — "no code, no session, that's the point of the code".
-      - dimension: Gives the person another way in
+        because: Says it is us and to try in a few minutes, so the message is not untrue.
+      - dimension: Says whose problem it is
         score: 4
-        because: Email as the real answer, and a second provider that somebody has actually tested before the outage.
-      - dimension: Says what the person is told
+        because: '"If you say ''something went wrong'' they think it''s their number, they''ll retype it, they''ll try four more times" — the cost named.'
+      - dimension: Gives them something to do
         score: 4
-        because: Says it is us, because "something went wrong" makes them retype and adds load — plus alerting on the failure rate.
+        because: Email as the real answer, and no code means no session.
   - kind: nigerian-english
     text: |
       Okay. First thing — the code no suppose retry inside the request. The person dey there
@@ -114,12 +116,12 @@ answers:
       second provider wey we fit switch to from config, wey person don test — not say na during
       outage you go first test am.
     expected:
-      - dimension: Catches it rather than passing it on
+      - dimension: Says something we know to be true
         score: 3
-        because: "Same as `strong`: small timeout, one try, fail closed."
-      - dimension: Gives the person another way in
+        because: "Same as `strong`: we cannot send codes right now, and nothing more is claimed."
+      - dimension: Says whose problem it is
         score: 4
-        because: "Same: email as the second channel, and a second provider tested before it is needed."
-      - dimension: Says what the person is told
+        because: "Same: na us, not their number — and the person would otherwise type it five times."
+      - dimension: Gives them something to do
         score: 4
-        because: "Same: tell them it is us, and an alert rather than waiting to be tweeted at."
+        because: "Same: try again shortly, email if we have it, and fail closed."

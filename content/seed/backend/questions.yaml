@@ -1,7 +1,10 @@
-# The backend question bank: 37 questions for an intern/junior or mid-level interview — 25 general
-# and 12 written for a particular stack. A backend candidate is offered 41, because four
-# role-general questions live in the frontend bank and carry this role too; stack tagging means any
-# one candidate actually sees about 28. Built to `content/seed/blueprints/backend.md`, which says
+# The backend question bank: 34 questions for an intern/junior or mid-level interview — 25 general
+# and 9 written for a particular stack. A backend candidate is offered 38, because four role-general
+# questions live in the frontend bank and carry this role too; stack tagging means any one candidate
+# actually sees about 28. **Ten of the general questions are offered at intern-junior and the rest
+# are mid only** (owner's decision, 2026-09-23) — the level tag was doing almost no work when twenty
+# of twenty-five carried both, and several core topics are now deliberately short at intern-junior
+# rather than padded. `check-bank.mjs` reports each shortfall every run. Built to `content/seed/blueprints/backend.md`, which says
 # how many questions each core topic earns and why.
 #
 # One instruction for whoever asks these, which the seed format has nowhere to put: **an answer
@@ -16,38 +19,6 @@ author: ai_draft
 status: draft
 
 questions:
-  - slug: api-error-shape
-    roles: [backend, fullstack]
-    levels: [mid]
-    type: technical
-    topic: api-design
-    subtopic: error handling
-    difficulty: 3
-    prompt: >-
-      You are designing the error responses for an API that a mobile app and a web app both use.
-      What goes in the status line, what goes in the body, and how does the client know what to do
-      with it?
-    context: null
-    rubric: api-error-contract
-    ideal_points:
-      - A stable machine-readable code per error, separate from the human message.
-      - Status codes used by category, including the difference between 401, 403 and 404.
-      - Validation failures name the offending fields so the client can mark them.
-      - Nothing internal in the body — no stack traces, no SQL — and a request id for support.
-      - One shape, the same across every endpoint, written down.
-    reviewer_notes: >-
-      **A critique pass wants this cut and the argument is good — your call.** It is a textbook
-      question with no artifact, so it rewards whoever read an API-design post most recently, and
-      `api-status-code-choice` asks the same thing better with a real response body in front of
-      the candidate. Its rubric's first two criteria duplicate `status-code-honesty`'s almost line
-      for line. If it stays, the narrowest useful version is the one thing the other does not
-      reach: versioning and writing down the code list so a client can rely on it. Separately, two
-      passes answered this question's original note about 409 versus 422 with the same word —
-      obscurity — so the top descriptor no longer names either, and asks instead for a defensible
-      case by what the client should do next. The prompt now says "status line" and "body",
-      because 35% of the score was on status codes and the prompt never used the word. Cut, or
-      narrowed to the versioning point?
-
   - slug: n-plus-one-diagnosis
     roles: [backend, fullstack]
     levels: [mid]
@@ -173,16 +144,17 @@ questions:
 
   - slug: db-money-as-a-float
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: technical
     topic: databases
     subtopic: data types
     difficulty: 2
     prompt: >-
       A handful of invoices stay marked unpaid although the customer has paid in full, and finance
-      can see the two figures are the same on screen. This is the column, and this is the check.
-      Tell me why the comparison fails, what you would store instead, and what happens to the rows
-      that are already in that column.
+      can see the two figures are the same on screen. This is the column, and this is the check —
+      it is in JavaScript, but the idea is the same wherever you work. Tell me why the comparison
+      fails, what you would store instead, and what happens to the rows that are already in that
+      column.
     context: |
       ```sql
       CREATE TABLE payments (
@@ -220,15 +192,16 @@ questions:
 
   - slug: db-half-finished-transfer
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: technical
     topic: databases
     subtopic: transactions
     difficulty: 3
     prompt: >-
       Support have found accounts where money left one and never arrived in the other. This is the
-      code that moves it. Walk me through how that state comes about, what you would change, and
-      what you would do about the rows that are already wrong.
+      code that moves it, in JavaScript — the idea is the same wherever you work. Walk me through
+      how that state comes about, what you would change, and what you would do about the rows that
+      are already wrong.
     context: |
       ```js
       async function transfer(fromId, toId, amountKobo) {
@@ -255,16 +228,16 @@ questions:
 
   - slug: cache-key-that-leaked
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: technical
     topic: caching
     subtopic: cache keys
     difficulty: 3
     prompt: >-
       Users are reporting that they sometimes see someone else's dashboard — the wrong name, the
-      wrong figures — and refreshing fixes it. This is the caching that was added last week. Tell
-      me what is happening, why it is intermittent, and what you would do before you get anywhere
-      near fixing the code.
+      wrong figures — and refreshing fixes it. This is the caching that was added last week, in
+      JavaScript — the idea is the same wherever you work. Tell me what is happening, why it is
+      intermittent, and what you would do before you get anywhere near fixing the code.
     context: |
       ```js
       app.get("/api/dashboard", auth, async (req, res) => {
@@ -293,7 +266,7 @@ questions:
 
   - slug: what-to-cache-and-for-how-long
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: scenario
     topic: caching
     subtopic: what to cache
@@ -328,9 +301,9 @@ questions:
     difficulty: 2
     prompt: >-
       Sign-up sometimes takes four seconds, and when the email provider is having a bad day the
-      user gets an error and no account. This is the handler. What is wrong with doing it this
-      way, what would you change, and what should the person signing up be told — including if the
-      email never arrives?
+      user gets an error and no account. This is the handler, in JavaScript — the idea is the same
+      wherever you work. What is wrong with doing it this way, what would you change, and what
+      should the person signing up be told — including if the email never arrives?
     context: |
       ```js
       app.post("/api/signup", async (req, res) => {
@@ -358,7 +331,7 @@ questions:
 
   - slug: the-job-that-ran-twice
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: scenario
     topic: async-work
     subtopic: retries and duplicates
@@ -394,8 +367,9 @@ questions:
     subtopic: credential storage
     difficulty: 2
     prompt: >-
-      You have joined a team and this is how sign-in works. Tell me what you would raise, what you
-      would change it to, and what has to happen to the accounts that already exist.
+      You have joined a team and this is how sign-in works. It is in JavaScript; the idea is the
+      same wherever you work. Tell me what you would raise, what you would change it to, and what
+      has to happen to the accounts that already exist.
     context: |
       ```js
       // on sign-up
@@ -431,9 +405,10 @@ questions:
     difficulty: 3
     prompt: >-
       A tester signed in as an ordinary user, changed the number in the address bar, and read
-      somebody else's invoice. This is the route. Explain what the check that is there does and
-      what it does not do, then tell me how you would write the missing one — and where you would
-      put it so the next route gets it too.
+      somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever
+      you work. Explain what the check that is there does and what it does not do, then tell me
+      how you would write the missing one — and where you would put it so the next route gets it
+      too.
     context: |
       ```js
       app.get("/api/invoices/:id", requireSignIn, async (req, res) => {
@@ -467,8 +442,9 @@ questions:
     difficulty: 3
     prompt: >-
       There was one unit left and two customers both got a confirmation. It happens perhaps once a
-      week, always at peak. Talk me through how both requests got past this code, why it is rare
-      rather than constant, and what you would change.
+      week, always at peak. The code is JavaScript; the idea is the same wherever you work. Talk
+      me through how both requests got past it, why it is rare rather than constant, and what you
+      would change.
     context: |
       ```js
       const item = await db.items.findById(id);
@@ -493,45 +469,9 @@ questions:
       there because a candidate who cannot say why has usually recognised the pattern rather than
       understood it. Is that separation real, or am I rewarding a particular way of explaining?
 
-  - slug: the-counter-that-lost-updates
-    roles: [backend, fullstack]
-    levels: [mid]
-    type: technical
-    topic: concurrency
-    subtopic: lost updates
-    difficulty: 3
-    prompt: >-
-      The view counter on a popular listing says four hundred when the logs show it was opened about
-      nine hundred times. Nothing errors. Here is what happens on each view. Tell me where the
-      missing views went, why the loss gets proportionally worse as the listing gets more popular,
-      and what you would do about it.
-    context: |
-      ```js
-      const listing = await db.listings.findById(id);
-      await db.listings.update(id, { views: listing.views + 1 });
-      ```
-    rubric: lost-update-reasoning
-    ideal_points:
-      - Every view reads a number, adds one in the application, and writes back what it computed.
-      - Two views that overlap both read the same number, and the second write erases the first.
-      - The busier the listing, the more overlap there is, so a larger share is lost.
-      - Let the database add — one statement that increments the column — so no value travels through the application.
-      - A lock or a transaction with the right isolation also works, and costs more than the increment does.
-      - If the count does not have to be exact or immediate, counting somewhere cheaper and reconciling is a legitimate answer.
-    reviewer_notes: >-
-      **Two critique passes independently want this cut — your call, and I think they are right.**
-      It is substantively `two-people-bought-the-last-one` again: read a value, compute in the
-      application, write it back. A mid candidate offered both is asked the same thing twice, and
-      a `python-backend` candidate gets it a third time in `django-save-overwrote-a-change`. The
-      stock question is the better of the two — money, and a decision that comes out wrong rather
-      than a number that is quietly low. What would be lost by cutting it is the "proportionally
-      worse" clause, which is a probability explanation rather than a backend one. If it stays,
-      its own criterion 2 should be the thing it is kept for. Is the "proportionally worse" clause
-      worth keeping a near-duplicate for?
-
   - slug: the-dependency-that-got-slow
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: scenario
     topic: backend-reliability
     subtopic: timeouts
@@ -561,46 +501,49 @@ questions:
 
   - slug: what-happens-when-it-is-down
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: scenario
     topic: backend-reliability
     subtopic: degrading
     difficulty: 2
     prompt: >-
-      Your sign-in sends a one-time code by SMS, and the SMS provider is returning errors for
-      everybody. Tell me what your code should do with that failure, what the person trying to sign
-      in should see, and what you would want to be true the next time it happens.
+      Your sign-in sends a one-time code by SMS, and the provider is returning errors for
+      everybody. You cannot tell whether any particular code was sent or not. Tell me exactly what
+      the person trying to sign in sees on screen, what you will not claim in that message, and
+      what you give them to do next.
     context: null
     rubric: degradation-reasoning
     ideal_points:
-      - The failure is caught rather than reaching the user as a 500 or a blank screen.
-      - The person is told what happened and what to do — try again shortly, or use another way in.
-      - A second route in (email, or an existing session) turns an outage into an inconvenience.
-      - Nothing half-created is left behind — no account in a state that cannot be signed in to.
-      - Someone should find out from an alert rather than from users, because every sign-in is failing.
-      - A second provider is the expensive answer and worth naming as a cost, not a default.
+      - The message does not say the code was sent, because we do not know that it was.
+      - It says the failure is ours, so the person does not conclude they mistyped their number.
+      - It says roughly what to do — wait and try again shortly — rather than only apologising.
+      - A second route in (email, or an existing session) turns a dead end into an inconvenience.
+      - A vague "something went wrong" costs us — the person retypes and retries, adding load to a failing provider.
+      - Whatever is on screen, the sign-in itself fails closed — no code, no session.
     reviewer_notes: >-
-      **A critique pass wants this cut — your call.** The objection: no artifact, and its
-      strongest answer (a second route into the account) is a product decision rather than an
-      engineering one, so on its only engineering content it overlaps `the-dependency-that-got-
-      slow`. The counter is that it is the one question in the bank where the candidate has to
-      decide what a user is told, which the engine follows up well. If it stays, the narrowest
-      version is the clause the rubric already weights hardest: what the message says when you do
-      not know whether the code was sent. The rubric puts 35% on the alternative route in and 30%
-      on the message, with level 4 of the message criterion reserved for not claiming something we
-      do not know. Is that split worth keeping the question for?
+      **Narrowed on 2026-09-23 (owner's decision).** It used to ask what the code does with the
+      failure, what the person sees, and what you would want to be true next time — and a critique
+      pass was right that the middle of that overlapped `the-dependency-that-got-slow` and that
+      its strongest answer (a second SMS provider) is a product decision the candidate does not
+      own. What is left is the one thing nothing else in the bank asks: what a user is told when
+      we do not know what happened. The rubric is now three facets of that. **The stress answers
+      predate the narrowing** and were written to the wider prompt, so they carry unscored
+      material about alerting; they still cover the message and the separations hold, but rewrite
+      the set when this question is next touched. Is one question about a message worth a slot, or
+      is this now too small to ask?
 
   - slug: tests-that-share-a-database
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: technical
     topic: backend-testing
     subtopic: test isolation
     difficulty: 3
     prompt: >-
       The backend test suite passes when you run one file and fails when you run all of them, and
-      the failures move around. It fails on CI more often than locally. Tell me what you think is
-      going on, how you would confirm it, and how you would make the suite trustworthy again.
+      the failures move around. It fails on CI more often than locally. The test is in JavaScript;
+      the idea is the same wherever you work. Tell me what you think is going on, how you would
+      confirm it, and how you would make the suite trustworthy again.
     context: |
       ```js
       test("lists active vendors", async () => {
@@ -627,7 +570,7 @@ questions:
 
   - slug: mocking-what-you-do-not-own
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: scenario
     topic: backend-testing
     subtopic: test doubles
@@ -689,7 +632,7 @@ questions:
 
   - slug: how-would-you-know-it-broke
     roles: [backend, fullstack]
-    levels: [intern-junior, mid]
+    levels: [mid]
     type: scenario
     topic: observability
     subtopic: alerting
@@ -1198,128 +1141,67 @@ questions:
       situation, and criterion 1 can be answered from "a process that started before the deploy" without ever having
       run one — does that hold?
 
-  - slug: go-the-error-nobody-checked
-    roles: [backend]
+  # Added 2026-09-23 (owner's decision). The two of the four questions a remote hiring-manager
+  # critique pass would add that the bank most lacked: it covers receiving a code review and had
+  # nothing on giving one, and nothing at all on a ticket nobody can explain — which is the failure
+  # mode remote work actually produces. Both carry all four wave-1 roles and neither needs code, a
+  # diagram or an employer, so their rubrics live in `rubrics.shared.yaml`.
+
+  - slug: the-ticket-nobody-can-explain
+    roles: [backend, frontend, qa, fullstack]
     levels: [intern-junior, mid]
-    stacks: [golang]
-    type: technical
-    topic: backend-reliability
-    subtopic: error handling
-    difficulty: 2
-    prompt: >-
-      When the database is unreachable this handler returns 200 and a customer with an empty name
-      and a zero balance, and nothing is logged. Tell me what the code does when the call fails,
-      why it ends up looking like success, and how you would write it — including what should
-      happen when the customer simply does not exist.
-    context: |
-      ```go
-      // FindCustomer returns a zero Customer and an error if the row cannot be read.
-      func (s *Store) FindCustomer(ctx context.Context, id string) (Customer, error)
-
-      func GetCustomer(w http.ResponseWriter, r *http.Request) {
-          customer, _ := store.FindCustomer(r.Context(), chi.URLParam(r, "id"))
-          json.NewEncoder(w).Encode(customer)
-      }
-      ```
-    rubric: ignored-error-diagnosis
-    ideal_points:
-      - The error is discarded, so the failure is not visible anywhere in this function.
-      - The returned value is the zero value of the type, which serialises as a real-looking customer.
-      - The handler writes 200 because nothing told it otherwise, and the client cannot tell.
-      - Check the error, and return a status that says what happened.
-      - Not-found and the database being down deserve different answers to the client.
-      - Wrap or log it with enough context to say which call failed, so the next person is not reading a bare message.
-    reviewer_notes: >-
-      The one Go question, and the blueprint says a variant with one question is a variant we are
-      not really serving — so a reviewer's first job is to decide whether `golang` earns a second
-      or comes off `roles.yaml`. I chose explicit error handling over goroutines because it is the
-      discipline the language is about and the one a candidate coming from PHP or Node most often
-      carries bad habits into. A critique pass pointed out the return type decides the whole first
-      criterion — a pointer return would make the zero value `nil` and encode as `null`, not as a
-      plausible customer — so the signature is now shown. A hiring-manager pass argued the single
-      slot would be better spent on something a colleague experiences than on a language trap.
-      Which?
-
-  - slug: dotnet-blocking-on-async
-    roles: [backend, fullstack]
-    levels: [mid]
-    stacks: [dotnet, dotnet-react]
-    type: technical
-    topic: concurrency
-    subtopic: async and blocking calls
+    type: scenario
+    topic: collaboration
+    subtopic: working from an ambiguous brief
     difficulty: 3
     prompt: >-
-      This controller action is fine under test and fine with a few users. Past a certain amount of
-      traffic the whole application slows down and requests start timing out, and the CPU is not
-      busy. Explain what this line is doing to the application, and how you would write it.
-    context: |
-      ```csharp
-      [HttpGet("rates")]
-      public IActionResult GetRates()
-      {
-          var rates = _ratesClient.GetRatesAsync().Result;
-          return Ok(rates);
-      }
-      ```
-    rubric: sync-over-async-diagnosis
+      A ticket says "add filtering to the vendors page". There is no design, nothing about which
+      fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow.
+      What do you do first, what do you write to them, and what would you build before you hear back?
+    context: null
+    rubric: ambiguous-work-judgement
     ideal_points:
-      - "`.Result` holds the thread until the call finishes, instead of releasing it while it waits."
-      - Every concurrent request holds one, so the pool runs out and new requests wait for a thread.
-      - The CPU is idle because the threads are not working — they are waiting.
-      - The pool grows slowly, which is why it gets worse over minutes rather than failing outright.
-      - Make the action `async Task<IActionResult>` and `await` the call, so the thread goes back while it waits.
-      - It has to be awaited all the way down; one blocking call anywhere in the path brings it back.
+      - Look at what already exists first — the page, the data, how anything similar was built here.
+      - Narrow the unknowns to the few that actually change what gets built, not every question they could ask.
+      - Write once, with the specific decisions needed, and say what will be assumed if there is no reply.
+      - Say when the answer stops being useful, because the reader is asleep and the date is tomorrow.
+      - Build the part that is not in doubt, so the eight hours are not lost either way.
+      - Do not build the ambiguous half on a guess and present it as done.
     reviewer_notes: >-
-      **Version-sensitive: ASP.NET Core thread-pool behaviour, checked against learn.microsoft.com
-      (rule CA2007) on 2026-09-22.** On ASP.NET Core request handling there is no synchronisation
-      context, so `.Result` does not produce the .NET Framework deadlock — it starves the thread
-      pool, which is the framing the current guidance uses. **Blazor does have one**, so a
-      candidate who asks which part of ASP.NET Core is ahead of the question. The deadlock answer
-      now scores 2, not 1: it is out of date rather than misunderstood, and it is what almost all
-      freely available material still teaches. **Two passes say this is the wrong question for the
-      one `dotnet` slot** — a runtime gotcha from every ".NET interview questions" list, and near-
-      identical to `python-blocking-call-in-async`. Their suggestion: something a teammate feels,
-      such as DI lifetimes leaking state across requests. Or take the blueprint's offer and drop
-      the variant. Keep it, replace it, or drop the variant?
+      A remote hiring manager named this as the single biggest remote failure mode — a week spent
+      building the wrong thing because nobody asked — and nothing in either bank went near it. It
+      needs no employer: a ticket, a person who is not there, and a date is a situation a candidate
+      can reason about without ever having had one. What I am least sure of is the eight hours. It is
+      there to force the candidate to choose between waiting and guessing, but a candidate whose
+      whole experience is same-room work may read it as an odd detail rather than the constraint.
+      Does it land, or should it just say "you will not hear back today"?
 
-  - slug: rails-callback-that-did-too-much
-    roles: [backend, fullstack]
+  - slug: a-change-you-are-not-sure-about
+    roles: [backend, frontend, qa, fullstack]
     levels: [mid]
-    stacks: [ruby-rails]
-    type: technical
-    topic: async-work
-    subtopic: side effects
+    type: scenario
+    topic: collaboration
+    subtopic: reviewing someone else's work
     difficulty: 3
     prompt: >-
-      An overnight import of four thousand vendors sent four thousand emails and took two hours,
-      and the tests for anything that touches a vendor are slow. This is the model. Tell me what
-      is causing all three of those, what you would change, and when a callback *is* the right
-      place for something.
-    context: |
-      ```ruby
-      class Vendor < ApplicationRecord
-        after_save :send_welcome_email
-
-        private
-
-        def send_welcome_email
-          VendorMailer.welcome(self).deliver_now
-        end
-      end
-      ```
-    rubric: model-callback-judgement
+      A teammate opens a change adding a new endpoint that lists every order for a customer. You
+      think it will be slow once there is real data in that table, and you are not certain — you have
+      not measured it. What do you write on the change, how do you word it, and what would make you
+      approve it anyway?
+    context: null
+    rubric: review-you-give
     ideal_points:
-      - Saving a vendor for any reason sends an email, so anything that saves in bulk sends in bulk.
-      - "`deliver_now` is done inside the save, so the import waits for the mail server four thousand times."
-      - Tests are slow and fragile for the same reason — every saved record does real work.
-      - The email belongs to signing a vendor up, not to the record being written.
-      - Move it to whatever actually creates a vendor, or at least to a background job.
-      - A callback is for keeping the record consistent with itself, not for reaching outside it.
+      - Say the concern and say what it rests on, including that it has not been measured.
+      - Owning the uncertainty is not weakness — it tells the author how much weight to give the comment.
+      - Name what would settle it — the row count it starts to hurt at, or a plan against realistic data.
+      - Say plainly whether it blocks the change or is a note for later; a reviewer who never says is the bottleneck.
+      - Approving is a real outcome — a small table today, a ticket filed, and something that would tell us when it matters.
+      - Comment on the change, not on the person who wrote it.
     reviewer_notes: >-
-      **Version-sensitive: Active Record callbacks and `deliver_now` versus `deliver_later`,
-      checked against guides.rubyonrails.org on 2026-09-22.** The one Rails question, so the same
-      decision applies as for Go: a second, or the variant comes off `roles.yaml`. I chose this
-      because "put it in a callback" is the habit Rails most encourages and most regrets, and
-      because the three symptoms in the prompt all come from one cause, which makes it a good
-      conversation rather than a definition. Is `deliver_later` alone a complete answer? I have it
-      at level 3 and moving the call out of the callback at level 4.
+      The bank covers having your own work reviewed (`feedback-on-your-code`) and had nothing on
+      giving a review, which for a remote hire is the main written trace they leave. Mid only,
+      because a junior is rarely the reviewer of record — though they do comment, so a reviewer may
+      think it belongs at both. The clause I am least sure of is "what would make you approve it
+      anyway": it is there because a review that can only be satisfied one way is a blocker wearing a
+      question mark, and it is the part of the answer I would most want to hear. Is it too leading —
+      does it tell the candidate that approving is the expected answer?

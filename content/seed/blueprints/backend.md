@@ -1,7 +1,8 @@
 # Backend engineer — question bank blueprint
 
-**Wave 1. Status: drafted, critiqued, fact-checked and stress-tested 2026-09-22. The bank is 37
-questions — 25 general and 12 stack-tagged — and goes next to a human expert.**
+**Wave 1. Status: drafted, critiqued, fact-checked and stress-tested 2026-09-22; the owner's six
+decisions applied 2026-09-23. The bank is 34 questions — 25 general and 9 stack-tagged — and goes
+next to a human expert.**
 Derived from `docs/role-catalogue.md` § Backend Engineer.
 
 ## What the role is
@@ -34,14 +35,16 @@ question most often turns out to be a Node question in disguise.
 | `java-spring`        | 2             | Banking and enterprise. A Spring candidate asked Node questions learns nothing.                                                     |
 | `python-backend`     | 2             | Django and FastAPI, both common in local product work.                                                                              |
 | `php-laravel`        | 2             | Very widely used here in agency and product work, and the variant a bank written by a JavaScript drafter is most likely to neglect. |
-| `golang`             | 1             | Growing, still narrow locally.                                                                                                      |
-| `dotnet`             | 1             | Enterprise and banking, narrow.                                                                                                     |
-| `ruby-rails`         | 1             | Narrowest of the seven here.                                                                                                        |
+| ~~`golang`~~         | —             | **Off `roles.yaml` 2026-09-23.** One question is not a variant we are serving.                                                      |
+| ~~`dotnet`~~         | —             | **Off `roles.yaml` 2026-09-23.** Same.                                                                                              |
+| ~~`ruby-rails`~~     | —             | **Off `roles.yaml` 2026-09-23.** Same. (Full-stack still offers it; nothing is tagged for it now.)                                  |
 
-**A variant with one question is a variant we are not really serving.** Three of these are at one
-deliberately, and the reviewer's answer decides between two outcomes: it earns a second question, or
-it comes off `roles.yaml` altogether. Offering a variant in the onboarding picker and then handing
-that candidate the general set is worse than not offering it.
+**A variant with one question is a variant we are not really serving**, and the owner's decision on
+2026-09-23 was to take all three off `roles.yaml` rather than leave them advertised and unserved.
+`dotnet-blocking-on-async`, `go-the-error-nobody-checked` and `rails-callback-that-did-too-much`
+went with them, along with their rubrics and stress sets. `tasks/todo.md` carries the question for
+the reviewers: **which of the three does this market actually hire for?** Whichever they name comes
+back with a real bank of its own, not one question.
 
 ## Core topics
 
@@ -123,15 +126,12 @@ by_stack:
   java-spring: 2
   python-backend: 2
   php-laravel: 2
-  golang: 1
-  dotnet: 1
-  ruby-rails: 1
 complete: false
 ```
 
-|         | General | Stack-tagged | Total   | Today |
-| ------- | ------- | ------------ | ------- | ----- |
-| Backend | ~22     | ~12          | **~34** | 3     |
+|         | General | Stack-tagged | Total  | Was |
+| ------- | ------- | ------------ | ------ | --- |
+| Backend | 25      | 9            | **34** | 3   |
 
 About 30 new rubrics — one per new technical and scenario question.
 
@@ -142,10 +142,16 @@ About 30 new rubrics — one per new technical and scenario question.
 - `n-plus-one-diagnosis` — its notes ask whether "fast locally, slow in production" gives the answer
   away. Worth testing with the **fluent but wrong** sample answer: if a candidate can score well by
   repeating the hint, it does.
-- `incident-you-contributed-to` — mid, shared behavioural rubric, and the notes worry it measures
-  interview coaching rather than judgement. It is also the only backend question at mid that is not
-  technical, which is a ratio the bank needs to keep as it grows: roughly one behavioural question
-  in four.
+- `incident-you-contributed-to` — mid, and the notes worried it measures interview coaching rather
+  than judgement. It now has `incident-ownership` (Appendix B2).
+
+**The ratio, changed 2026-09-23.** This blueprint used to say "roughly one behavioural question in
+four", counting the `behavioral` **type**. That was the wrong thing to count: the two best
+judgement questions in the bank (`the-ticket-nobody-can-explain`,
+`a-change-you-are-not-sure-about`) are typed `scenario`, because they are hypotheticals rather than
+"tell me about a time". The target is now **one question in four, counted over what a candidate is
+actually offered, hanging from `collaboration`, `written-communication` or `own-work`** — what it
+tests, not what it is called. Backend is at **9 of 38, 24%**, against 3 of 37 before this pass.
 
 ## Out of scope, deliberately
 
@@ -329,36 +335,40 @@ Seven new topic rows (`caching`, `async-work`, `auth`, `concurrency`, `backend-t
 `observability`, `system-design-basics`), five of which DevOps, data engineering and full-stack will
 reuse.
 
-**What the reviewer has to decide, in order of how much it matters:**
+**All six were decided by the owner on 2026-09-23 and are applied.** What follows is what was
+done and what it cost, so a reviewer can disagree with any of it knowingly.
 
-1. **The level split.** Twenty of the twenty-five general questions carry _both_ `intern-junior` and
-   `mid`, so the two pools are nearly the same bank and the level tag does very little work. A
-   critique pass named ten it would keep at junior and would make the rest mid only. That is a
-   judgement about the audience rather than about the questions, and taking it would put several
-   core topics below the blueprint's floor at `intern-junior` — which is either a reason not to take
-   it or a reason to write more junior questions. It is not a change a drafter should make alone.
-2. **Three questions two passes wanted cut**: `api-error-shape` (subsumed by
-   `api-status-code-choice`, which asks it better with an artifact), `the-counter-that-lost-updates`
-   (the same read-modify-write as `two-people-bought-the-last-one`, at lower stakes) and
-   `what-happens-when-it-is-down` (no artifact; its strongest answer is a product decision). Each
-   carries the argument in its own `reviewer_notes`.
-3. **The shape of the bank.** Twenty-two of thirty-seven questions hand the candidate a snippet with
-   a planted defect. A remote hiring manager called that the format that least predicts month six —
-   nobody hands a new hire six lines and says the bug is in there. The behavioural share is 3 of 37,
-   or 7 of 41 counting the inherited ones, against the blueprint's own stated target of about one in
-   four. The next slots spent on this role should be judgement and communication, not more snippets.
-4. **Four questions a remote hiring manager would add**, none of which need code or a diagram: an
-   ambiguous ticket whose author is offline for eight hours; shipping to production with nobody else
-   awake; explaining a cause to support and to a team lead in two registers; and reviewing somebody
-   else's change when you are not certain. The bank covers receiving a code review and has nothing
-   on giving one.
-5. **`dotnet`, `golang` and `ruby-rails` have one question each**, and the blueprint's own rule says
-   a variant with one question is a variant we are not really serving. Two passes said the single
-   slot is better spent on something a colleague experiences than on a language trap. Each earns a
-   second question or comes off `roles.yaml`.
-6. **Eight untagged questions carry JavaScript snippets** (`db.query`, `app.get`, `res.json`). A
-   Laravel, Spring or Django candidate meets them with no warning that the language is not theirs.
-   Either the prompt says so, or the general snippets are written in pseudocode.
+1. **The level tag now does work.** Twenty of twenty-five general questions carried both levels, so
+   the two pools were nearly the same bank. Ten are now offered at `intern-junior` and the rest are
+   `mid` only, and **the shortfall was accepted rather than padded**: `databases`, `caching`,
+   `backend-reliability` and `backend-testing` have nothing at intern-junior, `async-work` and
+   `observability` have one, and `concurrency` has one at mid. `check-bank.mjs` reports all seven
+   every run. That is the honest state of a bank written mid-first, and it is a worklist rather
+   than a defect — the next junior questions go to those topics. **The QA bank is to be drafted the
+   same way**: decide the level per question, and let the floor report a gap rather than meeting it
+   with a question that is a mid question wearing a junior label.
+2. **`api-error-shape` and `the-counter-that-lost-updates` are cut**, with their rubrics and stress
+   sets. The first was subsumed by `api-status-code-choice`, which asks it better with a real
+   response body, and its rubric duplicated `status-code-honesty` almost line for line; the second
+   was the same read-modify-write as `two-people-bought-the-last-one` at lower stakes, and a
+   `python-backend` candidate was meeting the pattern three times.
+   **`what-happens-when-it-is-down` was narrowed rather than cut** — to the one thing nothing else
+   in the bank asks: what a user is told when we do not know what happened. Its rubric is now three
+   facets of that, and its stress answers predate the narrowing (noted in its `reviewer_notes` and
+   in the eval file).
+3. **The ratio changed**, above: one in four of what a candidate is offered, counted by topic
+   rather than by `type`. Backend is at 9 of 38. Two of the six judgement-and-communication slots
+   are spent below; the remaining four are in `tasks/todo.md`.
+4. **Two questions added**, both role-general, both needing no code and no employer:
+   `the-ticket-nobody-can-explain` (a brief nobody can explain, its author offline for eight hours)
+   and `a-change-you-are-not-sure-about` (reviewing a change on a hunch you have not measured). The
+   bank covered receiving a code review and had nothing on giving one.
+5. **`golang`, `dotnet` and `ruby-rails` came off `roles.yaml`**, with their three questions. See
+   the variant table above.
+6. **Nine untagged questions now say "JavaScript" in the prompt** — "it is in JavaScript, but the
+   idea is the same wherever you work" — so a Laravel, Spring or Django candidate is not reading
+   somebody else's language unannounced. Pseudocode was the alternative and reads as nobody's
+   language.
 
 What this bank still does not prepare a candidate for: a live coding round and live SQL (out of
 scope by the engine, stated on the role's page), a full system-design round (two conversational

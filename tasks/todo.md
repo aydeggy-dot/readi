@@ -1323,3 +1323,36 @@ never-caught` said the request hangs; since Node 15 an unhandled rejection exits
   published" on this machine, now including `api-error-shape`, `n-plus-one-diagnosis` and their
   rubrics, because this pass edited them. ADR-0014 decision 7 working as designed; a fresh database
   takes everything, and `-- --force` is the way through on a developer one.
+
+## The owner's six decisions on the backend bank (2026-09-23)
+
+All six taken as recommended; `content/seed/blueprints/backend.md` Appendix C records what each
+cost. The bank is **34 questions** (25 general, 9 stack-tagged), 38 offered to a backend candidate.
+69 rubrics and 345 stress answers across both banks, all passing.
+
+- [x] Level tags: ten general questions at `intern-junior`, the rest `mid` only. **Seven floor
+      shortfalls accepted rather than padded** — `databases`, `caching`, `backend-reliability` and
+      `backend-testing` have nothing at intern-junior. Reported every run.
+- [x] `api-error-shape` and `the-counter-that-lost-updates` cut; `what-happens-when-it-is-down`
+      narrowed to what the user is told.
+- [x] The judgement ratio is now **one in four of what a candidate is offered, by topic
+      (`collaboration`, `written-communication`, `own-work`) rather than by `type`** — the two best
+      judgement questions are typed `scenario`. Backend: 9 of 38, 24%.
+- [x] Added `the-ticket-nobody-can-explain` and `a-change-you-are-not-sure-about`, both carrying all
+      four wave-1 roles.
+- [x] `golang`, `dotnet` and `ruby-rails` off `roles.yaml`; three questions, rubrics and stress sets
+      removed with them.
+- [x] Nine untagged questions say "JavaScript" in the prompt.
+
+- [ ] **Ask the reviewers which backend variant this market actually hires for** before restoring
+      any of `golang`, `dotnet` or `ruby-rails`. The rule that removed them is the blueprint's own:
+      a variant with one question is a variant we are not serving, and advertising one in the
+      onboarding picker and then handing that candidate the general set is worse than not offering
+      it. Whichever they name comes back with a bank of its own, not one question. The three
+      `stacks.yaml` rows are untouched, so restoring is a `roles.yaml` line plus the questions.
+- [ ] **Four judgement-and-communication slots left**, from the same critique pass: shipping to
+      production with nobody else awake; explaining a cause to support and to a team lead in two
+      registers; and two more of the reviewer's choosing. These come before more snippet questions —
+      22 of 34 already hand the candidate a planted defect.
+- [ ] **The junior shortfall above is a worklist.** Seven topic-level gaps at `intern-junior`, each
+      one a question that has to be genuinely junior rather than a mid question relabelled.

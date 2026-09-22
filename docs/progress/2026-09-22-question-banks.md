@@ -10,10 +10,10 @@ and `author: ai_draft`, so production refuses to publish any of it until a human
 |          | Questions | General | Stack-tagged | Was | Offered to a candidate    |
 | -------- | --------- | ------- | ------------ | --- | ------------------------- |
 | Frontend | 35        | 24      | 11           | 8   | 36 in the pool            |
-| Backend  | 37        | 25      | 12           | 3   | 41 in the pool, ~28 each  |
+| Backend  | 34        | 25      | 9            | 3   | 38 in the pool, ~28 each  |
 | QA       | 3         | 3       | 0            | 3   | its own wave              |
 
-72 rubrics and **360 synthetic stress answers** (`evals/datasets/synthetic/{frontend,backend}/`),
+69 rubrics and **345 synthetic stress answers** (`evals/datasets/synthetic/{frontend,backend}/`),
 all passing both separations. Every core topic meets its blueprint floor at both levels for
 frontend and backend; QA and full-stack are untouched and report their shortfalls every run.
 
@@ -64,51 +64,33 @@ Four critique passes, ~110 findings, 64 applied and 19 left in `reviewer_notes`.
 rubrics × 5 answers, written blind by seven subagents, then scored — all 37 pass; the exercise
 broke one rubric outright and sharpened 23 descriptors.
 
-## Open — the six decisions in the backend blueprint's Appendix C
+## The six decisions — taken 2026-09-23
 
-In the order they matter. The first two are the ones that need an answer before QA is worth
-starting, because both change what a bank is *for*.
+All six were decided as recommended and are applied. The backend bank is now **34 questions** (25
+general, 9 stack-tagged), 38 offered to a candidate. `content/seed/blueprints/backend.md`
+Appendix C records what each one cost; `tasks/todo.md` carries the three things they left open.
 
-1. **The level tag does almost no work.** Twenty of the twenty-five general backend questions carry
-   both `intern-junior` and `mid`, so the two pools are nearly the same bank. A critique pass named
-   ten it would keep at junior and would make the rest mid only. **Recommendation: take it, and
-   accept the shortfall rather than padding.** A level that means nothing is worse than a level
-   with a gap, and the gap is then visible in `check-bank.mjs` every run instead of hiding behind a
-   met target. It is not a change a drafter should make alone, because it puts several core topics
-   below the floor at `intern-junior` — which is the honest state of a bank written mid-first.
-2. **Three questions two passes wanted cut**: `api-error-shape` (subsumed by
-   `api-status-code-choice`, which asks it better with a real response body in front of the
-   candidate), `the-counter-that-lost-updates` (the same read-modify-write as
-   `two-people-bought-the-last-one`, at lower stakes) and `what-happens-when-it-is-down` (no
-   artifact; its strongest answer is a product decision). **Recommendation: cut the first two, keep
-   the third.** `api-error-shape`'s rubric duplicates `status-code-honesty` almost line for line,
-   and a `python-backend` candidate currently meets read-modify-write three times. The third is the
-   one question in the bank where the candidate decides what a user is *told*, which the engine
-   follows up well — narrow it to that clause rather than losing it.
-3. **The shape of the bank.** 22 of 37 questions hand the candidate a snippet with a planted
-   defect; the behavioural share is 3 of 37 against the blueprint's own stated target of about one
-   in four. **Recommendation: spend the next six slots on judgement and communication, not
-   snippets** — and fix the target in the blueprint if one in four is no longer what we want.
-4. **Four questions a remote hiring manager would add**, none needing code or a diagram: an
-   ambiguous ticket whose author is offline for eight hours; shipping to production with nobody
-   else awake; explaining a cause to support and to a team lead in two registers; reviewing
-   somebody else's change when you are not certain. **Recommendation: take the first and the
-   fourth.** The bank covers receiving a code review and has nothing on giving one, and "a week
-   spent building the wrong thing because nobody asked" is the failure mode remote work actually
-   produces.
-5. **`dotnet`, `golang` and `ruby-rails` have one question each**, and the blueprint's own rule says
-   a variant with one question is a variant we are not really serving. **Recommendation: ask the
-   reviewer which of the three this market actually hires for, then give those a second question
-   and take the rest off `roles.yaml`.** Offering a variant in the onboarding picker and then
-   handing that candidate the general set is worse than not offering it.
-6. **Eight untagged questions carry JavaScript snippets** (`db.query`, `app.get`, `res.json`), which
-   a Laravel, Spring or Django candidate meets with no warning that the language is not theirs.
-   **Recommendation: say so in the prompt** — one clause, "here it is in JavaScript, the idea is the
-   same" — rather than rewriting them in pseudocode, which reads as nobody's language.
+1. **Level tags.** Ten general questions at `intern-junior`, the rest `mid` only, and the resulting
+   **seven floor shortfalls were accepted rather than padded** — `databases`, `caching`,
+   `backend-reliability` and `backend-testing` now have nothing at intern-junior. `check-bank.mjs`
+   reports each one every run, which is the point: a gap you can see beats a target met by a mid
+   question wearing a junior label. **QA is to be drafted the same way.**
+2. **Cuts.** `api-error-shape` and `the-counter-that-lost-updates` removed with their rubrics and
+   stress sets; `what-happens-when-it-is-down` narrowed to the one thing nothing else asks — what a
+   user is told when we do not know what happened.
+3. **The ratio changed** from "one behavioural question in four" (a `type` count) to **one in four
+   of what a candidate is offered, by topic** — `collaboration`, `written-communication`, `own-work`
+   — because the two best judgement questions in the bank are typed `scenario`. Backend: 9 of 38.
+4. **Two questions added**, both role-general: `the-ticket-nobody-can-explain` and
+   `a-change-you-are-not-sure-about`. Four judgement slots remain, listed in `tasks/todo.md`.
+5. **`golang`, `dotnet` and `ruby-rails` off `roles.yaml`**, with their three questions. The
+   reviewers are to be asked which of the three this market hires for before any comes back — and
+   it comes back with a bank, not one question.
+6. **Nine untagged questions say "JavaScript" in the prompt.**
 
-Also open, from `tasks/todo.md`: the **version-sensitive re-check cycle** (cadence, owner, and
-whether a stale mark should warn), and the fact that **backend has no `intern-junior` track** and
-**frontend has no `mid` track**, so those candidates get `track_not_found`. Both are lessons work.
+Still open, unchanged: the **version-sensitive re-check cycle**, the **seven junior shortfalls**
+above, **four judgement slots**, and the missing `intern-junior` backend track / `mid` frontend
+track (`track_not_found` for those candidates — lessons work, not question-bank work).
 
 ## What the skill learned
 
