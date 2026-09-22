@@ -1,194 +1,194 @@
 # Question banks from the role catalogue
 
-Plan written 2026-09-22. **Not started — awaiting the owner's decision on the base branch (below).**
-Proposed branch: `content/catalogue-banks`.
+Plan written 2026-09-22. **Started 2026-09-22 on `content/catalogue-banks`, branched from `main`
+after M2.5 merged (`00daa6f`).** Stop 1 — the method and the blueprints — is delivered; no question
+has been drafted yet.
 
-Builds Readi's question banks from `docs/role-catalogue.md` rather than role by role from scratch, with
-an intensive AI improvement pass in front of human review, so a reviewer's time goes to judgement calls
-rather than to obvious fixes.
-
----
-
-## 0. The blocker, first
-
-**The seed format cannot express what this brief asks for, on `main` or on `feat/m2.5-roles` today.**
-M2.5 phases 3 and 4 — the ones that make a question's role, level and stack into slugs — are unbuilt.
-
-From `packages/shared-types/src/contracts/seed.ts` as it stands on the current branch:
-
-| The brief needs | The contract says | Consequence |
-|---|---|---|
-| Questions tagged `fullstack`, `ai-llm`, `devops-cloud`, `mobile` | `roles: z.array(TargetRole).min(1).max(3)` — the closed enum `frontend \| backend \| qa` | No new role's bank validates. No full-stack tagging |
-| The M2.5 stack rule (tagged = stack-specific, untagged = general) | `SeedQuestion` has **no `stacks` key** | Stack-specific questions cannot be written at all |
-| Level slugs from `levels.yaml` (`intern-junior`) | `levels: z.array(ExperienceLevel).max(2)` — `intern_junior \| mid`, underscore | Two spellings of the same level, and no room for `senior` |
-| A track for a new role | `SeedTrack.role: TargetRole`, `level: ExperienceLevel` | No track for full-stack or any wave-2 role |
-| Blueprints under `content/seed/blueprints/` | `seed-loader.ts` validates **every `.yaml` under `content/seed`** as a `SeedFile` | Blueprints must be `.md`, not `.yaml` |
-
-`main` is worse than the current branch: it has no `roles.yaml`, `levels.yaml` or `stacks.yaml` at all,
-so a blueprint could not name a stack that exists and `supported_question_types` — the rule that decides
-which question types a role's M3 interview can deliver — would have nowhere to live.
-
-So **branching from `main`, as the brief says, makes most of the brief unwritable.** Three ways out:
-
-**A — Write in the post-M2.5 target format, off `feat/m2.5-roles`. (Recommended.)**
-The target format is already specified in `docs/plans/m2.5-roles-levels-stacks.md` ("`questions.yaml`
-gains an optional `stacks: [java-spring]`", slug arrays, `CONTENT_LIMITS.questionRoles: 6`), so there is
-nothing to invent. The content is complete and correct the day phase 4 lands; until then it is checked by
-a standalone validator written as part of the skill (step 0), not by `pnpm db:seed`.
-*Cost:* the files do not import until M2.5 phases 3–4 land. *Risk:* low — the format is written down.
-
-**B — Build M2.5 phases 3 and 4 first, then this pass on top.**
-Cleanest: every file importable and validated end to end by `pnpm db:seed -- --dry-run` as it is written.
-*Cost:* the largest, most atomic phase of M2.5 lands before any content does.
-
-**C — Stay inside today's format, off `main`.**
-Frontend, backend and QA only; `intern_junior | mid`; no stacks, no new roles. Blueprints for everything.
-*Cost:* drops full-stack, every stack-specific question and all of Group B — most of the brief.
-
-Everything below assumes **A**. Under B the same work happens in the same order, later. Under C, steps 0
-and 1 are unchanged and step 2 shrinks to three roles' general questions.
-
-### Two small code changes this pass needs either way
-
-Content-only otherwise, but two things in the review-doc generator assume three roles and a directory
-convention:
-
-1. `apps/api/src/cli/content-review-doc.ts:29-33` treats every subdirectory of `content/seed` as a role,
-   so `blueprints/` would generate `review/blueprints.md`. Excluded alongside `review`.
-2. `apps/api/src/content/review-doc.ts:202` has a hardcoded `{ frontend, backend, qa }` title map; a new
-   role's page would be headed `fullstack`. Replaced by the `name` from `roles.yaml` — which is what
-   M2.5 phase 3 plans to do anyway.
+Builds Readi's question banks from `docs/role-catalogue.md` rather than role by role from scratch,
+with an intensive AI improvement pass in front of human review, so a reviewer's time goes to
+judgement calls rather than to obvious fixes.
 
 ---
 
-## 1. Step 0 — the method, as a project skill
+## 0. The blocker, and how it resolved
+
+The first version of this plan opened with a blocker: the seed format could not express what the
+brief asked for, because M2.5 phases 3 and 4 — the ones that make a question's role, level and stack
+into slugs — were unbuilt. It offered three ways out and recommended writing in the post-M2.5 target
+format off the feature branch.
+
+**M2.5 merged on 2026-09-22, so none of that applies.** `main` now carries the whole catalogue:
+`roles.yaml` with four roles including `fullstack`, `levels.yaml` (`intern-junior`, `mid`, and a
+`senior` no role offers), `stacks.yaml` with 23 variants, and a `SeedQuestion` whose `roles`,
+`levels` and `stacks` are all slug arrays. The content is written in the final format and imports on
+the day it is written: `pnpm db:seed -- --dry-run` is a real gate from the first question, not a
+later one.
+
+**The two code changes the plan reserved were also made in M2.5 and need nothing here.**
+`content-review-doc.ts` now derives the roles it writes pages for from `roles.yaml` intersected with
+the directories that hold content, so `blueprints/` produces no page; and the hardcoded
+`{ frontend, backend, qa }` title map is gone, replaced by the `name` on the catalogue row.
+
+Blueprints are still **markdown**, because the seed loader validates every `.yaml` under
+`content/seed` as a seed file. Proven, not assumed: `pnpm db:seed -- --dry-run` reads 14 files with
+the 14 blueprint pages sitting beside them.
+
+## 0.1 The owner's decisions
+
+| Question | Decision (2026-09-22) |
+|---|---|
+| Where to stop | **After the skill and the blueprints, then after each role.** Not after each group: ~82 new Group A questions is not one reviewable unit, and a wrong house style caught at stop 1 costs one role to redo instead of four. |
+| How wide the rubric stress test runs | **Five sample answers per rubric**, written against the question that rubric belongs to — not five per question. The rubric is the thing under test. Shared rubrics get one set per role. |
+
+Earlier decisions this plan inherits: launch content is frontend, backend, QA and full-stack; data
+analyst is wave 2 and **does not launch until there is a SQL practice surface**; AI/LLM engineer
+leads wave 2, ahead of DevOps and Mobile.
+
+---
+
+## 1. Step 0 — the method, as a project skill · **done**
 
 `.claude/skills/question-bank/` — so every future role and wave is built the same way to the same
 standard, and this pass is the first run of it rather than a one-off.
 
 ```
 SKILL.md                      the procedure, the house style, the hard rules
-templates/blueprint.md        the per-role blueprint
+templates/blueprint.md        the per-role blueprint, including the `targets` block
 templates/questions.yaml      a commented question + rubric skeleton in house style
 references/critique.md        the four critique passes: who each reviewer is, what they look for
-references/stress-test.md     the five sample answers, and the eval file they become
-references/format.md          the seed format, the M2.5 stack rule, the review workflow
-scripts/check-bank.mjs        offline validator: no database, no network
+references/stress-test.md     the five sample answers, and the eval files they become
+references/format.md          the seed format, the stack rule, the review workflow, the traps
+scripts/check-bank.mjs        offline validator: no database, no network, no build
 ```
 
-`SKILL.md` carries the rules that are not negotiable, each with its source:
+`SKILL.md` carries the rules that are not negotiable, each with its source: `status: draft` and
+`author: ai_draft`; `reviewer_notes` as the drafter's uncertainty rather than a summary; 3–5
+criteria with weights totalling 100 and five descriptors two readers would land on identically; only
+question types in that role's `supported_question_types`; the stack rule (no tags = general, tags =
+narrowed to those variants); no invented statistics and no claims about a named company's process;
+never a question the engine cannot deliver; and written for mid-range Android on unreliable data.
 
-- `status: draft` and `author: ai_draft` on every file (`content/seed/README.md`, ADR-0014 decision 6).
-- `reviewer_notes` required on every question, saying what the drafter is unsure about — and it is the
-  drafter's uncertainty, not a summary of the question.
-- Rubric house style: 3 criteria (up to 5), weights totalling exactly 100, five descriptors 0–4 that two
-  readers would land on identically.
-- **Only question types in that role's `supported_question_types`** (CLAUDE.md §7; M2.5 decision).
-- **The stack rule** (M2.5 plan decision 5): no `stacks:` = general to the role; `stacks: [x]` = offered
-  only to candidates on that stack. Tag only what is genuinely stack-specific.
-- No invented statistics, and no claims about a named company's interview process.
-- Never write a question the role's M3 interview cannot deliver — no coding, no system design, no SQL
-  surface, no lab.
-- Built for the audience: mid-range Android, unreliable mobile data, teams hiring here
-  (`content/seed/REVIEW.md`).
+`scripts/check-bank.mjs` deliberately does **not** re-implement the seed contract — that is
+`packages/shared-types/src/contracts/seed.ts`, and `pnpm db:seed -- --dry-run` is how you consult
+it. It checks what the contract cannot: house style tighter than the contract allows, descriptors
+that are present and distinguishable, a question's `type` against every listed role's
+`supported_question_types`, its levels and stacks against what those roles actually offer, cross-file
+slug resolution without a database, and **the bank against its blueprint's targets**. The length
+limits it enforces are read out of `packages/shared-types/src/constants.ts` at run time rather than
+copied, so they cannot drift.
 
-`scripts/check-bank.mjs` is what makes the method repeatable before *and* after M2.5 lands. Offline,
-no database: slug uniqueness across the corpus; every `topic`, `rubric`, `role`, `level` and `stack`
-slug resolves; weights total 100; 3–5 criteria; five descriptors per criterion; `reviewer_notes`
-non-empty; `type` ∈ the role's `supported_question_types`; difficulty in 1–5; prompt, context and
-ideal-point lengths inside `CONTENT_LIMITS`; and a reconciliation of each bank against its blueprint's
-target counts. Once phase 4 lands, `pnpm db:seed -- --dry-run` becomes the second gate, not a
-replacement.
+It already found three things in the 14 existing questions, reported every run:
+
+- `async-ordering-understanding`, criterion 1, descriptor 4 rewards saying the answer **confidently**
+  — the canonical rubric defect, and exactly what the fairness pass and the stress test exist to catch.
+- **Five of the eight role × level combinations have no track**: frontend at mid, backend at
+  intern-junior, QA at mid, full-stack at both. Those candidates get `track_not_found`.
+- `react-state` has **no general question at all** — both of its questions are React-tagged, so a
+  Vue, Angular or vanilla candidate practises nothing about where state lives.
 
 ---
 
-## 2. Step 1 — a blueprint per role
+## 2. Step 1 — a blueprint per role · **done**
 
-`content/seed/blueprints/<role>.md` — **markdown, not YAML**, because the seed loader validates every
-`.yaml` under `content/seed` as a `SeedFile`.
+`content/seed/blueprints/` — 12 role blueprints (waves 1–3) plus `wave-4.md` and a `README.md`
+index. Each derives, from the role's catalogue entry: the levels offered and which this pass writes
+for; the stack variants and which justify their own questions; the core topics, marked core, with
+what they reuse from the existing taxonomy; the interview types the engine can deliver and the
+rounds that need tooling we do not have; and **target counts derived topic by topic**, not padded.
 
-Each blueprint, derived from that role's catalogue entry:
+Wave 4 is one combined page with a short entry per role, because the catalogue gives those eight a
+one-line note each and a full blueprint would be inventing the data it claims to derive.
 
-- **Levels offered** — and which this pass writes for. The catalogue lists `senior` for four roles;
-  `levels.yaml` ships `intern-junior` and `mid`, so **senior is recorded and out of scope here**. Adding
-  it is a level entry plus its own drafting pass, not a footnote to this one.
-- **Stack variants**, from `roles.yaml`, and which of them justify their own questions.
-- **Core topics**, marked core or not. Core topics drive readiness coverage (spec §7), so this is a
-  claim, not a list.
-- **Interview types deliverable in M3 text/voice**, from `supported_question_types`.
-- **Rounds that need tooling we do not have** — code editor, SQL surface, diagram surface, lab — named
-  explicitly, so the role's page can say what it does not prepare you for rather than oversell.
-- **Target counts per level**: general questions, plus a smaller set per stack variant. Proposed, with
-  the reasoning; padding to a round number is the failure mode this section exists to prevent.
-- **Appendices**, filled as the bank is built: the fact-check log, and what each critique pass changed.
+Each blueprint carries a machine-readable `targets` block, **per level**:
 
-Coverage: **waves 1–3 get a blueprint each (12 roles).** Wave 4 gets one combined
-`blueprints/wave-4.md` with a short entry per role — the catalogue gives wave 4 a one-line note each and
-no levels, stacks or topics, so a full blueprint would be inventing the data it claims to derive.
+```yaml
+general_by_topic:
+  javascript-fundamentals: { intern-junior: 2, mid: 2 }
+by_stack:
+  react-typescript: 3
+complete: false
+```
 
-### The counts this pass proposes
+Per level, because "two questions on this topic" means nothing to a candidate who can only be asked
+one of them. `complete: true` — or `--strict` — turns a shortfall from a warning into an error.
+
+### The floor, and the counts it produces
 
 A bank is credible when a candidate can practise a topic twice without repeating a question, so the
-floor is **two questions per core topic per level band**. Frontend's catalogue entry has nine core
-topics; the existing bank covers six of them with eight questions, and has nothing at all on
-accessibility, frontend testing or debugging.
+floor is **two questions per core topic, available at each level the role offers**. A question
+carrying both levels fills a slot in each. Deviations are stated with a reason (concurrency at
+junior, system design at junior, release-and-store at junior) rather than quietly applied.
 
 | Role | General | Stack-tagged | Total | Today |
 |---|---|---|---|---|
-| Frontend | ~18 | ~10 (2 × 5 stacks) | ~28 | 8 |
-| Backend | ~18 | ~14 (2 × 7 stacks) | ~32 | 3 |
-| QA | ~16 | ~12 | ~28 | 3 |
-| Full-stack | ~8 new boundary + ~20 re-tagged | — | ~28 available | 0 |
-| AI/LLM engineer | ~18 | ~6 | ~24 | 0 |
-| DevOps / Cloud | ~18 | ~10 | ~28 | 0 |
-| Mobile | ~18 | ~8 | ~26 | 0 |
+| Frontend | ~20 | ~11 | ~31 | 8 |
+| Backend | ~22 | ~12 | ~34 | 3 |
+| QA | ~21 | ~9 | ~30 | 3 |
+| Full-stack | ~8 own + ~35 borrowed | — | ~43 available | 11 borrowed |
+| AI/LLM engineer | ~19 | ~6 | ~25 | 0 |
+| DevOps / Cloud | ~22 | ~6 | ~28 | 0 |
+| Mobile | ~21 | ~9 | ~30 | 0 |
+| Data analyst | ~18 | ~9 | ~27 | **blocked on a SQL surface** |
 
-**≈ 160 new questions and ≈ 140 new rubrics.** That is a large pass and it should be read as one. Two
-consequences worth deciding now rather than discovering later:
+**Group A is ≈ 103 new questions and ≈ 86 new rubrics** (frontend, backend, QA, full-stack). That is
+larger than the first estimate because the counts are now derived per topic per level rather than
+guessed, and because backend and QA turned out to need seven and six new topics respectively.
 
-- **A reviewer will not read 82 questions in one sitting.** So the first expert round per role goes out
-  as the **general, core-topic questions only**; the stack-tagged set is round two. The review page is
-  regenerated for each round.
-- **The stress test is the cost driver**: five sample answers per question is ~800 answers across both
-  groups. Cheaper and, I think, better: **five per rubric**, written against the question that rubric
-  belongs to, because the rubric is what is being tested. Shared rubrics (the behavioural one) get one
-  set per role rather than one per question. Owner's call — flagged in the questions below.
+Two consequences, both already decided: the first expert round per role goes out as the **general,
+core-topic questions only** and the stack-tagged set is round two; and the pass **stops after each
+role**.
+
+### What the blueprints found that the plan did not know
+
+- **No backend question is offered at intern-junior.** All three are `mid`, so a junior backend
+  candidate's practice is two shared behavioural questions. The largest content hole in wave 1.
+- **A full-stack candidate never sees a frontend or backend variant question** unless it is tagged
+  with a full-stack variant too, because a profile holds one `target_stack` and `laravel-vue` is not
+  `php-laravel`. M2.5 solved this for the two React questions by tagging them `react-node`; the rule
+  is now written down for every stack-tagged question in both banks.
+- **Three roles' catalogue "stacks" are topics, not variants.** AI/LLM lists vector stores and agent
+  frameworks, DevOps lists Terraform and CI tooling, and QA's `manual-exploratory` is the absence of
+  a technology. Tagging those would hide the material from the candidates who most need it. Each
+  blueprint proposes the deviation and says what it costs to overrule.
+- **The frontend track and the catalogue disagree** about whether accessibility and frontend testing
+  are core. The track says no, which is what feeds readiness coverage (spec §7). The blueprint
+  recommends yes, and it is one boolean each.
+- **Topic reuse is the main economy of scale.** `observability` serves backend, AI/LLM and DevOps;
+  `networking` serves DevOps, cybersecurity and support; `incident-response` serves DevOps and
+  cybersecurity; `metric-definition` serves the analyst and the TPM. Waves 2 and 3 add far fewer
+  topics than roles.
 
 ---
 
 ## 3. Step 2 — Group A (launch): frontend, backend, QA, full-stack
 
-Stops for review. **Recommended: stop after each role, not after the group** — four roles and ~82 new
-questions is not one reviewable unit. The brief says stop after the group; this is the one place I would
-deviate, and only with the owner's agreement.
+**Stops after each role.** In order:
 
-- **Frontend** — improve the existing eight (they are the standard the others are brought up to, and two
-  of them have known weaknesses their own `reviewer_notes` admit), fill the three uncovered core topics,
-  extend to mid, add stack questions for the five variants.
-- **Backend** — three questions to a full bank. The thinnest of the three today, and the role the
-  catalogue calls the most-requested hire.
-- **QA** — three to a full bank. The catalogue's best engine fit ("Full"), so it is the one role where
-  the bank alone is the whole product.
-- **Full-stack** — no new bank. A `fullstack` entry in `roles.yaml` with its levels and stacks, a second
-  role tag on the frontend and backend questions that genuinely transfer, a `track.yaml`, and only the
-  boundary questions neither side covers: where logic belongs, data flow across the boundary, deploying
-  a whole feature, working without a specialist beside you.
+- **Frontend** — improve the existing eight (they are the standard the others are brought up to, and
+  the checker has already found a defect in one rubric), fill `debugging`, `accessibility` and
+  `frontend-testing`, give `react-state` its general questions, extend to mid, and write the four
+  variants that have nothing today.
+- **Backend** — three questions to a full bank, and the junior level from zero. Seven new topics.
+- **QA** — three to a full bank. The catalogue's best engine fit, so the bank alone is the whole
+  product. Six new topics.
+- **Full-stack** — no new bank: a skeleton `track.yaml`, the second role tag on everything that
+  transfers, the full-stack variant tag on every stack question that transfers, and the ~8 boundary
+  questions neither side covers.
 
-New topics are added to `topics.yaml` as the banks need them (backend depth, QA, and later AI/LLM,
-DevOps, mobile). A topic is shared across roles by design.
+New topics are added to `topics.yaml` as the banks need them, in the same change as the questions
+that hang from them. A topic is shared across roles by design.
 
 ## 4. Step 3 — Group B (wave 2): AI/LLM engineer, then DevOps/Cloud, then Mobile
 
 Complete banks drafted from their blueprints, in the owner's order. Each needs its role, stacks and
-topics added to the catalogue files first.
+topics added to the catalogue files first, and each blueprint already names them.
 
-**Data analyst: blueprint only, no bank.** Its launch gate — a SQL practice surface — is not met, and
-the catalogue is explicit that text-only analyst prep would promise what it cannot deliver (product
-principle 1). The blueprint says so on its face.
+**Data analyst: blueprint only, no bank** — its launch gate, a SQL practice surface, is not met, and
+specifying it is the first task of the analyst wave rather than an afterthought at the end of it.
 
-## 5. Waves 3 and 4 — blueprints only
+## 5. Waves 3 and 4 — blueprints only · **done**
 
-Twelve roles' worth of planning, no content. Their banks come later, through the skill.
+Four wave-3 blueprints and one combined wave-4 page. Their banks come later, through the skill.
 
 ---
 
@@ -196,54 +196,46 @@ Twelve roles' worth of planning, no content. Their banks come later, through the
 
 Applied to everything in Groups A and B, including the eight questions that already exist.
 
-**1. Four critique passes, run separately** (parallel subagents, one perspective each, per the owner's
-global working agreement on subagent use):
+**1. Four critique passes, run separately** (parallel subagents, one perspective each): a senior
+interviewer at a Nigerian company; a hiring manager abroad hiring remote Nigerian developers; a
+nervous junior candidate; a fairness reviewer. Briefs, and what each looks for, are
+`.claude/skills/question-bank/references/critique.md`. Findings come back against named slugs and
+are either applied as edits or recorded in `reviewer_notes` when they are a judgement an expert
+should make. The counts go in each blueprint's Appendix B.
 
-| Pass | Asks |
-|---|---|
-| Senior interviewer at a Nigerian company | Would I ask this, at this level, of someone I might hire here? |
-| Hiring manager abroad hiring remote Nigerian developers | Does a strong answer here predict someone who works out on my team? |
-| Nervous junior candidate | Do I understand what is being asked? Does it feel like a trap? |
-| Fairness reviewer | Hierarchy norms (does it punish someone whose workplace forbids disagreeing upward?), jargon, assumed access to expensive tools, assumed kinds of prior experience |
+**2. Fact-check every technical claim** against current official documentation, flagging anything
+version-sensitive in `reviewer_notes` with what was checked and when. Logged per role in Appendix A.
+The AI/LLM bank carries an extra rule for this reason: no model names, no prices, no context-window
+sizes, no benchmark numbers anywhere in a question or a rubric.
 
-Each returns findings against named slugs. Findings are applied as edits, or recorded in
-`reviewer_notes` when they are a judgement an expert should make. The fairness pass has teeth already:
-`pushing-back-on-a-release` and `stuck-and-asked-for-help` both carry exactly this worry in their own
-notes today.
+**3. Rubric stress test — five sample answers per rubric** (owner's decision): strong · weak ·
+fluent but wrong · correct but poorly explained · correct in Nigerian English. Score each against
+the rubric. **A rubric that cannot separate "fluent but wrong" from "strong", or "correct but poorly
+explained" from "weak", is a defect and gets sharpened.** The fifth answer exists so that a rubric
+rewarding accent and idiom rather than content is caught.
 
-**2. Fact-check every technical claim** against current official documentation — MDN, React, the
-framework and tool docs — and flag anything version-sensitive or aged in `reviewer_notes` with what was
-checked and when. Logged per role in the blueprint appendix.
+They become the M4 starter set at `evals/datasets/synthetic/<role>/<rubric-slug>.yaml`, with a
+README stating plainly that these are **model-written and model-scored** — a regression baseline and
+a rubric test, **not** the human-scored gold set the M4 agreement metric needs.
 
-**3. Rubric stress test.** Five sample answers per rubric: strong · weak · fluent but wrong · correct
-but poorly explained · correct in Nigerian English phrasing. Score each against the rubric. **A rubric
-that cannot separate "fluent but wrong" from "strong", or "correct but poorly explained" from "weak", is
-a defect and gets sharpened** — that pairing is the whole point of the exercise, and the fifth answer
-exists so that the rubric is caught rewarding accent and idiom rather than content.
+**4. Tagging.** Stack-specific questions carry `stacks:`; general ones carry none. The test is
+whether the question would be unfair or meaningless to a candidate on another stack — not whether it
+happens to mention a library. Plus the full-stack variant rule above.
 
-They become the M4 starter set: `evals/datasets/synthetic/<role>/<rubric-slug>.yaml`, with the expected
-per-criterion score for each answer, plus a README stating plainly that these are **model-written and
-model-scored** — a regression baseline and a rubric test, **not** the human-scored gold set the M4
-agreement metric needs (CLAUDE.md §3, "Gold-standard answers with human scores").
-
-**4. Tagging.** Stack-specific questions carry `stacks:`; general ones carry none (M2.5 decision 5). The
-test is whether the question would be unfair or meaningless to a candidate on another stack — not
-whether it happens to mention a library.
-
-**5. Coverage.** After drafting, each bank is compared to its blueprint and to what a real junior/mid
-interview for that role covers, and the remaining gaps are listed — including gaps that cannot be closed
-until the tooling exists.
+**5. Coverage.** Each bank is compared to its blueprint (`check-bank.mjs --strict`) and to what a
+real junior or mid interview for that role covers, with the remaining gaps listed in Appendix C —
+including the ones that cannot close until the tooling exists.
 
 ---
 
 ## 7. What is produced
 
 ```
-.claude/skills/question-bank/…              the method
-content/seed/blueprints/<role>.md           12 blueprints + wave-4.md
-content/seed/roles.yaml                     + fullstack, ai-llm, devops-cloud, mobile, data-analyst
-content/seed/stacks.yaml                    + the new roles' variants
-content/seed/topics.yaml                    + topics the new banks hang from
+.claude/skills/question-bank/…              the method                            [done]
+content/seed/blueprints/*.md                12 blueprints + wave-4.md + README    [done]
+content/seed/roles.yaml                     + ai-llm, devops-cloud, mobile, …     [wave 2]
+content/seed/stacks.yaml                    + the new roles' variants             [wave 2]
+content/seed/topics.yaml                    + topics the new banks hang from      [Group A]
 content/seed/<role>/{track,rubrics,questions}.yaml     Group A and Group B banks
 content/seed/review/<role>.md               regenerated, one per role, for that role's reviewers
 evals/datasets/synthetic/<role>/*.yaml      the stress-test answers, with a README that does not overclaim
@@ -254,11 +246,11 @@ tasks/todo.md, tasks/lessons.md             working state and corrections
 ## 8. Verification
 
 ```bash
-node .claude/skills/question-bank/scripts/check-bank.mjs        # every gate above, offline
-pnpm --filter @readi/api content:review-doc                     # regenerates every role's page
-pnpm lint && pnpm typecheck                                     # the two review-doc changes
-pnpm test --filter @readi/api -- seed-loader                    # once the format lands (option A)
-pnpm db:seed -- --dry-run                                       # the real gate, after M2.5 phase 4
+node .claude/skills/question-bank/scripts/check-bank.mjs            # offline: house style, slugs, blueprints
+node .claude/skills/question-bank/scripts/check-bank.mjs --strict   # shortfalls become errors
+pnpm db:seed -- --dry-run                                           # the contract, against the database
+pnpm --filter @readi/api content:review-doc                         # regenerates every role's page
+pnpm format && pnpm lint && pnpm typecheck
 ```
 
 And at each stop, per role: question counts by level and stack, what changed and why, the gaps that
@@ -266,13 +258,16 @@ remain, and the short list of questions I most want a human expert to look at.
 
 ## 9. Risks
 
-- **The content outruns the engine.** Under option A the files are correct and unimportable until M2.5
-  phases 3–4 land. Mitigated by the offline validator and by the format being already specified.
-- **Volume swamps review.** ~160 questions is more than any reviewer reads at once. Mitigated by
-  role-level stops and by sending general questions in round one, stack-tagged in round two.
-- **Four AI critique passes are still one model.** They reduce obvious defects; they do not substitute
-  for the expert, and nothing here changes `author: ai_draft` or the production publish guard
-  (ADR-0014 decision 6). The measure of success is that the expert's notes are about judgement, not
-  typos and stale versions.
-- **Stack questions age fastest.** Framework idiom moves; the fact-check log and `reviewer_notes` name
-  what is version-sensitive so the next pass knows where to look first.
+- **Volume swamps review.** ~103 new questions in Group A is more than any reviewer reads at once.
+  Mitigated by stopping after each role and by sending general questions in round one, stack-tagged
+  in round two.
+- **Four AI critique passes are still one model.** They reduce obvious defects; they do not
+  substitute for the expert, and nothing here changes `author: ai_draft` or the production publish
+  guard (ADR-0014 decision 6). The measure of success is that the expert's notes are about
+  judgement, not typos and stale versions.
+- **The blueprints' variant deviations are arguments, not evidence.** Three of them overrule the
+  catalogue about what is a variant and what is a topic. Each says what it costs to overrule back.
+- **Stack questions age fastest**, and the AI/LLM bank fastest of all. The fact-check log and
+  `reviewer_notes` name what is version-sensitive so the next pass knows where to look first.
+- **Content still outruns lessons.** Five of eight role × level combinations have no track, and this
+  pass does not write them — it only names them, every time the checker runs.

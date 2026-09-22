@@ -100,6 +100,7 @@ pnpm --filter @readi/api admin:grant -- --email <your-email> --role admin   # gr
 pnpm --filter @readi/api admin:cancel-deletion -- --email <their-email>      # keep an account during its 7-day grace period (audited, ADR-0011)
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
+node .claude/skills/question-bank/scripts/check-bank.mjs   # offline checks on the question banks: house style, slugs, blueprint targets
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -199,6 +200,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   required `reviewer_notes` per question for the experts who review them. The importer writes through
   `ContentService` as the system, skips anything unchanged — no version, no audit row — and never
   deletes, publishes or embeds. `content/seed/REVIEW.md` is the guide the reviewers are given.
+- **A question bank is written from a blueprint**, not from whatever the drafter found interesting:
+  `content/seed/blueprints/<role>.md` states the levels, the variants that justify their own
+  questions, the core topics and the target counts, derived topic by topic — the floor is **two
+  questions per core topic at each level the role offers**. `.claude/skills/question-bank` is the
+  method (house style, the four critique passes, the rubric stress test), and its
+  `scripts/check-bank.mjs` enforces offline what the seed contract cannot: 3–5 criteria, five
+  distinguishable descriptors, a question's `type` against every listed role's
+  `supported_question_types`, its levels and stacks against what those roles offer, and the bank
+  against its blueprint's `targets` block.
 - **The files create; the CMS owns** (ADR-0014 decision 5). Every content row carries `seed_managed`:
   true while `/content/seed` is the source of its content, false from the first save in the CMS. The
   importer updates only `seed_managed` rows and **names** the rest in its report; `pnpm db:seed --

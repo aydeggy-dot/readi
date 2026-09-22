@@ -1113,3 +1113,46 @@ migrations, contracts and the worker, the web and the docs. Findings below; ever
   the catalogue its pickers draw from. All server-side and inside `Promise.all`, so no client
   waterfall — but `serverApi()` is not `cache()`d, unlike `getMe`, so a page that calls both
   `roleAndLevelChoices()` and `catalogueChoices()` fetches the levels twice.
+
+## Question banks from the catalogue — stop 1 (branch `content/catalogue-banks`, from `main` at `00daa6f`)
+
+Plan: `docs/plans/content-catalogue-banks.md`. Owner's decisions, 2026-09-22: **stop after the skill
+and the blueprints, then after each role**; **five stress-test answers per rubric**, not per question.
+
+- [x] The blocker in the plan's §0 is gone — M2.5 merged, so the catalogue format is final and
+      `pnpm db:seed -- --dry-run` is a gate from the first question. The two code changes the plan
+      reserved (`content-review-doc.ts` role derivation, the hardcoded role title map) were both made
+      in M2.5 and need nothing here.
+- [x] `.claude/skills/question-bank/` — SKILL.md, four references, two templates, `check-bank.mjs`
+- [x] `content/seed/blueprints/` — 12 role blueprints (waves 1–3), `wave-4.md`, `README.md`
+- [x] `check-bank.mjs` runs clean on the existing 14 questions; `pnpm db:seed -- --dry-run` unchanged
+      (14 files, everything unchanged — the blueprints are `.md` and the loader ignores them)
+- [x] CLAUDE.md §4 and §5 updated; the plan document rewritten to current state
+- [ ] **Stop 1: the owner reads the blueprints.** Nothing is drafted until then.
+
+### What the blueprints found — each needs an owner or reviewer decision
+
+- **No backend question is offered at `intern-junior`.** All three are `mid`, so a junior backend
+  candidate practises two shared behavioural questions and nothing else. Largest wave-1 content hole.
+- **A full-stack candidate never sees a frontend or backend variant question** unless it carries a
+  full-stack variant too: a profile holds one `target_stack`, and `laravel-vue` is not `php-laravel`.
+  M2.5 solved it for the two React questions (`react-node`); `blueprints/fullstack.md` now states the
+  rule for every stack-tagged question in both banks.
+- **`react-state` has no general question at all** — both are React-tagged, so Vue, Angular and
+  vanilla candidates practise nothing about where state lives.
+- **`async-ordering-understanding` descriptor 4 rewards confidence**, which scores delivery rather
+  than content. Found by `check-bank.mjs`, fixed in the frontend pass.
+- **Three catalogue "stacks" are topics, not variants** — AI/LLM's vector stores and agent
+  frameworks, DevOps's Terraform and CI tooling, QA's `manual-exploratory`. Each blueprint proposes
+  the deviation and says what overruling it costs.
+- **The frontend track and the catalogue disagree** about accessibility and frontend testing being
+  core. The track (which feeds readiness coverage, spec §7) says no; the blueprint recommends yes.
+  One boolean each.
+- **Full-stack's track level is a judgement call**: the blueprint proposes a skeleton at
+  `intern-junior` and says why. Owner may overrule.
+- **Five of eight role × level combinations have no track** (frontend mid, backend intern-junior, QA
+  mid, full-stack both). Lessons work, not question-bank work — but `check-bank.mjs` reports it every
+  run so it cannot be forgotten.
+- **Group A is ≈ 103 new questions and ≈ 86 new rubrics**, larger than the plan's first estimate of
+  ~82, because the counts are now derived per topic per level and because backend and QA need seven
+  and six new topics.

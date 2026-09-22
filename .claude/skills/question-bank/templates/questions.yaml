@@ -1,0 +1,100 @@
+# Template: one question and its rubric, in house style. Copy the shapes, not the words.
+#
+# The comments here are teaching comments — a real bank's questions.yaml carries a short header
+# saying what the bank is and who drafted it, and lets the content speak for itself after that.
+version: 1
+author: ai_draft
+status: draft
+
+questions:
+  # A technical question with a snippet. The prompt is what the interviewer says out loud; the
+  # snippet is `context`, because the engine shows it rather than reading it.
+  - slug: <verb-or-noun-phrase-in-kebab-case>
+    roles: [<role>] # a second role if it genuinely transfers — never a copy
+    levels: [intern-junior, mid] # a question can serve both; say so rather than writing two
+    # stacks: [react-typescript] # ONLY if unfair or meaningless on another variant. Usually absent.
+    type: technical # must be in every listed role's supported_question_types
+    topic: <topic-slug>
+    subtopic: <free text> # or null
+    difficulty: 3 # 1–5, judged against the level above, not against the field
+    prompt: >-
+      <One thing asked once, in the second person, as it would be spoken. No preamble, no "in your
+      own words", no two questions joined by "and also".>
+    context: |
+      ```js
+      <the snippet, log or bug report the candidate is looking at>
+      ```
+    rubric: <rubric-slug>
+    ideal_points: # the answer key: what a strong answer covers. Three to six.
+      - <Each point checkable on its own — a marker could tick it or not.>
+      - <Include the one thing candidates most often miss.>
+      - <Include what makes it matter to a user, where that is part of a strong answer.>
+    reviewer_notes: >-
+      <What YOU are unsure about, addressed to the expert: a level that may be wrong, a weight that
+      was a judgement call, a claim that may have aged, a tag you are not sure belongs. Not a
+      summary of the question. End on the question you want answered.>
+
+  # A behavioural question. Uses the shared rubric — a behavioural answer is judged the same way
+  # whatever the role, and a fourth copy would drift.
+  - slug: <situation-in-kebab-case>
+    roles: [<role>, <role>]
+    levels: [intern-junior]
+    type: behavioral
+    topic: collaboration
+    subtopic: <free text>
+    difficulty: 2
+    prompt: >-
+      Tell me about a time <specific situation>. <What did you do, and what happened?>
+    context: null
+    rubric: behavioural-answer-quality
+    ideal_points:
+      - <One specific occasion, with enough detail to be believable.>
+      - <What they personally did, as opposed to what the team did.>
+      - <How it ended, honestly, and one thing they do differently now.>
+    reviewer_notes: >-
+      <Behavioural questions carry the fairness risk: does this one punish a candidate whose
+      workplace forbids disagreeing upward, or who has never worked somewhere with the thing the
+      question assumes?>
+
+# ---------------------------------------------------------------------------------------------
+# The rubric lives in <role>/rubrics.yaml, or rubrics.shared.yaml if more than one role uses it.
+# Three criteria (five if the answer has five separable parts), weights totalling exactly 100,
+# five descriptors each. The test: two readers scoring the same answer pick the same number.
+
+rubrics:
+  - slug: <rubric-slug>
+    name: <What this rubric judges, as a noun phrase>
+    criteria:
+      - dimension: <The one thing this criterion scores>
+        description: >-
+          <One or two sentences: what counts here, and — where there is one — the specific mistake
+          this criterion exists to catch.>
+        weight: 40 # weights are a claim about what matters most in the answer
+        levels:
+          "0": <Absent — the answer does not address this at all. Not the same as poor.>
+          "1": <Addressed and wrong, or a rule offered with no mechanism behind it.>
+          "2": <Partly right, or right without the reasoning. The common middling answer.>
+          "3": <What a good candidate at this level says. The expected score, not a ceiling.>
+          "4": >-
+            <As 3, plus one specific thing — a named trade-off, an edge case, what they would do
+            about it. Never "as 3, but more confident"; score what was said, not how.>
+      - dimension: <The second thing>
+        description: >-
+          <...>
+        weight: 30
+        levels:
+          "0": <...>
+          "1": <...>
+          "2": <...>
+          "3": <...>
+          "4": <...>
+      - dimension: <The third thing>
+        description: >-
+          <...>
+        weight: 30
+        levels:
+          "0": <...>
+          "1": <...>
+          "2": <...>
+          "3": <...>
+          "4": <...>
