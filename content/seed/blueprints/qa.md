@@ -310,6 +310,85 @@ riddle clauses became plain questions, and ten prompts that opened on a demonstr
 antecedent ("This is all you have", "You sent this and got that back") now name what is on screen,
 because the engine speaks the prompt and nothing told the candidate to look.
 
+## Appendix B3 — the planned-follow-up pilot (2026-09-23)
+
+The owner's decision of 2026-09-23 (`docs/progress/2026-09-23-planned-follow-ups.md`) was piloted on
+this bank: **every prompt now asks one thing, and the other criteria each carry a probe** in
+`planned_follow_ups`. 35 prompts rewritten, **74 probes** written — two per question, except the
+three the owner fixed in review (below), which carry three, three and four. Four fresh critique passes were
+run on the reshape alone, one per subagent, each given the before/after and its own brief.
+
+| Pass                         | Raised | Applied as edits | Left in `reviewer_notes` |
+| ---------------------------- | ------ | ---------------- | ------------------------ |
+| Senior interviewer (Nigeria) | 23     | 18               | 3                        |
+| Hiring manager (remote)      | 22     | 16               | 4                        |
+| Nervous junior               | 26     | 21               | 3                        |
+| Fairness reviewer            | 22     | 18               | 3                        |
+
+**All four passes independently found the same structural defect**, which is now a rule in
+`SKILL.md`:
+
+> A criterion may be left without a probe only when the opening question asks for **that criterion
+> and nothing else.**
+
+One criterion goes un-probed because the prompt asks for it. But where the prompt was open — "What
+would you do?", "What do you tell them?", "What would you do before agreeing to that?" — two criteria
+competed to be the answer, and a candidate who led with a **probed** one forfeited the un-probed one
+with no second chance, because the engine can only probe what has a probe. Six questions had that
+shape and three of them on a criterion worth 40% or more: `where-your-test-data-comes-from` (30%),
+`the-report-that-came-back` (40%), `intermittent-failure-triage` (35%), `the-suite-nobody-trusts`,
+`where-the-tests-run` and `an-hour-with-a-new-feature`. All six openings were narrowed.
+
+The three other findings that became rules:
+
+- **Ask the criteria in the order the work happens.** `an-hour-with-a-new-feature` asked how the hour
+  would be spent and then probed what the candidate would decide _before touching anything_; three
+  passes called it incoherent. The opening and the first probe were swapped in that question and in
+  `the-suite-nobody-trusts`.
+- **A probe must not name what its criterion scores them for noticing** — with more force than a
+  prompt, because a probe arrives after they have failed to say it. `test-design-otp-screen`'s probe
+  said the rules "brush against each other", which is the whole of a 40% criterion; it now walks the
+  candidate into one collision and lets them find it.
+- **Never read a scoring constraint out loud.** `where-your-test-data-comes-from` probed "explained
+  without quoting a regulation at them" — an instruction meant for the evaluator, which told the one
+  candidate whose data-protection training is their strongest asset not to use it. **Three of the
+  four passes caught that single clause.**
+
+### The two questions the pilot could not fix — and the rule that changed for them
+
+One probe per criterion was a rule of the decision, not of the contract, and two criteria in this
+bank score two separable things each:
+
+- `test-design-signup-form` criterion 3 (45%): thinking past the happy path **and** saying where the
+  list stops.
+- `api-collection-that-only-works-in-order` criterion 3 (25%): what stays manual **and** what a
+  failure has to say.
+
+Either the criterion splits — a rubric change, which would invalidate its stress answers — or that
+criterion gets two probes. A third case was `pushing-back-on-a-release`, where the senior pass said
+two probes is too few for any behavioural answer whatever the criteria say.
+
+**The owner decided on 2026-09-23: a criterion may carry two probes, three is refused, and those
+three questions were fixed.** The first probe listed for a criterion is its primary one — the engine
+prefers a criterion nothing has probed yet and reaches a second on the same criterion only when no
+other criterion is uncovered. `pushing-back-on-a-release` now carries four: one on the criterion the
+opening asks, because a candidate can tell the whole story and never say how they knew it was
+serious, and two on "how it ended, **and** what is different now". Both of the other two keep the
+split-the-criterion alternative in their `reviewer_notes` for the expert.
+
+### What was reported rather than changed
+
+- **Five openings ask a criterion lighter than one of the probes** (`where-the-bugs-have-been` 25%,
+  `what-to-automate-first` 35%, and three others). The engine can still probe those criteria, so
+  nothing is unreachable; the exposure is to the engine wrongly judging a criterion "covered", which
+  is what `session_turns.criteria_covered` exists to make auditable (M3).
+- **Strong candidates now talk least**, because pre-empting both probes ends a question in one turn.
+  The hiring-manager pass wants "needed no prompting" recorded as a signal. That is an M4 report
+  question, not a content one, and it is in the handover.
+- **`the-pipeline-has-been-red` and `the-suite-nobody-trusts` now have near-identical probes** about
+  what a broken signal costs a team, and both are offered at both levels. Question selection should
+  probably not draw both in one session.
+
 ## Appendix B2 — what the rubric stress test changed
 
 **33 rubrics × 5 answers = 165 answers**, written from the prompts alone by seven subagents that never

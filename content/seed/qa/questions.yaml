@@ -14,6 +14,14 @@
 # shortfall — `test-data` at intern-junior — is reported by `check-bank.mjs` every run rather than
 # filled with a mid question wearing a junior label.
 #
+# **Every question here asks one thing, and carries two planned follow-ups** (owner's decision,
+# 2026-09-23). The opening prompt asks for one criterion, the way a real interviewer does; the other
+# two are asked for in `planned_follow_ups`, each naming the criterion it draws out by its position
+# in the rubric. This bank is the pilot for that shape — until 2026-09-23 every prompt here asked for
+# all three at once, which two critique passes made their first finding, and the follow-ups are a
+# **menu, not a script**: from M3 the engine asks one only for a criterion the answer has not already
+# covered, so a candidate who answers completely is asked nothing further and moves on.
+#
 # One instruction for whoever asks these, which the seed format has nowhere to put: **an answer drawn
 # from a personal project, a hypothetical, or "where I worked we did not have that, but I would…" is
 # scored on the same terms as one drawn from a job.** Much of this audience is self-taught, and a
@@ -39,8 +47,7 @@ questions:
     difficulty: 2
     prompt: >-
       A sign-up form takes a phone number, a password and a date of birth, and the product says
-      users must be 18 or over. What would you test? What would you put the form through that is
-      not about the values typed into it? And how would you decide your list is enough?
+      users must be 18 or over. What would you test?
     context: null
     rubric: test-case-selection
     ideal_points:
@@ -49,12 +56,25 @@ questions:
       - Phone number formats that occur here, including a leading zero and the +234 form.
       - Behaviour as well as input — double submission, back after an error, a dropped connection mid-request.
       - Say what is deliberately out of scope and why.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Where are the edges in those three fields, and which values would you try on either side
+          of them?
+      - criterion: 2
+        probe: >-
+          What else would you put that form through, beyond the values typed into it?
+      - criterion: 2
+        probe: >-
+          What would tell you your list is long enough to stop?
     reviewer_notes: >-
       The age boundary gives an objective anchor, which is why the rule is in the prompt. Is a
       sign-up form too easy a subject at this level, and are the phone-number formats the ones you
-      would actually expect a Nigerian tester to name? The middle clause was added on 2026-09-23
-      because the rubric charges 30% for thinking past the happy path and the prompt never asked for
-      it; it may now hint too heavily.
+      would actually expect a Nigerian tester to name? Criterion 3 scores two things at 45% —
+      thinking past the happy path, and saying where the list stops — so it carries **two**
+      follow-ups, which the owner allowed on 2026-09-23 rather than splitting the criterion and
+      invalidating its stress answers. The second is only reached if the first has not already drawn
+      the stopping rule out. Is splitting the criterion still the better answer later?
 
   - slug: test-design-otp-screen
     roles: [qa]
@@ -64,9 +84,8 @@ questions:
     subtopic: rules and boundaries
     difficulty: 3
     prompt: >-
-      On your screen are the rules for a sign-in screen that takes a code sent by SMS. What would you
-      test? What would you put it through that is not about the six digits themselves? And where do
-      the rules brush against each other?
+      On your screen are the rules for a sign-in screen that takes a code sent by SMS. What would
+      you test?
     context: |
       ```
       The code is six digits, sent by SMS.
@@ -82,15 +101,23 @@ questions:
       - The SMS being slow or never arriving, which on this network is common rather than exceptional.
       - The rule does not say whether the fifth wrong attempt is allowed or is the one that locks, so that is a question rather than an assumption.
       - What is deliberately out of scope — the SMS provider itself — and why.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Three of those rules turn on a number — which values either side of them would you try,
+          and is there anywhere the rules do not say which side a value falls on?
+      - criterion: 2
+        probe: >-
+          Your code arrives, you tap Resend, and then you type the first one — what should happen?
     reviewer_notes: >-
       The rules moved from the spoken prompt into the context on 2026-09-23 — four numbers said once,
       with nothing on screen to look back at, was the clearest fairness finding against this question.
       It also gained its own rubric: `test-case-selection` could not be a true claim about both this
       and the sign-up form, because everything this question is really about was landing in one
       criterion. Two things for you. Two of the cases still feel mid to me — two codes in flight, and
-      whether Resend resets the counter — so is the junior tag right? And the ambiguity in the lock
-      rule is deliberate, to reward asking over assuming; if it reads as a badly written rule instead,
-      say so and I will make it explicit.
+      whether Resend resets the counter — so is the junior tag right? The second follow-up walks the
+      candidate into one collision rather than asking them to find one, because naming "where the
+      rules meet" gave away the whole of a 40% criterion — is walking them in too generous instead?
 
   - slug: test-design-money-transfer
     roles: [qa]
@@ -101,9 +128,8 @@ questions:
     difficulty: 4
     prompt: >-
       A transfer screen takes a recipient account number, an amount and a four-digit PIN, and the
-      daily limit is two hundred thousand naira. What would you test first, and what puts it first?
-      What would you test about the limit and the PIN rule? And after a transfer that timed out, or
-      that you tapped twice, where would you go to find out what actually happened to the money?
+      daily limit is two hundred thousand naira. How would you order the testing, and what puts the
+      first thing first?
     context: null
     rubric: transactional-test-design
     ideal_points:
@@ -114,16 +140,25 @@ questions:
       - A wrong PIN, the attempt counter, and whether a failed attempt leaves anything behind.
       - Check both balances and the stored record of the transfer, not the success message.
       - Say what is out of reach — the receiving bank — and how you would test up to that line.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Say a transfer times out, or the customer taps Send twice — how would you find out what
+          actually happened to the money?
+      - criterion: 2
+        probe: >-
+          What would you test about the daily limit and the PIN rule?
     reviewer_notes: >-
-      **Reworked on 2026-09-23.** The prompt used to say "given that a mistake here moves somebody's
-      money", which gave away the first criterion. Its second and third clauses were riddles rather
-      than questions, which cost a nervous candidate the clause carrying 35%. The rubric gained a
+      **Reworked on 2026-09-23.** The prompt used to give away the first criterion, and its other two
+      clauses were riddles rather than questions; both are follow-ups now. The rubric gained a
       criterion for the money rules, because the limit boundary, the unit and the PIN counter were in
       the answer key and scored by nothing. **The drafter worried that a mid candidate here may never
       have tested anything transactional; the owner's read is the opposite — this market is
       fintech-heavy, so having tested something that moves money is likelier than it looks from
-      outside.** Is that right from where you sit? And is "exactly once" a fair expectation at mid, or
-      the thing that separates mid from senior?
+      outside.** Is that right from where you sit? One critique pass says the second follow-up will
+      never fire — nobody asked how they would order the testing of a transfer screen forgets the
+      ₦200,000 limit — and would replace it with "what would you try to get a transfer over the limit
+      through?", which is narrower than the criterion. Your call.
 
   # -------------------------------------------------------------------------------------------
   # Risk-based testing. Three questions, because deciding where the time goes is what separates a
@@ -138,8 +173,7 @@ questions:
     difficulty: 3
     prompt: >-
       The release goes out tomorrow morning. There are forty test cases you would normally run and
-      time for about twelve. Which twelve would you run, and what makes them the twelve? And what
-      would you tell the people deciding whether to release, about the twenty-eight you did not run?
+      time for about twelve. How would you choose?
     context: null
     rubric: risk-prioritisation
     ideal_points:
@@ -149,12 +183,22 @@ questions:
       - Cover each path that matters once rather than one area thoroughly.
       - Say plainly what was not run, so the release decision belongs to whoever makes it.
       - Some of the twelve slots are better spent poking at the changed area than on the next scripted case.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Talk me through which twelve, and where the line falls.
+      - criterion: 2
+        probe: >-
+          What would you say about the twenty-eight you did not run — and if giving a view is part
+          of your job, what is your view?
     reviewer_notes: >-
       Forty cases and twelve slots is meant to be tight enough that the candidate has to cut
       something they care about. Two things. Is a junior fairly asked to hand the decision back —
       criterion 3 rewards saying what was not covered and stopping there, which assumes the candidate
       is in a position where that is heard? And should the prompt say what changed in this release, or
-      is asking for it the point?
+      is asking for it the point? The opening asks how they would choose rather than which twelve,
+      because "which twelve" alone is close to unanswerable with no product on screen, and because it
+      put the lightest criterion in the only place guaranteed to be asked.
 
   - slug: where-the-bugs-have-been
     roles: [qa]
@@ -166,8 +210,7 @@ questions:
     prompt: >-
       On your screen is where the defects have been for the last three releases. A new release is
       coming and you have time to cover about half of what you would like to. Where would you spend
-      it, and which column matters more? And what would you be careful not to conclude from a table
-      like this?
+      it?
     context: |
       Defects found in the last three releases, by area. The bracketed number is how many of them
       reached users before anyone noticed.
@@ -187,13 +230,24 @@ questions:
       - An area with almost nothing found may be untested rather than sound, and job search is worth asking about.
       - Ask what changed in this release; history is one input and the diff is the other.
       - Say what is being left uncovered and why that is the cheaper risk.
+    planned_follow_ups:
+      - criterion: 0
+        probe: >-
+          That table only counts defects somebody found — what might it not be showing you?
+      - criterion: 2
+        probe: >-
+          What would you say about the areas you are not covering, and in what form, so that whoever
+          makes the release call has it?
     reviewer_notes: >-
       The table is the point — it lets a junior reason from evidence rather than from experience they
       do not have. The trap I have built in is that the highest count is not the worst escape rate,
       and criterion 1's level 1 is written for a candidate who ranks by the count alone. Is that trap
       fair, or is it a puzzle rather than a testing question? And are these five areas the right
       shape for a job-board product, or should the table be a bank app, which is what more of this
-      market's QA work actually is?
+      market's QA work actually is? **One thing the follow-up pass found:** all three of the old
+      clauses asked about choosing and about reading the table, so the criterion worth 40% — what you
+      say about what you are not covering — was scored and never asked. It is the second follow-up
+      now.
 
   - slug: regression-scope-after-a-small-change
     roles: [qa]
@@ -205,8 +259,7 @@ questions:
     prompt: >-
       A developer has changed one line — the function that works out a discount now rounds down
       instead of rounding to the nearest naira — and says nothing else was touched. What would you
-      re-test, and how far out from that line would you go? What would you deliberately leave alone?
-      And what would you want to see before you believed that nothing else was touched?
+      re-test?
     context: null
     rubric: regression-scoping
     ideal_points:
@@ -216,6 +269,13 @@ questions:
       - Leave out what cannot reach the function, and say how you know it cannot.
       - Widen it if the function turns out to be called from somewhere unexpected, or if a failure appears outside the area.
       - Ask why it changed; a rounding rule is usually a finance decision with a date attached.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you deliberately leave alone, and what is the argument for leaving it?
+      - criterion: 2
+        probe: >-
+          What would make you widen that scope once you had started?
     reviewer_notes: >-
       The answer-key point about the two roundings agreeing on most values was a derivation before
       2026-09-23 — it claimed the difference shows only where the fraction is half a naira or more,
@@ -237,9 +297,8 @@ questions:
     subtopic: rewriting a report
     difficulty: 2
     prompt: >-
-      On your screen is a defect report that came back closed as "cannot reproduce". What would you go
-      and find out before reopening it? Which parts of it are what was seen and which are a guess? And
-      what would you want attached to it that is not there now?
+      On your screen is a defect report that came back closed as "cannot reproduce". The developer
+      could not get to the same screen from it. Why not?
     context: |
       ```
       Title       Application fails
@@ -268,6 +327,13 @@ questions:
       - Two different observations are folded together — nothing happening, and the app returning to the list — and only one of them is the symptom.
       - How often, out of how many attempts, and whether it happens on a job they have not applied for.
       - Roughly when it happened, so the logs can be found — and a recording, or a request id if one can be got.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Which parts of that report are what somebody saw, and which are a guess about the cause?
+      - criterion: 2
+        probe: >-
+          What evidence would you want on that report that is not there now?
     reviewer_notes: >-
       **Rewritten on 2026-09-23.** The first version was conspicuously bad — no steps, no build, "please
       fix urgently" — and two passes said the same thing: everything missing was missing so obviously
@@ -276,7 +342,9 @@ questions:
       unactionable: the steps cannot be repeated because there is no account and no job, the
       expectation is "it should work", and the fact that decides the whole thing — that they had
       already applied for that job — is buried in the last clause. Is that now too subtle for
-      intern-junior? And is the developer's comment unfair to developers as written?
+      intern-junior? The opening changed again on 2026-09-23: "what would you go and find out" is a
+      different act from what criterion 1 scores at 40% — whether they see the steps cannot be
+      repeated — so a candidate could answer it well and score nothing.
 
   - slug: two-bugs-one-slot
     roles: [qa]
@@ -287,9 +355,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen are two defects, and one fix will make it into tomorrow's release. Which is the
-      more serious, and what makes it so? What would you write to the person who has to choose which
-      is fixed first, so they are not relying on your word for it? And what happens to the one that
-      is left?
+      more serious, and what makes it so?
     context: |
       Both found on the same build.
 
@@ -308,6 +374,14 @@ questions:
       - Give them what they would need to decide — how many, how often, what the user sees, what it costs.
       - Two of six on 2G is a hint rather than a rate, so B needs more work before it can be judged.
       - The one that waits gets a note in the release, a workaround if there is one, and a ticket that will not be lost.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          So which one gets fixed first, and what would you put behind that — whether or not the
+          call is yours?
+      - criterion: 2
+        probe: >-
+          What happens to the one that is left?
     reviewer_notes: >-
       **Changed on 2026-09-23 so the money actually moves.** It used to say the total *shown* was ₦50
       lower, which one pass pointed out reads as a display rounding bug — the exact objection that
@@ -331,9 +405,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen is everything you have about an endpoint — the screen that will use it does not
-      exist yet. What would you test, and where do the cases come from when there is no interface to
-      click? What would you check about a response, beyond its status code? And what would you test
-      here that a test through a screen could never reach?
+      exist yet. What would you test?
     context: |
       ```
       POST /applications
@@ -355,6 +427,13 @@ questions:
       - Authorisation as its own case — no token, an expired one, and a job that is not the caller's to apply for.
       - Send the same request twice and check the 409 comes back, and that only one application exists.
       - Check the effect rather than the reply — the application is there afterwards, and nothing else moved.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          You get a 201 back. Are you satisfied?
+      - criterion: 2
+        probe: >-
+          What could you test here that a test driving the screen could never reach?
     reviewer_notes: >-
       Written at both levels because a lot of junior QA work here is Postman against a documented
       endpoint before any screen exists. The part I am unsure of is how much the document should
@@ -371,9 +450,7 @@ questions:
     difficulty: 2
     prompt: >-
       On your screen is a request you sent while testing and the response that came back. What does
-      the response tell you about what went wrong? If there is an agreed spec for this endpoint, what
-      would you check in it before writing this up? And how would you write it up so that nobody has
-      to argue about whose defect it is?
+      the response tell you about what went wrong?
     context: |
       ```
       POST /applications HTTP/1.1
@@ -397,6 +474,14 @@ questions:
       - Check whether the app, or another endpoint, uses the other spelling — that decides which side moved.
       - Write it as what was sent, what came back and what the contract says, so the disagreement is about a document.
       - If there is no contract to check, the missing agreement is itself the finding and worth reporting as one.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Is there an agreed spec for this endpoint, and what would you check in it before writing
+          this up?
+      - criterion: 2
+        probe: >-
+          How would you write it up, and what would you put in it?
     reviewer_notes: >-
       Deliberately junior-only — it is one careful reading of two blocks of text and it does not need
       any experience of a workplace. Two worries. Criterion 2 assumes there is a contract to check,
@@ -414,8 +499,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen is the same endpoint a week apart. This went out last night. What would you say
-      happened, in plain terms? How could a test have caught it before a user did, and where would
-      that test have to run? And what would you ask for so the next one is not found this way?
+      happened, and what does it mean for the apps already reading that field?
     context: |
       The same endpoint, a week apart.
 
@@ -435,6 +519,15 @@ questions:
       - That check has to run against the API, in the API's own pipeline; in the app's suite it fails after the release.
       - A status-code check would have passed, which is why the pipeline said nothing.
       - Ask for a new field or a version rather than a changed one, and ask who else reads it — the app is the caller that shouted.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What kind of test would have caught this before a user did, and what would it be running
+          against?
+      - criterion: 2
+        probe: >-
+          How would you find out who else is reading that field, and what would you want agreed
+          before the next change?
     reviewer_notes: >-
       I have kept every product name out of this so it cannot go stale. Two judgements I would like
       checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not
@@ -455,8 +548,7 @@ questions:
     difficulty: 3
     prompt: >-
       A team has two hundred manual test cases and time for you to automate about thirty. Which
-      thirty, and what puts a case in that group? What would you deliberately leave manual? And how
-      would you know, in three months, whether it was worth doing?
+      thirty, and what puts a case in that group?
     context: null
     rubric: automation-selection
     ideal_points:
@@ -466,6 +558,13 @@ questions:
       - Leave exploratory work, one-off checks and anything that changes weekly with a person.
       - Thirty cases that run on every change beat two hundred that run once a quarter.
       - Judge it on defects caught before release and on whether people still act on a failure, not on the count of tests.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you deliberately leave manual?
+      - criterion: 2
+        probe: >-
+          What would you want to be able to look at, to tell whether it had been worth doing?
     reviewer_notes: >-
       **Moved to mid only on 2026-09-23.** Two passes said the same thing: the third clause carries 40%
       and needs a suite somebody has lived with for three months, so a junior with nothing automated
@@ -485,8 +584,7 @@ questions:
     prompt: >-
       On your screen is an automated test. Sign-in has been broken since yesterday morning and this
       test passed on every run — you do not need to know the tool to see why. What is it actually
-      checking? What would it have to check instead, so that a broken sign-in fails it? And what else
-      in it would you not leave as it is?
+      checking?
     context: |
       An automated browser test, written as pseudocode — the idea is the same in any tool.
 
@@ -508,6 +606,13 @@ questions:
       - Assert the failure path too — a wrong password should show the error and stay where it is.
       - The three-second wait is a guess; wait for the thing you are about to assert on.
       - The fixed account and the structural selectors are both reasons this test will fail for something other than the product.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would it have to check instead, so that a broken sign-in fails it?
+      - criterion: 2
+        probe: >-
+          Is there anything about the way that test waits that you would change?
     reviewer_notes: >-
       The last line of the context — that the header is on every page — was added because without it
       the premise does not hold and the question is unanswerable. It now gives the first criterion
@@ -523,10 +628,10 @@ questions:
     subtopic: unreliable suites
     difficulty: 4
     prompt: >-
-      Fifteen of a hundred and twenty automated tests fail on some runs and pass on others, never the
-      same ones. The team reruns until they pass and then puts the change in — which is a reasonable
-      response to a signal nobody can trust. What would you do about the fifteen? What would you do
-      about the rerunning? And what has the team actually lost?
+      Fifteen of a hundred and twenty automated tests fail on some runs and pass on others, never
+      the same ones. The team reruns until they pass and then puts the change in — which is a
+      reasonable response to a signal nobody can trust. What would you want to find out about those
+      fifteen?
     context: null
     rubric: flaky-suite-response
     ideal_points:
@@ -536,13 +641,22 @@ questions:
       - A blanket retry is the worst option — it makes the suite green and keeps whatever is wrong.
       - A suite that fails for no reason teaches people to ignore it, so the cost is the failures they will also ignore.
       - Something has to keep it honest afterwards — a rate somebody watches, or a rule that a new unreliable test is quarantined the day it appears.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          And then what happens to each of the fifteen?
+      - criterion: 2
+        probe: >-
+          What has the team lost by not being able to believe the suite any more?
     reviewer_notes: >-
       Mid only, because the answer turns on having lived with a suite long enough to see the habit
       form. Fifteen of a hundred and twenty is meant to be bad enough that rerunning is rational,
       which is the uncomfortable part — the team is not being lazy, they are responding sensibly to a
       broken signal, and criterion 3's level 1 penalises a candidate who blames them. Is that
-      distinction one you would expect a mid candidate to make, or am I scoring something closer to
-      senior judgement?
+      distinction one you would expect a mid candidate to make? The opening now asks what they would
+      find out and the first follow-up asks what happens to each test — the other way round, a
+      candidate who sensibly investigated first had answered the un-probed criterion and lost the
+      probed one.
 
   # -------------------------------------------------------------------------------------------
   # Tests in a pipeline. One at intern-junior rather than two, deliberately — a junior tester is
@@ -559,8 +673,7 @@ questions:
     prompt: >-
       The automated checks have been failing for three days. Everybody knows, and people are putting
       their changes in anyway because the failure is "the usual one". What would you do about the
-      failure itself? What is a failing build costing them, that they may not have counted? And what
-      would you write down, and who would you send it to?
+      failure itself?
     context: null
     rubric: pipeline-health-response
     ideal_points:
@@ -570,13 +683,20 @@ questions:
       - While it is red, nothing the pipeline runs after that step is being believed, so the cost is the rest of the suite.
       - The more expensive loss is the habit — a team that reads past red will read past the next real failure.
       - Ask for one thing first, owned today, and then for something structural — a fast check people will wait for, and an agreed rule for the next red build.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What else stops being checked while those checks are failing?
+      - criterion: 2
+        probe: >-
+          What would you write down about it, and who would you send it to?
     reviewer_notes: >-
       Asked at junior because it is the pipeline question a junior actually faces — they are told to
       ignore a failure. **Reworked on 2026-09-23**: three passes said the old prompt asked a junior to
       make an argument to a team, which is standing most of them do not have, and one added that three
       days of red across timezones is undone by a message and a record rather than by a conversation.
-      It now asks what they would write and who they would send it to, the criterion is weighted down
-      from 35 to 30, and "green"/"red build" is out of the spoken clause. One pass would go further and
+      What they would write and who they would send it to is now the second follow-up, the criterion
+      is weighted down from 35 to 30, and "green"/"red build" is out of the spoken prompt. One pass would go further and
       make the whole team-facing half mid-only, which would empty the junior `ci-pipelines` slot — is
       that the better trade?
 
@@ -590,9 +710,7 @@ questions:
     prompt: >-
       The automated suite takes fifty minutes and runs on every change. The developers have started
       putting changes in without waiting for it, and they have asked you what should stay in the
-      quick check. What do you tell them, and what would you need to know first? What moves out of
-      the quick check? And what happens to a failure that now arrives after a change has gone in
-      rather than before?
+      quick check. How would you split it?
     context: null
     rubric: test-pipeline-design
     ideal_points:
@@ -602,13 +720,22 @@ questions:
       - What moves out is the slow end — the full browser suite, long data setup, the cross-browser matrix.
       - A failure in the slow run needs an owner and a rule for the branch, or the problem has only moved.
       - Cutting duplicate setup and running in parallel often buys more than deleting tests.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What stays in the quick check?
+      - criterion: 2
+        probe: >-
+          What happens to a failure that now arrives after a change has gone in, rather than before?
     reviewer_notes: >-
       **Reframed on 2026-09-23 so the candidate is advising, not deciding** — one pass said it had never
       asked a tester to split a pipeline and would cut the question, another that it rewarded standing
       a remote hire would not have in month one, and the drafter's own note already doubted it. The
       developers now ask the candidate what should stay in the quick check, which tests the same
       reasoning without assuming authority. Is that enough to keep it, or is this still the weakest
-      question in the bank?
+      question in the bank? The opening moved on 2026-09-23 from "what do you tell them" to "how would
+      you split it": an opening that open let a candidate answer sideways and forfeit the criterion no
+      follow-up could reach, which is the pilot's main structural finding.
 
   # -------------------------------------------------------------------------------------------
   # Exploratory testing. Three questions, because the role's own catalogue entry names it core and
@@ -624,8 +751,7 @@ questions:
     prompt: >-
       A developer has just finished a new job-alerts screen and there are no test cases for it yet.
       You have one hour with it, and the decision about whether it goes out will be made while you
-      are asleep. How would you spend the hour? What would you decide before touching anything? And
-      what would you leave behind, so whoever decides can decide without you?
+      are asleep. What would you settle on before you start?
     context: null
     rubric: exploratory-charter
     ideal_points:
@@ -635,13 +761,23 @@ questions:
       - Follow the surprises; that is the whole advantage over a script.
       - Keep a record as you go, because you will not remember it by the meeting.
       - Leave behind what was covered, what was not, the defects and what another hour would go on — written so it can be acted on without asking you anything.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          And how would you spend the hour itself?
+      - criterion: 2
+        probe: >-
+          What would you leave behind, so that whoever decides can decide without you?
     reviewer_notes: >-
       The feature is named as of 2026-09-23 — without it the honest answer was "it depends what it is",
       which landed on level 2 of a 35% criterion. And the output is now for whoever decides while the
       candidate is asleep rather than for a release meeting, because a distributed hire is not in the
       meeting and this is the best handover question in the bank. Two things. Is one hour the right
       size — short enough to force a choice, but it may make the charter feel like overhead? And is a
-      job-alerts screen a rich enough subject, or would something with money in it be better?
+      job-alerts screen a rich enough subject, or would something with money in it be better? The
+      opening question and the first follow-up swapped places on 2026-09-23: asking how they would
+      spend the hour and then probing what they would decide before touching anything asked about the
+      plan after they had described executing it. It now runs in the order the hour does.
 
   - slug: the-upload-nobody-tested
     roles: [qa]
@@ -651,10 +787,9 @@ questions:
     subtopic: attacking a feature
     difficulty: 3
     prompt: >-
-      A job application form has a CV upload — PDF or Word, up to 5 MB. The written test cases cover a
-      valid PDF, a file that is too large and a file of the wrong type. What would you try with the
-      file itself that those three do not? What would you do to the connection, or to the app, while
-      the upload is going? And how would you decide which of the things you find is a defect?
+      A job application form has a CV upload — PDF or Word, up to 5 MB. The written test cases cover
+      a valid PDF, a file that is too large and a file of the wrong type. What would you try with
+      the file itself that those three do not?
     context: null
     rubric: exploratory-attack-ideas
     ideal_points:
@@ -664,6 +799,13 @@ questions:
       - Upload, go back, change the file, submit — and see which one is attached.
       - Say what the behaviour disagrees with before calling it a defect — the stated limit, the rest of the product, what a user would reasonably expect.
       - Separate the defects from the questions, and raise the questions as questions.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Mid-range phone, Lagos network, end of the day — what else would you try?
+      - criterion: 2
+        probe: >-
+          Say one of those turned something up — how would you decide whether it is a defect?
     reviewer_notes: >-
       The photograph-of-a-printed-CV case is the one I would most like your opinion on. It is the most
       common real upload in this market and it is not a defect in the product — it is a product
@@ -681,8 +823,7 @@ questions:
     prompt: >-
       There is no specification for this feature, and nobody who could tell you what it should do is
       reachable today. On your screen is something you noticed. How do you decide whether it is a
-      defect? What would you use to settle it, when there is nothing to point at? And how would you
-      raise it so it is not your opinion against somebody else's?
+      defect?
     context: |
       On the job list, a closing date shows as `03/11/2026`.
 
@@ -697,6 +838,13 @@ questions:
       - Write it as "here is the behaviour, here is what it disagrees with", so the disagreement has something in it besides preference.
       - Some of what you find is a question rather than a defect, and separating the two is the job.
       - Whatever is agreed gets written down, so the next person has the document you did not.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you point at to settle it — something somebody else could check for themselves?
+      - criterion: 2
+        probe: >-
+          Who would you raise it with, and what would you say?
     reviewer_notes: >-
       **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question
       into a conflict question), a concrete case went into the context, and it is now offered at
@@ -723,8 +871,7 @@ questions:
     prompt: >-
       You need about five hundred customers with realistic transaction histories to test a statement
       screen. The quickest route is a copy of the live database, and someone senior has offered you
-      one. What would you do? What is wrong with taking it — explained to a colleague who is not a
-      tester, without quoting a regulation at them? And where would the data come from instead?
+      one. What is in that copy, and would you take it?
     context: null
     rubric: test-data-judgement
     ideal_points:
@@ -734,12 +881,22 @@ questions:
       - Generate it — names, phone numbers and amounts that look real and belong to nobody.
       - Build the cases on purpose — no transactions, one, thousands, a negative balance — rather than hoping a copy contains them.
       - Where the shape of real data genuinely matters, ask for a masked extract taken by whoever is allowed to take it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Who is harmed if that copy leaks, and who answers for it?
+      - criterion: 2
+        probe: >-
+          Where would the data come from instead?
     reviewer_notes: >-
       This is in the bank because "we use a copy of production" is the honest answer in a lot of
       places here, and I want a candidate to have thought about it before an interviewer asks. The
       risk is that it reads as a compliance quiz. The rubric deliberately scores the alternative more
       heavily than the rule, and penalises an answer that is only the regulation and the fine. Is that
-      the right balance, and is it fair to ask a junior to make the argument to a non-tester?
+      the right balance? **Three of the four critique passes caught the same thing in the follow-up**:
+      it said "without quoting a regulation at them", which is a scoring instruction read out to the
+      candidate, and it told the one candidate whose data-protection training is their strongest asset
+      not to use it. That constraint belongs in the descriptor, where it already is.
 
   - slug: the-test-that-cannot-run-twice
     roles: [qa]
@@ -750,8 +907,7 @@ questions:
     difficulty: 2
     prompt: >-
       On your screen is an automated test. It passed the first time it was run and failed the second
-      time, on its very first line. What is happening? What would you change so it can be run as many
-      times as you like? And what would emptying the database before every run cost you?
+      time, on its very first line. What is happening?
     context: |
       An automated test, as pseudocode — the idea is the same in any tool.
 
@@ -771,6 +927,13 @@ questions:
       - Have the test remove what it created, or a hundred runs leave a hundred users behind.
       - Emptying the database first works and takes everything else running with it, which is a high price for one fixed value.
       - Where the suite has a database of its own, emptying it is a reasonable answer — the question is whether anything is shared.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change, so it can be run as many times as you like?
+      - criterion: 2
+        probe: >-
+          Somebody suggests emptying the database before every run — what do you think?
     reviewer_notes: >-
       **Split out of `the-test-that-only-passes-once` on 2026-09-23.** Two passes said independently
       that the original was two questions — the second-run collision is junior material and the
@@ -787,10 +950,8 @@ questions:
     subtopic: isolation in a suite
     difficulty: 3
     prompt: >-
-      On your screen is an automated test that passes on its own and fails when the whole suite runs,
-      never at the same point twice. What is wrong with the way it decides whether it worked? What
-      would you change so it passes whatever else is running? And what would making the suite run one
-      test at a time cost you?
+      On your screen is an automated test that passes on its own and fails when the whole suite
+      runs, never at the same point twice. What is wrong with the way it decides whether it worked?
     context: |
       An automated test, as pseudocode. Every test in this suite creates its own user, so the sign-up
       line is not the problem.
@@ -810,14 +971,21 @@ questions:
       - Where a count is genuinely what matters, give the test its own job so the count is its own.
       - Running one test at a time makes it pass and gives up the parallelism the suite was built for.
       - A failure that moves between runs is the signature of shared data, so a retry would hide it rather than fix it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change, so it passes whatever else is running?
+      - criterion: 2
+        probe: >-
+          Somebody suggests running the suite one test at a time — what do you think?
     reviewer_notes: >-
       **Narrowed on 2026-09-23** to the half that is genuinely mid — the fixed-email collision went to
       `the-test-that-cannot-run-twice` at intern-junior. The context now says explicitly that every test
       makes its own user, so the candidate is not re-solving the junior question, and the job is what is
-      shared. What I am unsure of is whether the remaining question is too narrow: the answer is
-      essentially one move (assert on what you created), and the interesting part — when a count is the
-      right assertion at all — is in the fourth answer-key point rather than in the prompt. Should the
-      prompt ask it?
+      shared. My own worry — that the remaining question is one move (assert on what you created), with
+      the interesting part, when a count is the right assertion at all, sitting in the fourth
+      answer-key point and asked nowhere — is answered by the first follow-up, which now asks it. Is
+      that the right place for it, or should it be the opening question?
 
   # -------------------------------------------------------------------------------------------
   # Debugging. The second question at both levels is `it-works-for-me`, which lives in the frontend
@@ -832,9 +1000,8 @@ questions:
     difficulty: 3
     prompt: >-
       A test that passes on your machine fails in the pipeline about one run in four. The team is
-      about to mark it as flaky and move on. What would you do before agreeing to that? What would
-      you be looking for in the difference between the two places it runs? And what would you put in
-      front of the team to settle it?
+      about to mark it as flaky and move on. What would you want to know about that failure before
+      you agreed?
     context: null
     rubric: failure-investigation
     ideal_points:
@@ -844,6 +1011,14 @@ questions:
       - Keep what a failing run leaves behind — the log, the screenshot, the exact assertion that failed.
       - Put the rate and the evidence in front of the team, so muting it is a decision somebody makes rather than a default.
       - If it is quarantined, it goes with a ticket and an owner, and the team knows what it is accepting.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you compare between your machine and the pipeline, including anything you
+          cannot see from where you sit?
+      - criterion: 2
+        probe: >-
+          What would you put in front of the team, or in front of one person, to settle it?
     reviewer_notes: >-
       Moved on 2026-09-23 from `defect-reporting` to `debugging`, and off the `defect-report-quality`
       rubric, which its own notes had called a stretch — the answer is about investigation rather than
@@ -866,8 +1041,7 @@ questions:
     difficulty: 3
     prompt: >-
       Tell me about a time you found something close to a release — at work, or on a project of your
-      own — that you thought should stop it going out. What did you do about it, and how did it end,
-      including if it went out anyway?
+      own — that you thought should stop it going out. What was the risk, and how did you know?
     context: null
     rubric: raising-a-quality-concern
     ideal_points:
@@ -876,16 +1050,31 @@ questions:
       - What they did with it — who they told, what they wrote down, whether they raised it more than once.
       - How it ended, including being overruled, and including being wrong.
       - What they would do differently, and what they now do routinely.
+    planned_follow_ups:
+      - criterion: 0
+        probe: >-
+          What had you actually seen that made you sure it was serious?
+      - criterion: 1
+        probe: >-
+          Who did you take it to, and in what form — or, if there was nobody to tell, what did you
+          do with it instead?
+      - criterion: 2
+        probe: >-
+          How did it end, including if it went out anyway?
+      - criterion: 2
+        probe: >-
+          What do you do differently now, because of it?
     reviewer_notes: >-
       **Reworded on 2026-09-23**, and it now has its own rubric. It used to require that "someone more
-      senior disagreed", which made a disagreement with a senior person a precondition for answering —
-      in many workplaces here disagreeing upward is not done and the candidate has no story. And it
-      was scored with the generic `behavioural-answer-quality`, whose criteria are situation, actions
-      and outcome, so "how they made the case" landed nowhere; all four critique passes said so, as two
-      had about `incident-you-contributed-to`. The slug still says "pushing back", which the question
-      no longer requires — slugs are permanent, so it stays. What is left for you:
-      `behavioural-answer-quality` now has no question in any bank, and four questions have used it
-      and all four needed their own. Do we delete it?
+      senior disagreed" — in many workplaces here disagreeing upward is not done and the candidate has
+      no story — and it was scored with the generic `behavioural-answer-quality`, in which "how they
+      made the case" landed nowhere. The slug still says "pushing back", which the question no longer
+      requires; slugs are permanent. The second follow-up carries criterion 2's fairness promise out
+      loud — "if there was nobody to tell" — rather than only in a descriptor the candidate never
+      sees. This is the one question with **four** follow-ups: criterion 1 gets one although the
+      opening asks it, because a candidate can tell the whole story and never say how they knew it
+      was serious, and criterion 3 gets two because "what is different now" is where a nervous
+      candidate stops. Enough?
 
   # -------------------------------------------------------------------------------------------
   # Untagged on 2026-09-23. It was `stacks: [performance-testing]`, and two critique passes and the
@@ -903,9 +1092,7 @@ questions:
     difficulty: 3
     prompt: >-
       Somebody asks whether the platform will hold up for a campaign at the end of the month. What
-      would you need to know before you could plan any of this? What would the pass mark have to
-      state, and who would agree it with you? And what would you do if there is no answer to any of
-      that?
+      would you need to know before you could plan any of this?
     context: null
     rubric: performance-requirements-reasoning
     ideal_points:
@@ -915,6 +1102,13 @@ questions:
       - A pass mark has three parts — how long a request may take, how often it may fail, and the load it holds at — and it says which environment.
       - Somebody has to own that pass mark, or it is not one.
       - With no answers, derive it from the traffic that already exists and write the assumption down; with no target at all, report the load at which it degrades.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would the pass mark have to state, and who would agree it with you?
+      - criterion: 2
+        probe: >-
+          Suppose nobody can tell you any of that — what would you do instead?
     reviewer_notes: >-
       Untagged on 2026-09-23 (see the comment above), which leaves `performance-testing` with one
       question against a target of two — the checker reports it every run and the next tagged question
@@ -949,9 +1143,8 @@ questions:
     subtopic: waits
     difficulty: 3
     prompt: >-
-      On your screen is a test that passes on a fast machine and fails on the shared runner about one
-      time in five. Why does a fixed wait behave that way? What would you use instead? And where
-      would a wait still belong, after you have fixed this one?
+      On your screen is a test that passes on a fast machine and fails on the shared runner about
+      one time in five. Why does a fixed wait behave that way?
     context: |
       ```js
       cy.get('[data-testid="apply"]').click()
@@ -966,6 +1159,13 @@ questions:
       - The idiomatic replacement is to wait for the request, not the clock — intercept it, alias it, and wait on the alias.
       - A longer timeout still belongs on a genuinely slow step, set on that step rather than everywhere.
       - A timeout's job is to fail readably, so a slow dependency is not reported as a broken selector.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Do you need a wait there at all?
+      - criterion: 2
+        probe: >-
+          Where would a wait still belong, after you have fixed this one?
     reviewer_notes: >-
       **Version-sensitive: that a Cypress assertion retries until it passes or `defaultCommandTimeout`
       expires, so the preceding fixed wait adds nothing; and that waiting on an intercepted request
@@ -987,9 +1187,8 @@ questions:
     subtopic: waits
     difficulty: 3
     prompt: >-
-      On your screen is a test that passes on a fast machine and fails on the shared runner about one
-      time in five. Why does a fixed wait behave that way? What would you use instead? And where
-      would a wait still belong, after you have fixed this one?
+      On your screen is a test that passes on a fast machine and fails on the shared runner about
+      one time in five. Why does a fixed wait behave that way?
     context: |
       ```ts
       await page.getByTestId('apply').click()
@@ -1004,6 +1203,13 @@ questions:
       - The documentation marks `waitForTimeout` as for debugging only, and the actions and web assertions wait by themselves.
       - Where an explicit wait is genuinely needed, wait for the condition — a response, a state — rather than a number.
       - A timeout's job is to fail readably, so a slow dependency is not reported as a broken selector.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Do you need a wait there at all?
+      - criterion: 2
+        probe: >-
+          Where would a wait still belong, after you have fixed this one?
     reviewer_notes: >-
       **Version-sensitive: that a Playwright web assertion re-fetches and retries until its timeout,
       so the preceding `waitForTimeout` adds nothing, and that `waitForTimeout` is documented as
@@ -1023,12 +1229,17 @@ questions:
     difficulty: 2
     prompt: >-
       A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour
-      changed and a lot of tests failed. Three selectors from that suite went like this — one was a
-      full path down from the body tag, one named two classes of which one was a generated hash, and
-      one counted children to reach the fourth div and then took its button. What do those three have
-      in common? What would you select on instead, in the tool you work in? And what would you ask
-      the developers for, that is not a change to the tests?
-    context: null
+      changed and a lot of tests failed. On your screen are three of the selectors from that suite.
+      What do those three have in common?
+    context: |
+      Three selectors from the suite, described rather than written out — the idea is the same in
+      any tool.
+
+      ```
+      1  A full path down from the body tag to the button.
+      2  Two class names, one of which is a generated hash.
+      3  Count to the fourth div, then take the button inside it.
+      ```
     rubric: selector-strategy-reasoning
     ideal_points:
       - All three address where the button sits or how it is painted, neither of which is what the button is.
@@ -1037,6 +1248,14 @@ questions:
       - In a tool that has role-and-text locators, finding it the way a user does is the documented first answer, and it also fails when the button stops being reachable.
       - A failing test after a rename is the suite's fault rather than the refactor's; reverting the rename is the wrong fix.
       - Some churn is correct — a test should fail when the behaviour really does change.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you select on instead, in the tool you work in?
+      - criterion: 2
+        probe: >-
+          What would have to change in the application itself, and is the rename itself anybody's
+          fault?
     reviewer_notes: >-
       **Version-sensitive: which of a test attribute and a role-and-text locator is the vendor's own
       first recommendation, because it differs by tool. Checked on 2026-09-23 — playwright.dev (1.63)
@@ -1059,10 +1278,8 @@ questions:
     subtopic: element references
     difficulty: 3
     prompt: >-
-      On your screen is a test that throws on its last line, and only when the filter actually changes
-      the list. What is the exception telling you, and would waiting longer help? What would you
-      change about how this test holds on to elements? And what would you do about the several other
-      places in the suite that do the same thing?
+      On your screen is a test that throws on its last line, and only when the filter actually
+      changes the list. What is the exception telling you, and would waiting longer help?
     context: |
       ```java
       WebElement row = driver.findElement(By.cssSelector("#results tr:first-child"));
@@ -1081,6 +1298,13 @@ questions:
       - Wait for the new list rather than for a duration — the re-render is the event, not the delay.
       - The documented alternative is a wrapper that stores the locator and re-finds on use, so no reference outlives an action.
     rubric: stale-element-diagnosis
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change about how this test holds on to elements?
+      - criterion: 2
+        probe: >-
+          Somebody suggests retrying on that exception everywhere — what would that hide?
     reviewer_notes: >-
       **Version-sensitive: that the exception means the element is no longer attached to the document,
       that relocating it is the documented remedy, and that a locator-storing wrapper is the other
@@ -1089,7 +1313,10 @@ questions:
       say in so many words that waiting cannot help. That is an inference from the remedy, and a sound
       one, but the rubric turns level 3 on it, so it is our claim rather than the vendor's. Is it safe
       to score on? And the docs list three causes where the question gives one; a candidate who names
-      navigation and frame switching too is reading the exception properly rather than padding.
+      navigation and frame switching too is reading the exception properly rather than padding. The
+      opening question is the one place in this bank that still asks two things — "would waiting
+      longer help" is what criterion 1 turns on at level 3, and it has no follow-up of its own because
+      the prompt is its criterion.
 
   - slug: cypress-login-in-every-test
     roles: [qa]
@@ -1101,8 +1328,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen is the block that runs before every test in a suite. What is signing in through
-      the screen every time costing, beyond the minutes? What would you do instead, and what do you
-      lose by doing it? And what would you keep signing in through the screen for?
+      the screen every time costing, beyond the minutes?
     context: |
       ```js
       beforeEach(() => {
@@ -1124,6 +1350,13 @@ questions:
       - What you lose is certainty that the session is live, which is why a restored session needs a cheap check that re-establishes it when it fails.
       - Caching only within a spec file leaves thirty sign-ins; caching across spec files is where most of the fourteen minutes actually goes.
       - Keep a few real tests on the screen — the success path, a wrong password, whatever the lock is — and nothing else.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you do instead, and what do you lose by doing it?
+      - criterion: 2
+        probe: >-
+          What would you keep signing in through the screen for?
     reviewer_notes: >-
       **Version-sensitive: that Cypress has a first-class, non-experimental way to cache and restore a
       session between tests, that a restored session is re-established when its validation fails, and
@@ -1132,8 +1365,8 @@ questions:
       2026-09-23 — three passes pointed out that the top band required multiplying by six seconds the
       drafter had never stated. The fourth and fifth answer-key points came from the fact-check and
       are the documented answer to "what do you lose"; they are also the two things a candidate is
-      least likely to volunteer. Are they a fair expectation at mid, or should they be follow-up
-      territory?
+      least likely to volunteer. They are now literally follow-up territory — the first probe asks
+      what you lose — so: is that enough, or are they still too much to expect at mid?
 
   - slug: playwright-tests-sharing-an-account
     roles: [qa]
@@ -1145,8 +1378,7 @@ questions:
     difficulty: 4
     prompt: >-
       Run one at a time and everything passes. Run with four workers and two or three tests fail,
-      never the same ones. Why does running in parallel change the result? What would you change so
-      the suite can run in parallel? And what would you keep serial on purpose, rather than fixing?
+      never the same ones. Why does running in parallel change the result?
     context: |
       ```ts
       // playwright.config.ts
@@ -1167,6 +1399,13 @@ questions:
       - Assert on data the test created rather than on a count or on "the first row".
       - A failure that moves between runs is the signature — the fix is isolation, not a retry.
       - Where something is genuinely shared — one sandbox at a payment provider, a global setting — keep that group serial rather than the suite.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change, so the suite can run with four workers?
+      - criterion: 2
+        probe: >-
+          What would you keep serial on purpose, rather than fixing?
     reviewer_notes: >-
       **Version-sensitive: that one account per parallel worker, set up in a worker-scoped fixture
       keyed on the worker index, is the documented recommendation for tests that modify server-side
@@ -1187,9 +1426,9 @@ questions:
     subtopic: repeatable runs
     difficulty: 3
     prompt: >-
-      On your screen is a set of requests a team keeps and runs top to bottom, however they keep them.
-      It works when a person runs it and fails when anything else does. What stops it running without
-      you? What would you change so it can run overnight? And what would you still not automate here?
+      On your screen is a set of requests a team keeps and runs top to bottom, however they keep
+      them. It works when a person runs it and fails when anything else does. What stops it running
+      without you?
     context: |
       ```
       1  POST /auth/login       the tester copies `token` out of the response and pastes it into the
@@ -1210,17 +1449,28 @@ questions:
       - The run has to be able to start from nothing — it creates the job it applies for, and removes it afterwards.
       - Nothing asserts, so the run currently only proves the requests were sent.
       - A failure has to say which request failed and what came back, or nobody will act on it in the morning.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change, so it can run overnight?
+      - criterion: 2
+        probe: >-
+          What would you still not automate here?
+      - criterion: 2
+        probe: >-
+          If it fails while nobody is watching, what does the failure report need to contain?
     reviewer_notes: >-
       **Version-sensitive: that both Postman and RestAssured can capture a value from one response
       into a variable the next request uses, and that a saved collection runs from a command line
       without a person. Checked on 2026-09-23 against learning.postman.com and rest-assured.io — and
       the command-line tool has moved: Newman no longer reads the collection format Postman v12 uses,
-      and the current tool is the Postman CLI. Nothing in the question names a tool, so a candidate
-      who says "newman" is a version behind rather than wrong.** Reworded to "a set of requests a team
-      keeps, however they keep them", because "a saved collection" is Postman's shape and a
-      RestAssured candidate was answering about a foreign artefact. Also softened from "in a pipeline
-      every night" to "overnight", since this is asked at intern-junior. Does the junior tag survive
-      that, in your view?
+      and the current tool is the Postman CLI. No tool is named here, so "newman" is a version behind
+      rather than wrong.** Reworded to "a set of requests a team
+      keeps, however they keep them", because "a saved collection" is Postman's shape. Does the
+      intern-junior tag survive that? Criterion 3 scores two things — what stays manual, and what a
+      failure has to say — so it carries two follow-ups since 2026-09-23. "What stays manual" is
+      listed first because a candidate is likelier to have an answer to it; the failure report is the
+      more useful signal for a team in another timezone. Right order?
 
   - slug: api-testing-three-environments
     roles: [qa]
@@ -1232,9 +1482,8 @@ questions:
     difficulty: 3
     prompt: >-
       The team wants these same requests run against staging and against a test environment, from
-      wherever the tests run rather than from your laptop. What has to change before the same requests
-      can go to two places? Where should the token come from instead, and who should be able to see
-      it? And what would you say if somebody asked you to point this at production?
+      wherever the tests run rather than from your laptop. What has to change before the same
+      requests can go to two places?
     context: |
       Every request has the host typed into it, and the token is saved in the file. The file is in the
       same repository as the tests.
@@ -1251,6 +1500,13 @@ questions:
       - Better still, the run signs in with a test account's credentials and gets a short-lived token of its own.
       - Anything that creates, changes or deletes does not point at production, whoever asks.
       - A suite that never runs anywhere but staging is testing staging, so there is a case for a read-only check against the real thing — with an account that can do nothing else.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Anything else in that file you would change, before it runs anywhere but your laptop?
+      - criterion: 2
+        probe: >-
+          What would have to be true before these could safely run against production?
     reviewer_notes: >-
       **Version-sensitive: that a host can be held in an environment variable, that a value can be
       marked so it is stored locally and not shared, and that a secret can be injected into a
@@ -1275,8 +1531,7 @@ questions:
     prompt: >-
       A mobile suite passes on the emulator on your machine and fails on a real mid-range Android
       phone, mostly on the screens that load data. What differs between the two that would explain
-      that? What would you change about the tests, and about where they run? And which of those
-      failures would you treat as the product's rather than the tests'?
+      that?
     context: null
     rubric: real-device-difference-reasoning
     ideal_points:
@@ -1286,6 +1541,14 @@ questions:
       - Wait for the state you are about to assert on, rather than for a duration tuned on a fast machine.
       - The script does not change; the capabilities do — a real device is identified differently from an emulator, and explicitly so if runs happen side by side.
       - A screen that never loads on a real phone on a slow connection is a defect at whatever priority that argues for, not an unreliable test.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change about the tests, and what would you want them running on — even if
+          it is one real phone?
+      - criterion: 2
+        probe: >-
+          Which of those failures would you treat as the product's, rather than the tests'?
     reviewer_notes: >-
       **Version-sensitive: that the same script drives an emulator and a real device, and that what
       differs is the capability set identifying the device rather than the test. Checked against
@@ -1308,8 +1571,7 @@ questions:
     difficulty: 4
     prompt: >-
       On your screen is a load test run and the conclusion somebody drew from it. What in the run
-      makes that conclusion unsafe? What would you change about how the test is set up before running
-      it again? And what would you report instead of an average?
+      makes that conclusion unsafe?
     context: |
       ```
       virtual users      1,000, all started at once
@@ -1330,6 +1592,13 @@ questions:
       - A thousand users starting at one instant is not how traffic arrives; ramp up and hold.
       - Two minutes with no pause between requests measures a burst rather than a sustained load.
       - Report the error rate first, then a median and a high percentile, then the throughput actually achieved — and the load at which it starts to degrade.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change about how the test is set up, before running it again?
+      - criterion: 2
+        probe: >-
+          What would you report instead of an average?
     reviewer_notes: >-
       **Version-sensitive: nothing in it. No tool is named on purpose, so it holds for k6 and JMeter
       alike.** The success rate is now stated in the summary (2026-09-23). It used to be derivable

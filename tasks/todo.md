@@ -1451,3 +1451,64 @@ eight QA claims had moved after one day**), the **seven backend junior shortfall
 backend judgement slots**, and the missing `intern-junior` backend track / `mid` frontend track /
 `mid` QA track — `track_not_found` for those candidates, and lessons work rather than
 question-bank work.
+
+## Planned follow-ups — the field, and QA as the pilot (2026-09-23, branch `content/catalogue-banks`)
+
+Implements the decision in `docs/progress/2026-09-23-planned-follow-ups.md`. Stop at the end of the
+pilot for the owner's review; frontend, backend and full-stack are the next passes.
+
+### The three questions the handover left to the pilot, and what the pilot decided
+
+- **Shape**: `planned_follow_ups: [{ criterion, probe }]` — `criterion` is the criterion's position
+  in the rubric (0-based, as `rubric_criteria.position` stores it), `probe` is one spoken sentence.
+  **No condition field**: the condition is already the engine's rule ("ask this only for a criterion
+  the answer has not covered"), so prose the engine would have to branch on never arrives.
+- **One probe per criterion**, enforced — duplicates are an error. `max_follow_ups` is 2 against
+  three criteria, so the engine is already choosing; a second probe for the same criterion multiplies
+  that choice for nothing.
+- **The ask-check becomes an error**, not a warning: `asks(prompt) + follow-ups ≥ criteria`. The
+  broad-clause escape hatch goes with it — a probe is a better answer than a note in `reviewer_notes`,
+  and it is now available. All 104 questions pass it today, so nothing else in the repo breaks.
+
+### Phase A — the field · **done**
+
+- [x] Contracts: `PlannedFollowUp`, `QuestionInput.planned_follow_ups` (**required**, so a client that
+      has not heard of it cannot silently wipe a question's probes), `SeedQuestion` (defaulted),
+      limits in `constants.ts`, contract tests
+- [x] Prisma column + migration — Prisma proposed `DROP INDEX questions_embedding_hnsw` for the
+      **fourth** time and it was deleted; the index is verified present
+- [x] `content.service.ts`, `content.mappers.ts`, `seed-import.ts`
+- [x] `review-doc.ts` — each probe under the criterion it probes, and a fifth reviewer tick box
+- [x] Leak test: one fixture marker, plus the real corpus in `content-seed.int.spec.ts`; a round-trip
+      test in `content-admin.int.spec.ts`; the e2e writes one through the CMS form at 360px
+- [x] CMS question editor (criterion labelled from the selected rubric, fetched on change), i18n
+- [x] `check-bank.mjs`: range, distinctness, punctuation, and the ask-check **as an error**
+- [x] `pnpm gen:contracts`, docs (CLAUDE.md, seed README, REVIEW.md, SKILL.md, template, M3 plan)
+
+### Phase B — QA's follow-ups · **done, reviewed by the owner 2026-09-23**
+
+- [x] 35 prompts cut to one ask; 70 probes written against the criteria the prompt no longer asks,
+      then **74** after the owner allowed a second probe per criterion (below)
+- [x] Four critique passes on the reshape — 93 findings, 73 applied, 13 to `reviewer_notes`
+- [x] All checks green; `content:review-doc` regenerated
+- [x] Handover: `docs/progress/2026-09-23-planned-follow-ups-pilot.md`
+
+### What the pilot sends back to the owner
+
+1. ~~One probe per criterion is not quite enough, twice.~~ **Decided 2026-09-23: a criterion may carry
+   two probes, three is refused, and the three questions are fixed** — `test-design-signup-form` and
+   `api-collection-that-only-works-in-order` carry three probes each, `pushing-back-on-a-release`
+   four. The first probe listed for a criterion is its primary one; the engine prefers a criterion
+   nothing has probed yet and reaches a second only when no other criterion is uncovered, which is now
+   a selection rule in the M3 plan.
+2. **"Needed no prompting" is a signal we throw away** — a candidate who covers everything unprompted
+   scores the same as one probed twice. M4 report question, not a content one.
+3. **`max_follow_ups = 2` leaves the engine no budget** to chase a vague answer, because both slots
+   are planned. M3 decision.
+4. **Five openings ask a criterion lighter than one of their probes** — reported, not changed; nothing
+   is unreachable, and `criteria_covered` is what makes the exposure auditable.
+
+### Next
+
+- [ ] Frontend (70 probes) and backend (68), to the rules the pilot added to `SKILL.md`
+- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry

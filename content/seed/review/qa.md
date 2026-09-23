@@ -6,12 +6,13 @@ Everything here is a **draft written by `ai_draft`** and is invisible to candida
 
 ## What we are asking you
 
-For each question, four questions — the tick boxes under each one are there to be ticked:
+For each question, five questions — the tick boxes under each one are there to be ticked:
 
 1. **Would a real interviewer ask this, at this level?** Not "is it a fair question" but "have you heard it, or would you ask it, of someone at this stage?"
 2. **Is the rubric what a strong answer actually covers?** The answer key and the criteria are what the AI scores against. If something important is missing, that is the most valuable correction you can make.
 3. **Are the five level descriptors distinguishable?** Two people scoring the same answer should land on the same number. If 2 and 3 say the same thing in different words, say so.
-4. **Is anything factually wrong or out of date?** Tools and versions move.
+4. **Is each planned follow-up what you would actually ask next?** The opening prompt asks one thing, like a real interviewer; each remaining criterion carries the probe the AI may ask if the answer has not already covered it. A probe that repeats the prompt, or that a good first answer would always have pre-empted, is worth saying so.
+5. **Is anything factually wrong or out of date?** Tools and versions move.
 
 Mark up this page, or edit the YAML directly — `content/seed/qa/` — and tell us which. Anything you are unsure about is worth writing down; so is anything you would cut.
 
@@ -27,7 +28,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 **The interviewer asks**
 
-> A sign-up form takes a phone number, a password and a date of birth, and the product says users must be 18 or over. What would you test? What would you put the form through that is not about the values typed into it? And how would you decide your list is enough?
+> A sign-up form takes a phone number, a password and a date of birth, and the product says users must be 18 or over. What would you test?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -49,6 +50,8 @@ Valid and invalid inputs chosen by partition rather than by listing examples.
 - **3 (solid):** Groups the values that would be treated the same and takes one from each group, whether or not they name the technique.
 - **4 (excellent):** As 3, and says what is deliberately not being tested, and why.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Tests the edges — 30%**
 
 Boundaries, empty values, maximum lengths, and the values either side of a rule.
@@ -58,6 +61,10 @@ Boundaries, empty values, maximum lengths, and the values either side of a rule.
 - **2 (partial):** One or two boundaries, missing the values either side — a single empty-field check is level 1, not this.
 - **3 (solid):** Tests each boundary and its neighbours, and the input formats that actually occur here — a number with a leading zero, and the same number in +234 form.
 - **4 (excellent):** As 3, including the edges that are easy to forget — empty input, whitespace, very long values, duplicates.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where are the edges in those three fields, and which values would you try on either side of them?
 
 **Thinks past the happy path, and says where the list stops — 45%**
 
@@ -69,11 +76,18 @@ States and sequences — double submission, going back, a dropped connection —
 - **3 (solid):** Covers behaviour as well as input — resubmission, navigation, failure mid-request — and cases drawn from how the software will really be used here, on a bad connection and a small screen.
 - **4 (excellent):** As 3, and says where the list stops and why — what is deliberately out of scope, and what would make them add to it.
 
-> **The drafter is unsure about:** The age boundary gives an objective anchor, which is why the rule is in the prompt. Is a sign-up form too easy a subject at this level, and are the phone-number formats the ones you would actually expect a Nigerian tester to name? The middle clause was added on 2026-09-23 because the rubric charges 30% for thinking past the happy path and the prompt never asked for it; it may now hint too heavily.
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What else would you put that form through, beyond the values typed into it?
+
+> What would tell you your list is long enough to stop?
+
+> **The drafter is unsure about:** The age boundary gives an objective anchor, which is why the rule is in the prompt. Is a sign-up form too easy a subject at this level, and are the phone-number formats the ones you would actually expect a Nigerian tester to name? Criterion 3 scores two things at 45% — thinking past the happy path, and saying where the list stops — so it carries **two** follow-ups, which the owner allowed on 2026-09-23 rather than splitting the criterion and invalidating its stress answers. The second is only reached if the first has not already drawn the stopping rule out. Is splitting the criterion still the better answer later?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -84,7 +98,7 @@ States and sequences — double submission, going back, a dropped connection —
 
 **The interviewer asks**
 
-> On your screen are the rules for a sign-in screen that takes a code sent by SMS. What would you test? What would you put it through that is not about the six digits themselves? And where do the rules brush against each other?
+> On your screen are the rules for a sign-in screen that takes a code sent by SMS. What would you test?
 
 **Setup the candidate is given**
 
@@ -116,6 +130,8 @@ One case per class of behaviour the rules create, rather than many attempts at t
 - **3 (solid):** One case for each class the rules create — valid, wrong, expired, a code for another number, something that is not six digits.
 - **4 (excellent):** As 3, and says which of those the screen can decide and which only the server can, because a tester can only trust one of the two.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The edges the rules create — 30%**
 
 The values either side of each threshold, and where the rule as written does not say which side it falls on.
@@ -125,6 +141,10 @@ The values either side of each threshold, and where the rule as written does not
 - **2 (partial):** Brackets one threshold properly and leaves the other untouched — the minute either side of the expiry with no case on the attempt counter, or the reverse.
 - **3 (solid):** Both — the fifth wrong attempt and the sixth, and a code used just before and just after it stops working.
 - **4 (excellent):** As 3, and says the rule does not state whether the fifth wrong attempt is allowed or is the one that locks, so it is a question rather than an assumption.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Three of those rules turn on a number — which values either side of them would you try, and is there anywhere the rules do not say which side a value falls on?
 
 **Where the rules meet each other — 40%**
 
@@ -136,11 +156,16 @@ Resend against the expiry and against the counter, and two codes alive at once.
 - **3 (solid):** Asks what Resend does to the previous code and to the attempt counter, and what two codes in flight should do, rather than deciding any of the three.
 - **4 (excellent):** As 3, and says which answer they would argue for and why — an old code that still works is the difference between a convenience and a way in.
 
-> **The drafter is unsure about:** The rules moved from the spoken prompt into the context on 2026-09-23 — four numbers said once, with nothing on screen to look back at, was the clearest fairness finding against this question. It also gained its own rubric: `test-case-selection` could not be a true claim about both this and the sign-up form, because everything this question is really about was landing in one criterion. Two things for you. Two of the cases still feel mid to me — two codes in flight, and whether Resend resets the counter — so is the junior tag right? And the ambiguity in the lock rule is deliberate, to reward asking over assuming; if it reads as a badly written rule instead, say so and I will make it explicit.
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Your code arrives, you tap Resend, and then you type the first one — what should happen?
+
+> **The drafter is unsure about:** The rules moved from the spoken prompt into the context on 2026-09-23 — four numbers said once, with nothing on screen to look back at, was the clearest fairness finding against this question. It also gained its own rubric: `test-case-selection` could not be a true claim about both this and the sign-up form, because everything this question is really about was landing in one criterion. Two things for you. Two of the cases still feel mid to me — two codes in flight, and whether Resend resets the counter — so is the junior tag right? The second follow-up walks the candidate into one collision rather than asking them to find one, because naming "where the rules meet" gave away the whole of a 40% criterion — is walking them in too generous instead?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -151,7 +176,7 @@ Resend against the expiry and against the counter, and two codes alive at once.
 
 **The interviewer asks**
 
-> A transfer screen takes a recipient account number, an amount and a four-digit PIN, and the daily limit is two hundred thousand naira. What would you test first, and what puts it first? What would you test about the limit and the PIN rule? And after a transfer that timed out, or that you tapped twice, where would you go to find out what actually happened to the money?
+> A transfer screen takes a recipient account number, an amount and a four-digit PIN, and the daily limit is two hundred thousand naira. How would you order the testing, and what puts the first thing first?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -175,6 +200,8 @@ What gets tested first, and the reason being the cost of getting it wrong rather
 - **3 (solid):** Starts where a mistake cannot be taken back — the wrong recipient, the wrong amount, money debited and not credited — and says so.
 - **4 (excellent):** As 3, and separates what a user can recover from themselves from what needs somebody at a bank, and tests accordingly.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The cases where the outcome is unknown, and where the money is checked — 35%**
 
 A timeout, the app closed mid-request, the same tap twice — whether the money moved exactly once, and where that is read.
@@ -184,6 +211,10 @@ A timeout, the app closed mid-request, the same tap twice — whether the money 
 - **2 (partial):** Mentions a network failure, without saying what would be checked afterwards.
 - **3 (solid):** Tests the interrupted cases, and checks the money moved exactly once somewhere other than the success message.
 - **4 (excellent):** As 3, and says how the app should behave when it genuinely cannot tell — and that showing "failed" when the transfer succeeded is the worse of the two errors.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Say a transfer times out, or the customer taps Send twice — how would you find out what actually happened to the money?
 
 **Covers the rules the money follows — 35%**
 
@@ -195,11 +226,16 @@ The daily limit and its edges, the unit the amount is held in, and the PIN attem
 - **3 (solid):** The values either side of the limit in whatever unit the field accepts, two transfers each under it and together over it, and a wrong PIN against the attempt counter.
 - **4 (excellent):** As 3, and asks which of the rules the screen enforces and which the server does, because only one of those a tester can trust.
 
-> **The drafter is unsure about:** **Reworked on 2026-09-23.** The prompt used to say "given that a mistake here moves somebody's money", which gave away the first criterion. Its second and third clauses were riddles rather than questions, which cost a nervous candidate the clause carrying 35%. The rubric gained a criterion for the money rules, because the limit boundary, the unit and the PIN counter were in the answer key and scored by nothing. **The drafter worried that a mid candidate here may never have tested anything transactional; the owner's read is the opposite — this market is fintech-heavy, so having tested something that moves money is likelier than it looks from outside.** Is that right from where you sit? And is "exactly once" a fair expectation at mid, or the thing that separates mid from senior?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you test about the daily limit and the PIN rule?
+
+> **The drafter is unsure about:** **Reworked on 2026-09-23.** The prompt used to give away the first criterion, and its other two clauses were riddles rather than questions; both are follow-ups now. The rubric gained a criterion for the money rules, because the limit boundary, the unit and the PIN counter were in the answer key and scored by nothing. **The drafter worried that a mid candidate here may never have tested anything transactional; the owner's read is the opposite — this market is fintech-heavy, so having tested something that moves money is likelier than it looks from outside.** Is that right from where you sit? One critique pass says the second follow-up will never fire — nobody asked how they would order the testing of a transfer screen forgets the ₦200,000 limit — and would replace it with "what would you try to get a transfer over the limit through?", which is narrower than the criterion. Your call.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -210,7 +246,7 @@ The daily limit and its edges, the unit the amount is held in, and the PIN attem
 
 **The interviewer asks**
 
-> The release goes out tomorrow morning. There are forty test cases you would normally run and time for about twelve. Which twelve would you run, and what makes them the twelve? And what would you tell the people deciding whether to release, about the twenty-eight you did not run?
+> The release goes out tomorrow morning. There are forty test cases you would normally run and time for about twelve. How would you choose?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -233,6 +269,8 @@ Impact and likelihood, what changed, and what the evidence in front of them supp
 - **3 (solid):** Weighs what it would cost against how likely it is, and says — or asks — what changed in this release. Where they have been handed a defect history, says what it cannot tell them, because a count of defects found is a record of where people looked.
 - **4 (excellent):** As 3, and names what they would have to find out before trusting their own ranking, rather than presenting it as settled.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The selection, and the cut line — 25%**
 
 An actual list, covering the critical paths once rather than one area in depth.
@@ -242,6 +280,10 @@ An actual list, covering the critical paths once rather than one area in depth.
 - **2 (partial):** A list, with no reasoning about breadth against depth.
 - **3 (solid):** Covers each path that matters once, and says what was traded to do it.
 - **4 (excellent):** As 3, and puts some of the time into unscripted work on what changed, rather than into the next scripted case.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Talk me through which twelve, and where the line falls.
 
 **What is said about what was not covered — 40%**
 
@@ -253,11 +295,16 @@ The gap named plainly, so the release decision belongs to whoever makes it.
 - **3 (solid):** States what was not run and what the risk of that is, in writing, and says what a further hour would buy. A recommendation given alongside the gap counts the same as handing the decision over — many candidates are required to give a view and that is a fact about the workplace.
 - **4 (excellent):** As 3, and the note can be acted on without a reply — it reaches whoever decides before the decision is taken, rather than being available to them.
 
-> **The drafter is unsure about:** Forty cases and twelve slots is meant to be tight enough that the candidate has to cut something they care about. Two things. Is a junior fairly asked to hand the decision back — criterion 3 rewards saying what was not covered and stopping there, which assumes the candidate is in a position where that is heard? And should the prompt say what changed in this release, or is asking for it the point?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you say about the twenty-eight you did not run — and if giving a view is part of your job, what is your view?
+
+> **The drafter is unsure about:** Forty cases and twelve slots is meant to be tight enough that the candidate has to cut something they care about. Two things. Is a junior fairly asked to hand the decision back — criterion 3 rewards saying what was not covered and stopping there, which assumes the candidate is in a position where that is heard? And should the prompt say what changed in this release, or is asking for it the point? The opening asks how they would choose rather than which twelve, because "which twelve" alone is close to unanswerable with no product on screen, and because it put the lightest criterion in the only place guaranteed to be asked.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -268,7 +315,7 @@ The gap named plainly, so the release decision belongs to whoever makes it.
 
 **The interviewer asks**
 
-> On your screen is where the defects have been for the last three releases. A new release is coming and you have time to cover about half of what you would like to. Where would you spend it, and which column matters more? And what would you be careful not to conclude from a table like this?
+> On your screen is where the defects have been for the last three releases. A new release is coming and you have time to cover about half of what you would like to. Where would you spend it?
 
 **Setup the candidate is given**
 
@@ -304,6 +351,10 @@ Impact and likelihood, what changed, and what the evidence in front of them supp
 - **3 (solid):** Weighs what it would cost against how likely it is, and says — or asks — what changed in this release. Where they have been handed a defect history, says what it cannot tell them, because a count of defects found is a record of where people looked.
 - **4 (excellent):** As 3, and names what they would have to find out before trusting their own ranking, rather than presenting it as settled.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> That table only counts defects somebody found — what might it not be showing you?
+
 **The selection, and the cut line — 25%**
 
 An actual list, covering the critical paths once rather than one area in depth.
@@ -313,6 +364,8 @@ An actual list, covering the critical paths once rather than one area in depth.
 - **2 (partial):** A list, with no reasoning about breadth against depth.
 - **3 (solid):** Covers each path that matters once, and says what was traded to do it.
 - **4 (excellent):** As 3, and puts some of the time into unscripted work on what changed, rather than into the next scripted case.
+
+_Asked for by the opening prompt; no planned follow-up._
 
 **What is said about what was not covered — 40%**
 
@@ -324,11 +377,16 @@ The gap named plainly, so the release decision belongs to whoever makes it.
 - **3 (solid):** States what was not run and what the risk of that is, in writing, and says what a further hour would buy. A recommendation given alongside the gap counts the same as handing the decision over — many candidates are required to give a view and that is a fact about the workplace.
 - **4 (excellent):** As 3, and the note can be acted on without a reply — it reaches whoever decides before the decision is taken, rather than being available to them.
 
-> **The drafter is unsure about:** The table is the point — it lets a junior reason from evidence rather than from experience they do not have. The trap I have built in is that the highest count is not the worst escape rate, and criterion 1's level 1 is written for a candidate who ranks by the count alone. Is that trap fair, or is it a puzzle rather than a testing question? And are these five areas the right shape for a job-board product, or should the table be a bank app, which is what more of this market's QA work actually is?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you say about the areas you are not covering, and in what form, so that whoever makes the release call has it?
+
+> **The drafter is unsure about:** The table is the point — it lets a junior reason from evidence rather than from experience they do not have. The trap I have built in is that the highest count is not the worst escape rate, and criterion 1's level 1 is written for a candidate who ranks by the count alone. Is that trap fair, or is it a puzzle rather than a testing question? And are these five areas the right shape for a job-board product, or should the table be a bank app, which is what more of this market's QA work actually is? **One thing the follow-up pass found:** all three of the old clauses asked about choosing and about reading the table, so the criterion worth 40% — what you say about what you are not covering — was scored and never asked. It is the second follow-up now.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -339,7 +397,7 @@ The gap named plainly, so the release decision belongs to whoever makes it.
 
 **The interviewer asks**
 
-> A developer has changed one line — the function that works out a discount now rounds down instead of rounding to the nearest naira — and says nothing else was touched. What would you re-test, and how far out from that line would you go? What would you deliberately leave alone? And what would you want to see before you believed that nothing else was touched?
+> A developer has changed one line — the function that works out a discount now rounds down instead of rounding to the nearest naira — and says nothing else was touched. What would you re-test?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -362,6 +420,8 @@ Where the changed value travels, and what recomputes or compares it.
 - **3 (solid):** Names the places the number reappears — totals, receipts, refunds, reports, a nightly job — however they found them, including by asking which callers use it.
 - **4 (excellent):** As 3, and reaches data already stored, where rows computed the old way now disagree with a fresh calculation.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Justifies what is left out — 25%**
 
 An argument for the exclusion, not an apology for it.
@@ -371,6 +431,10 @@ An argument for the exclusion, not an apology for it.
 - **2 (partial):** Names what is out, with no account of how they know it is safe.
 - **3 (solid):** Says what cannot reach the change and how they know — it never shows the number, or whoever knows the code confirmed it does not read it.
 - **4 (excellent):** As 3, and says which of those exclusions they are least sure about.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you deliberately leave alone, and what is the argument for leaving it?
 
 **What would widen it — 35%**
 
@@ -382,11 +446,16 @@ The signal that the scope was drawn too small, decided in advance.
 - **3 (solid):** Names what would do it — the function turning out to be called from somewhere unexpected, or a failure outside the area — and treats "nothing else was touched" as a claim rather than a fact.
 - **4 (excellent):** As 3, and says what they would want to see before believing that claim, so the scope is checked before the testing rather than by a failure.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would make you widen that scope once you had started?
+
 > **The drafter is unsure about:** The answer-key point about the two roundings agreeing on most values was a derivation before 2026-09-23 — it claimed the difference shows only where the fraction is half a naira or more, which is true for round-half-up and was scored by no descriptor, so two passes called it a maths puzzle rather than a testing question. It now says only that the cases with kobo in them are the ones that show anything. Is even that too much to expect aloud? And is a discount the right subject, given that a rounding change usually arrives with a finance decision the tester is told about?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -397,7 +466,7 @@ The signal that the scope was drawn too small, decided in advance.
 
 **The interviewer asks**
 
-> On your screen is a defect report that came back closed as "cannot reproduce". What would you go and find out before reopening it? Which parts of it are what was seen and which are a guess? And what would you want attached to it that is not there now?
+> On your screen is a defect report that came back closed as "cannot reproduce". The developer could not get to the same screen from it. Why not?
 
 **Setup the candidate is given**
 
@@ -442,6 +511,8 @@ Steps precise enough that a developer reaches the same screen without asking.
 - **3 (solid):** Numbered steps, preconditions, the data used, and how often it happens out of how many attempts.
 - **4 (excellent):** As 3, and a developer who has never seen the screen could act on it without asking anything back.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Separates observation from interpretation — 30%**
 
 What happened and what was expected, kept apart from a theory about the cause.
@@ -451,6 +522,10 @@ What happened and what was expected, kept apart from a theory about the cause.
 - **2 (partial):** Both present, but the title is a guess at the cause.
 - **3 (solid):** What was seen and what was expected are two separate statements, with the source of the expectation named.
 - **4 (excellent):** As 3, with a theory offered separately and marked as one.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Which parts of that report are what somebody saw, and which are a guess about the cause?
 
 **Gives the evidence and the context — 30%**
 
@@ -462,11 +537,16 @@ Build, environment, device, time, and an attachment that shows it.
 - **3 (solid):** Build, environment, device and time, with a screenshot or recording.
 - **4 (excellent):** As 3, plus something that points at where it failed — a log, a request id, a network capture — or, where they cannot get one themselves, what they would ask for and who from.
 
-> **The drafter is unsure about:** **Rewritten on 2026-09-23.** The first version was conspicuously bad — no steps, no build, "please fix urgently" — and two passes said the same thing: everything missing was missing so obviously that the question tested whether a candidate can recite the fields of a bug-report template, which is the most coachable thing in the bank. It is now complete by template and still unactionable: the steps cannot be repeated because there is no account and no job, the expectation is "it should work", and the fact that decides the whole thing — that they had already applied for that job — is buried in the last clause. Is that now too subtle for intern-junior? And is the developer's comment unfair to developers as written?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What evidence would you want on that report that is not there now?
+
+> **The drafter is unsure about:** **Rewritten on 2026-09-23.** The first version was conspicuously bad — no steps, no build, "please fix urgently" — and two passes said the same thing: everything missing was missing so obviously that the question tested whether a candidate can recite the fields of a bug-report template, which is the most coachable thing in the bank. It is now complete by template and still unactionable: the steps cannot be repeated because there is no account and no job, the expectation is "it should work", and the fact that decides the whole thing — that they had already applied for that job — is buried in the last clause. Is that now too subtle for intern-junior? The opening changed again on 2026-09-23: "what would you go and find out" is a different act from what criterion 1 scores at 40% — whether they see the steps cannot be repeated — so a candidate could answer it well and score nothing.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -477,7 +557,7 @@ Build, environment, device, time, and an attachment that shows it.
 
 **The interviewer asks**
 
-> On your screen are two defects, and one fix will make it into tomorrow's release. Which is the more serious, and what makes it so? What would you write to the person who has to choose which is fixed first, so they are not relying on your word for it? And what happens to the one that is left?
+> On your screen are two defects, and one fix will make it into tomorrow's release. Which is the more serious, and what makes it so?
 
 **Setup the candidate is given**
 
@@ -512,6 +592,8 @@ Reach, whether the user can tell, and whether they can recover — rather than h
 - **3 (solid):** Compares them on reach, visibility and whether the user can recover, and says which is worse on that basis.
 - **4 (excellent):** As 3, and weighs the quiet failure against the visible one — a wrong number nobody questions does a kind of harm a crash does not, and a crash on a slow connection is this market's normal condition. Either verdict reaches 4 if that comparison is made; neither does without it.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Keeps severity and priority apart — 25%**
 
 What it does to a user is the tester's judgement; what gets fixed first is somebody else's, and saying so is part of the answer.
@@ -521,6 +603,10 @@ What it does to a user is the tester's judgement; what gets fixed first is someb
 - **2 (partial):** Uses both words without a difference between them.
 - **3 (solid):** Gives the severity as their own judgement and a recommendation with it, saying plainly that the order of work is the release owner's call. A candidate whose workplace expects a straight answer gives one and still reaches 3.
 - **4 (excellent):** As 3, and asks what severity means here rather than importing a scale — and says what would change their own judgement, a number or a count of affected users.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> So which one gets fixed first, and what would you put behind that — whether or not the call is yours?
 
 **What happens to the one that waits — 35%**
 
@@ -532,11 +618,16 @@ The defect is not closed by not being chosen.
 - **3 (solid):** Names what happens now — a note in the release, a workaround if there is one, a ticket that will not be lost.
 - **4 (excellent):** As 3, and says what more they would find out about it in the meantime, so the next decision is better informed than this one.
 
-> **The drafter is unsure about:** **Changed on 2026-09-23 so the money actually moves.** It used to say the total *shown* was ₦50 lower, which one pass pointed out reads as a display rounding bug — the exact objection that undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it, so there is nothing on screen to catch it. The rubric credits either ranking as long as the comparison between a quiet failure and a visible one is made; a crash on a slow connection is this market's normal condition and ranking B higher with that reason reaches 4. Is that the right call, or should the question have a right answer? And is ₦50 too small to be taken seriously?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What happens to the one that is left?
+
+> **The drafter is unsure about:** **Changed on 2026-09-23 so the money actually moves.** It used to say the total _shown_ was ₦50 lower, which one pass pointed out reads as a display rounding bug — the exact objection that undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it, so there is nothing on screen to catch it. The rubric credits either ranking as long as the comparison between a quiet failure and a visible one is made; a crash on a slow connection is this market's normal condition and ranking B higher with that reason reaches 4. Is that the right call, or should the question have a right answer? And is ₦50 too small to be taken seriously?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -547,7 +638,7 @@ The defect is not closed by not being chosen.
 
 **The interviewer asks**
 
-> On your screen is everything you have about an endpoint — the screen that will use it does not exist yet. What would you test, and where do the cases come from when there is no interface to click? What would you check about a response, beyond its status code? And what would you test here that a test through a screen could never reach?
+> On your screen is everything you have about an endpoint — the screen that will use it does not exist yet. What would you test?
 
 **Setup the candidate is given**
 
@@ -585,6 +676,8 @@ The documented responses and the shape of the request are the case list.
 - **3 (solid):** One request that produces each documented response, cases derived from the request's own fields, and what the document does not say — whether the note is trimmed, what an unknown field does — raised as questions rather than assumptions.
 - **4 (excellent):** As 3, and says which of those unanswered questions would change the test plan and which they would decide themselves.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What is checked about a response — 40%**
 
 Status, body shape, the values in it, and the effect it claims to have had.
@@ -594,6 +687,10 @@ Status, body shape, the values in it, and the effect it claims to have had.
 - **2 (partial):** Checks status and that a body came back.
 - **3 (solid):** Status, the shape and field types, and that the values are the right ones for this request.
 - **4 (excellent):** As 3, and checks the effect rather than the reply — the application exists afterwards, and nothing else moved.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> You get a 201 back. Are you satisfied?
 
 **What only this route can reach — 30%**
 
@@ -605,11 +702,16 @@ Requests a screen would never send, and authorisation as its own case.
 - **3 (solid):** Missing and wrong-typed fields, a note over the limit, extra fields, and requests with no token or somebody else's.
 - **4 (excellent):** As 3, and sends the same request twice to check the documented conflict, and that only one thing was created.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What could you test here that a test driving the screen could never reach?
+
 > **The drafter is unsure about:** Written at both levels because a lot of junior QA work here is Postman against a documented endpoint before any screen exists. The part I am unsure of is how much the document should leave out — it currently says nothing about what happens to an unknown field or whether the note is trimmed, and criterion 1's level 4 rewards raising those as questions. Is that a fair thing to reward, or does an incomplete document just make the question ambiguous?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -620,7 +722,7 @@ Requests a screen would never send, and authorisation as its own case.
 
 **The interviewer asks**
 
-> On your screen is a request you sent while testing and the response that came back. What does the response tell you about what went wrong? If there is an agreed spec for this endpoint, what would you check in it before writing this up? And how would you write it up so that nobody has to argue about whose defect it is?
+> On your screen is a request you sent while testing and the response that came back. What does the response tell you about what went wrong?
 
 **Setup the candidate is given**
 
@@ -660,6 +762,8 @@ The error names the field it wanted; the difference is in front of them.
 - **3 (solid):** Puts the two side by side and says the name is the difference.
 - **4 (excellent):** As 3, and says that the API rejected the request correctly — the defect is in one of the two sides' idea of the field name, not in the rejection.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What they check before writing it up — 35%**
 
 The agreed contract, and whether anything else uses the other spelling.
@@ -669,6 +773,10 @@ The agreed contract, and whether anything else uses the other spelling.
 - **2 (partial):** Says they would "check the documentation", with nothing about what would settle it.
 - **3 (solid):** Checks what the contract says the field is, and whether the app and other endpoints agree.
 - **4 (excellent):** As 3, and says what they would conclude if there is no contract to check — that the missing agreement is itself the finding.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Is there an agreed spec for this endpoint, and what would you check in it before writing this up?
 
 **Writes it so the evidence decides it — 25%**
 
@@ -680,11 +788,16 @@ The write-up puts the disagreement on a document rather than on a person, and ne
 - **3 (solid):** Quotes what was sent, what came back and what the contract says, so the answer is obvious without anyone being named.
 - **4 (excellent):** As 3, and says what would change the answer — a contract that has itself changed, or an older client still in use.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you write it up, and what would you put in it?
+
 > **The drafter is unsure about:** Deliberately junior-only — it is one careful reading of two blocks of text and it does not need any experience of a workplace. Two worries. Criterion 2 assumes there is a contract to check, which a candidate who has only tested from a screen may never have seen; the answer key allows "there is no contract" but the descriptors may still read as assuming one. And is naming the side that is wrong the right thing to ask a junior for at all, or does it invite the developer-versus-tester framing we would rather not teach?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -695,7 +808,7 @@ The write-up puts the disagreement on a document rather than on a person, and ne
 
 **The interviewer asks**
 
-> On your screen is the same endpoint a week apart. This went out last night. What would you say happened, in plain terms? How could a test have caught it before a user did, and where would that test have to run? And what would you ask for so the next one is not found this way?
+> On your screen is the same endpoint a week apart. This went out last night. What would you say happened, and what does it mean for the apps already reading that field?
 
 **Setup the candidate is given**
 
@@ -731,6 +844,8 @@ A field's type changed, which breaks every client already reading it, whatever t
 - **3 (solid):** Says a field's type changed under callers who were already reading it, which breaks them by definition.
 - **4 (excellent):** As 3, stated as what the contract did rather than who erred — and says the same change as a new field, or behind a version, would have broken nobody.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The test that would have caught it, and where it runs — 35%**
 
 A check on the shape of the response, running against the API rather than against the app.
@@ -740,6 +855,10 @@ A check on the shape of the response, running against the API rather than agains
 - **2 (partial):** Says a test on the response, without saying what it asserts or where it runs.
 - **3 (solid):** A check on types and required fields, running somewhere it fails before users see it, and says where it ought to live even if that is not somewhere they can put it today.
 - **4 (excellent):** As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What kind of test would have caught this before a user did, and what would it be running against?
 
 **What changes so the next one is not found by a user — 25%**
 
@@ -751,11 +870,16 @@ Who else reads the field, and what agreement is missing.
 - **3 (solid):** Asks for a contract checked in the pipeline, and for additive changes or a version rather than a changed field.
 - **4 (excellent):** As 3, and asks who else reads that field, on the grounds that the app is only the caller that shouted.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you find out who else is reading that field, and what would you want agreed before the next change?
+
 > **The drafter is unsure about:** I have kept every product name out of this so it cannot go stale. Two judgements I would like checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not at fault, which is a political statement in some teams — is that the right thing to reward? And is "the test has to live in the API's pipeline" too strong for a QA candidate who has no access to that pipeline and would realistically add a check to their own suite?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -766,7 +890,7 @@ Who else reads the field, and what agreement is missing.
 
 **The interviewer asks**
 
-> A team has two hundred manual test cases and time for you to automate about thirty. Which thirty, and what puts a case in that group? What would you deliberately leave manual? And how would you know, in three months, whether it was worth doing?
+> A team has two hundred manual test cases and time for you to automate about thirty. Which thirty, and what puts a case in that group?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -789,6 +913,8 @@ How often it runs, how stable it is, how unambiguous the check is, and what it c
 - **3 (solid):** Chooses what runs on every release, on parts that are not about to be redesigned, where the check is unambiguous.
 - **4 (excellent):** As 3, and weighs the cost of keeping each one working, not only the cost of writing it.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What stays manual — 25%**
 
 Exploratory work, one-offs, anything needing a human judgement, anything changing weekly.
@@ -798,6 +924,10 @@ Exploratory work, one-offs, anything needing a human judgement, anything changin
 - **2 (partial):** Names something that stays manual, with no reason.
 - **3 (solid):** Keeps exploratory work and judgement calls with a person, and says why a script cannot do them.
 - **4 (excellent):** As 3, and names something automated badly that would be better manual than wrong — a check on how a screen looks, or a case that changes every sprint.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you deliberately leave manual?
 
 **How they would know it paid off — 40%**
 
@@ -809,11 +939,16 @@ A measure that is about defects and trust rather than about the number of tests.
 - **3 (solid):** Names what they would look at — defects caught before release, defects that still reached users, how long the check takes, whether people still act on a failure.
 - **4 (excellent):** As 3, and says what would tell them to stop — a suite whose failures nobody reads is a cost with no return.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you want to be able to look at, to tell whether it had been worth doing?
+
 > **The drafter is unsure about:** **Moved to mid only on 2026-09-23.** Two passes said the same thing: the third clause carries 40% and needs a suite somebody has lived with for three months, so a junior with nothing automated cannot earn it. That leaves `test-automation` at one question at intern-junior against a floor of two, which the checker reports every run — the honest state rather than this question wearing a junior label. The cheaper junior version one pass proposed is "here are five manual cases, which would you automate first and why"; is that worth writing, or is `the-test-that-always-passes` enough at that level?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -824,7 +959,7 @@ A measure that is about defects and trust rather than about the number of tests.
 
 **The interviewer asks**
 
-> On your screen is an automated test. Sign-in has been broken since yesterday morning and this test passed on every run — you do not need to know the tool to see why. What is it actually checking? What would it have to check instead, so that a broken sign-in fails it? And what else in it would you not leave as it is?
+> On your screen is an automated test. Sign-in has been broken since yesterday morning and this test passed on every run — you do not need to know the tool to see why. What is it actually checking?
 
 **Setup the candidate is given**
 
@@ -862,6 +997,8 @@ Whether the thing asserted on could differ between the feature working and the f
 - **3 (solid):** Says what the assertion is actually true of — that a page opened at all — so the same result follows whether sign-in worked or failed.
 - **4 (excellent):** As 3, and says that a test which cannot fail is worse than no test, because it is counted as coverage.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **An assertion tied to what the feature is for — 40%**
 
 Something only true when the feature worked.
@@ -871,6 +1008,10 @@ Something only true when the feature worked.
 - **2 (partial):** Says to assert "something on the dashboard", without saying what makes it specific to a signed-in user.
 - **3 (solid):** Asserts on something only a signed-in user has — their own name or data, or a response that required the session.
 - **4 (excellent):** As 3, and adds the failure path, because a wrong password showing the dashboard is the defect this test was supposed to catch.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would it have to check instead, so that a broken sign-in fails it?
 
 **The fixed wait — 20%**
 
@@ -882,11 +1023,16 @@ Three seconds is a guess where a condition belongs. The shared account and the s
 - **3 (solid):** Waits for the thing being asserted on rather than for a number of seconds.
 - **4 (excellent):** As 3, and names one more thing that would fail for a reason that has nothing to do with the product — the fixed account, or the selectors tied to the page's structure.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Is there anything about the way that test waits that you would change?
+
 > **The drafter is unsure about:** The last line of the context — that the header is on every page — was added because without it the premise does not hold and the question is unanswerable. It now gives the first criterion away, which I do not like but prefer to an unfair question. Would you take that line out and let the candidate ask? And is pseudocode the right call here, or would a real tool's syntax make it sharper for the automation candidates and unfair to the manual ones?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -897,7 +1043,7 @@ Three seconds is a guess where a condition belongs. The shared account and the s
 
 **The interviewer asks**
 
-> Fifteen of a hundred and twenty automated tests fail on some runs and pass on others, never the same ones. The team reruns until they pass and then puts the change in — which is a reasonable response to a signal nobody can trust. What would you do about the fifteen? What would you do about the rerunning? And what has the team actually lost?
+> Fifteen of a hundred and twenty automated tests fail on some runs and pass on others, never the same ones. The team reruns until they pass and then puts the change in — which is a reasonable response to a signal nobody can trust. What would you want to find out about those fifteen?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -920,6 +1066,8 @@ Which tests, how often, and whether any of them is failing for a real reason.
 - **3 (solid):** Finds out which tests, at what rate, and reads the failures to see whether any is a real defect.
 - **4 (excellent):** As 3, and says what a rerun-until-green habit has already hidden — a defect that fails one run in ten is still shipping.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What happens to each one — 35%**
 
 Fixed, quarantined with an owner, or deleted — and the decision recorded.
@@ -929,6 +1077,10 @@ Fixed, quarantined with an owner, or deleted — and the decision recorded.
 - **2 (partial):** Says they would fix them, with no account of what to do in the meantime.
 - **3 (solid):** Each one is fixed, or taken out of the run with a ticket and a name on it, or deleted for a stated reason.
 - **4 (excellent):** As 3, and says why a blanket retry is the worst of the options — it makes the suite green and keeps the defect.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> And then what happens to each of the fifteen?
 
 **Why the suite lost its credibility — 35%**
 
@@ -940,11 +1092,16 @@ What the habit costs, and what would stop it returning.
 - **3 (solid):** Says a suite that fails for no reason teaches people to ignore it, so the cost is the real failures they will also ignore — and names something that would keep it honest, such as a watched rate, or quarantining a new unreliable test the day it appears.
 - **4 (excellent):** As 3, and says what they would give up to get the signal back — deleting tests that were never worth their upkeep, or running fewer of them more often.
 
-> **The drafter is unsure about:** Mid only, because the answer turns on having lived with a suite long enough to see the habit form. Fifteen of a hundred and twenty is meant to be bad enough that rerunning is rational, which is the uncomfortable part — the team is not being lazy, they are responding sensibly to a broken signal, and criterion 3's level 1 penalises a candidate who blames them. Is that distinction one you would expect a mid candidate to make, or am I scoring something closer to senior judgement?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What has the team lost by not being able to believe the suite any more?
+
+> **The drafter is unsure about:** Mid only, because the answer turns on having lived with a suite long enough to see the habit form. Fifteen of a hundred and twenty is meant to be bad enough that rerunning is rational, which is the uncomfortable part — the team is not being lazy, they are responding sensibly to a broken signal, and criterion 3's level 1 penalises a candidate who blames them. Is that distinction one you would expect a mid candidate to make? The opening now asks what they would find out and the first follow-up asks what happens to each test — the other way round, a candidate who sensibly investigated first had answered the un-probed criterion and lost the probed one.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -955,7 +1112,7 @@ What the habit costs, and what would stop it returning.
 
 **The interviewer asks**
 
-> The automated checks have been failing for three days. Everybody knows, and people are putting their changes in anyway because the failure is "the usual one". What would you do about the failure itself? What is a failing build costing them, that they may not have counted? And what would you write down, and who would you send it to?
+> The automated checks have been failing for three days. Everybody knows, and people are putting their changes in anyway because the failure is "the usual one". What would you do about the failure itself?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -978,6 +1135,8 @@ What is actually failing, before anything about the habit.
 - **3 (solid):** Reads the failure and separates the two cases — a broken test, or a real defect with three days of merges on top of it.
 - **4 (excellent):** As 3, and says which of the two they would assume until shown otherwise, and why that is the safer assumption.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What the team is losing — 25%**
 
 Everything the pipeline runs after the failure, and the habit of reading it.
@@ -987,6 +1146,10 @@ Everything the pipeline runs after the failure, and the habit of reading it.
 - **2 (partial):** Says the team will trust the suite less, without saying what is not being checked.
 - **3 (solid):** Says nothing after the failing step is being believed, so the cost is the rest of the suite rather than one test.
 - **4 (excellent):** As 3, and says the habit is the more expensive loss — a team that reads past red will read past the next real failure too.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What else stops being checked while those checks are failing?
 
 **Who they take it to, and what keeps it green — 30%**
 
@@ -998,11 +1161,16 @@ One person or the whole team, and an agreement that survives the week.
 - **3 (solid):** Names who owns this failure and asks for it owned today, in a ticket or a channel so it exists after the conversation. A candidate who has never worked with automated checks reaches 3 by saying who it would have to be and what they would send.
 - **4 (excellent):** As 3, and names what they would propose for the next time — a check people are willing to wait for, or an agreed rule when it fails — as a proposal, not an agreement they have to win.
 
-> **The drafter is unsure about:** Asked at junior because it is the pipeline question a junior actually faces — they are told to ignore a failure. **Reworked on 2026-09-23**: three passes said the old prompt asked a junior to make an argument to a team, which is standing most of them do not have, and one added that three days of red across timezones is undone by a message and a record rather than by a conversation. It now asks what they would write and who they would send it to, the criterion is weighted down from 35 to 30, and "green"/"red build" is out of the spoken clause. One pass would go further and make the whole team-facing half mid-only, which would empty the junior `ci-pipelines` slot — is that the better trade?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you write down about it, and who would you send it to?
+
+> **The drafter is unsure about:** Asked at junior because it is the pipeline question a junior actually faces — they are told to ignore a failure. **Reworked on 2026-09-23**: three passes said the old prompt asked a junior to make an argument to a team, which is standing most of them do not have, and one added that three days of red across timezones is undone by a message and a record rather than by a conversation. What they would write and who they would send it to is now the second follow-up, the criterion is weighted down from 35 to 30, and "green"/"red build" is out of the spoken prompt. One pass would go further and make the whole team-facing half mid-only, which would empty the junior `ci-pipelines` slot — is that the better trade?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1013,7 +1181,7 @@ One person or the whole team, and an agreement that survives the week.
 
 **The interviewer asks**
 
-> The automated suite takes fifty minutes and runs on every change. The developers have started putting changes in without waiting for it, and they have asked you what should stay in the quick check. What do you tell them, and what would you need to know first? What moves out of the quick check? And what happens to a failure that now arrives after a change has gone in rather than before?
+> The automated suite takes fifty minutes and runs on every change. The developers have started putting changes in without waiting for it, and they have asked you what should stay in the quick check. How would you split it?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1036,6 +1204,8 @@ A short check on every change, the rest later, decided on what each catches.
 - **3 (solid):** A short check on every pull request and the slow remainder on the main branch or a schedule, with the line drawn on what each catches.
 - **4 (excellent):** As 3, and says what makes a check worth waiting for — how often it catches something the later run would not.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What stays in the fast check — 30%**
 
 Cheap, high-yield, and the paths everything else depends on.
@@ -1045,6 +1215,10 @@ Cheap, high-yield, and the paths everything else depends on.
 - **2 (partial):** Names a category to keep, with no reason.
 - **3 (solid):** Keeps the cheap tests and a thin path through what matters most, so a merge that breaks sign-in fails before it lands.
 - **4 (excellent):** As 3, and says what they would cut from the fast check if it grew past what people will wait for.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What stays in the quick check?
 
 **What happens to a failure found later — 35%**
 
@@ -1056,11 +1230,16 @@ The slow run's failures become somebody's job, or the problem has only moved.
 - **3 (solid):** Names who owns a failure in the slow run and what happens on the branch while it is failing.
 - **4 (excellent):** As 3, and says how they would tell whether the split was right — how often the slow run finds something the fast one did not.
 
-> **The drafter is unsure about:** **Reframed on 2026-09-23 so the candidate is advising, not deciding** — one pass said it had never asked a tester to split a pipeline and would cut the question, another that it rewarded standing a remote hire would not have in month one, and the drafter's own note already doubted it. The developers now ask the candidate what should stay in the quick check, which tests the same reasoning without assuming authority. Is that enough to keep it, or is this still the weakest question in the bank?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What happens to a failure that now arrives after a change has gone in, rather than before?
+
+> **The drafter is unsure about:** **Reframed on 2026-09-23 so the candidate is advising, not deciding** — one pass said it had never asked a tester to split a pipeline and would cut the question, another that it rewarded standing a remote hire would not have in month one, and the drafter's own note already doubted it. The developers now ask the candidate what should stay in the quick check, which tests the same reasoning without assuming authority. Is that enough to keep it, or is this still the weakest question in the bank? The opening moved on 2026-09-23 from "what do you tell them" to "how would you split it": an opening that open let a candidate answer sideways and forfeit the criterion no follow-up could reach, which is the pilot's main structural finding.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1071,7 +1250,7 @@ The slow run's failures become somebody's job, or the problem has only moved.
 
 **The interviewer asks**
 
-> A developer has just finished a new job-alerts screen and there are no test cases for it yet. You have one hour with it, and the decision about whether it goes out will be made while you are asleep. How would you spend the hour? What would you decide before touching anything? And what would you leave behind, so whoever decides can decide without you?
+> A developer has just finished a new job-alerts screen and there are no test cases for it yet. You have one hour with it, and the decision about whether it goes out will be made while you are asleep. What would you settle on before you start?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1094,6 +1273,8 @@ An area, a risk, and what they are looking for — decided before touching anyth
 - **3 (solid):** Picks the area and the risk, and says what would count as finding something.
 - **4 (excellent):** As 3, and says how they would know an hour in that the charter was wrong, and switch.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **How the hour is spent — 25%**
 
 Learning the feature, varying things on purpose, and following the surprises.
@@ -1103,6 +1284,10 @@ Learning the feature, varying things on purpose, and following the surprises.
 - **2 (partial):** Describes trying things, with no variation or reaction.
 - **3 (solid):** Learns what the feature is for, varies inputs, timing and sequence on purpose, and follows what looks odd.
 - **4 (excellent):** As 3, and gives up coverage to chase one surprise, and can say why that was the better use of the time.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> And how would you spend the hour itself?
 
 **What is left behind — 40%**
 
@@ -1114,11 +1299,16 @@ Notes, defects, what was covered, what was not, and where they would look next.
 - **3 (solid):** Says what was covered and what was not, with the defects, written so whoever is deciding can decide without them in the room — and says what an extra hour would go on.
 - **4 (excellent):** As 3, and the record needs no follow-up question to act on, and names what should become a written case now that the behaviour is known.
 
-> **The drafter is unsure about:** The feature is named as of 2026-09-23 — without it the honest answer was "it depends what it is", which landed on level 2 of a 35% criterion. And the output is now for whoever decides while the candidate is asleep rather than for a release meeting, because a distributed hire is not in the meeting and this is the best handover question in the bank. Two things. Is one hour the right size — short enough to force a choice, but it may make the charter feel like overhead? And is a job-alerts screen a rich enough subject, or would something with money in it be better?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you leave behind, so that whoever decides can decide without you?
+
+> **The drafter is unsure about:** The feature is named as of 2026-09-23 — without it the honest answer was "it depends what it is", which landed on level 2 of a 35% criterion. And the output is now for whoever decides while the candidate is asleep rather than for a release meeting, because a distributed hire is not in the meeting and this is the best handover question in the bank. Two things. Is one hour the right size — short enough to force a choice, but it may make the charter feel like overhead? And is a job-alerts screen a rich enough subject, or would something with money in it be better? The opening question and the first follow-up swapped places on 2026-09-23: asking how they would spend the hour and then probing what they would decide before touching anything asked about the plan after they had described executing it. It now runs in the order the hour does.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1129,7 +1319,7 @@ Notes, defects, what was covered, what was not, and where they would look next.
 
 **The interviewer asks**
 
-> A job application form has a CV upload — PDF or Word, up to 5 MB. The written test cases cover a valid PDF, a file that is too large and a file of the wrong type. What would you try with the file itself that those three do not? What would you do to the connection, or to the app, while the upload is going? And how would you decide which of the things you find is a defect?
+> A job application form has a CV upload — PDF or Word, up to 5 MB. The written test cases cover a valid PDF, a file that is too large and a file of the wrong type. What would you try with the file itself that those three do not?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1152,6 +1342,8 @@ Ideas that come from what an upload is, rather than from the form around it.
 - **3 (solid):** Goes at the file — the wrong type, an empty file, one far too large, a name with spaces and other alphabets, a file renamed to look like a PDF.
 - **4 (excellent):** As 3, and names something that needs no bad intent to happen here — a photograph of a printed CV, taken on a phone, several megabytes and unreadable.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Attacks the conditions — 35%**
 
 The connection, the interruption, and the second attempt.
@@ -1161,6 +1353,10 @@ The connection, the interruption, and the second attempt.
 - **2 (partial):** Mentions a slow connection, without saying what would be checked.
 - **3 (solid):** Drops the connection mid-upload, closes the app, uploads twice, and checks what state the application is left in each time.
 - **4 (excellent):** As 3, and says what the user would do next in each case, and whether the screen makes that possible.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Mid-range phone, Lagos network, end of the day — what else would you try?
 
 **Knows what would settle a question — 35%**
 
@@ -1172,11 +1368,16 @@ Which of these is a defect, and what they would check to say so.
 - **3 (solid):** Says what the behaviour disagrees with — the stated limit, the rest of the product, what a user would reasonably expect — before calling it a defect, and separates the defects from the questions rather than filing the questions as defects.
 - **4 (excellent):** As 3, and says which of the questions is worth somebody's decision now and which can wait, so the list is not simply handed on.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Say one of those turned something up — how would you decide whether it is a defect?
+
 > **The drafter is unsure about:** The photograph-of-a-printed-CV case is the one I would most like your opinion on. It is the most common real upload in this market and it is not a defect in the product — it is a product decision nobody has made — so criterion 3 has to reward raising it as a question. Does that read as a fair expectation, or as the drafter rewarding one pet example? And is 5 MB the right limit to state, given what a phone camera produces?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1187,7 +1388,7 @@ Which of these is a defect, and what they would check to say so.
 
 **The interviewer asks**
 
-> There is no specification for this feature, and nobody who could tell you what it should do is reachable today. On your screen is something you noticed. How do you decide whether it is a defect? What would you use to settle it, when there is nothing to point at? And how would you raise it so it is not your opinion against somebody else's?
+> There is no specification for this feature, and nobody who could tell you what it should do is reachable today. On your screen is something you noticed. How do you decide whether it is a defect?
 
 **Setup the candidate is given**
 
@@ -1218,6 +1419,8 @@ Consistency with the rest of the product, the previous behaviour, a standard, a 
 - **3 (solid):** Names several and uses them — the rest of the product, the old version, a published standard, a rule the business has to follow.
 - **4 (excellent):** As 3, and picks the one that actually settles this case, rather than listing them.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Settles it with something checkable — 35%**
 
 Evidence that does not depend on whose opinion it is.
@@ -1227,6 +1430,10 @@ Evidence that does not depend on whose opinion it is.
 - **2 (partial):** Gathers evidence that cannot decide it — two screenshots of the disagreement, which show that the screens differ and say nothing about which is right — or says they would gather evidence with no example at all.
 - **3 (solid):** Finds something checkable — the numbers not adding up, the same screen behaving differently elsewhere, a format a bank or a regulator requires.
 - **4 (excellent):** As 3, and says what they would do when nothing settles it — and that an unresolvable question is a decision somebody has to make and write down.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you point at to settle it — something somebody else could check for themselves?
 
 **Raises it as a question about the product — 35%**
 
@@ -1238,11 +1445,16 @@ The disagreement put on the behaviour rather than between two people.
 - **3 (solid):** Writes what the behaviour is and what it disagrees with, so the conversation is about the product rather than about who is right, and gets what is agreed written down. Scored on what they put on the record, never on whether they could overrule anyone — that is a fact about the workplace.
 - **4 (excellent):** As 3, and says what they would do if it is decided against them and they still think it is wrong.
 
-> **The drafter is unsure about:** **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question into a conflict question), a concrete case went into the context, and it is now offered at intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one correction to my own note, found by the stress test:** I had written that the two dates "cannot both be right". They can — `03/11/2026` *is* `11 March 2026` if the list puts the month first, and a blind answer took that wrong turn in the other direction, calling them four months apart and filing a backend defect. The data does not settle this. What the question tests is which convention the product means, which is the better question here, because dd/mm is the local convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Who would you raise it with, and what would you say?
+
+> **The drafter is unsure about:** **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question into a conflict question), a concrete case went into the context, and it is now offered at intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one correction to my own note, found by the stress test:** I had written that the two dates "cannot both be right". They can — `03/11/2026` _is_ `11 March 2026` if the list puts the month first, and a blind answer took that wrong turn in the other direction, calling them four months apart and filing a backend defect. The data does not settle this. What the question tests is which convention the product means, which is the better question here, because dd/mm is the local convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1253,7 +1465,7 @@ The disagreement put on the behaviour rather than between two people.
 
 **The interviewer asks**
 
-> You need about five hundred customers with realistic transaction histories to test a statement screen. The quickest route is a copy of the live database, and someone senior has offered you one. What would you do? What is wrong with taking it — explained to a colleague who is not a tester, without quoting a regulation at them? And where would the data come from instead?
+> You need about five hundred customers with realistic transaction histories to test a statement screen. The quickest route is a copy of the live database, and someone senior has offered you one. What is in that copy, and would you take it?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1276,6 +1488,8 @@ Five hundred real people's records, on a machine with fewer controls than the on
 - **3 (solid):** Says these are real people who did not agree to this, in a place with fewer controls, and that a leak from a test environment is still a leak.
 - **4 (excellent):** As 3, and says it is also the wrong data for a test — it changes under you, it is not repeatable, and nobody can say what the expected result should be.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Names the harm, not only the rule — 20%**
 
 Who is harmed and who answers for it, alongside the obligation — rather than the regulation on its own.
@@ -1285,6 +1499,10 @@ Who is harmed and who answers for it, alongside the obligation — rather than t
 - **2 (partial):** Says "it is against data protection", with nothing about what would actually happen.
 - **3 (solid):** Puts it as what it would do to the people in the file and to whoever is answerable, and names the obligation as one reason among those.
 - **4 (excellent):** As 3, and names the alternative alongside the objection, and who they would take it to and what they would put in writing — so the listener is given a route rather than a refusal.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Who is harmed if that copy leaks, and who answers for it?
 
 **Where the data comes from instead — 50%**
 
@@ -1296,11 +1514,16 @@ Generated, masked by whoever is allowed to, or built on purpose to cover the cas
 - **3 (solid):** Generates records that look real and belong to nobody, and builds the cases deliberately — no transactions, one, thousands, a negative balance.
 - **4 (excellent):** As 3, and says when the shape of real data genuinely matters, and that the extract is then taken and masked by whoever is allowed to take it, not by them.
 
-> **The drafter is unsure about:** This is in the bank because "we use a copy of production" is the honest answer in a lot of places here, and I want a candidate to have thought about it before an interviewer asks. The risk is that it reads as a compliance quiz. The rubric deliberately scores the alternative more heavily than the rule, and penalises an answer that is only the regulation and the fine. Is that the right balance, and is it fair to ask a junior to make the argument to a non-tester?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where would the data come from instead?
+
+> **The drafter is unsure about:** This is in the bank because "we use a copy of production" is the honest answer in a lot of places here, and I want a candidate to have thought about it before an interviewer asks. The risk is that it reads as a compliance quiz. The rubric deliberately scores the alternative more heavily than the rule, and penalises an answer that is only the regulation and the fine. Is that the right balance? **Three of the four critique passes caught the same thing in the follow-up**: it said "without quoting a regulation at them", which is a scoring instruction read out to the candidate, and it told the one candidate whose data-protection training is their strongest asset not to use it. That constraint belongs in the descriptor, where it already is.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1311,7 +1534,7 @@ Generated, masked by whoever is allowed to, or built on purpose to cover the cas
 
 **The interviewer asks**
 
-> On your screen is an automated test. It passed the first time it was run and failed the second time, on its very first line. What is happening? What would you change so it can be run as many times as you like? And what would emptying the database before every run cost you?
+> On your screen is an automated test. It passed the first time it was run and failed the second time, on its very first line. What is happening?
 
 **Setup the candidate is given**
 
@@ -1347,6 +1570,8 @@ A value the system requires to be unique, fixed in the test.
 - **3 (solid):** The email is written into the test and has to be unique, so the second run collides with the user the first run made.
 - **4 (excellent):** As 3, and says the test is not repeatable rather than failing — it never could have run twice, and passing once was the misleading part.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The fix — 35%**
 
 Data the test makes for itself, different every run.
@@ -1356,6 +1581,10 @@ Data the test makes for itself, different every run.
 - **2 (partial):** Says to change the email, without saying how it stays unique.
 - **3 (solid):** Generates the value per run so the test creates what it needs and does not inherit anything.
 - **4 (excellent):** As 3, and says the test should also leave nothing behind, so a hundred runs do not leave a hundred users.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change, so it can be run as many times as you like?
 
 **The shortcut, and what it costs — 25%**
 
@@ -1367,11 +1596,16 @@ Emptying the database before each run works, and takes something away.
 - **3 (solid):** Says what clearing the database costs — everything else running at the same time, and any data somebody else was relying on — and why making the test own its data is cheaper.
 - **4 (excellent):** As 3, and says where clearing it is the right answer, because a suite with a database of its own is a different situation from a shared one.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Somebody suggests emptying the database before every run — what do you think?
+
 > **The drafter is unsure about:** **Split out of `the-test-that-only-passes-once` on 2026-09-23.** Two passes said independently that the original was two questions — the second-run collision is junior material and the in-suite count failure is not — and the drafter's own note had suspected it while warning that splitting would conveniently close the `test-data` shortfall at intern-junior. It does close it, and the split is right on its own merits, but you should know both facts. Is the last answer-key point too generous, given the question asks what emptying the database would cost?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1382,7 +1616,7 @@ Emptying the database before each run works, and takes something away.
 
 **The interviewer asks**
 
-> On your screen is an automated test that passes on its own and fails when the whole suite runs, never at the same point twice. What is wrong with the way it decides whether it worked? What would you change so it passes whatever else is running? And what would making the suite run one test at a time cost you?
+> On your screen is an automated test that passes on its own and fails when the whole suite runs, never at the same point twice. What is wrong with the way it decides whether it worked?
 
 **Setup the candidate is given**
 
@@ -1418,6 +1652,8 @@ A count taken over a job other tests also apply for, so the number is not the te
 - **3 (solid):** The count is over a job other tests also apply for, so what the test asserts on depends on whatever else happened to be running.
 - **4 (excellent):** As 3, and says nothing is wrong with the sign-in or the application — the test is asking a question it does not own the answer to.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The fix — 35%**
 
 An assertion about something the test made, rather than a count across everything.
@@ -1426,7 +1662,11 @@ An assertion about something the test made, rather than a count across everythin
 - **1 (weak):** Keeps the count and bends the shared data to fit it — locking the job, or deleting every other application for it in setup so the number comes out at one — which makes this test pass by breaking the tests it deletes under.
 - **2 (partial):** Says the test needs its own data, without saying what changes about the assertion.
 - **3 (solid):** Asserts on the application this test just created rather than on a count across everything.
-- **4 (excellent):** As 3, and says when a count *is* the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
+- **4 (excellent):** As 3, and says when a count _is_ the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change, so it passes whatever else is running?
 
 **The shortcut, and what it costs — 25%**
 
@@ -1438,11 +1678,16 @@ Running one test at a time makes it pass, and takes something away.
 - **3 (solid):** Says what running serially costs — the parallelism the suite was built for — and why fixing the assertion is cheaper than paying that on every run.
 - **4 (excellent):** As 3, and says a retry is different in kind from the others — it would turn a real intermittent product defect green, so it hides rather than trades.
 
-> **The drafter is unsure about:** **Narrowed on 2026-09-23** to the half that is genuinely mid — the fixed-email collision went to `the-test-that-cannot-run-twice` at intern-junior. The context now says explicitly that every test makes its own user, so the candidate is not re-solving the junior question, and the job is what is shared. What I am unsure of is whether the remaining question is too narrow: the answer is essentially one move (assert on what you created), and the interesting part — when a count is the right assertion at all — is in the fourth answer-key point rather than in the prompt. Should the prompt ask it?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Somebody suggests running the suite one test at a time — what do you think?
+
+> **The drafter is unsure about:** **Narrowed on 2026-09-23** to the half that is genuinely mid — the fixed-email collision went to `the-test-that-cannot-run-twice` at intern-junior. The context now says explicitly that every test makes its own user, so the candidate is not re-solving the junior question, and the job is what is shared. My own worry — that the remaining question is one move (assert on what you created), with the interesting part, when a count is the right assertion at all, sitting in the fourth answer-key point and asked nowhere — is answered by the first follow-up, which now asks it. Is that the right place for it, or should it be the opening question?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1453,7 +1698,7 @@ Running one test at a time makes it pass, and takes something away.
 
 **The interviewer asks**
 
-> A test that passes on your machine fails in the pipeline about one run in four. The team is about to mark it as flaky and move on. What would you do before agreeing to that? What would you be looking for in the difference between the two places it runs? And what would you put in front of the team to settle it?
+> A test that passes on your machine fails in the pipeline about one run in four. The team is about to mark it as flaky and move on. What would you want to know about that failure before you agreed?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1476,6 +1721,8 @@ A rate, from repeated runs, before any argument about what to do.
 - **3 (solid):** Runs it enough times and records the rate so it becomes a number rather than an impression — in both places where they have both, and otherwise saying what they would want counted in the one they cannot reach.
 - **4 (excellent):** As 3, and says what they would vary between batches — the machine, the time, the rest of the suite — so the runs answer a question.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Looks for what differs between the two places — 30%**
 
 Timing, data left behind, parallelism, time zone, machine speed — and the product itself.
@@ -1485,6 +1732,10 @@ Timing, data left behind, parallelism, time zone, machine speed — and the prod
 - **2 (partial):** Names differences and how they would check them, and never puts the product on the list — or names one difference with nothing about how it would be checked.
 - **3 (solid):** Lists what differs and how each would show — data from another test, an ordering assumption, a clock, a slower machine — and keeps the product on the list.
 - **4 (excellent):** As 3, and says that a test failing one run in four on a slower machine is often the product's race rather than the test's, and how they would tell.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you compare between your machine and the pipeline, including anything you cannot see from where you sit?
 
 **What they put on the record — 35%**
 
@@ -1496,11 +1747,16 @@ The number, the evidence from a failing run, and what muting it would mean — t
 - **3 (solid):** The rate, and the failing run's log, screenshot and exact assertion kept and attached where the decision is made — to the whole team or to one person who owns it; either counts.
 - **4 (excellent):** As 3, and says that if it is quarantined it goes with a ticket and an owner, and what is being accepted in the meantime.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you put in front of the team, or in front of one person, to settle it?
+
 > **The drafter is unsure about:** Moved on 2026-09-23 from `defect-reporting` to `debugging`, and off the `defect-report-quality` rubric, which its own notes had called a stretch — the answer is about investigation rather than about how a report is written, and it now has `failure-investigation`. Is the last clause fair at intern-junior? Putting something in front of the team to overturn their decision assumes standing a junior in many workplaces here does not have; the rubric accepts bringing the evidence to one person instead. Is that enough?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1511,7 +1767,7 @@ The number, the evidence from a failing run, and what muting it would mean — t
 
 **The interviewer asks**
 
-> Tell me about a time you found something close to a release — at work, or on a project of your own — that you thought should stop it going out. What did you do about it, and how did it end, including if it went out anyway?
+> Tell me about a time you found something close to a release — at work, or on a project of your own — that you thought should stop it going out. What was the risk, and how did you know?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1533,6 +1789,10 @@ What the risk was and how they knew — reach, what it would do to a user, what 
 - **3 (solid):** Says what the risk was, how they found it, and what it would have done to a user, so the case rests on something outside their own judgement.
 - **4 (excellent):** As 3, and says what they were unsure about at the time, and how they went about closing that before raising it.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What had you actually seen that made you sure it was serious?
+
 **Who they told, in what form, and when — 35%**
 
 Whether the concern reached whoever could act while they still could. Escalating, writing it down and asking all count the same, and so does a project with nobody to tell. Never scored on willingness to argue — that is a fact about the workplace.
@@ -1542,6 +1802,10 @@ Whether the concern reached whoever could act while they still could. Escalating
 - **2 (partial):** Says they raised it, without saying to whom or when relative to the decision.
 - **3 (solid):** Says who they told, in what form, and that it was while the decision could still change. A candidate whose project had nobody to tell says who they would have told and what they would have sent.
 - **4 (excellent):** As 3, and the thing they sent could be acted on without a conversation — what the risk was, what it would cost, and what they were asking for.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Who did you take it to, and in what form — or, if there was nobody to tell, what did you do with it instead?
 
 **How it ended, and what is different now — 25%**
 
@@ -1553,11 +1817,18 @@ Including that it shipped anyway, and including that they turned out to be wrong
 - **3 (solid):** How it ended — including being overruled, or being wrong — and one specific thing they now do because of it.
 - **4 (excellent):** As 3, and separates what they would still argue for from what they now think was the right call against them.
 
-> **The drafter is unsure about:** **Reworded on 2026-09-23**, and it now has its own rubric. It used to require that "someone more senior disagreed", which made a disagreement with a senior person a precondition for answering — in many workplaces here disagreeing upward is not done and the candidate has no story. And it was scored with the generic `behavioural-answer-quality`, whose criteria are situation, actions and outcome, so "how they made the case" landed nowhere; all four critique passes said so, as two had about `incident-you-contributed-to`. The slug still says "pushing back", which the question no longer requires — slugs are permanent, so it stays. What is left for you: `behavioural-answer-quality` now has no question in any bank, and four questions have used it and all four needed their own. Do we delete it?
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> How did it end, including if it went out anyway?
+
+> What do you do differently now, because of it?
+
+> **The drafter is unsure about:** **Reworded on 2026-09-23**, and it now has its own rubric. It used to require that "someone more senior disagreed" — in many workplaces here disagreeing upward is not done and the candidate has no story — and it was scored with the generic `behavioural-answer-quality`, in which "how they made the case" landed nowhere. The slug still says "pushing back", which the question no longer requires; slugs are permanent. The second follow-up carries criterion 2's fairness promise out loud — "if there was nobody to tell" — rather than only in a descriptor the candidate never sees. This is the one question with **four** follow-ups: criterion 1 gets one although the opening asks it, because a candidate can tell the whole story and never say how they knew it was serious, and criterion 3 gets two because "what is different now" is where a nervous candidate stops. Enough?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1568,7 +1839,7 @@ Including that it shipped anyway, and including that they turned out to be wrong
 
 **The interviewer asks**
 
-> Somebody asks whether the platform will hold up for a campaign at the end of the month. What would you need to know before you could plan any of this? What would the pass mark have to state, and who would agree it with you? And what would you do if there is no answer to any of that?
+> Somebody asks whether the platform will hold up for a campaign at the end of the month. What would you need to know before you could plan any of this?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1591,6 +1862,8 @@ The load and its shape, which journeys, from where, and what matters to whoever 
 - **3 (solid):** How many, over how long, whether it arrives in a spike, which journeys matter, and on what connections and devices.
 - **4 (excellent):** As 3, and asks what the campaign is actually for, because the journey that must not fail is a business answer rather than a technical one.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **A pass mark that can be judged — 25%**
 
 A time at a percentile, an error ceiling, at a stated load, on a stated environment — and an owner.
@@ -1600,6 +1873,10 @@ A time at a percentile, an error ceiling, at a stated load, on a stated environm
 - **2 (partial):** Names a response time, without a percentile or a load.
 - **3 (solid):** A percentile, a time, an error rate and the load they hold at, on a named environment, agreed with whoever owns the campaign.
 - **4 (excellent):** As 3, and says who signs it off, because a pass mark nobody owns is not a pass mark.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would the pass mark have to state, and who would agree it with you?
 
 **When nobody can answer — 35%**
 
@@ -1611,11 +1888,16 @@ Derive it, state the assumption, or find the breaking point instead.
 - **3 (solid):** Derives it from the traffic that already exists and past peaks, writes the assumption down beside the result, and says it is an assumption.
 - **4 (excellent):** As 3, and says that with no target at all the right output is the point at which it degrades, which is useful to whoever asked even without a pass mark.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Suppose nobody can tell you any of that — what would you do instead?
+
 > **The drafter is unsure about:** Untagged on 2026-09-23 (see the comment above), which leaves `performance-testing` with one question against a target of two — the checker reports it every run and the next tagged question goes there. Two things. I have written the pass mark as "how long a request may take, how often it may fail, and the load it holds at" rather than as a percentile, because a candidate who has never done performance work will not have the word and the concept is what matters — is that too generous for a mid tester, or right? And now that every QA candidate meets this, is the campaign framing the best one, or would "we are about to be on the radio" land better here?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1626,14 +1908,14 @@ Derive it, state the assumption, or find the breaking point instead.
 
 **The interviewer asks**
 
-> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way? What would you use instead? And where would a wait still belong, after you have fixed this one?
+> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way?
 
 **Setup the candidate is given**
 
 > ```js
-> cy.get('[data-testid="apply"]').click()
-> cy.wait(3000)
-> cy.get('[data-testid="confirmation"]').should('contain', 'Application sent')
+> cy.get('[data-testid="apply"]').click();
+> cy.wait(3000);
+> cy.get('[data-testid="confirmation"]').should("contain", "Application sent");
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -1657,6 +1939,8 @@ It encodes a guess about a duration that varies with the machine and the network
 - **3 (solid):** Says the duration varies with the machine, the network and the data, so any fixed number is either too short somewhere or wasted everywhere.
 - **4 (excellent):** As 3, and says what it costs when it is too long — every test pays the worst case, and the suite's run time is the sum of the guesses.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What replaces it — 40%**
 
 Waiting for the condition the test is about to assert on, and knowing what the tool already retries.
@@ -1666,6 +1950,10 @@ Waiting for the condition the test is about to assert on, and knowing what the t
 - **2 (partial):** Says to "use an explicit wait", without saying for what.
 - **3 (solid):** Waits for the state being asserted on — the confirmation appearing, the request finishing — in the idiom of whichever of the two tools they work in.
 - **4 (excellent):** As 3, and says the assertion already retries until its own timeout, so three seconds was shorter than the budget the tool was going to give it anyway.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Do you need a wait there at all?
 
 **Where a timeout still belongs — 20%**
 
@@ -1677,11 +1965,16 @@ A cap, a genuinely slow operation, and what a failed timeout should say.
 - **3 (solid):** Names where a longer cap is right — an upload, a report, a payment going out to a third party — and that it is set on that step rather than globally.
 - **4 (excellent):** As 3, and says the timeout's job is to fail with something readable, so a slow dependency is not reported as a broken selector.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where would a wait still belong, after you have fixed this one?
+
 > **The drafter is unsure about:** **Version-sensitive: that a Cypress assertion retries until it passes or `defaultCommandTimeout` expires, so the preceding fixed wait adds nothing; and that waiting on an intercepted request alias is the documented replacement. Checked against docs.cypress.io on 2026-09-23 (Cypress 16), which calls `cy.wait(Number)` an anti-pattern in as many words.** Split out of a single two-tool question on 2026-09-23 — three critique passes said the two snippets were the longest thing in the bank to read aloud, and the fact-check found they could not both match one application, because `getByTestId` resolves `data-testid` and the Cypress half used `data-test`. Is the fourth answer-key point over-rewarded? Waiting on an intercepted alias is `cy.wait` used correctly rather than abandoned, and a candidate who has only read "never use `cy.wait`" would lose it.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1692,14 +1985,14 @@ A cap, a genuinely slow operation, and what a failed timeout should say.
 
 **The interviewer asks**
 
-> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way? What would you use instead? And where would a wait still belong, after you have fixed this one?
+> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way?
 
 **Setup the candidate is given**
 
 > ```ts
-> await page.getByTestId('apply').click()
-> await page.waitForTimeout(3000)
-> await expect(page.getByTestId('confirmation')).toContainText('Application sent')
+> await page.getByTestId("apply").click();
+> await page.waitForTimeout(3000);
+> await expect(page.getByTestId("confirmation")).toContainText("Application sent");
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -1723,6 +2016,8 @@ It encodes a guess about a duration that varies with the machine and the network
 - **3 (solid):** Says the duration varies with the machine, the network and the data, so any fixed number is either too short somewhere or wasted everywhere.
 - **4 (excellent):** As 3, and says what it costs when it is too long — every test pays the worst case, and the suite's run time is the sum of the guesses.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What replaces it — 40%**
 
 Waiting for the condition the test is about to assert on, and knowing what the tool already retries.
@@ -1732,6 +2027,10 @@ Waiting for the condition the test is about to assert on, and knowing what the t
 - **2 (partial):** Says to "use an explicit wait", without saying for what.
 - **3 (solid):** Waits for the state being asserted on — the confirmation appearing, the request finishing — in the idiom of whichever of the two tools they work in.
 - **4 (excellent):** As 3, and says the assertion already retries until its own timeout, so three seconds was shorter than the budget the tool was going to give it anyway.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Do you need a wait there at all?
 
 **Where a timeout still belongs — 20%**
 
@@ -1743,11 +2042,16 @@ A cap, a genuinely slow operation, and what a failed timeout should say.
 - **3 (solid):** Names where a longer cap is right — an upload, a report, a payment going out to a third party — and that it is set on that step rather than globally.
 - **4 (excellent):** As 3, and says the timeout's job is to fail with something readable, so a slow dependency is not reported as a broken selector.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where would a wait still belong, after you have fixed this one?
+
 > **The drafter is unsure about:** **Version-sensitive: that a Playwright web assertion re-fetches and retries until its timeout, so the preceding `waitForTimeout` adds nothing, and that `waitForTimeout` is documented as debugging-only. Checked against playwright.dev on 2026-09-23 (Playwright 1.63), where the API carries a formal "discouraged" marker.** Split out of a single two-tool question on 2026-09-23 (see `cypress-fixed-wait`). The two questions now share `wait-strategy-reasoning`, which is tool-neutral — is that right, or does a Playwright candidate deserve a criterion about the auto-waiting the tool does for them that a Cypress candidate does not?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1758,7 +2062,18 @@ A cap, a genuinely slow operation, and what a failed timeout should say.
 
 **The interviewer asks**
 
-> A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour changed and a lot of tests failed. Three selectors from that suite went like this — one was a full path down from the body tag, one named two classes of which one was a generated hash, and one counted children to reach the fourth div and then took its button. What do those three have in common? What would you select on instead, in the tool you work in? And what would you ask the developers for, that is not a change to the tests?
+> A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour changed and a lot of tests failed. On your screen are three of the selectors from that suite. What do those three have in common?
+
+**Setup the candidate is given**
+
+> Three selectors from the suite, described rather than written out — the idea is the same in
+> any tool.
+>
+> ```
+> 1  A full path down from the body tag to the button.
+> 2  Two class names, one of which is a generated hash.
+> 3  Count to the fourth div, then take the button inside it.
+> ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1781,6 +2096,8 @@ All of them address the page's structure or its styling rather than the thing it
 - **3 (solid):** Says all three name where the element sits or how it is painted, neither of which is what the element is.
 - **4 (excellent):** As 3, and says that is why a rename and a wrapper broke them while the behaviour did not change.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What to use instead — 35%**
 
 What the element is rather than where it sits — its role and visible text where the tool offers that, an agreed test attribute where it does not.
@@ -1790,6 +2107,10 @@ What the element is rather than where it sits — its role and visible text wher
 - **2 (partial):** Names one route with no account of why it is durable, or names a route their tool does not have.
 - **3 (solid):** Either documented route, correctly for their tool — an agreed test attribute, which is the first answer in Selenium and Cypress, or a role-and-text locator, which is the first answer where the tool has one — and says which theirs offers.
 - **4 (excellent):** As 3, and says what the other route buys where it exists — a selector that fails when the button stops being reachable is telling you something true — or what is lost without it.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you select on instead, in the tool you work in?
 
 **What the tests cannot fix alone — 35%**
 
@@ -1801,11 +2122,16 @@ What to ask the developers for, and what is not their fault.
 - **3 (solid):** Asks for something to select on that survives a refactor — a test attribute treated as part of the code and not removed, or accessible names — and says the rename was not the defect.
 - **4 (excellent):** As 3, and says which churn is correct, because a test should fail when the behaviour really does change.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would have to change in the application itself, and is the rename itself anybody's fault?
+
 > **The drafter is unsure about:** **Version-sensitive: which of a test attribute and a role-and-text locator is the vendor's own first recommendation, because it differs by tool. Checked on 2026-09-23 — playwright.dev (1.63) says to prioritise role locators; docs.cypress.io (16) ships no role or label query at all and rates a `data-*` attribute "Always"; selenium.dev (4) has no role locator, only a post-location `getAccessibleName()`.** The three snippets became prose on 2026-09-23: three code blocks in three languages was the heaviest read in the bank and it landed on the junior candidates. Two things for you. The answer key is now tool-conditional, which is honest but harder to score — would you rather split this into one question per tool? And it overlaps `the-test-that-broke-for-nothing` in the frontend bank, which asks what a brittle suite costs a team rather than what to select on; one reviewer thought the overlap was fine and one thought one of the two was enough.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1816,7 +2142,7 @@ What to ask the developers for, and what is not their fault.
 
 **The interviewer asks**
 
-> On your screen is a test that throws on its last line, and only when the filter actually changes the list. What is the exception telling you, and would waiting longer help? What would you change about how this test holds on to elements? And what would you do about the several other places in the suite that do the same thing?
+> On your screen is a test that throws on its last line, and only when the filter actually changes the list. What is the exception telling you, and would waiting longer help?
 
 **Setup the candidate is given**
 
@@ -1851,6 +2177,8 @@ The reference points at an element that was in the page and no longer is.
 - **3 (solid):** Says the re-render replaced the element, so the reference is to something detached from the page — and that waiting cannot help, because the element it names will never come back.
 - **4 (excellent):** As 3, and knows a re-render is one of several ways to get here, naming navigating away or switching window or frame as the others.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The fix — 30%**
 
 Find it again after the change, and wait for the new state rather than for a duration.
@@ -1860,6 +2188,10 @@ Find it again after the change, and wait for the new state rather than for a dur
 - **2 (partial):** Says to find the element again, with nothing about when.
 - **3 (solid):** Takes the reference after the filter has been applied, and waits for the new list rather than for a number of seconds.
 - **4 (excellent):** As 3, and says what to wait for — the old list being replaced, or the expected row being present — because the re-render is the event and not the delay.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change about how this test holds on to elements?
 
 **The pattern across the suite — 40%**
 
@@ -1871,11 +2203,16 @@ No reference outliving an action, and what a blanket retry hides.
 - **3 (solid):** Re-finds the element at the moment of use everywhere the pattern occurs — a wrapper that keeps the locator and locates on use is the documented way — so no reference outlives an action.
 - **4 (excellent):** As 3, and says what a catch-all retry costs — the row you clicked may not be the row you meant, and the test still passes.
 
-> **The drafter is unsure about:** **Version-sensitive: that the exception means the element is no longer attached to the document, that relocating it is the documented remedy, and that a locator-storing wrapper is the other documented answer rather than a flourish. Checked against selenium.dev on 2026-09-23 (Selenium 4.49).** One thing to be careful of, which the fact-check turned up — the documentation does not say in so many words that waiting cannot help. That is an inference from the remedy, and a sound one, but the rubric turns level 3 on it, so it is our claim rather than the vendor's. Is it safe to score on? And the docs list three causes where the question gives one; a candidate who names navigation and frame switching too is reading the exception properly rather than padding.
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Somebody suggests retrying on that exception everywhere — what would that hide?
+
+> **The drafter is unsure about:** **Version-sensitive: that the exception means the element is no longer attached to the document, that relocating it is the documented remedy, and that a locator-storing wrapper is the other documented answer rather than a flourish. Checked against selenium.dev on 2026-09-23 (Selenium 4.49).** One thing to be careful of, which the fact-check turned up — the documentation does not say in so many words that waiting cannot help. That is an inference from the remedy, and a sound one, but the rubric turns level 3 on it, so it is our claim rather than the vendor's. Is it safe to score on? And the docs list three causes where the question gives one; a candidate who names navigation and frame switching too is reading the exception properly rather than padding. The opening question is the one place in this bank that still asks two things — "would waiting longer help" is what criterion 1 turns on at level 3, and it has no follow-up of its own because the prompt is its criterion.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1886,18 +2223,18 @@ No reference outliving an action, and what a blanket retry hides.
 
 **The interviewer asks**
 
-> On your screen is the block that runs before every test in a suite. What is signing in through the screen every time costing, beyond the minutes? What would you do instead, and what do you lose by doing it? And what would you keep signing in through the screen for?
+> On your screen is the block that runs before every test in a suite. What is signing in through the screen every time costing, beyond the minutes?
 
 **Setup the candidate is given**
 
 > ```js
 > beforeEach(() => {
->   cy.visit('/login')
->   cy.get('[data-testid="email"]').type('tester@example.com')
->   cy.get('[data-testid="password"]').type(Cypress.env('PASSWORD'))
->   cy.get('[data-testid="submit"]').click()
->   cy.url().should('include', '/dashboard')
-> })
+>   cy.visit("/login");
+>   cy.get('[data-testid="email"]').type("tester@example.com");
+>   cy.get('[data-testid="password"]').type(Cypress.env("PASSWORD"));
+>   cy.get('[data-testid="submit"]').click();
+>   cy.url().should("include", "/dashboard");
+> });
 > ```
 >
 > The suite has 140 tests across 30 spec files and takes 22 minutes. Signing in takes about six
@@ -1924,6 +2261,8 @@ Every test now depends on sign-in, so one defect produces one piece of informati
 - **3 (solid):** Says a broken sign-in fails the whole suite, so a hundred and forty failures carry one fact and the real failures are buried.
 - **4 (excellent):** As 3, and reasons about what share of the twenty-two minutes sign-in accounts for, using whatever per-test figure they are given or assume aloud.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What replaces it — 35%**
 
 Getting the session without the screen, and reusing it.
@@ -1933,6 +2272,10 @@ Getting the session without the screen, and reusing it.
 - **2 (partial):** Says to "log in via the API", with nothing about what the browser then needs.
 - **3 (solid):** Gets a session without the screen and puts what the app needs in place before the test starts, reusing it between tests.
 - **4 (excellent):** As 3, and says what the shortcut costs — a restored session can be dead, so it needs a cheap check that re-establishes it, and caching it only within one spec file still leaves one sign-in per file.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you do instead, and what do you lose by doing it?
 
 **What still needs the screen — 25%**
 
@@ -1944,11 +2287,16 @@ Sign-in itself, including the failure paths.
 - **3 (solid):** Keeps a handful of real tests on the screen — the success path, a wrong password, whatever the account lock is — and nothing else.
 - **4 (excellent):** As 3, and says what would catch the shortcut drifting from what a real sign-in sets, rather than assuming it will not.
 
-> **The drafter is unsure about:** **Version-sensitive: that Cypress has a first-class, non-experimental way to cache and restore a session between tests, that a restored session is re-established when its validation fails, and that caching across spec files is off by default. Checked against docs.cypress.io on 2026-09-23 (Cypress 16; both APIs default-on since 12.0.0).** The per-test timing went into the context on 2026-09-23 — three passes pointed out that the top band required multiplying by six seconds the drafter had never stated. The fourth and fifth answer-key points came from the fact-check and are the documented answer to "what do you lose"; they are also the two things a candidate is least likely to volunteer. Are they a fair expectation at mid, or should they be follow-up territory?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you keep signing in through the screen for?
+
+> **The drafter is unsure about:** **Version-sensitive: that Cypress has a first-class, non-experimental way to cache and restore a session between tests, that a restored session is re-established when its validation fails, and that caching across spec files is off by default. Checked against docs.cypress.io on 2026-09-23 (Cypress 16; both APIs default-on since 12.0.0).** The per-test timing went into the context on 2026-09-23 — three passes pointed out that the top band required multiplying by six seconds the drafter had never stated. The fourth and fifth answer-key points came from the fact-check and are the documented answer to "what do you lose"; they are also the two things a candidate is least likely to volunteer. They are now literally follow-up territory — the first probe asks what you lose — so: is that enough, or are they still too much to expect at mid?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -1959,18 +2307,18 @@ Sign-in itself, including the failure paths.
 
 **The interviewer asks**
 
-> Run one at a time and everything passes. Run with four workers and two or three tests fail, never the same ones. Why does running in parallel change the result? What would you change so the suite can run in parallel? And what would you keep serial on purpose, rather than fixing?
+> Run one at a time and everything passes. Run with four workers and two or three tests fail, never the same ones. Why does running in parallel change the result?
 
 **Setup the candidate is given**
 
 > ```ts
 > // playwright.config.ts
-> export default defineConfig({ workers: 4 })
+> export default defineConfig({ workers: 4 });
 > ```
 >
 > ```ts
 > // every spec file
-> test.use({ storageState: 'playwright/.auth/user.json' })   // one saved session, one account
+> test.use({ storageState: "playwright/.auth/user.json" }); // one saved session, one account
 > ```
 >
 > Three of the specs change the same saved profile — the name, the phone number, the CV.
@@ -1996,6 +2344,8 @@ The tests share one account's state, and parallelism removes the order that was 
 - **3 (solid):** Says the shared saved session is one account, so tests running at the same time change the data each other is asserting on.
 - **4 (excellent):** As 3, and says the serial run was not correct either — it passed because the order was fixed, so each test found what the one before it left.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **The fix — 35%**
 
 Data and accounts the test owns, and assertions about what it created.
@@ -2005,6 +2355,10 @@ Data and accounts the test owns, and assertions about what it created.
 - **2 (partial):** Says each test needs its own data, with nothing about the account.
 - **3 (solid):** An account per worker — established once per worker and told apart by the worker's own index — with data the test creates and assertions about that data rather than about a count or a first row.
 - **4 (excellent):** As 3, and says why per worker rather than per test is the usual answer for tests that change stored state, and how they would stop a new test quietly reusing the shared account.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change, so the suite can run with four workers?
 
 **What stays serial on purpose — 25%**
 
@@ -2016,11 +2370,16 @@ Genuinely global state, and containing it rather than serialising everything.
 - **3 (solid):** Names what is genuinely shared — one sandbox account at a payment provider, a global setting, a licence — and keeps that group serial rather than the suite.
 - **4 (excellent):** As 3, and says what they would do to shrink that group, because it will otherwise grow back into the whole suite.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you keep serial on purpose, rather than fixing?
+
 > **The drafter is unsure about:** **Version-sensitive: that one account per parallel worker, set up in a worker-scoped fixture keyed on the worker index, is the documented recommendation for tests that modify server-side state. Checked against playwright.dev on 2026-09-23 (Playwright 1.63), where that is the section heading.** My open question — per worker or per test — is answered by the vendor, so the answer key now names per worker rather than crediting both. Two things left. The saved session is a credential in the repository and the documentation says to keep that directory out of version control; no criterion scores a candidate who notices, and I am not sure it belongs in this question or in `api-testing-three-environments`. And should the key require the fixture by name, or is "give each worker its own account" enough at mid?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -2031,7 +2390,7 @@ Genuinely global state, and containing it rather than serialising everything.
 
 **The interviewer asks**
 
-> On your screen is a set of requests a team keeps and runs top to bottom, however they keep them. It works when a person runs it and fails when anything else does. What stops it running without you? What would you change so it can run overnight? And what would you still not automate here?
+> On your screen is a set of requests a team keeps and runs top to bottom, however they keep them. It works when a person runs it and fails when anything else does. What stops it running without you?
 
 **Setup the candidate is given**
 
@@ -2068,6 +2427,8 @@ Pasted values, an order that cannot be departed from, and a token with a lifetim
 - **3 (solid):** Every pasted value is a person doing work, the token expires, and each request depends on the one before it having been read by someone.
 - **4 (excellent):** As 3, and says the run also has no idea whether it succeeded — nothing asserts, so it only proves the requests were sent.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What changes — 40%**
 
 Values captured from responses, sign-in as a step, data created and removed by the run.
@@ -2077,6 +2438,10 @@ Values captured from responses, sign-in as a step, data created and removed by t
 - **2 (partial):** Says to use variables, without saying where their values come from.
 - **3 (solid):** Captures the token and each id out of the response into a variable the next request reads, signs in as the first step, and creates the job it applies for.
 - **4 (excellent):** As 3, and has the run clean up after itself, so it can start from nothing tomorrow and the night after.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change, so it can run overnight?
 
 **What stays manual, and what a failure has to say — 25%**
 
@@ -2088,11 +2453,18 @@ Exploring a new endpoint by hand, and a failure report somebody will act on.
 - **3 (solid):** Keeps exploring a new or changed endpoint with a person, and makes a failure say which request failed and what came back.
 - **4 (excellent):** As 3, and says what makes a nightly run worth having — somebody looks at it in the morning, or it may as well not run.
 
-> **The drafter is unsure about:** **Version-sensitive: that both Postman and RestAssured can capture a value from one response into a variable the next request uses, and that a saved collection runs from a command line without a person. Checked on 2026-09-23 against learning.postman.com and rest-assured.io — and the command-line tool has moved: Newman no longer reads the collection format Postman v12 uses, and the current tool is the Postman CLI. Nothing in the question names a tool, so a candidate who says "newman" is a version behind rather than wrong.** Reworded to "a set of requests a team keeps, however they keep them", because "a saved collection" is Postman's shape and a RestAssured candidate was answering about a foreign artefact. Also softened from "in a pipeline every night" to "overnight", since this is asked at intern-junior. Does the junior tag survive that, in your view?
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What would you still not automate here?
+
+> If it fails while nobody is watching, what does the failure report need to contain?
+
+> **The drafter is unsure about:** **Version-sensitive: that both Postman and RestAssured can capture a value from one response into a variable the next request uses, and that a saved collection runs from a command line without a person. Checked on 2026-09-23 against learning.postman.com and rest-assured.io — and the command-line tool has moved: Newman no longer reads the collection format Postman v12 uses, and the current tool is the Postman CLI. No tool is named here, so "newman" is a version behind rather than wrong.** Reworded to "a set of requests a team keeps, however they keep them", because "a saved collection" is Postman's shape. Does the intern-junior tag survive that? Criterion 3 scores two things — what stays manual, and what a failure has to say — so it carries two follow-ups since 2026-09-23. "What stays manual" is listed first because a candidate is likelier to have an answer to it; the failure report is the more useful signal for a team in another timezone. Right order?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -2103,7 +2475,7 @@ Exploring a new endpoint by hand, and a failure report somebody will act on.
 
 **The interviewer asks**
 
-> The team wants these same requests run against staging and against a test environment, from wherever the tests run rather than from your laptop. What has to change before the same requests can go to two places? Where should the token come from instead, and who should be able to see it? And what would you say if somebody asked you to point this at production?
+> The team wants these same requests run against staging and against a test environment, from wherever the tests run rather than from your laptop. What has to change before the same requests can go to two places?
 
 **Setup the candidate is given**
 
@@ -2136,6 +2508,8 @@ The host becomes a variable with a set of values, and the requests stop naming o
 - **3 (solid):** One collection, a base URL variable, and a set of values per environment selected when the run starts.
 - **4 (excellent):** As 3, and says what else differs per environment besides the host — the account, the data it may touch, which endpoints exist at all.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **Where the secret comes from — 40%**
 
 Not the file, not the repository — injected at run time, short-lived if possible.
@@ -2145,6 +2519,10 @@ Not the file, not the repository — injected at run time, short-lived if possib
 - **2 (partial):** Says not to commit secrets, with nothing about where it should live.
 - **3 (solid):** Whatever runs the tests supplies it per run, from wherever secrets are kept, without it ever being saved beside the requests — and it can be replaced without editing them.
 - **4 (excellent):** As 3, and prefers the run signing in with a test account's credentials for a short-lived token of its own, so a leak has a deadline on it.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Anything else in that file you would change, before it runs anywhere but your laptop?
 
 **Production is different — 25%**
 
@@ -2156,11 +2534,16 @@ Read-only, its own account, data it is allowed to touch.
 - **3 (solid):** Reads only, with an account that can do nothing else, against data they are allowed to touch, and nothing that creates or deletes.
 - **4 (excellent):** As 3, and says what it is for — checking that the deployed thing is up and shaped as expected — and that a suite which never runs anywhere but staging is testing staging.
 
-> **The drafter is unsure about:** **Version-sensitive: that a host can be held in an environment variable, that a value can be marked so it is stored locally and not shared, and that a secret can be injected into a command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) — the vocabulary has moved: there is no longer a "secret" variable *type*, it is a **secure variable**, and vault secrets are now the recommended home for credentials. The docs frame the hazard as syncing and team sharing rather than as committing to git, which is the framing this question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the secret, and production) and two passes said the production clause taught a habit we would rather not teach. It is now a question about hosts and the secret, with production as something to push back on. Is that the right call, or should a read-only check against production be credited more warmly than the fifth answer-key point allows?
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would have to be true before these could safely run against production?
+
+> **The drafter is unsure about:** **Version-sensitive: that a host can be held in an environment variable, that a value can be marked so it is stored locally and not shared, and that a secret can be injected into a command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) — the vocabulary has moved: there is no longer a "secret" variable _type_, it is a **secure variable**, and vault secrets are now the recommended home for credentials. The docs frame the hazard as syncing and team sharing rather than as committing to git, which is the framing this question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the secret, and production) and two passes said the production clause taught a habit we would rather not teach. It is now a question about hosts and the secret, with production as something to push back on. Is that the right call, or should a read-only check against production be credited more warmly than the fifth answer-key point allows?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -2171,7 +2554,7 @@ Read-only, its own account, data it is allowed to touch.
 
 **The interviewer asks**
 
-> A mobile suite passes on the emulator on your machine and fails on a real mid-range Android phone, mostly on the screens that load data. What differs between the two that would explain that? What would you change about the tests, and about where they run? And which of those failures would you treat as the product's rather than the tests'?
+> A mobile suite passes on the emulator on your machine and fails on a real mid-range Android phone, mostly on the screens that load data. What differs between the two that would explain that?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2194,6 +2577,8 @@ Processor, network, memory, permissions, the keyboard, what else the phone is do
 - **3 (solid):** The emulator runs on whatever the development machine has and the phone does not, and the phone brings what the emulator has not — permission prompts, a keyboard over the field, low storage, whatever else is running.
 - **4 (excellent):** As 3, and picks out which of those would produce failures concentrated on the screens that load data.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What changes in the tests, and where they run — 35%**
 
 Conditions instead of durations, and a real device in the loop.
@@ -2203,6 +2588,10 @@ Conditions instead of durations, and a real device in the loop.
 - **2 (partial):** Says to wait properly, without saying for what.
 - **3 (solid):** Waits for the state being asserted on, and runs the suite on a real device of the kind users own — the phone in their own hand counts — on a throttled connection.
 - **4 (excellent):** As 3, and separates what does not change from what does — the script is the same, and the configuration identifying the device is not, which is a setup change rather than a test change.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change about the tests, and what would you want them running on — even if it is one real phone?
 
 **Which failures are the product's — 25%**
 
@@ -2214,11 +2603,16 @@ A screen that never loads on a real phone is a defect, not an unreliable test.
 - **3 (solid):** Separates them — a timeout on a real phone on a slow connection is usually the product's, a stale selector is the test's — and says how they would tell.
 - **4 (excellent):** As 3, and says what they would do with the product defect — it is the users' normal conditions, so it is a defect at whatever priority that argues for.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Which of those failures would you treat as the product's, rather than the tests'?
+
 > **The drafter is unsure about:** **Version-sensitive: that the same script drives an emulator and a real device, and that what differs is the capability set identifying the device rather than the test. Checked against appium.io on 2026-09-23 (Appium 3.7, UiAutomator2 driver), which recommends identifying a real device and an emulator by different capabilities rather than by device name.** The fifth answer-key point came from the fact-check and sharpens what was a vaguer claim that "the difference is the device rather than the tooling". This is still the only `appium` question, because the blueprint asked for the variant to be checked with a reviewer before a second was written: is it worth keeping at all, and if it is, what should the second question be? It also leans harder than anything else here on the product's own position about mid-range phones and unreliable data, which may read as us grinding an axe.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
@@ -2229,7 +2623,7 @@ A screen that never loads on a real phone is a defect, not an unreliable test.
 
 **The interviewer asks**
 
-> On your screen is a load test run and the conclusion somebody drew from it. What in the run makes that conclusion unsafe? What would you change about how the test is set up before running it again? And what would you report instead of an average?
+> On your screen is a load test run and the conclusion somebody drew from it. What in the run makes that conclusion unsafe?
 
 **Setup the candidate is given**
 
@@ -2266,6 +2660,8 @@ What share of the requests failed, and what the average was taken over.
 - **3 (solid):** Says almost all of them failed — "nearly all", "the vast majority" or the proportion — so the 240 milliseconds describes the survivors and the run measured a failure rather than a capacity.
 - **4 (excellent):** As 3, and says what the failures themselves suggest — connection resets and timeouts at that rate point at something refusing or dropping connections before the API is reached — or puts a number on the share.
 
+_Asked for by the opening prompt; no planned follow-up._
+
 **What is wrong with the setup — 35%**
 
 The client, the arrival pattern, the duration, the absence of think time.
@@ -2275,6 +2671,10 @@ The client, the arrival pattern, the duration, the absence of think time.
 - **2 (partial):** Names one problem, usually the laptop.
 - **3 (solid):** The one machine and its connection may be the bottleneck, a thousand users starting at one instant is not how traffic arrives, and two minutes with no pause between requests is a burst rather than a sustained load.
 - **4 (excellent):** As 3, and says how they would establish that the client is not the limit before believing any result from it.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change about how the test is set up, before running it again?
 
 **What to report instead — 25%**
 
@@ -2286,11 +2686,16 @@ Error rate first, percentiles, throughput, and the load at which it degrades.
 - **3 (solid):** Error rate first, then a median and a high percentile, the throughput actually achieved, and on what environment.
 - **4 (excellent):** As 3, and says the useful output is the load at which it starts to degrade rather than a pass mark at one number.
 
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you report instead of an average?
+
 > **The drafter is unsure about:** **Version-sensitive: nothing in it. No tool is named on purpose, so it holds for k6 and JMeter alike.** The success rate is now stated in the summary (2026-09-23). It used to be derivable only by dividing 17,480 by 18,400, and three passes said the same thing: 40% of the score turned on arithmetic done aloud under interview pressure rather than on judgement. "Office wifi" became "a shared connection" for the same reason the rest of the bank avoids an imported baseline. What I would like your view on is whether stating the rate has made the first criterion too easy — the insight left is that the average was taken over the survivors, which is still the thing most people miss. Has stating the rate made the first criterion too easy?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
 - [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
 - [ ] nothing here is wrong or out of date
 
 ---
