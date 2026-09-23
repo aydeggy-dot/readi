@@ -1404,7 +1404,19 @@ Decision-1 doctrine from the backend bank, applied here. `check-bank.mjs` prints
 
 ### Open for the owner — the QA decisions
 
-1. **The triple-barrelled prompt, and the engine.** Both the senior-interviewer and the
+1. **The triple-barrelled prompt — DECIDED 2026-09-23, not yet implemented.** Resolved as "different
+   moments": the opening prompt asks one thing, the remaining criteria become **planned follow-ups
+   stored on the question**, and the check becomes "every criterion is asked for by the prompt **or** by
+   a planned follow-up". The field lands **before M3** so `interview_followup.v1.md` is written against
+   it; the engine wiring and the per-criterion coverage log are M3. Consequence worth knowing: **the
+   rubric stops reaching the interviewer model entirely.** Measured cost to retrofit: **208 follow-ups
+   and 104 prompts** across the three banks, uniformly two per question. Sequencing: the field plus
+   QA's 70 as the pilot, then frontend and backend, then full-stack. Full reasoning and what is still
+   open: `docs/progress/2026-09-23-planned-follow-ups.md`; `docs/plans/m3-interview-engine.md` updated.
+   **The full-stack pass is held until this is built.**
+
+   The original framing, kept because it is why the decision was needed:
+   **The triple-barrelled prompt, and the engine.** Both the senior-interviewer and the
    nervous-junior pass made this their first finding, and the senior pass's argument is the one that
    matters: asking all three clauses up front **pre-empts the engine**, whose job is to generate
    follow-ups that probe missing rubric points (CLAUDE.md §5). Against it stands the prompt-clause
@@ -1412,9 +1424,11 @@ Decision-1 doctrine from the backend bank, applied here. `check-bank.mjs` prints
    the backend pass eighteen, and enforced by `check-bank.mjs`. **This changes every bank and the
    skill, so it was not resolved inside QA.** The likely resolution: the prompt must raise every
    criterion's _subject_, and the follow-up draws out the detail.
-2. **`behavioural-answer-quality` now has no question in any bank** and the checker says so every run.
-   Four questions have used it and all four needed a rubric of their own. Delete it, or keep it as the
-   starting point a new role's behavioural rubric is expected to outgrow?
+
+2. **`behavioural-answer-quality` — DELETED 2026-09-23** (`e912038`). Four questions used it and all
+   four needed their own; `SKILL.md` carries the table and the structural reason, the template no longer
+   offers it, and `REVIEW.md` no longer tells reviewers the sharing is deliberate. The importer never
+   deletes, so a developer database keeps the row.
 3. **`manual-exploratory` is the default QA variant and has zero tagged questions.** The blueprint's
    argument for that still holds — its subject matter is the general set, and tagging would hide test
    design from automation candidates. The consequence it did not state: the most common candidate in

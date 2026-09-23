@@ -15,6 +15,14 @@ M3 deliberately stops short of scoring. Evaluation, the rubric-based report and 
 So this milestone must leave M4 a session it can score **reproducibly**, which is why version pinning
 (below) is the first thing in the plan rather than the last.
 
+**One decision arrived from outside M3 and changes this plan** (2026-09-23, from the QA question-bank
+pass). A question now carries **planned follow-ups**, written by whoever writes the question, and the
+engine picks from them instead of deriving probes from the rubric at runtime. Two consequences for the
+order of work: **the field lands before this milestone starts** (contract, column, CMS, leak test) so
+that `interview_followup.v1.md` can be written against it rather than retrofitted, and **the rubric
+stops being part of any interviewer-model call**. The reasoning is
+`docs/progress/2026-09-23-planned-follow-ups.md`; the effects are marked in the sections below.
+
 Four owner decisions taken at planning (2026-09-22):
 
 | Decision | Choice |
@@ -79,7 +87,21 @@ Pure, no I/O in transitions, `now` passed in. Lives in the worker.
 - **Pause/resume/abandon are lifecycle, not states.** `interview_sessions.status` is
   `in_progress | completed | abandoned`; leaving the page is a pause, returning within the deadline
   resumes, and a sweep marks stale sessions abandoned.
-- **Follow-ups** are capped in code at `max_followups` (default 2), whatever the model says.
+- **Follow-ups come from the question, not from the model** (owner's decision, 2026-09-23). Each
+  question carries **planned follow-ups** — one per rubric criterion the opening prompt does not ask
+  for — and the engine picks from them. The LLM phrases the chosen one; it does not decide what to
+  probe. Still capped in code at `max_followups` (default 2), whatever the model says.
+- **The planned list is a menu, not a script.** The engine asks a follow-up only for a criterion the
+  answer has **not** already covered. A candidate whose first answer covers all three criteria gets no
+  follow-up and moves on — asking the planned questions anyway would punish a complete answer with two
+  redundant ones. Selection is "probe what is missing", exactly as before; what changed is that the
+  probes are written by whoever wrote the question rather than derived at runtime.
+- **The rubric no longer reaches the interviewer model.** Because the probes are pinned on the
+  question, the live conversation needs the planned follow-ups and the per-criterion coverage flags —
+  not the criteria, the weights or the level descriptors. That removes the answer key from every
+  interviewer-model call, which is a privacy and prompt-injection improvement as well as a cheaper
+  prompt. The rubric still goes to the **evaluator** in M4, which is a different call with a different
+  prompt.
 
 ## Architecture
 
@@ -113,12 +135,17 @@ New:
   API↔worker, registered in `registry.ts` (worker-crossing ones only). Session limits and the state
   list go in `src/constants.ts`.
 - `apps/api/src/interviews/` — `interviews.module.ts`, `interviews.controller.ts`, `interviews.service.ts`,
-  `question-selection.ts` (pure, seeded), `session-bundle.ts` (pins content), `interview-sse.ts`,
+  `question-selection.ts` (pure, seeded), `session-bundle.ts` (pins content, including each question's
+  planned follow-ups), `interview-sse.ts`,
   `interview-sessions.repository.ts`, `stale-sessions.queue.ts`.
 - `apps/ai-worker/readi_worker/interview/` — `machine.py` (pure), `budgets.py`, `service.py`,
   `state_store.py` (Redis), `router.py`, `fake_script.py` (the interview-aware fake LLM).
 - `apps/ai-worker/readi_worker/prompts/interview_*.v1.md` — system, question phrasing, follow-up,
-  candidate questions, wrap-up.
+  candidate questions, wrap-up. **`interview_followup.v1.md` is written against planned follow-ups
+  from the start**: it receives the chosen probe and phrases it in the conversation's voice, and it
+  receives no rubric. Getting this right before `v1` ships is the whole reason the field lands before
+  M3 — a released prompt version is never edited in place, so discovering it later would mean a `v2`
+  plus a session-bundle change, with every earlier session and eval run still naming `v1`.
 - `apps/ai-worker/readi_worker/tracing/` — Langfuse client, masking hook, retention and delete-by-user.
 - `apps/web/src/app/(app)/practice/` — list and `new` (setup); `apps/web/src/app/(session)/interview/[id]/`
   — the chat screen and `complete`; `apps/web/src/components/interview/*`.
@@ -150,7 +177,20 @@ InterviewSessionQuestion  session_id (cascade), position, question_id, question_
                    rubric_id, rubric_version, snapshot Json   -- the pinned content
 SessionTurn        session_id (cascade), seq, speaker, state, session_question_id?, follow_up_index?,
                    text, started_ms, ended_ms, stt_confidence?   -- @@unique([session_id, seq])
+                   criteria_covered Json?   -- per-criterion coverage, on candidate turns
 ```
+
+`follow_up_index` points into the question's **planned** follow-ups, so a transcript says which probe
+was asked rather than only that one was.
+
+**`criteria_covered` is the coverage log**, written on every candidate turn: one entry per rubric
+criterion, whether this answer touched it, and which follow-up (if any) the engine then chose. It is
+what makes "menu, not script" auditable — without it, a session where the engine asked a redundant
+follow-up and one where it correctly skipped both are indistinguishable afterwards. Three things read
+it: the engine (to pick the next probe), M4's evaluator run (as a prior, never as a score), and us,
+when a reviewer says a follow-up was asked about something the candidate had already answered. It is a
+judgement by a model about an answer, so it is stored as evidence of what the engine decided and never
+as a substitute for the evaluator's own per-answer scoring.
 
 The role, level and stack are FKs **and** pinned versions: they are versioned content since ADR-0015,
 so renaming a role after a session must not change what that session's report says it was. The pinning
@@ -159,7 +199,9 @@ slugs, not ids, and reference `Slug` from `packages/shared-types/src/contracts/s
 file precisely so that `content.ts`, `seed.ts`, `profiles.ts` and `cv.ts` can share it.
 `TargetRole` and `ExperienceLevel` no longer exist.
 
-`snapshot` carries the answer key, so it never leaves the API: candidate shapes are separate schemas
+`snapshot` carries the answer key — `ideal_points`, the rubric **and the planned follow-ups**, which
+tell a candidate what they are about to be asked next — so it never leaves the API: candidate shapes
+are separate schemas
 (`CandidateSessionQuestion` = position, prompt, context, type, topic) and
 `content-no-answer-key.int.spec.ts` is widened from `/api/content/` to also cover `/api/interviews/`,
 still reading its route list from the OpenAPI document.
