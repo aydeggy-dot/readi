@@ -4,6 +4,11 @@
 //
 //   node .claude/skills/question-bank/scripts/check-stress.mjs [--role frontend]
 //
+// Failures are the two separations and the fifth answer's one-point band. It also prints
+// **calibration notes**, which are not failures: a rubric whose `strong` takes the ceiling
+// everywhere has no headroom, and one whose `weak` reaches 2 on half its criteria has level 2s
+// reachable by naming the topic with no content behind it. Both make a passing separation narrow.
+//
 //   - `fluent-but-wrong` must score clearly below `strong` — otherwise the rubric scores fluency.
 //   - `correct-poorly-explained` must score clearly above `weak` — otherwise it scores articulacy.
 //   - `nigerian-english` must land within one point of `strong` on every criterion — otherwise the
@@ -58,6 +63,7 @@ function roleRubricFiles() {
 }
 
 const problems = [];
+const notes = [];
 const rows = [];
 
 // A function declaration, not a `const`: the problem messages below are built inside the loop,
@@ -132,6 +138,33 @@ for (const role of readdirSync(datasets).filter((entry) =>
         );
     });
 
+    /*
+     * Headroom, and the bottom of the scale — the mechanical half of a finding the QA pass made by
+     * reading (2026-09-23).
+     *
+     * `strong` is defined as what a good candidate actually says, missing a point or two, so a rubric
+     * where it takes the ceiling on every criterion has nothing left to distinguish a very good
+     * candidate from a solid one. And `references/stress-test.md` says `weak` "should not score above
+     * 1 on the content criteria" — where it does, the level-2 descriptors are reachable by naming the
+     * right topic with no content behind it, which is what makes a separation narrow even when it
+     * passes. Both are warnings printed after the table, not failures: a legitimately reachable rubric
+     * can have `strong` at 4 on one or two criteria, and it is the pattern across all of them that
+     * matters.
+     */
+    const strongScores = byCriterion.strong ?? [];
+    if (strongScores.length && strongScores.every((value) => value === 4))
+      notes.push(
+        `${where}: \`strong\` takes the ceiling on every criterion — nothing in the level 4s is beyond a good answer at this level, so the rubric has no headroom`,
+      );
+    // Every criterion, not merely half: a `weak` answer that clears 2 everywhere means the bottom of
+    // the scale is not anchored anywhere in the rubric. Half would fire on a quarter of all rubrics,
+    // which is how a note becomes wallpaper.
+    const weakScores = byCriterion.weak ?? [];
+    if (weakScores.length && weakScores.every((value) => value >= 2))
+      notes.push(
+        `${where}: \`weak\` reaches 2 on every criterion — the level 2s are reachable by naming the topic with no content behind it, so the bottom of the scale is not anchored`,
+      );
+
     rows.push({ role, rubric: data.rubric, score, gapFluent, gapWeak });
   }
 }
@@ -144,6 +177,11 @@ for (const row of rows.sort((a, b) => a.gapFluent - b.gapFluent))
   console.log(
     `  ${row.rubric.padEnd(34)} ${fmt(row.score.strong).padStart(6)} ${fmt(row.score["fluent-but-wrong"]).padStart(6)} ${fmt(row.score["correct-poorly-explained"]).padStart(6)} ${fmt(row.score.weak).padStart(6)}   +${fmt(row.gapFluent)} / +${fmt(row.gapWeak)}`,
   );
+
+if (notes.length) {
+  console.log(`\n${notes.length} calibration note(s) — not failures, but the rubrics to read again:`);
+  for (const note of notes) console.log(`  ${note}`);
+}
 
 if (problems.length) {
   console.log(`\n${problems.length} problem(s):`);

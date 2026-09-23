@@ -56,8 +56,8 @@ Boundaries, empty values, maximum lengths, and the values either side of a rule.
 - **0 (absent):** No boundary cases.
 - **1 (weak):** Tests a boundary on the wrong side of the rule, or treats a round number as the boundary when the rule puts it elsewhere.
 - **2 (partial):** One or two boundaries, missing the values either side — a single empty-field check is level 1, not this.
-- **3 (solid):** Tests each boundary and its neighbours.
-- **4 (excellent):** As 3, including edges that are easy to forget — empty input, whitespace, very long values, duplicates — and the input formats that actually occur here, such as a number entered with a leading zero and the same number in +234 form.
+- **3 (solid):** Tests each boundary and its neighbours, and the input formats that actually occur here — a number with a leading zero, and the same number in +234 form.
+- **4 (excellent):** As 3, including the edges that are easy to forget — empty input, whitespace, very long values, duplicates.
 
 **Thinks past the happy path, and says where the list stops — 45%**
 
@@ -195,7 +195,7 @@ The daily limit and its edges, the unit the amount is held in, and the PIN attem
 - **3 (solid):** The values either side of the limit in whatever unit the field accepts, two transfers each under it and together over it, and a wrong PIN against the attempt counter.
 - **4 (excellent):** As 3, and asks which of the rules the screen enforces and which the server does, because only one of those a tester can trust.
 
-> **The drafter is unsure about:** **Reworked on 2026-09-23.** The prompt used to say "given that a mistake here moves somebody's money", which gave away the first criterion — the drafter's own note asked about it and a pass confirmed it. Its second and third clauses were also riddles rather than questions ("the cases where you never find out what happened", "what the screen will not tell you"), which cost a nervous candidate the clause carrying 35%. The rubric gained a criterion for the money rules, because the limit boundary, the unit and the PIN counter were in the answer key and scored by nothing. Left open: is "exactly once" a fair expectation at mid, or is it what separates mid from senior? And is a mid candidate here likely to have tested anything that moves money at all?
+> **The drafter is unsure about:** **Reworked on 2026-09-23.** The prompt used to say "given that a mistake here moves somebody's money", which gave away the first criterion. Its second and third clauses were riddles rather than questions, which cost a nervous candidate the clause carrying 35%. The rubric gained a criterion for the money rules, because the limit boundary, the unit and the PIN counter were in the answer key and scored by nothing. **The drafter worried that a mid candidate here may never have tested anything transactional; the owner's read is the opposite — this market is fintech-heavy, so having tested something that moves money is likelier than it looks from outside.** Is that right from where you sit? And is "exactly once" a fair expectation at mid, or the thing that separates mid from senior?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -439,8 +439,8 @@ Steps precise enough that a developer reaches the same screen without asking.
 - **0 (absent):** A description of the problem with no steps.
 - **1 (weak):** Steps that skip preconditions or assume the reader's setup — or a precise sequence of taps that leaves out the account and the data it was done with, so it cannot be repeated.
 - **2 (partial):** Mostly complete steps, missing test data or an account detail.
-- **3 (solid):** Numbered steps, preconditions, and the data used.
-- **4 (excellent):** As 3, and states how often it happens out of how many attempts — and a developer who has never seen the screen could act on it without asking anything back.
+- **3 (solid):** Numbered steps, preconditions, the data used, and how often it happens out of how many attempts.
+- **4 (excellent):** As 3, and a developer who has never seen the screen could act on it without asking anything back.
 
 **Separates observation from interpretation — 30%**
 
@@ -532,7 +532,7 @@ The defect is not closed by not being chosen.
 - **3 (solid):** Names what happens now — a note in the release, a workaround if there is one, a ticket that will not be lost.
 - **4 (excellent):** As 3, and says what more they would find out about it in the meantime, so the next decision is better informed than this one.
 
-> **The drafter is unsure about:** **Changed on 2026-09-23 so the money actually moves.** It used to say the total _shown_ was ₦50 lower, which one pass pointed out reads as a display rounding bug — the exact objection that undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it, so there is nothing on screen to catch it. The rubric credits either ranking as long as the comparison between a quiet failure and a visible one is made; a crash on a slow connection is this market's normal condition and ranking B higher with that reason reaches 4. Is that the right call, or should the question have a right answer? And is ₦50 too small to be taken seriously?
+> **The drafter is unsure about:** **Changed on 2026-09-23 so the money actually moves.** It used to say the total *shown* was ₦50 lower, which one pass pointed out reads as a display rounding bug — the exact objection that undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it, so there is nothing on screen to catch it. The rubric credits either ranking as long as the comparison between a quiet failure and a visible one is made; a crash on a slow connection is this market's normal condition and ranking B higher with that reason reaches 4. Is that the right call, or should the question have a right answer? And is ₦50 too small to be taken seriously?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1238,7 +1238,7 @@ The disagreement put on the behaviour rather than between two people.
 - **3 (solid):** Writes what the behaviour is and what it disagrees with, so the conversation is about the product rather than about who is right, and gets what is agreed written down. Scored on what they put on the record, never on whether they could overrule anyone — that is a fact about the workplace.
 - **4 (excellent):** As 3, and says what they would do if it is decided against them and they still think it is wrong.
 
-> **The drafter is unsure about:** **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question into a conflict question), a concrete case went into the context, and it is now offered at intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one correction to my own note, found by the stress test:** I had written that the two dates "cannot both be right". They can — `03/11/2026` _is_ `11 March 2026` if the list puts the month first, and a blind answer took that wrong turn in the other direction, calling them four months apart and filing a backend defect. The data does not settle this. What the question tests is which convention the product means, which is the better question here, because dd/mm is the local convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
+> **The drafter is unsure about:** **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question into a conflict question), a concrete case went into the context, and it is now offered at intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one correction to my own note, found by the stress test:** I had written that the two dates "cannot both be right". They can — `03/11/2026` *is* `11 March 2026` if the list puts the month first, and a blind answer took that wrong turn in the other direction, calling them four months apart and filing a backend defect. The data does not settle this. What the question tests is which convention the product means, which is the better question here, because dd/mm is the local convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1426,7 +1426,7 @@ An assertion about something the test made, rather than a count across everythin
 - **1 (weak):** Keeps the count and bends the shared data to fit it — locking the job, or deleting every other application for it in setup so the number comes out at one — which makes this test pass by breaking the tests it deletes under.
 - **2 (partial):** Says the test needs its own data, without saying what changes about the assertion.
 - **3 (solid):** Asserts on the application this test just created rather than on a count across everything.
-- **4 (excellent):** As 3, and says when a count _is_ the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
+- **4 (excellent):** As 3, and says when a count *is* the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
 
 **The shortcut, and what it costs — 25%**
 
@@ -1631,9 +1631,9 @@ Derive it, state the assumption, or find the breaking point instead.
 **Setup the candidate is given**
 
 > ```js
-> cy.get('[data-testid="apply"]').click();
-> cy.wait(3000);
-> cy.get('[data-testid="confirmation"]').should("contain", "Application sent");
+> cy.get('[data-testid="apply"]').click()
+> cy.wait(3000)
+> cy.get('[data-testid="confirmation"]').should('contain', 'Application sent')
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -1697,9 +1697,9 @@ A cap, a genuinely slow operation, and what a failed timeout should say.
 **Setup the candidate is given**
 
 > ```ts
-> await page.getByTestId("apply").click();
-> await page.waitForTimeout(3000);
-> await expect(page.getByTestId("confirmation")).toContainText("Application sent");
+> await page.getByTestId('apply').click()
+> await page.waitForTimeout(3000)
+> await expect(page.getByTestId('confirmation')).toContainText('Application sent')
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -1892,12 +1892,12 @@ No reference outliving an action, and what a blanket retry hides.
 
 > ```js
 > beforeEach(() => {
->   cy.visit("/login");
->   cy.get('[data-testid="email"]').type("tester@example.com");
->   cy.get('[data-testid="password"]').type(Cypress.env("PASSWORD"));
->   cy.get('[data-testid="submit"]').click();
->   cy.url().should("include", "/dashboard");
-> });
+>   cy.visit('/login')
+>   cy.get('[data-testid="email"]').type('tester@example.com')
+>   cy.get('[data-testid="password"]').type(Cypress.env('PASSWORD'))
+>   cy.get('[data-testid="submit"]').click()
+>   cy.url().should('include', '/dashboard')
+> })
 > ```
 >
 > The suite has 140 tests across 30 spec files and takes 22 minutes. Signing in takes about six
@@ -1965,12 +1965,12 @@ Sign-in itself, including the failure paths.
 
 > ```ts
 > // playwright.config.ts
-> export default defineConfig({ workers: 4 });
+> export default defineConfig({ workers: 4 })
 > ```
 >
 > ```ts
 > // every spec file
-> test.use({ storageState: "playwright/.auth/user.json" }); // one saved session, one account
+> test.use({ storageState: 'playwright/.auth/user.json' })   // one saved session, one account
 > ```
 >
 > Three of the specs change the same saved profile — the name, the phone number, the CV.
@@ -2156,7 +2156,7 @@ Read-only, its own account, data it is allowed to touch.
 - **3 (solid):** Reads only, with an account that can do nothing else, against data they are allowed to touch, and nothing that creates or deletes.
 - **4 (excellent):** As 3, and says what it is for — checking that the deployed thing is up and shaped as expected — and that a suite which never runs anywhere but staging is testing staging.
 
-> **The drafter is unsure about:** **Version-sensitive: that a host can be held in an environment variable, that a value can be marked so it is stored locally and not shared, and that a secret can be injected into a command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) — the vocabulary has moved: there is no longer a "secret" variable _type_, it is a **secure variable**, and vault secrets are now the recommended home for credentials. The docs frame the hazard as syncing and team sharing rather than as committing to git, which is the framing this question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the secret, and production) and two passes said the production clause taught a habit we would rather not teach. It is now a question about hosts and the secret, with production as something to push back on. Is that the right call, or should a read-only check against production be credited more warmly than the fifth answer-key point allows?
+> **The drafter is unsure about:** **Version-sensitive: that a host can be held in an environment variable, that a value can be marked so it is stored locally and not shared, and that a secret can be injected into a command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) — the vocabulary has moved: there is no longer a "secret" variable *type*, it is a **secure variable**, and vault secrets are now the recommended home for credentials. The docs frame the hazard as syncing and team sharing rather than as committing to git, which is the framing this question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the secret, and production) and two passes said the production clause taught a habit we would rather not teach. It is now a question about hosts and the secret, with production as something to push back on. Is that the right call, or should a read-only check against production be credited more warmly than the fifth answer-key point allows?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

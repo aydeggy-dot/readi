@@ -1,5 +1,5 @@
-# Rubrics for the frontend question bank. One per question, except the two behavioural questions,
-# which share `behavioural-answer-quality` from ../rubrics.shared.yaml.
+# Rubrics for the frontend question bank. One per question; the role-general behavioural and
+# communication questions are scored by purpose-built rubrics in ../rubrics.shared.yaml.
 #
 # House style: three criteria, weights adding to 100, five descriptors each (0 absent … 4
 # excellent). The descriptors are what the evaluator scores against, so two people reading the same

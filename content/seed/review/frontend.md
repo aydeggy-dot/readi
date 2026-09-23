@@ -266,7 +266,7 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 - **3 (solid):** Names the real cost of their choice and when it would push them to a different one.
 - **4 (excellent):** As 3, and gives the signal they would watch for to change the decision later.
 
-> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
+> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should *live*, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -770,26 +770,11 @@ Ephemeral interface state — an open menu, an unsent draft — is not a URL con
 **Setup the candidate is given**
 
 > ```css
-> .cards {
->   display: grid;
->   grid-template-columns: 1fr;
-> }
+> .cards { display: grid; grid-template-columns: 1fr; }
 >
-> @media (min-width: 480px) {
->   .cards {
->     grid-template-columns: 1fr 1fr;
->   }
-> }
-> @media (min-width: 768px) {
->   .cards {
->     grid-template-columns: 1fr 1fr 1fr;
->   }
-> }
-> @media (min-width: 1024px) {
->   .cards {
->     grid-template-columns: 1fr 1fr 1fr 1fr;
->   }
-> }
+> @media (min-width: 480px) { .cards { grid-template-columns: 1fr 1fr; } }
+> @media (min-width: 768px) { .cards { grid-template-columns: 1fr 1fr 1fr; } }
+> @media (min-width: 1024px) { .cards { grid-template-columns: 1fr 1fr 1fr 1fr; } }
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -1305,7 +1290,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 - **1 (weak):** Updates the class names in all eleven tests and moves on.
 - **2 (partial):** Rewrites some selectors without a rule for the rest.
 - **3 (solid):** Selects by role, label or visible text, so the next refactor does not break them.
-- **4 (excellent):** As 3, and names a change to this screen that _should_ break a test, so the fix is not "make the tests never fail".
+- **4 (excellent):** As 3, and names a change to this screen that *should* break a test, so the fix is not "make the tests never fail".
 
 > **The drafter is unsure about:** This is the strongest testing question in the bank in my view, but it assumes the candidate has lived with a test suite long enough to have felt the cost, which many juniors here will not have. Two passes said mid only; one said keep both levels but move criterion 2's weight onto the two criteria that test reasoning rather than experience. I have done neither, because both are judgements about this market rather than defects. Which would you take?
 
@@ -1465,11 +1450,9 @@ A missing property means data that was assumed to be there was not.
 > 3. Ada Nwosu
 >
 > ```jsx
-> {
->   applications.map((application, index) => (
->     <ApplicationRow key={index} application={application} />
->   ));
-> }
+> {applications.map((application, index) => (
+>   <ApplicationRow key={index} application={application} />
+> ))}
 > ```
 >
 > `ApplicationRow` keeps the note the user is typing in its own `useState`. The tester then
@@ -1765,7 +1748,7 @@ Reactivity belongs to the container, not to the value taken out of it.
 - Reloading the jobs leaves the old filtered list on screen until the next keystroke.
 - The filtered list is derived from two things, so it should be computed rather than stored.
 - A computed value recalculates when either of them changes, and there is then only one list.
-- A watcher is still right for something that has to _happen_ on a change — sending an analytics event, saving a draft.
+- A watcher is still right for something that has to *happen* on a change — sending an analytics event, saving a draft.
 
 **Rubric: Diagnosing a stored list that drifts from its source** (`derived-list-diagnosis`)
 
@@ -1799,7 +1782,7 @@ Something that has to happen when a value changes, as opposed to a value that fo
 - **3 (solid):** Gives an example that has to happen rather than be shown — analytics, saving a draft, a request.
 - **4 (excellent):** As 3, and separates it from the filtered list by asking whether anything outside the component has to change.
 
-> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when _is_ a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
+> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when *is* a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1889,9 +1872,7 @@ Anything started in a component — subscription, timer, listener — is ended w
 > @Component({
 >   selector: "job-list",
 >   changeDetection: ChangeDetectionStrategy.OnPush,
->   template: `@for (job of jobs; track job.id) {
->     <job-row [job]="job" />
->   }`,
+>   template: `@for (job of jobs; track job.id) { <job-row [job]="job" /> }`,
 > })
 > export class JobListComponent {
 >   @Input() jobs: Job[] = [];
@@ -2185,7 +2166,7 @@ Something specific they would do differently, and why they did not know it then.
 - **3 (solid):** Names a specific change and what went wrong that taught them it.
 - **4 (excellent):** As 3, and separates what they could reasonably have known at the time from what only experience gives.
 
-> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
+> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the *shape* of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2330,13 +2311,13 @@ JSON — and the difference between a junior and a mid-level engineer is usually
 much of that they thought about.
 
 **`fetch` only rejects when the request could not be made at all.** A 404 or a 500 is a
-_successful_ fetch with an unhappy status. This is the single most common mistake in
+*successful* fetch with an unhappy status. This is the single most common mistake in
 frontend error handling:
 
 ```js
 const response = await fetch(url);
 if (!response.ok) throw new Error(`HTTP ${response.status}`); // without this, a 500
-const data = await response.json(); // becomes a parse error
+const data = await response.json();                          // becomes a parse error
 ```
 
 **Every screen that loads data has four states**, and all four need a design: loading,
@@ -2351,7 +2332,7 @@ user can choose.
 response did not arrive can take money twice — that is why the API gives you an
 idempotency key. When in doubt, ask, and say so in the interview.
 
-Finally: show _something_ useful while waiting. A skeleton that matches the shape of
+Finally: show *something* useful while waiting. A skeleton that matches the shape of
 the content beats a spinner, because the page does not jump when the data lands.
 
 - [ ] the lessons above are accurate, current, and worth a junior's time
@@ -2388,7 +2369,7 @@ useEffect(() => setTotal(items.reduce(sum, 0)), [items]);
 const total = items.reduce(sum, 0);
 ```
 
-**Server data is not UI state.** A list of jobs fetched from an API is a _cache_ of
+**Server data is not UI state.** A list of jobs fetched from an API is a *cache* of
 something that lives elsewhere: it can be stale, it can fail, it needs refetching. Copying
 it into `useState` and editing it by hand is how lists get out of step with the server.
 This is what TanStack Query and friends exist for.
@@ -2403,7 +2384,7 @@ back button. It costs nothing and interviewers notice.
 
 `useEffect` is for synchronising with something **outside** React — the network, a
 timer, a subscription, the document title, a map widget. Almost every other use of it
-is a bug waiting to happen, because an effect runs _after_ render, which means the user
+is a bug waiting to happen, because an effect runs *after* render, which means the user
 sees one frame of the wrong thing first.
 
 Three patterns worth recognising, because interviewers ask about all three:
@@ -2412,8 +2393,8 @@ Three patterns worth recognising, because interviewers ask about all three:
 during render. An effect that calls `setState` from props causes a second render every
 time.
 
-**2. Reacting to an event in an effect.** If something should happen _because the user
-clicked_, do it in the click handler. An effect watching a state variable cannot tell
+**2. Reacting to an event in an effect.** If something should happen *because the user
+clicked*, do it in the click handler. An effect watching a state variable cannot tell
 "the user did this" from "this arrived from the server", and it will fire in cases you
 did not intend.
 
@@ -2484,7 +2465,7 @@ well-known fixes.
 most of what it cost to download. `srcset` and `sizes` let the browser choose. Prefer
 modern formats (WebP, AVIF) with a fallback. Always set `width` and `height` — the
 browser then reserves the space and the text below does not jump when the image lands.
-Use `loading="lazy"` for anything below the fold, and _not_ for the main image, which
+Use `loading="lazy"` for anything below the fold, and *not* for the main image, which
 you want early.
 
 **Fonts.** A custom font blocks the text that uses it. `font-display: swap` shows the

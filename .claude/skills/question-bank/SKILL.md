@@ -145,6 +145,18 @@ against the question, and expect a defensible bank to contain 25/30/45 and 45/25
 number**. If 2 and 3 differ only in tone, or 4 is "as 3, but more confident", the rubric is
 defective — sharpen it before the stress test finds it.
 
+**Two checks now catch what a pass used to** (2026-09-23, owner's decision). `check-bank.mjs` warns
+when one weight split covers more than half a rubric file, and when a criterion keeps its specificity
+in level 4 instead of level 3. `check-stress.mjs` prints **calibration notes** — a rubric whose
+`strong` takes the ceiling everywhere has no headroom, and one whose `weak` clears 2 on every
+criterion has a bottom that is not anchored. **Both are proxies, and the level-4 one needs reading
+rather than obeying**: of its seven hits in the QA bank only two were real defects, because length is
+not specificity — a tersely written level 3 can be perfectly calibrated, and a scoring instruction
+inside level 4 ("either verdict reaches 4 if that comparison is made") inflates the ratio without
+asking the candidate for anything. What is deliberately **not** checked is whether level 4 is phrased
+"As 3, and …": it is in **308 of 309** descriptors across three banks, because that is the house
+style, so a check on the shape would flag the style and nothing else.
+
 **Put the thing you would hire on at level 3, not level 4.** Level 4 is the rare answer; level 3 is
 "this person can do the job". If the behaviour that makes a candidate worth hiring sits in the level-4
 clause, then a candidate scoring 3 across the bank reads as competent while missing the whole point of
@@ -228,11 +240,30 @@ the test is worth running before the rubric is finished rather than after. Appli
 frontend, shared and backend rubric on 2026-09-22; every bank after that is written this way from
 the start.
 
-**A shared rubric must be able to score its questions.** A behavioural answer is judged the same way
-whatever the role, so the shared rubric is right — until a question is written about a _specific_
-judgement, at which point the shared criteria have nowhere to put it and the question quietly scores
-storytelling form instead. If a question's `ideal_points` name something no criterion touches, one of
-the two is wrong.
+**A shared rubric must be able to score its questions.** If a question's `ideal_points` name
+something no criterion touches, one of the two is wrong. Sharing works where two questions really do
+score the same dimensions against different material — several `test_design` questions do, and share
+one rubric on purpose.
+
+**A behavioural question needs its own rubric. Do not write a generic one.** This is settled, and it
+cost four questions to settle. `behavioural-answer-quality` — situation, actions, outcome — was the
+rubric every behavioural question started on, and it lost four times out of four:
+
+| Question                      | What it is really about           | How it was caught                                                                                                                                               |
+| ----------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stuck-and-asked-for-help`    | judgement about _when_ to ask     | frontend critique passes, 2026-09-22                                                                                                                            |
+| `feedback-on-your-code`       | a comment they did not agree with | frontend critique passes, 2026-09-22                                                                                                                            |
+| `incident-you-contributed-to` | owning a share of the fault       | two backend passes argued it; the **stress test proved it** — a polished story about somebody else's outage scored 3.70, identical to the candidate's own break |
+| `pushing-back-on-a-release`   | how they made the case            | all four QA passes, 2026-09-23                                                                                                                                  |
+
+The reason is structural, not bad luck. Situation / actions / outcome describes the _shape_ of a
+story, and story shape is coachable in an afternoon — so a generic behavioural rubric scores the one
+thing that does not distinguish candidates, while the specific judgement the question was written to
+find has nowhere to land. The first two criteria of a good behavioural rubric can stay close to that
+shape; **the criterion that carries the most weight has to be the judgement itself.** The rubric was
+deleted on 2026-09-23 (owner's decision) so that nobody starts from it again. Where a behavioural
+question is asked of several roles, its own rubric lives in `rubrics.shared.yaml` — shared across
+roles, never across questions.
 
 **Prose.** Say the thing. No marketing, no "leverage", no em-dash-joined lists of adjectives. The
 reviewer is a working engineer whose time we are spending.

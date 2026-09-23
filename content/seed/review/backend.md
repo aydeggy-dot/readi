@@ -192,7 +192,7 @@ Proxies, caches, retries, load balancers and error tracking all act on it and ne
 - **3 (solid):** Names something in the path that acts on a 200 — a cache storing it, a retry not happening, an error rate that looks clean.
 - **4 (excellent):** As 3, and says the monitoring is the expensive one: a failure that reports as success is invisible until a customer calls.
 
-> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on _which_ 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
+> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on *which* 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -278,9 +278,8 @@ A change to a live contract needs a path that does not strand the apps on phones
 > ```
 >
 > ```js
-> const paid = await sumPayments(invoiceId); // 45200.100000000006
-> if (paid === invoice.total) {
->   // invoice.total is 45200.10
+> const paid = await sumPayments(invoiceId);   // 45200.100000000006
+> if (paid === invoice.total) {                // invoice.total is 45200.10
 >   await markPaid(invoiceId);
 > }
 > ```
@@ -347,10 +346,7 @@ An exact type, with the currency beside it, and a conversion that is checked bef
 
 > ```js
 > async function transfer(fromId, toId, amountKobo) {
->   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [
->     amountKobo,
->     fromId,
->   ]);
+>   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [amountKobo, fromId]);
 >   await notify(fromId, "Transfer sent");
 >   await db.query("UPDATE accounts SET balance = balance + $1 WHERE id = $2", [amountKobo, toId]);
 > }
@@ -422,7 +418,7 @@ The accounts in that state exist now, and a code fix does not move them.
 >   if (cached) return res.json(JSON.parse(cached));
 >
 >   const data = await buildDashboard(req.user.id);
->   await redis.set("dashboard", JSON.stringify(data), "EX", 300); // kept for 5 minutes
+>   await redis.set("dashboard", JSON.stringify(data), "EX", 300);   // kept for 5 minutes
 >   res.json(data);
 > });
 > ```
@@ -547,7 +543,7 @@ A cache in front of a slow query leaves the slow query there, now harder to see.
 > ```js
 > app.post("/api/signup", async (req, res) => {
 >   const user = await createUser(req.body);
->   await sendWelcomeEmail(user.email); // calls the provider's API
+>   await sendWelcomeEmail(user.email);   // calls the provider's API
 >   res.status(201).json({ id: user.id });
 > });
 > ```
@@ -677,10 +673,7 @@ A vendor has been paid twice; a code change does not undo that.
 >
 > // on sign-in
 > const hash = crypto.createHash("md5").update(password).digest("hex");
-> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [
->   email,
->   hash,
-> ]);
+> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [email, hash]);
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -755,7 +748,7 @@ The old hashes cannot be converted, because the password is not recoverable from
 
 - The check proves who the user is; nothing checks whether this invoice is theirs.
 - Knowing someone is signed in says nothing about what they may see.
-- Ask for the invoice by id _and_ owner, so a mismatch cannot return a row at all.
+- Ask for the invoice by id *and* owner, so a mismatch cannot return a row at all.
 - Doing it in the query rather than after the fetch means there is no gap to forget.
 - It belongs somewhere every route inherits, not copied into each handler where one will be missed.
 - Returning 404 rather than 403 avoids confirming that the other invoice exists.
@@ -1103,7 +1096,7 @@ Something has to touch the real provider, or watch the real failure rate.
 - **3 (solid):** Names something that would catch the provider changing — a scheduled sandbox run, a check against their published examples or changelog — rather than another test.
 - **4 (excellent):** As 3, and says two days is the real defect: whatever is added has to shorten that, not just exist.
 
-> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place _instead of_ a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
+> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place *instead of* a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1169,7 +1162,7 @@ The phone number, the account number, the token and the amount in plain text —
 - **3 (solid):** Names what to leave out — the phone number, the account number, the token — and logs an id that can be looked up instead.
 - **4 (excellent):** As 3, and notes the phone number is the account identifier for much of this market, so leaving it in is not a small thing, and that logs are read by more people than the database is.
 
-> **The drafter is unsure about:** The last clause is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so the prompt asks for it directly rather than charging for it silently. It carries 25%. Two things to check: is asking a junior what they would keep _out_ of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
+> **The drafter is unsure about:** The last clause is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so the prompt asks for it directly rather than charging for it silently. It carries 25%. Two things to check: is asking a junior what they would keep *out* of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1435,7 +1428,7 @@ Running it, following one path through, changing something to see what moves —
 - **1 (weak):** A method that is not a way in — reading it top to bottom with nothing tried, asking someone to explain the whole thing before touching it.
 - **2 (partial):** Names the code and one thing they did, without saying what it told them.
 - **3 (solid):** A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
-- **4 (excellent):** As 3, and worked out what the code was _for_ before deciding what it was doing wrong.
+- **4 (excellent):** As 3, and worked out what the code was *for* before deciding what it was doing wrong.
 
 **How they decided a change was safe — 35%**
 
@@ -1478,7 +1471,7 @@ Smaller than it was tempting to make, and they can say why.
 
 > ```js
 > app.get("/api/export", async (req, res) => {
->   const rows = await db.orders.findAll(); // ~80,000 rows
+>   const rows = await db.orders.findAll();          // ~80,000 rows
 >   const csv = rows.map(toCsvLine).join("\n");
 >   res.type("text/csv").send(csv);
 > });

@@ -94,9 +94,12 @@ worth more than eight you half-trust, and cutting is the cheapest improvement av
 
 - **`reviewer_notes` on each question is the drafter saying where it is unsure.** Those are the
   places most likely to need you. Answering them is more valuable than confirming what is fine.
-- **A rubric can be shared.** Both behavioural questions use one shared rubric
-  (`behavioural-answer-quality`) on purpose, because a behavioural answer is judged the same way
-  whatever the role. If you think a question needs its own, say so.
+- **A rubric can be shared, but a behavioural one usually should not be.** Several `test_design`
+  questions share a rubric because they really do score the same three dimensions against different
+  features. Behavioural questions turned out to be the opposite: the four that started on a generic
+  situation / actions / outcome rubric all ended up needing their own, because each is about a
+  _specific_ judgement that the generic criteria had nowhere to put. If a shared rubric cannot score
+  something a question's answer key asks for, say so — that is the most useful thing you can tell us.
 - **Weights add up to 100** and are a claim about what matters most in the answer. They are easy to
   change and often wrong on a first draft.
 - **Assume the candidate has never had an employer.** A large part of this audience is self-taught:

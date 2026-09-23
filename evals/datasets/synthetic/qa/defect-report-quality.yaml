@@ -100,8 +100,8 @@ answers:
       the developer didn't say which device or build he used, which — yeah, he should say.
     expected:
       - dimension: "Reproducible by someone else"
-        score: 3
-        because: "Level 3: has the precondition and the data — apply, then apply again for the same job, and put that in the steps — but never asks how often it happens out of how many attempts."
+        score: 2
+        because: Level 2 — has the precondition and the data, and never asks how often it happens out of how many attempts, which level 3 now requires.
       - dimension: "Separates observation from interpretation"
         score: 4
         because: 'Level 4: "the earlier-application thing is her theory, she didn''t see that cause" — the theory is separated and marked, against what was actually seen.'

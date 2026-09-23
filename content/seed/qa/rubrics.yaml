@@ -38,8 +38,8 @@ rubrics:
           "0": No boundary cases.
           "1": Tests a boundary on the wrong side of the rule, or treats a round number as the boundary when the rule puts it elsewhere.
           "2": One or two boundaries, missing the values either side — a single empty-field check is level 1, not this.
-          "3": Tests each boundary and its neighbours.
-          "4": As 3, including edges that are easy to forget — empty input, whitespace, very long values, duplicates — and the input formats that actually occur here, such as a number entered with a leading zero and the same number in +234 form.
+          "3": Tests each boundary and its neighbours, and the input formats that actually occur here — a number with a leading zero, and the same number in +234 form.
+          "4": As 3, including the edges that are easy to forget — empty input, whitespace, very long values, duplicates.
       - dimension: Thinks past the happy path, and says where the list stops
         description: States and sequences — double submission, going back, a dropped connection — and a stated reason the list is long enough.
         weight: 45
@@ -60,8 +60,8 @@ rubrics:
           "0": A description of the problem with no steps.
           "1": Steps that skip preconditions or assume the reader's setup — or a precise sequence of taps that leaves out the account and the data it was done with, so it cannot be repeated.
           "2": Mostly complete steps, missing test data or an account detail.
-          "3": Numbered steps, preconditions, and the data used.
-          "4": As 3, and states how often it happens out of how many attempts — and a developer who has never seen the screen could act on it without asking anything back.
+          "3": Numbered steps, preconditions, the data used, and how often it happens out of how many attempts.
+          "4": As 3, and a developer who has never seen the screen could act on it without asking anything back.
       - dimension: Separates observation from interpretation
         description: What happened and what was expected, kept apart from a theory about the cause.
         weight: 30

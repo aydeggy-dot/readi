@@ -18,6 +18,7 @@
 //     including by the *quantity* of speech ("a detailed plan", "a thorough set of flows")
 //   - a prompt that asks for fewer things than its rubric scores
 //   - a rubric file whose weights are a template rather than a claim
+//   - a criterion that keeps its specificity in level 4 instead of level 3
 //
 // `--numbers` prints every quantitative claim in the bank as a worklist and checks nothing: a
 // fact-check asks a vendor whether a claim about their product holds, and cannot tell you that a
@@ -85,6 +86,13 @@ const WEIGHT_TOTAL = Number(constantsSource.match(/RUBRIC_WEIGHT_TOTAL = (\d+)/)
 
 /** House style, tighter than the contract on purpose (SKILL.md). */
 const HOUSE = { criteria: { min: 3, max: 5 }, descriptors: ["0", "1", "2", "3", "4"] };
+
+/*
+ * Thresholds for the level-3 / level-4 balance, chosen by measuring the three banks rather than
+ * guessed: `topHeavy` at 1.6 warns on 12 of 305 criteria (3%), and 1.2 would warn on 57 (18%), which
+ * is noise. `thin` at 55 warns on 10. Both are proxies for a judgement — see the comment at the check.
+ */
+const LEVEL_FOUR = { topHeavy: 1.6, thin: 55 };
 
 // ------------------------------------------------------------------------------------------- //
 
@@ -340,6 +348,40 @@ for (const rubric of rubrics.values()) {
         where,
         `"${suspect[0]}" can read as delivery — keep it only if it describes what was said rather than how`,
       );
+
+    /*
+     * Where the criterion puts its specificity — level 3 or level 4.
+     *
+     * Level 3 is "this person can do the job" and level 4 is the rare answer, so the thing you would
+     * actually hire on belongs at 3. A QA critique pass found six criteria at once where it sat at 4
+     * instead, which means a candidate scoring 3 across the bank reads as competent while missing the
+     * point of every criterion — and the nervous-junior pass found the same thing from the other end
+     * ("I would understand the 0s and the 3s, but not one of the 4s").
+     *
+     * What is NOT checked here, deliberately: whether level 4 is phrased as "As 3, and …". It is in
+     * **308 of 309** descriptors across the three banks, because that is the house style — so a check
+     * on the shape would flag the style itself and nothing else. What is checkable is the *balance*:
+     * a level 4 carrying far more detail than the level 3 under it is a criterion whose specificity
+     * has drifted upwards, and a level 4 carrying almost none is decoration. Both are proxies and
+     * both are warnings; the semantic question is still a reading.
+     */
+    const additive = String(criterion.levels?.["4"] ?? "").match(/^As 3,?\s*(and|including|plus|with)?\s*/i);
+    if (additive) {
+      const added = String(criterion.levels["4"]).slice(additive[0].length).trim().length;
+      const three = String(criterion.levels?.["3"] ?? "").trim().length;
+      if (three > 0 && added > LEVEL_FOUR.topHeavy * three)
+        warn(
+          rubric.file,
+          where,
+          `level 4 adds ${added} characters over a level 3 of ${three} — the specificity is in the top band, so an answer scoring 3 may be missing what this criterion is for. Move what you would hire on down to 3`,
+        );
+      else if (added > 0 && added < LEVEL_FOUR.thin)
+        warn(
+          rubric.file,
+          where,
+          `level 4 adds only ${added} characters over level 3 — it should contain something that cannot be bluffed, not a flourish`,
+        );
+    }
   }
 }
 
