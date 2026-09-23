@@ -68,6 +68,7 @@ describe("the stack dimension", () => {
       context: null,
       rubric_id: rubricId,
       ideal_points: ["Measures first"],
+      planned_follow_ups: [],
     };
     const created = await http().post("/api/admin/content/questions").set(as(admin)).send(body);
     expect(created.status).toBe(201);
@@ -280,6 +281,7 @@ describe("the stack dimension", () => {
           context: null,
           rubric_id: rubricId,
           ideal_points: ["Because"],
+          planned_follow_ups: [],
         });
       expect(response.status).toBe(400);
       expect(response.body).toMatchObject({ code: "stack_not_found" });

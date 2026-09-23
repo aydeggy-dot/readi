@@ -90,12 +90,18 @@ Pure, no I/O in transitions, `now` passed in. Lives in the worker.
 - **Follow-ups come from the question, not from the model** (owner's decision, 2026-09-23). Each
   question carries **planned follow-ups** — one per rubric criterion the opening prompt does not ask
   for — and the engine picks from them. The LLM phrases the chosen one; it does not decide what to
-  probe. Still capped in code at `max_followups` (default 2), whatever the model says.
+  probe. Still capped in code at `max_follow_ups` (default 2), whatever the model says.
 - **The planned list is a menu, not a script.** The engine asks a follow-up only for a criterion the
   answer has **not** already covered. A candidate whose first answer covers all three criteria gets no
   follow-up and moves on — asking the planned questions anyway would punish a complete answer with two
   redundant ones. Selection is "probe what is missing", exactly as before; what changed is that the
   probes are written by whoever wrote the question rather than derived at runtime.
+- **Selection when the menu is longer than the budget.** A criterion may carry **two** probes
+  (owner's decision, 2026-09-23, after the QA pilot), so a question can offer more probes than
+  `max_follow_ups` allows — one QA question offers four. The rule: **prefer a criterion nothing has
+  probed yet**, and reach a second probe on the same criterion only when no other criterion is
+  uncovered. Within a criterion, ask them in the order the question lists them; the first is the
+  primary one, and the banks are written that way.
 - **The rubric no longer reaches the interviewer model.** Because the probes are pinned on the
   question, the live conversation needs the planned follow-ups and the per-criterion coverage flags —
   not the criteria, the weights or the level descriptors. That removes the answer key from every
@@ -182,6 +188,12 @@ SessionTurn        session_id (cascade), seq, speaker, state, session_question_i
 
 `follow_up_index` points into the question's **planned** follow-ups, so a transcript says which probe
 was asked rather than only that one was.
+
+**The field itself is built** (2026-09-23): `questions.planned_follow_ups` is `[{ criterion, probe }]`
+where `criterion` is the criterion's position in the rubric, and the QA bank carries all 74 of its
+probes. So M3 writes `interview_followup.v1.md` against real content rather than against a plan, which
+was the whole reason it landed first. What M3 still owes: the session bundle carrying them, the choice
+of probe, and `criteria_covered`.
 
 **`criteria_covered` is the coverage log**, written on every candidate turn: one entry per rubric
 criterion, whether this answer touched it, and which follow-up (if any) the engine then chose. It is

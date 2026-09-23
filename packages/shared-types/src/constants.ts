@@ -195,6 +195,22 @@ export const CONTENT_LIMITS = {
   subtopicMaxLength: 80,
   idealPoints: 10,
   idealPointMaxLength: 300,
+  /**
+   * Planned follow-ups: the probes the engine may ask when an answer has not covered a criterion
+   * (owner's decision, 2026-09-23). House style is one per criterion the opening prompt does not
+   * ask for, and a second only where a criterion genuinely scores two separable things — so this
+   * leaves room for house style's five criteria at the per-criterion cap, rather than being a
+   * number anybody writes up to.
+   */
+  plannedFollowUps: 10,
+  /**
+   * Two, not one, since the QA pilot: a criterion scoring two separable things needs a probe for
+   * each, or half of it is scored and never asked. A third probe means the criterion should have
+   * been split.
+   */
+  followUpsPerCriterion: 2,
+  /** One sentence, as the interviewer would say it out loud. */
+  followUpProbeMaxLength: 300,
   /** House style is 3–5 criteria; the contract leaves room without inviting a wall of them. */
   rubricCriteria: { min: 2, max: 8 },
   dimensionMaxLength: 80,

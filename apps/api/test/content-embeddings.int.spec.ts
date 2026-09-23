@@ -54,6 +54,7 @@ describe("question embeddings", () => {
         context: null,
         rubric_id: rubricId,
         ideal_points: ["Measures first"],
+        planned_follow_ups: [],
       });
     expect(created.status).toBe(201);
     const question = created.body as Question;
@@ -247,6 +248,7 @@ describe("question embeddings", () => {
         context: null,
         rubric_id: question.rubricId,
         ideal_points: question.idealPoints,
+        planned_follow_ups: [],
       });
     expect(response.status).toBe(200);
     expect(worker.embedRequests.at(-1)?.texts).toEqual([rewritten]);
@@ -279,6 +281,7 @@ describe("question embeddings", () => {
         context: null,
         rubric_id: rubricId,
         ideal_points: ["Something"],
+        planned_follow_ups: [],
       });
     questions.push((created.body as Question).id);
     expect(worker.embedRequests.length).toBe(before);

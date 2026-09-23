@@ -14,20 +14,20 @@ first and a reviewer's time goes to judgement rather than to obvious fixes.
 
 **Read `content/seed/README.md` first** (the format and what the importer does), then
 `content/seed/REVIEW.md` (what we ask a human expert to check — the bank is written to be reviewed
-against those six questions), then the role's row in `docs/role-catalogue.md`.
+against those seven questions), then the role's row in `docs/role-catalogue.md`.
 
 ## The procedure
 
-| Step           | Output                                                            | Gate                                                   |
-| -------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
-| 1. Blueprint   | `content/seed/blueprints/<role>.md`                               | The owner reads it **before** any question is drafted  |
-| 2. Catalogue   | rows in `roles.yaml`, `stacks.yaml`, `levels.yaml`, `topics.yaml` | `check-bank.mjs` resolves every slug                   |
-| 3. Draft       | `content/seed/<role>/{questions,rubrics}.yaml`                    | `check-bank.mjs`, then `pnpm db:seed -- --dry-run`     |
-| 4. Critique    | edits, and `reviewer_notes` where it is a judgement call          | `references/critique.md` — four passes, run separately |
-| 5. Fact-check  | edits, and the blueprint's fact-check appendix                    | Current official docs, dated — **and the arithmetic**  |
-| 6. Stress test | `evals/datasets/synthetic/<role>/<rubric>.yaml`                   | `references/stress-test.md` — five answers per rubric  |
-| 7. Coverage    | the blueprint's closing section                                   | Bank against blueprint, and against a real interview   |
-| 8. Hand over   | `pnpm --filter @readi/api content:review-doc`                     | The expert reads the generated page, not the YAML      |
+| Step           | Output                                                                    | Gate                                                   |
+| -------------- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 1. Blueprint   | `content/seed/blueprints/<role>.md`                                       | The owner reads it **before** any question is drafted  |
+| 2. Catalogue   | rows in `roles.yaml`, `stacks.yaml`, `levels.yaml`, `topics.yaml`         | `check-bank.mjs` resolves every slug                   |
+| 3. Draft       | `content/seed/<role>/{questions,rubrics}.yaml`, with `planned_follow_ups` | `check-bank.mjs`, then `pnpm db:seed -- --dry-run`     |
+| 4. Critique    | edits, and `reviewer_notes` where it is a judgement call                  | `references/critique.md` — four passes, run separately |
+| 5. Fact-check  | edits, and the blueprint's fact-check appendix                            | Current official docs, dated — **and the arithmetic**  |
+| 6. Stress test | `evals/datasets/synthetic/<role>/<rubric>.yaml`                           | `references/stress-test.md` — five answers per rubric  |
+| 7. Coverage    | the blueprint's closing section                                           | Bank against blueprint, and against a real interview   |
+| 8. Hand over   | `pnpm --filter @readi/api content:review-doc`                             | The expert reads the generated page, not the YAML      |
 
 Step 1 is not a formality. A bank drafted without a blueprint reliably ends up as "the questions the
 drafter found interesting", uneven across topics and levels, and the gap is invisible until someone
@@ -101,37 +101,91 @@ generalist reviewer.` The seed contract has no field for this and does not need 
 
 ## House style
 
-**Questions.** One question asks one thing. The prompt is what an interviewer would actually say out
+**Questions.** One question asks one thing, and means it — see the next rule for where the rest of
+the rubric gets asked. The prompt is what an interviewer would actually say out
 loud, in the second person, without preamble — the engine speaks it. Context (a snippet, a log, a
 report) goes in `context`, never in the prompt. Prefer "here is a situation, what do you do" over
 "define X": the engine's strength is the follow-up, and a definition has nowhere to go. Set
 `difficulty` against the level it is offered at, not against the field. `ideal_points` is the answer
 key: what a strong answer covers, each point checkable, three to six of them.
 
-**Every criterion must have a clause in the spoken prompt that asks for it.** This is the defect a
-critique pass found nine times in one bank: the prompt asks for a diagnosis and the rubric charges
-35% for a fix, or 20% for a keyword the prompt never says. The candidate answers the question they
-were asked, completely, and loses a third of the score. Read each criterion, find the words in the
-prompt that ask for it, and if there are none, add them or drop the criterion.
+**Every criterion is asked for by the prompt or by a planned follow-up.** This is the defect a
+critique pass found nine times in one bank and the next pass eighteen times in the next: the prompt
+asks for a diagnosis and the rubric charges 35% for a fix, or 20% for a keyword the prompt never
+says. The candidate answers the question they were asked, completely, and loses a third of the
+score. Read each criterion and find where it is asked for — in the prompt, or in a probe.
 
-**An open tension, not yet resolved.** The first finding of both the senior-interviewer and the
-nervous-junior pass on the QA bank was that a prompt shaped this way is triple-barrelled, and the
-senior pass gave the argument that matters: it **pre-empts the engine**, whose job is to generate
-follow-ups that probe missing rubric points (CLAUDE.md §5). The junior's version is that the last
-clause is the one they forget and it carries a third of the marks. Both are right, and the rule below
-is also right — it was written because the frontend pass found nine criteria charging for something
-never asked and the backend pass eighteen. The resolution is probably that the prompt must raise every
-criterion's **subject** while the follow-up draws out the detail, which would mean changing this rule
-and the check together. Until the owner decides, write the clauses plainly and short, and do not
-resolve it inside one bank.
+**The prompt asks one thing; the rest become planned follow-ups** (owner's decision, 2026-09-23;
+`docs/progress/2026-09-23-planned-follow-ups.md`). The rule above used to say "a clause in the
+spoken prompt", and that collided head-on with the engine: a prompt with a clause per criterion is
+triple-barrelled and asks the engine's own follow-ups for it, which the senior-interviewer and the
+nervous-junior passes on the QA bank both made their first finding. The resolution is **different
+moments, not one rule beating the other** — the opening prompt asks one thing, the way a real
+interviewer does, and every other criterion carries a probe in `planned_follow_ups`. The purpose is
+untouched: nothing charges for something the candidate was never asked. What moved is where the
+asking happens.
 
-**`check-bank.mjs` counts the asks** — a rubric with three criteria needs a prompt that asks for
-three things — and warns where a prompt asks for fewer. It was made a check after the rule was
-written down, made a hard rule here, and then broken **eighteen times in the next bank by the same
-drafter**. A rule that has to be remembered once per criterion is a rule that needs a check. The
-warning is not always a defect: a prompt may have one deliberately broad clause covering two
-criteria, and then the drafter says which in `reviewer_notes` and moves on. It is never ignored
-silently.
+So, writing a question:
+
+- **The prompt is one clause.** No "and", no "also", no trailing "and how would you know your list
+  is enough?". Read it aloud; if you run out of breath or lose the thread, it is still two questions.
+- **Each remaining criterion gets a probe**, `{ criterion, probe }`, where `criterion` is that
+  criterion's position in the rubric counting from 0 — not the criterion's name, because two
+  questions can share a rubric and positions are what the engine pins into a session.
+- **A criterion that scores two separable things gets two probes, and never three** (owner's
+  decision, 2026-09-23, after the QA pilot). One per criterion was the first rule, and the pilot
+  measured what it cost: `test-case-selection`'s third criterion is "thinks past the happy path
+  **and** says where the list stops" at 45%, so a single probe left half of it scored and never
+  asked — which is the defect this field exists to remove. The engine prefers a criterion nothing
+  has probed yet and reaches a second probe on the same criterion only when no other criterion is
+  uncovered, so **list a criterion's primary probe first**. Needing a third is the rubric telling
+  you the criterion should have been two criteria.
+- **Write the probe for a candidate who answered the prompt well and said nothing about this.**
+  That is the only case in which it is asked: the planned list is a **menu, not a script**, and the
+  engine skips a probe for a criterion the answer already covered. A probe that a good first answer
+  would always have pre-empted is a clause that belonged in the prompt.
+- **One sentence, spoken, second person.** No condition attached ("if they have not mentioned the
+  limit…"): that condition is the engine's rule, and it should not be branching on prose.
+- **Not a rephrasing of the criterion.** "Tell me about your prioritisation" is the dimension read
+  back; "which of those would you cut if you had a day?" is a question.
+
+**A criterion may go without a probe only when the opening question asks for that criterion and
+nothing else.** This is the load-bearing rule, and it was the one finding all four critique passes
+made independently on the QA pilot. One criterion is left un-probed because the prompt asks for it —
+but if the prompt is open ("What would you do?", "What do you tell them?"), two criteria compete to
+be the answer, and a candidate who leads with a **probed** criterion silently forfeits the un-probed
+one. There is no second chance by construction: the engine probes what the answer missed, and the
+criterion with no probe cannot be probed. Six QA questions had exactly this shape, three of them on a
+criterion worth 40% or more. The fix is to narrow the opening until it asks one criterion, not to
+hope. Where the opening genuinely cannot be narrowed, the question needs a probe on every criterion
+and the skill's "one per criterion the prompt does not ask" stops being enough — say so in
+`reviewer_notes` rather than shipping the gap.
+
+**Ask the criterion in the order the work happens.** A probe about what the candidate would decide
+_before starting_ cannot follow an answer describing what they did. Two QA questions had the plan
+criterion as a probe under an opening that asked how the hour or the work was spent, and three passes
+called it incoherent; both had their opening and first probe swapped.
+
+**A probe must not name the thing its criterion scores them for noticing.** The rule against a
+question handing over a criterion applies with more force to a probe, because a probe arrives after
+the candidate has already failed to say it. "Which of these rules brush against each other?" gives
+away that the rules interact, which was the whole of a 40% criterion; "your code arrives, you tap
+Resend, then you type the first one — what should happen?" walks them to the same place and lets them
+find it.
+
+**Never read a scoring constraint out loud.** "…explained without quoting a regulation at them" is an
+instruction to the evaluator that ended up in the candidate's ear, and it told the one candidate whose
+data-protection training is their strongest asset not to use it. Three of the four passes caught that
+single clause. A constraint on how an answer is scored lives in the descriptor; a probe asks for
+substance.
+
+**`check-bank.mjs` counts the asks** — a rubric with three criteria needs three things asked for,
+in the prompt or in a probe — and it is an **error**, not a warning. It was made a check after the
+rule was written down, made a hard rule here, and then broken **eighteen times in the next bank by
+the same drafter**. A rule that has to be remembered once per criterion is a rule that needs a
+check. The old warning had an escape hatch — one deliberately broad clause covering two criteria,
+named in `reviewer_notes` — which existed only because there was nowhere else to put the second ask.
+There is now.
 
 **Rubrics.** Three criteria; five if the answer genuinely has five separable parts. Weights total
 exactly 100 and are a claim about what matters most — **and if every rubric in the file carries the
@@ -351,8 +405,8 @@ pnpm format                                                       # the generato
 `check-bank.mjs` enforces what the seed contract does not: house style (3–5 criteria, five
 distinguishable descriptors), that a question's `type` is one its roles support, that its stacks and
 levels are ones its roles offer, the bank against its blueprint's targets, **descriptors that score
-the manner rather than the answer**, and **a prompt that asks for fewer things than its rubric
-scores**. The last two exist because both defects got past a written rule and a human reading. `pnpm db:seed --
+the manner rather than the answer**, and **a criterion asked for by neither the prompt nor a planned
+follow-up**. The last two exist because both defects got past a written rule and a human reading. `pnpm db:seed --
 --dry-run` is the authority on everything the contract owns — run both.
 
 ## References

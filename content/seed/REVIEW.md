@@ -34,7 +34,7 @@ review them once, where they are, and question 6 below asks the full-stack half 
 Each page puts a question, the answer key and all five level descriptors of its rubric in one
 place, with tick boxes. They print, and they render on GitHub.
 
-## The six things we are asking
+## The seven things we are asking
 
 **1. Would a real interviewer ask this, at this level?**
 Not "is it a fair question" — "have you asked it, or heard it asked, of someone at this stage?" A
@@ -52,10 +52,18 @@ have not listed, add it.
 If 2 and 3 say the same thing in different words, or if the jump from 3 to 4 is "says it more
 confidently", that is a defect — tell us, and if you can, say what the real difference is.
 
-**4. Is anything factually wrong or out of date?**
+**4. Is each planned follow-up what you would actually ask next?**
+The opening question asks one thing, the way you would. Each of the remaining criteria carries a
+**planned follow-up** — the probe the AI may ask if the answer has not already covered that
+criterion — and the page prints it under the criterion it belongs to. It is a menu, not a script: a
+candidate whose first answer covers everything is asked nothing further and moves on. Two things are
+worth telling us: a probe you would never ask, and a probe a good first answer would always have
+pre-empted, which means it should have been part of the opening question instead.
+
+**5. Is anything factually wrong or out of date?**
 Tools, versions and idioms move. The lessons in each track need the same eye.
 
-**5. Where a question names a stack, is that right — and where none is named, should one be?**
+**6. Where a question names a stack, is that right — and where none is named, should one be?**
 A question can be tagged for particular stacks ("React + TypeScript", "Java / Spring"), and the
 heading says so when it is. A tag is a narrowing: only candidates interviewing for that variant are
 ever asked it, and everyone else loses the question. Two are tagged today, both React ones, because
@@ -63,7 +71,7 @@ they show React code. The mistake in both directions costs something — tagging
 shrinks what most candidates practise, and leaving a framework-specific one untagged hands a Vue
 developer a React snippet — so say which you think each one is.
 
-**6. Does this question belong to full-stack as well?**
+**7. Does this question belong to full-stack as well?**
 Full-stack is one of our four launch roles and has **no bank of its own** — it is made of the
 frontend and backend questions that genuinely transfer, each carrying `fullstack` as a second role.
 Eleven of the fourteen do today; the three QA questions do not. The heading on each question says

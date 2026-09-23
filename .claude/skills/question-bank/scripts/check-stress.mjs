@@ -179,7 +179,9 @@ for (const row of rows.sort((a, b) => a.gapFluent - b.gapFluent))
   );
 
 if (notes.length) {
-  console.log(`\n${notes.length} calibration note(s) — not failures, but the rubrics to read again:`);
+  console.log(
+    `\n${notes.length} calibration note(s) — not failures, but the rubrics to read again:`,
+  );
   for (const note of notes) console.log(`  ${note}`);
 }
 

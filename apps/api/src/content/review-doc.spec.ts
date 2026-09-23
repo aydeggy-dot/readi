@@ -41,6 +41,7 @@ const question = (over: Partial<SeedQuestion> = {}): SeedQuestion => ({
   context: null,
   rubric: "a-rubric",
   ideal_points: ["Somehow."],
+  planned_follow_ups: [],
   reviewer_notes: "Nothing to flag.",
   ...over,
 });
@@ -75,5 +76,33 @@ describe("buildReviewDoc", () => {
       "stacks: react-typescript, react-node",
     );
     expect(build([question()])).not.toContain("stacks:");
+  });
+
+  /*
+   * Planned follow-ups print under the criterion they probe, because the question a reviewer is
+   * asked — does this probe draw out *that* criterion — cannot be answered without the criterion
+   * beside it. **Both** of a criterion's probes print: this page keyed them by criterion until
+   * 2026-09-23, when a criterion was allowed two, and it silently showed only the second.
+   */
+  describe("planned follow-ups", () => {
+    const probed = (planned: { criterion: number; probe: string }[]) =>
+      build([question({ planned_follow_ups: planned })]);
+
+    it("prints each probe under the criterion it probes", () => {
+      const page = probed([{ criterion: 1, probe: "And how would you say so?" }]);
+      expect(page).toContain("> And how would you say so?");
+      // The criterion with no probe says why it has none, rather than saying nothing.
+      expect(page).toContain("_Asked for by the opening prompt; no planned follow-up._");
+    });
+
+    it("prints both probes when a criterion carries two", () => {
+      const page = probed([
+        { criterion: 1, probe: "The first thing I would ask?" },
+        { criterion: 1, probe: "And the second?" },
+      ]);
+      expect(page).toContain("> The first thing I would ask?");
+      expect(page).toContain("> And the second?");
+      expect(page).toContain("the second only if the first did not draw it out");
+    });
   });
 });

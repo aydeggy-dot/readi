@@ -5,7 +5,7 @@ import type { LoadedSeedFile } from "./seed-loader";
  * One printable page per role, built from the seed files, for the experts who review drafted
  * content (CLAUDE.md §7.7). Reading YAML is a skill; reading a question next to its rubric is the
  * job. The document puts each question, its answer key and its five level descriptors together,
- * with a tick-box list of the four things a reviewer is being asked, and the drafter's own
+ * with a tick-box list of the five things a reviewer is being asked, and the drafter's own
  * uncertainties spelled out.
  */
 
@@ -59,7 +59,7 @@ export function buildReviewDoc(
   out.push("## What we are asking you");
   out.push("");
   out.push(
-    "For each question, four questions — the tick boxes under each one are there to be ticked:",
+    "For each question, five questions — the tick boxes under each one are there to be ticked:",
   );
   out.push("");
   out.push(
@@ -76,7 +76,13 @@ export function buildReviewDoc(
     "3. **Are the five level descriptors distinguishable?** Two people scoring the same answer " +
       "should land on the same number. If 2 and 3 say the same thing in different words, say so.",
   );
-  out.push("4. **Is anything factually wrong or out of date?** Tools and versions move.");
+  out.push(
+    "4. **Is each planned follow-up what you would actually ask next?** The opening prompt asks " +
+      "one thing, like a real interviewer; each remaining criterion carries the probe the AI may " +
+      "ask if the answer has not already covered it. A probe that repeats the prompt, or that a " +
+      "good first answer would always have pre-empted, is worth saying so.",
+  );
+  out.push("5. **Is anything factually wrong or out of date?** Tools and versions move.");
   out.push("");
   out.push(
     "Mark up this page, or edit the YAML directly — `content/seed/" +
@@ -143,7 +149,22 @@ function renderQuestion(
     out.push(`**Rubric \`${question.rubric}\` is missing from the seed files.**`);
   } else {
     out.push(`**Rubric: ${rubric.name}** (\`${rubric.slug}\`)`);
-    for (const criterion of rubric.criteria) {
+    /*
+     * The planned follow-up sits with the criterion it probes rather than in a list of its own,
+     * because the question a reviewer is being asked is "does this probe draw out *that*
+     * criterion" — which cannot be answered without the criterion beside it. Each criterion
+     * therefore says either which probe covers it or that the opening prompt is what asks for it.
+     */
+    /*
+     * Grouped, not keyed: a criterion may carry two probes since 2026-09-23, and a Map of
+     * criterion → probe silently showed the reviewer only the second of them. They are printed in
+     * the order the question lists them, which is the order the engine reaches for them.
+     */
+    const probes = new Map<number, string[]>();
+    for (const plan of question.planned_follow_ups) {
+      probes.set(plan.criterion, [...(probes.get(plan.criterion) ?? []), plan.probe]);
+    }
+    for (const [position, criterion] of rubric.criteria.entries()) {
       out.push("");
       out.push(`**${criterion.dimension} — ${criterion.weight}%**`);
       out.push("");
@@ -151,6 +172,22 @@ function renderQuestion(
       out.push("");
       for (const [band, name] of LEVEL_NAMES.entries()) {
         out.push(`- **${band} (${name}):** ${criterion.levels[String(band) as "0"]}`);
+      }
+      const planned = probes.get(position) ?? [];
+      out.push("");
+      if (planned.length > 0) {
+        out.push(
+          planned.length === 1
+            ? "_Planned follow-up — asked only if the answer has not already covered this:_"
+            : "_Planned follow-ups — asked only if the answer has not already covered this, and the " +
+                "second only if the first did not draw it out:_",
+        );
+        for (const probe of planned) {
+          out.push("");
+          out.push(quote(probe));
+        }
+      } else {
+        out.push("_Asked for by the opening prompt; no planned follow-up._");
       }
     }
   }
@@ -161,6 +198,7 @@ function renderQuestion(
   out.push("- [ ] a real interviewer would ask this, at this level");
   out.push("- [ ] the rubric is what a strong answer actually covers");
   out.push("- [ ] the five level descriptors are distinguishable");
+  out.push("- [ ] each planned follow-up is what you would actually ask next");
   out.push("- [ ] nothing here is wrong or out of date");
   out.push("");
   out.push("---");

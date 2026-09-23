@@ -19,7 +19,8 @@ questions:
     difficulty: 3 # 1–5, judged against the level above, not against the field
     prompt: >-
       <One thing asked once, in the second person, as it would be spoken. No preamble, no "in your
-      own words", no two questions joined by "and also".>
+      own words", no two questions joined by "and also" — the other criteria are asked for in
+      `planned_follow_ups` below, which is what keeps this one clause honest.>
     context: |
       ```js
       <the snippet, log or bug report the candidate is looking at>
@@ -29,6 +30,19 @@ questions:
       - <Each point checkable on its own — a marker could tick it or not.>
       - <Include the one thing candidates most often miss.>
       - <Include what makes it matter to a user, where that is part of a strong answer.>
+    # The prompt above asks ONE thing. Every other criterion is asked for here instead, so that
+    # nothing charges for something the candidate was never asked while the prompt still sounds
+    # like a person. `criterion` is its position in the rubric below, counting from 0.
+    # The engine asks a probe only for a criterion the answer has NOT already covered, so a
+    # complete first answer earns no follow-up — write each one as a question that is still worth
+    # asking someone who has answered the prompt well but said nothing about this.
+    # A criterion that scores two separable things may carry two probes, never three — list its
+    # primary one first, because the engine reaches the second only when nothing else is uncovered.
+    planned_follow_ups:
+      - criterion: 1
+        probe: <One sentence, spoken, drawing out the second criterion and nothing else.>
+      - criterion: 2
+        probe: <The same for the third.>
     reviewer_notes: >-
       <What YOU are unsure about, addressed to the expert: a level that may be wrong, a weight that
       was a judgement call, a claim that may have aged, a tag you are not sure belongs. Not a
@@ -55,6 +69,11 @@ questions:
       - <What they personally did, as opposed to what the team did.>
       - <The specific judgement this question is about — and check a criterion scores it.>
       - <How it ended, honestly, including badly, and one thing they do differently now.>
+    planned_follow_ups:
+      - criterion: 1
+        probe: <What a real interviewer says after the story, to get at what they personally did.>
+      - criterion: 2
+        probe: <And the one that reaches the judgement this question was written to find.>
     reviewer_notes: >-
       <Behavioural questions carry the fairness risk: does this one punish a candidate whose
       workplace forbids disagreeing upward, or who has never worked somewhere with the thing the

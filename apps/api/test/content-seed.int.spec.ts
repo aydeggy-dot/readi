@@ -523,6 +523,7 @@ career_roles:
       });
       const markers = [
         ...seeded.ideal_points,
+        ...seeded.planned_follow_ups.map((plan) => plan.probe),
         ...question.rubric.criteria.flatMap((criterion) => [
           criterion.dimension,
           criterion.description,

@@ -21,6 +21,15 @@ questions — the behavioural one — gets **one set per role**, not one per que
 Write the answers as speech, not prose: this is a spoken interview, so contractions, restarts and
 "sorry, let me start again" belong in them.
 
+**Write each answer against the whole exchange, not against the opening question alone.** Since
+2026-09-23 a question's prompt asks one thing and its `planned_follow_ups` ask for the remaining
+criteria, so what the evaluator scores is the opening answer _plus_ whatever the follow-ups drew
+out. A stress answer therefore still covers all three criteria — a `strong` answer that stops after
+the first clause is not a strong answer to this question, it is half of one. What changed is that
+the material for criteria 2 and 3 now arrives after a probe, so write it that way: an answer that
+returns to a point after being asked reads differently from one that volunteered it, and the rubric
+must score them the same.
+
 ## The rule that makes it worth doing
 
 > **A rubric that cannot separate "fluent but wrong" from "strong", or "correct but poorly
@@ -34,9 +43,11 @@ Sharpening means the descriptors, not the weights. The usual repairs:
   answer picks up the same score as a correct one on two of the three criteria.
 - **No descriptor written for being wrong** — only descriptors written for being vague. The score
   comes out right and the evidence quote does not match the words it was scored against. This is a
-  house rule, not a repair: see "Every criterion needs a descriptor that fits a confident, specific,
-  wrong answer" in `SKILL.md`. The `fluent-but-wrong` answer you have just written is where the
-  wording comes from — take the wrong belief it commits to and put it in the descriptor.
+  house rule, not a repair: see "Every criterion needs a descriptor that fits a specific, wrong
+  answer" in `SKILL.md` — _specific_, never _confident_, because naming the manner is the defect
+  that rule exists to remove, and this page quoted the rule's first wording for a day after it was
+  corrected. The `fluent-but-wrong` answer you have just written is where the wording comes from —
+  take the wrong belief it commits to and put it in the descriptor.
 
 If the fifth answer scores more than one point below **strong** anywhere, the descriptor it lost
 points on is rewarding phrasing. Fix it and score again.

@@ -15,7 +15,7 @@ import type {
   TopicInput,
 } from "@readi/shared-types";
 import { PrismaService } from "../prisma/prisma.service";
-import { canonicalQuestionInput } from "./content.mappers";
+import { canonicalQuestionInput, toPlannedFollowUps } from "./content.mappers";
 import { sameContent } from "./content-diff";
 import { type Actor, ContentService, seedActor } from "./content.service";
 import type { LoadedSeedFile } from "./seed-loader";
@@ -458,6 +458,7 @@ export class SeedImporter {
         context: existing.context,
         rubric_id: existing.rubricId,
         ideal_points: existing.idealPoints,
+        planned_follow_ups: toPlannedFollowUps(existing.plannedFollowUps),
       };
       await this.applyChange(
         report.questions,
@@ -684,6 +685,7 @@ export class SeedImporter {
       context: question.context,
       rubric_id: rubricId,
       ideal_points: question.ideal_points,
+      planned_follow_ups: question.planned_follow_ups,
     };
   }
 

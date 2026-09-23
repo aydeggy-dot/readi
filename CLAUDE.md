@@ -167,10 +167,23 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   and client components take their options as props from their server page. Publishing a role is refused
   unless it offers a **published** level; retiring anything a published track, question or profile still
   points at is refused (`role_in_use` / `level_in_use` / `stack_in_use`).
-- **Candidate-facing content responses never contain rubrics, criteria, level descriptors or ideal points.**
-  The candidate schemas are separate, smaller shapes — never an admin shape with fields omitted — and
+- **Candidate-facing content responses never contain rubrics, criteria, level descriptors, ideal points
+  or planned follow-ups.** The candidate schemas are separate, smaller shapes — never an admin shape with
+  fields omitted — and
   `apps/api/test/content-no-answer-key.int.spec.ts` enforces it over the raw JSON of every `/api/content/`
   GET route, with the endpoint list read from the OpenAPI document. Never weaken that test to make another pass.
+- **A question's `planned_follow_ups` are where the criteria its prompt does not ask for get asked**
+  (owner's decision, 2026-09-23; `docs/progress/2026-09-23-planned-follow-ups.md`). The opening prompt
+  asks one thing, the way an interviewer does; each remaining criterion carries `{ criterion, probe }`,
+  where `criterion` is its position in the rubric and `probe` is one spoken sentence. A criterion that
+  scores two separable things may carry **two** probes and never three — a third means it should have
+  been two criteria — and the first listed for a criterion is the one the engine reaches for. They are a **menu,
+  not a script** — from M3 the engine asks a probe only for a criterion the answer has not already
+  covered, which is why there is no condition field. They are answer key: never in a candidate shape, and
+  from M3 in the session-question `snapshot` that does not leave the API. The consequence worth knowing
+  is that **the rubric never reaches the interviewer model** — a follow-up call needs the probes and the
+  coverage flags, not the criteria, the weights or the descriptors. `check-bank.mjs` holds a seed bank to
+  "every criterion is asked for by the prompt or by a probe", as an error.
 - Only `published` content reaches a candidate, and dependencies count: a lesson also needs its track
   published, a question its rubric (ADR-0014).
 - **A question with no stack tags is general to its role; with tags it is offered only to candidates

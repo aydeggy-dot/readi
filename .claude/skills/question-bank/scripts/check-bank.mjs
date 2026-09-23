@@ -16,7 +16,8 @@
 //   - the bank against its blueprint's `targets` block
 //   - descriptors that score the manner rather than the answer ("confidently", "with conviction"),
 //     including by the *quantity* of speech ("a detailed plan", "a thorough set of flows")
-//   - a prompt that asks for fewer things than its rubric scores
+//   - a criterion asked for by neither the prompt nor a planned follow-up, and a planned
+//     follow-up that names a criterion its rubric does not have
 //   - a rubric file whose weights are a template rather than a claim
 //   - a criterion that keeps its specificity in level 4 instead of level 3
 //
@@ -365,7 +366,9 @@ for (const rubric of rubrics.values()) {
      * has drifted upwards, and a level 4 carrying almost none is decoration. Both are proxies and
      * both are warnings; the semantic question is still a reading.
      */
-    const additive = String(criterion.levels?.["4"] ?? "").match(/^As 3,?\s*(and|including|plus|with)?\s*/i);
+    const additive = String(criterion.levels?.["4"] ?? "").match(
+      /^As 3,?\s*(and|including|plus|with)?\s*/i,
+    );
     if (additive) {
       const added = String(criterion.levels["4"]).slice(additive[0].length).trim().length;
       const three = String(criterion.levels?.["3"] ?? "").trim().length;
@@ -537,32 +540,91 @@ for (const question of questions) {
     error(question.file, at, `names more than ${LIMITS.questionStacks} stacks`);
 
   /*
-   * Every criterion must have a clause in the spoken prompt that asks for it.
+   * Every criterion is asked for by the prompt **or** by a planned follow-up.
    *
-   * This is the best finding either critique pass produced — the prompt asks for a diagnosis and
-   * the rubric charges 35% for a fix, so a candidate answers the question they were asked,
-   * completely, and loses a third of the score. It was found nine times in the frontend bank, made
-   * a hard rule in SKILL.md, and then broken eighteen times in the backend bank by the same
-   * drafter. A rule that has to be remembered once per criterion is a rule that needs a check.
+   * The original rule — every criterion needs a clause in the spoken prompt — was the best finding
+   * either critique pass produced: the prompt asks for a diagnosis and the rubric charges 35% for
+   * a fix, so a candidate answers the question they were asked, completely, and loses a third of
+   * the score. Nine times in the frontend bank, then eighteen in the backend bank by the same
+   * drafter, which is why it is a check and not only a sentence in SKILL.md.
+   *
+   * It collided with the engine (CLAUDE.md §5: the LLM generates follow-ups that probe missing
+   * rubric points), because a prompt with a clause per criterion is triple-barrelled and asks the
+   * engine's own follow-ups for it. **Resolved 2026-09-23 as different moments**: the opening
+   * prompt asks one thing, the remaining criteria become `planned_follow_ups` on the question, and
+   * this check adds them to the arithmetic. The rule's purpose — nothing charges for something
+   * never asked — is untouched; what moved is where the asking happens.
    *
    * No lexical test can know whether a clause *asks for* a criterion — the first version of this
    * check tried, comparing the words of each dimension against the prompt, and produced 130
    * warnings on 80 questions because dimensions are phrased abstractly ("Fixes it", "Starts
-   * narrow") and prompts are not. What is mechanical is the rule's arithmetic: a rubric with three
-   * criteria needs a prompt that asks for three things. Counting the asks is exact, and a prompt
-   * that asks for fewer things than its rubric scores is either charging for something it never
-   * requested or has one deliberately broad clause covering two criteria — which the drafter then
-   * says in `reviewer_notes`. Hence a warning, with the counts, rather than an error.
+   * narrow") and prompts are not. What is mechanical is the arithmetic: a rubric with three
+   * criteria needs three things asked for, in the prompt or in a probe.
+   *
+   * **An error now, where it used to be a warning.** The warning existed because a drafter could
+   * legitimately have one broad clause covering two criteria and say so in `reviewer_notes` —
+   * an escape hatch that existed only because there was nowhere else to put the second ask. There
+   * is now: a probe. All 104 questions across the three banks satisfied the old warning, so
+   * nothing in the repository is grandfathered in by this.
    */
   const scoredBy = rubrics.get(question.rubric);
+  const followUps = Array.isArray(question.planned_follow_ups) ? question.planned_follow_ups : [];
   if (scoredBy && typeof question.prompt === "string") {
     const criteria = (scoredBy.criteria ?? []).length;
     const asks = countAsks(question.prompt);
-    if (criteria && asks < criteria)
-      warn(
+    const probes = new Set(followUps.map((plan) => plan?.criterion)).size;
+    if (criteria && asks + probes < criteria)
+      error(
         question.file,
         at,
-        `the prompt asks for ${asks} thing${asks === 1 ? "" : "s"} and \`${question.rubric}\` scores ${criteria} — every criterion needs a clause in the prompt that asks for it, or a note saying which clause covers two`,
+        `${criteria} criteria in \`${question.rubric}\`, and only ${asks + probes} asked for — the prompt asks ${asks} thing${asks === 1 ? "" : "s"} and ${probes} ${probes === 1 ? "criterion has" : "criteria have"} a planned follow-up. Every criterion needs one or the other, or it charges for something the candidate was never asked`,
+      );
+  }
+
+  /*
+   * A planned follow-up names the criterion it probes by position, so the position has to exist —
+   * and only the checker can see that, because the contract validates a question without ever
+   * looking at its rubric. A probe on a criterion that is not there is a probe the engine will
+   * never ask, silently.
+   */
+  followUps.forEach((plan, index) => {
+    const where = `${at}.planned_follow_ups[${index}]`;
+    const criterion = plan?.criterion;
+    const criteria = (scoredBy?.criteria ?? []).length;
+    if (!Number.isInteger(criterion) || criterion < 0)
+      error(question.file, where, "`criterion` must be a criterion's position, counting from 0");
+    else if (scoredBy && criterion >= criteria)
+      error(
+        question.file,
+        where,
+        `probes criterion ${criterion}, but \`${question.rubric}\` has ${criteria} (0–${criteria - 1})`,
+      );
+    if (typeof plan?.probe !== "string" || plan.probe.trim().length === 0)
+      error(question.file, where, "`probe` is what the interviewer says next — it cannot be empty");
+    else if (!/[?.]$/.test(plan.probe.trim()))
+      warn(
+        question.file,
+        where,
+        "the probe is spoken out loud and should read as a sentence — it ends in neither `?` nor `.`",
+      );
+  });
+  /*
+   * At most two probes per criterion (owner's decision, 2026-09-23, after the QA pilot). One was
+   * the original rule; the pilot found that a criterion scoring two separable things — "thinks past
+   * the happy path **and** says where the list stops" — then has half of itself scored and never
+   * asked, which is the defect this whole field exists to remove. A third probe on one criterion
+   * means the criterion should have been split instead.
+   */
+  const perCriterion = new Map();
+  for (const plan of followUps) {
+    perCriterion.set(plan?.criterion, (perCriterion.get(plan?.criterion) ?? 0) + 1);
+  }
+  for (const [criterion, count] of perCriterion) {
+    if (count > LIMITS.followUpsPerCriterion)
+      error(
+        question.file,
+        at,
+        `criterion ${criterion} has ${count} planned follow-ups — the cap is ${LIMITS.followUpsPerCriterion}, and needing a third means the criterion scores too many things to be one criterion`,
       );
   }
 

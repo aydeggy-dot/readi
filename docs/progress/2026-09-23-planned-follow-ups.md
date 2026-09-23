@@ -127,6 +127,15 @@ The engineering surface is small: `SeedQuestionSchema`, the admin/candidate spli
 
 ## What is still open
 
+> **Answered by the pilot, 2026-09-23** — see `docs/progress/2026-09-23-planned-follow-ups-pilot.md`.
+> A probe is `{ criterion, probe }` with no condition field; the check is an error; and, after the
+> owner read the pilot, **two** probes per criterion rather than one — the paragraph below turned out
+> to be wrong about the gain, because a criterion that scores two separable things otherwise has half
+> of itself scored and never asked. The pilot also found a rule none of this anticipated — *a criterion may go without a probe
+> only when the opening question asks for that criterion and nothing else* — and two questions where
+> one-probe-per-criterion costs something. The three paragraphs below are left as they were written.
+
+
 - **What a planned follow-up looks like on the page.** A single spoken sentence per criterion is the
   obvious shape, but a probe sometimes needs a condition attached ("if they have not mentioned the
   limit"), and that is either prose the model reads or structure the engine branches on. The pilot

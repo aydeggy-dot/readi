@@ -56,6 +56,18 @@ questions[2].ideal_points: expected array`.
   been through the file.
 - **`reviewer_notes` is required on every question**, and "nothing to flag" is a legitimate answer.
   An empty field usually means nobody looked.
+- **`planned_follow_ups` is where the criteria the prompt does not ask for get asked** (owner's
+  decision, 2026-09-23). The opening prompt asks one thing, the way an interviewer does; every
+  other criterion carries a probe here, `{ criterion, probe }`, where `criterion` is that
+  criterion's position in the question's rubric counting from 0 and `probe` is one sentence the
+  interviewer could say out loud. A criterion that scores two separable things may carry **two**
+  probes and never three; the first listed for a criterion is its primary one. The engine asks a probe **only** for a criterion the answer has
+  not already covered, so a complete first answer earns no follow-up at all — which is why there is
+  no condition field: that condition is the engine's. Answer-key material, exactly like
+  `ideal_points`, and never sent to a candidate. The field is optional and defaults to none, so a
+  bank written before the decision imports unchanged; `check-bank.mjs` is what holds a bank to
+  "every criterion is asked for by the prompt or by a probe", because only it can see a question's
+  prompt and its rubric's criteria together.
 - **`stacks:` on a question is a narrowing, so it is left out by default.** No `stacks` key means
   the question is general to its roles and everyone preparing for them is asked it; listing stacks
   means only candidates on one of those variants ever see it (ADR-0015). The test is whether the

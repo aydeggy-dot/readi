@@ -19,6 +19,7 @@ const suffix = randomUUID().slice(0, 8);
 const RUBRIC_SLUG = `e2e-rubric-${suffix}`;
 const QUESTION_SLUG = `e2e-question-${suffix}`;
 const IDEAL_POINT = `Names the index that makes the query cheap ${suffix}`;
+const FOLLOW_UP_PROBE = `And what would that index cost you ${suffix}?`;
 
 /**
  * Picks the option whose text contains `text`. The values are uuids the test cannot know, and the
@@ -137,6 +138,18 @@ test("an expert writes and submits, an admin publishes, a candidate then sees it
     await selectByText(expert, "Rubric", `Query reasoning ${suffix}`);
     await expert.getByRole("textbox", { name: "What a strong answer covers 1" }).fill(IDEAL_POINT);
 
+    /*
+     * A planned follow-up, which names the criterion it probes by position (owner's decision,
+     * 2026-09-23). The dimensions in that select are fetched from the rubric just chosen — a new
+     * question has no rubric to load them from until one is picked — so the wait is the point of
+     * doing this here rather than in an API test.
+     */
+    await expert.getByRole("button", { name: "Add a follow-up" }).click();
+    const criterion = expert.getByRole("combobox", { name: "Criterion" });
+    await expect(criterion.getByRole("option", { name: "Trade-offs" })).toBeAttached();
+    await criterion.selectOption({ label: "Trade-offs" });
+    await expert.getByRole("textbox", { name: "Follow-up 1" }).fill(FOLLOW_UP_PROBE);
+
     // The preview renders the markdown, in a chunk that no candidate page loads.
     await expert.getByRole("tab", { name: "Preview" }).first().click();
     await expect(expert.getByTestId("markdown-preview").first().locator("strong")).toHaveText(
@@ -145,6 +158,9 @@ test("an expert writes and submits, an admin publishes, a candidate then sees it
 
     await expert.getByRole("button", { name: "Create" }).click();
     await expert.waitForURL(/\/admin\/content\/questions\/[0-9a-f-]{36}$/);
+    // Read back on the saved question: the probe survived, against the criterion it was filed under.
+    await expect(expert.getByRole("textbox", { name: "Follow-up 1" })).toHaveValue(FOLLOW_UP_PROBE);
+    await expect(expert.getByRole("combobox", { name: "Criterion" })).toHaveValue("1");
     await expert.getByRole("button", { name: "Submit for review" }).click();
     await expect(expert.getByText("Now: In review.")).toBeVisible();
   });
@@ -199,6 +215,9 @@ test("an expert writes and submits, an admin publishes, a candidate then sees it
     // The rule the whole milestone turns on (the exhaustive version of this check is
     // apps/api/test/content-no-answer-key.int.spec.ts).
     expect(raw).not.toContain(IDEAL_POINT);
+    // A planned follow-up tells a candidate what they are about to be asked next, so it is answer
+    // key too and leaves the API with the rest of it.
+    expect(raw).not.toContain(FOLLOW_UP_PROBE);
     expect(raw).not.toContain("Diagnosis");
     expect(raw).not.toContain("band 4");
   });
