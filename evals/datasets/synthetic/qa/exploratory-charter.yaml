@@ -1,0 +1,139 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: exploratory-charter
+question: an-hour-with-a-new-feature
+answers:
+  - kind: strong
+    text: |
+      First thing, before I touch it, I'd get five minutes with the developer — what does
+      this screen do, what's a job alert supposed to do, what's risky, what didn't you
+      finish. And I'd work out what the worst thing that could happen is. For job alerts
+      the worst things are: somebody gets alerts for jobs they never asked for, somebody
+      gets none at all, or they get the same one twenty times. So that's where the hour
+      goes. Then I'd split the hour — not one long free-for-all. Four sessions of about
+      twelve minutes, each with a mission: create an alert, the happy path; then the
+      criteria, empty ones, everything selected, strange ones; then edit and delete, and
+      does the old alert stop; then small screen and slow network. And I'd keep the last
+      ten minutes for writing, not testing. I'd write as I go, exact steps and
+      screenshots, because I won't remember. What I leave behind is one page: what I
+      covered, and what I did not cover — that one matters most, because that's the risk
+      they're accepting. Then the bugs, with steps and how bad each one is. Then a plain
+      recommendation — ship it, ship it with this known issue, or don't ship, and why. So
+      they don't need me awake.
+    expected:
+      - dimension: Goes in with a plan that is not a script
+        score: 3
+        because: Level 3 — picks the area and the risk before touching it, alerts to somebody who never asked, none at all, or the same one twenty times, and puts the hour where that risk is; nothing about noticing an hour in that the charter was wrong.
+      - dimension: How the hour is spent
+        score: 3
+        because: Level 3 — learns what the feature is for from the developer, then varies criteria, sequence and conditions on purpose across four timed sessions; no surprise chased at the cost of coverage.
+      - dimension: What is left behind
+        score: 3
+        because: Level 3 — one page of what was covered and what was not, the bugs with steps and severity, and a plain ship / ship-with-this / do-not-ship recommendation, so they do not need the tester awake; nothing about what an extra hour would go on.
+  - kind: weak
+    text: |
+      Okay, one hour. So I'd start testing immediately, because one hour is not much time.
+      I'll open the screen and click everything on it — all the buttons, all the dropdowns
+      — and try to create the job alert and see if it works. Then I'll put wrong things
+      inside and see if it gives error. Then I'd check the design, whether the alignment
+      and the spelling are correct, because those ones you can see quickly. Any bug I find
+      I'll screenshot it and paste it into a document, and at the end I'll send the
+      document to the developer so he can fix them. Before touching anything... erm, I'd
+      make sure I have a login and the environment is actually working, that's the main
+      thing, because sometimes you waste twenty minutes on that. And what I'd leave behind
+      is the bug list, that document. So whoever is deciding will look at the bugs, and if
+      the bugs are plenty then they know it's not ready, and if there's no bug then it's
+      fine to release. Honestly one hour is small for a whole screen, so I'd tell them the
+      proper thing is to give me time to write test cases first, but if it's one hour then
+      it's the bug list.
+    expected:
+      - dimension: Goes in with a plan that is not a script
+        score: 0
+        because: Level 0 — would start testing immediately and click everything on the screen; what is decided beforehand is a login and a working environment, not an area or a risk.
+      - dimension: How the hour is spent
+        score: 1
+        because: Level 1 — breadth as the end in itself, all the buttons and all the dropdowns, plus alignment and spelling because those can be seen quickly.
+      - dimension: What is left behind
+        score: 1
+        because: "Level 1 — a verdict rather than a record: the bug list, read as plenty of bugs means not ready and no bugs means fine to release, with nothing about what was covered."
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is exploratory testing, and the discipline in exploratory testing is
+      that you go in with no preconceptions. That's the whole point of it — it's
+      unscripted by definition, so anything I decide before I touch the screen turns it
+      back into scripted testing and I lose the one thing that makes it valuable, which is
+      finding what nobody thought of. So before touching it I'd deliberately decide
+      nothing. I wouldn't read the ticket, I wouldn't talk to the developer, because the
+      moment he tells me what it's supposed to do I'm only checking his expectations and
+      I'm blind to everything outside them. Fresh eyes, no oracle. During the hour I also
+      wouldn't stop to write, because writing breaks the flow and exploration needs flow —
+      I'd stay in the screen the whole sixty minutes and write it up afterwards from
+      memory, which is fine, you remember the bugs that mattered. And on the decision:
+      exploratory testing isn't repeatable and it has no coverage figure, so it can't
+      support a go or no-go. I'd say that honestly in my note — I can't sign anything off
+      from an exploratory session. Hold the release until I'm back and can write proper
+      test cases against it.
+    expected:
+      - dimension: Goes in with a plan that is not a script
+        score: 1
+        because: Level 1, the refusal extreme — will not read the ticket or talk to the developer, on the grounds that deciding anything beforehand would make it scripted testing.
+      - dimension: How the hour is spent
+        score: 1
+        because: Level 1 — keeps no record during the hour, on the grounds that writing breaks the flow.
+      - dimension: What is left behind
+        score: 1
+        because: "Level 1 — a verdict rather than a record: hold the release, nothing can be signed off from an exploratory session, written up afterwards from memory with no coverage stated."
+  - kind: correct-poorly-explained
+    text: |
+      So — the hour. Erm, the main thing I'd leave behind is a note saying what I did not
+      test, that one is actually the most important part, because they're deciding while
+      I'm asleep so they need to know what I didn't look at. Sorry, let me start from the
+      beginning. Before I touch it, I'd ask the developer, like five minutes, what does it
+      do, what's shaky, what did you not finish. And I'd think about what would be really
+      bad — for job alerts it's alerts going to the wrong person, or not going at all, or
+      going twenty times. So that's where I spend the time. And I wouldn't do it as one
+      long hour, I'd break it, maybe four chunks of twelve minutes-ish, each one with a
+      thing I'm hunting: creating an alert normally, then the criteria, the strange ones,
+      empty, select everything, then editing and deleting, does the old one stop sending,
+      then on a small phone and bad network. And keep ten minutes at the end to write,
+      otherwise you run out. And write while you go because you'll forget the steps. Then
+      the note: covered, not covered, the bugs with steps and severity, and — yeah, and a
+      straight answer. Ship it, ship it with this problem, or don't ship, and say why.
+    expected:
+      - dimension: Goes in with a plan that is not a script
+        score: 3
+        because: "Level 3 — the same charter as strong, arrived at out of order: five minutes with the developer, then the worst outcomes for job alerts, and the time spent where those are."
+      - dimension: How the hour is spent
+        score: 3
+        because: Level 3 — four chunks of about twelve minutes, each with something being hunted, varying the criteria, the sequence (does the old alert stop sending) and the conditions (small phone, bad network).
+      - dimension: What is left behind
+        score: 3
+        because: Level 3 — the not-covered note named as the most important part because the decision happens while the tester is asleep, with the bugs, steps and severity and a straight ship / ship-with-this / do-not-ship answer.
+  - kind: nigerian-english
+    text: |
+      Before I touch anything, I'll first find the developer, like five minutes — what is
+      this screen doing, which part is shaky, what did you not finish. And I'll ask
+      myself, what is the worst thing that can happen here. For job alerts, the worst ones
+      are: person is getting alerts for job he never asked for, or he's not getting
+      anything, or one job is coming twenty times. So that's where my hour will go. I
+      won't just be clicking anyhow for one hour — I'll break it into four rounds of about
+      twelve minutes, and each round has one target. First, create alert the normal way.
+      Second, the criteria — empty one, select everything, strange ones. Third, edit and
+      delete, and check whether the old alert will still be sending. Fourth, small phone
+      and slow network. Then the last ten minutes, I'm not testing again, I'm writing. And
+      I'll be writing as I go, the exact steps and screenshots, because I won't remember
+      am. What I'll leave behind is one page: what I covered, and what I did not cover —
+      that one is the main one, because na the risk they are accepting. Then the bugs with
+      steps and how serious. Then plain talk: ship it, ship it with this issue, or don't,
+      and why.
+    expected:
+      - dimension: Goes in with a plan that is not a script
+        score: 3
+        because: "Level 3 — same as strong: the developer first, then the worst thing that can happen to job alerts, and the hour spent there."
+      - dimension: How the hour is spent
+        score: 3
+        because: Level 3 — four rounds of about twelve minutes, each with one target, varying the criteria, the sequence (does the old alert keep sending) and the conditions (small phone, slow network).
+      - dimension: What is left behind
+        score: 3
+        because: Level 3 — one page of covered and not covered, called the main one because it is the risk being accepted, with the bugs, steps and seriousness and plain talk on shipping.

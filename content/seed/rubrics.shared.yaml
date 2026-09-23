@@ -16,6 +16,19 @@
 #    is coachable in an afternoon. Those two now have their own rubrics below, keeping the first two
 #    criteria in common and differing where the question differs. That is a deliberate duplication:
 #    the alternative was a fourth criterion that meant something different per question.
+#
+# **2026-09-23, the QA pass: `behavioural-answer-quality` now has no question in any bank, and
+# `check-bank.mjs` reports that every run.** It is kept rather than deleted because removing a shared
+# contract is the owner's call, and the warning is the flag. The record it is kept on is not good:
+# four questions have used it and all four turned out to need a rubric of their own —
+# `stuck-and-asked-for-help` and `feedback-on-your-code` (reworked above, 2026-09-22),
+# `incident-you-contributed-to` (two critique passes and then the stress test, which scored a polished
+# story about somebody else's outage identically to the candidate's own break), and
+# `pushing-back-on-a-release` (all four QA critique passes, 2026-09-23 — "how they made the case" had
+# nowhere to land). The pattern is now hard to argue with: a behavioural question worth asking is
+# about a *specific* judgement, and situation-actions-outcome cannot score a specific judgement. If a
+# new role wants a generic behavioural rubric, this is the one to start from and it should be expected
+# to need replacing.
 version: 1
 author: ai_draft
 status: draft
@@ -43,7 +56,7 @@ rubrics:
         weight: 40
         levels:
           "0": No action is attributable to the candidate, even after the interviewer asks which part was theirs.
-          "1": Nothing in the answer is theirs to point at — generic actions ("I fixed it"), or a detailed account of what the team decided with their own part left out.
+          "1": Nothing in the answer is theirs to point at — generic actions ("I fixed it"), or an account of what the team decided with their own part left out.
           "2": Some of their own actions, but the sequence or the reasoning is missing.
           "3": What they did and why it is recoverable from the answer.
           "4": As 3, including a decision they weighed and what they gave up by taking it.
@@ -75,7 +88,7 @@ rubrics:
         description: Evidence of a real attempt — what they read, what they ruled out — rather than a search and a shrug.
         weight: 35
         levels:
-          "0": No attempt of their own described — including a detailed account of an attempt that was somebody else's.
+          "0": No attempt of their own described — including an account of an attempt that was somebody else's.
           "1": '"I looked it up", with nothing they learned from doing so.'
           "2": One thing tried, with no account of what it told them.
           "3": Several things tried, and what each one ruled out.
@@ -384,3 +397,42 @@ rubrics:
           "2": Says they "might approve it" without saying on what.
           "3": Names the conditions — a small table today, a ticket filed — under which they would approve it now.
           "4": As 3, and pairs approving with something that would tell us when it starts to matter, so the concern is not simply dropped.
+
+  # Moved here from `frontend/rubrics.yaml` on 2026-09-23, when `it-works-for-me` gained the `qa`
+  # role — turning a report into a reproduction is the same skill whichever role is doing it, and
+  # this file is where a rubric with more than one role's questions belongs. The stress set stays at
+  # `evals/datasets/synthetic/frontend/reproducing-a-report.yaml`, because that is where the answers
+  # were written; nothing about them is frontend-specific either.
+
+  - slug: reproducing-a-report
+    name: Turning a vague report into something you can work on
+    criteria:
+      - dimension: Asks for what is missing
+        description: Specific questions — which screen, what they tapped, what they expected — rather than "can you give more detail".
+        weight: 40
+        levels:
+          "0": Asks nothing — starts on the code, closes the report, or declares the cause already known from what is written.
+          "1": Asks for "more information" without saying what.
+          "2": Asks one or two questions, missing the conditions the failure depends on.
+          "3": Asks what they did, what happened, what they expected, and on what device and connection.
+          "4": As 3, and the questions avoid jargon the reporter would not have — they ask about what the person saw, not about the system.
+      - dimension: Looks before spending the reporter's time
+        description: >-
+          What signals already exist gets checked first — logs, other reports, what changed recently.
+          A candidate with none of those available scores on naming what they would look at if they had it.
+        weight: 30
+        levels:
+          "0": Checks nothing that already exists — waits for the reporter, or settles on a cause and goes straight to the code.
+          "1": Says they would "check the logs" with no idea what for.
+          "2": Names one source to check.
+          "3": Names what would already know something — errors being recorded, other reports, what shipped recently — and what each would tell them.
+          "4": As 3, and uses what they find to narrow the questions rather than asking everything.
+      - dimension: Reproduces under their conditions
+        description: The user's device, connection and data — not a laptop on office wifi.
+        weight: 30
+        levels:
+          "0": Does not reproduce it — cannot, so treats it as not real, or would not spend the time because the fix is already decided.
+          "1": Tries once on their own machine and stops.
+          "2": Tries a narrow screen, but not the connection or the account.
+          "3": Reproduces with a throttled connection and a comparable device, on the same data if possible.
+          "4": As 3, and says what they would do if it still does not reproduce, rather than closing it.

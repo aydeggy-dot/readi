@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: rule-interaction-test-design
+question: test-design-otp-screen
+answers:
+  - kind: strong
+    text: |
+      Okay — six digits by SMS, dies ten minutes after it's sent, a Resend, and five wrong codes locks
+      the account for an hour. The digits are easy: correct code works, wrong fails, five digits,
+      seven digits, letters, spaces, empty, pasting it in, and a code starting with zero, that the
+      zero isn't eaten. Not about the digits: does the SMS arrive, and is the code in it the one the
+      server expects, and how long does it take to land, because on bad network that ten minutes is
+      spent waiting. Then time — 9:59 works, 10:01 doesn't, and whose clock is it? If it's the
+      phone's, I can change my time and stay valid forever. And a code should work once only, even
+      inside the ten minutes. Then where the rules touch each other, that's the interesting part.
+      Resend against the ten minutes — does the old code die when the new one is sent, or are two
+      codes live at once, and does Resend restart the ten minutes? Resend against the lock — if I've
+      got four wrong and I press Resend, is my counter back to zero? Then the lock means nothing. And
+      does an expired code count as one of my five? If it does, somebody on slow network gets locked
+      for an hour for nothing.
+    expected:
+      - dimension: "Cases come from the rules"
+        score: 3
+        because: "Descriptor 3 — a case per class: correct code, wrong code, expired (9:59 / 10:01), not six digits (five, seven, letters, spaces, empty), plus reuse and a leading zero. A code issued for another number is the one class missing, and it never splits what the screen can decide from what only the server can, so not 4."
+      - dimension: "The edges the rules create"
+        score: 2
+        because: Level 2 — brackets the expiry properly at nine fifty-nine and ten oh one, and gives the attempt counter no boundary case.
+      - dimension: "Where the rules meet each other"
+        score: 4
+        because: "Descriptor 4 — Resend against the expiry (old code dead or two live, does the clock restart), Resend against the counter, and the expired code against the five, each with the answer it argues for: 'Because then the lock means nothing', and someone on slow network 'gets locked for an hour for doing nothing wrong'."
+  - kind: weak
+    text: |
+      Okay. So I'd test that the correct code signs me in, that's the first one. Then a wrong code
+      should show an error message. The code is six digits, so I'd enter five digits and it shouldn't
+      accept it, then seven digits, then letters, then special characters, then leave it empty and
+      click submit. Then the ten minutes — I'd wait ten minutes and enter the code and it should say
+      the code has expired. Then the Resend button: I click it, check a new SMS comes, and check the
+      new code works. Then the locking, I enter a wrong code five times and on the fifth one it should
+      tell me the account is locked for one hour, and I'd wait and check it comes back after the hour.
+      I'd also check the error messages are clear and spelt properly, and that it works on mobile
+      since the SMS comes to the phone, and test it on a slow network too. I think that covers the
+      four rules that are on the screen.
+    expected:
+      - dimension: "Cases come from the rules"
+        score: 3
+        because: "Descriptor 3 — walks the four rules one at a time and does reach a case per class: correct code, wrong code, expired, five and seven digits, letters, special characters, empty. Same missing class as `strong`, a code for another number."
+      - dimension: "The edges the rules create"
+        score: 2
+        because: "Descriptor 2 — tests at each threshold and misses the values either side: waits the ten minutes and expects expired, and enters five wrong codes expecting the fifth to lock, with no 9:59 and no sixth attempt."
+      - dimension: "Where the rules meet each other"
+        score: 1
+        because: "Descriptor 1 — literally the descriptor: 'the Resend button: I click it, check a new SMS comes, and check the new code works', with nothing asked about the code it replaced or the counter it may reset."
+  - kind: fluent-but-wrong
+    text: |
+      Sure, let me take the interactions, that's where the design actually is. The one everybody
+      misses is Resend against the attempt counter, and I've thought about this one. The rule says
+      "after five wrong codes" — wrong codes. So the counter belongs to the code, not to the account.
+      The moment you press Resend, the old code is dead, and a dead code can't be wrong anymore, so
+      the count starts fresh at zero against the new code. That's the correct behaviour and that's
+      what I'd assert: four wrong, Resend, one wrong, and I should still be in. If it locked me there
+      I'd raise it as a defect, because I've only been wrong once against the code that's currently
+      live — otherwise you're punishing a user whose first SMS came in garbled. Second interaction:
+      the ten minutes should be measured on the device, since the SMS lands on the device, so I'd move
+      the phone clock forward eleven minutes and expect the code to be rejected. If it still works,
+      that's a bug in the expiry. And an expired code I'd expect to count as a wrong attempt, because
+      the user did submit something invalid. Those three are my main cases.
+    expected:
+      - dimension: "Cases come from the rules"
+        score: 2
+        because: "Descriptor 2 — three interaction cases and no class coverage: no valid-code case, nothing malformed, nothing about a code for another number. 'Those three are my main cases.'"
+      - dimension: "The edges the rules create"
+        score: 1
+        because: "Descriptor 1 — one value past the threshold called the boundary: the phone clock moved forward eleven minutes, with nothing at ten minutes or just inside, and four-wrong-then-Resend never reaching the fifth or sixth attempt."
+      - dimension: "Where the rules meet each other"
+        score: 2
+        because: Level 2 — asserts what the interactions are instead of asking, including that Resend clears the attempt counter, which would make the lock unenforceable by resending.
+  - kind: correct-poorly-explained
+    text: |
+      So, six digits, ten minutes, Resend, five wrong and you're locked one hour. Okay so obviously
+      correct code works, wrong code doesn't, and the field — five digits, seven, letters, empty,
+      pasting, and a code starting with zero, that the zero isn't dropped. That's the digits part. The
+      ones that aren't about the digits... the SMS. Does it come. And is it the same code, and how
+      long does it take to come, because if it takes four minutes you've only got six left. And the
+      clock, it should be the server's clock not the phone's, because otherwise I just change my phone
+      time and, yeah. And one code, one use, even if it's still inside the ten minutes. Then the rules
+      rubbing against each other — Resend and the counter. If I'm on four wrong and I press Resend,
+      does it go back to zero? Because then the lock is useless, you just keep resending. That one I'd
+      test first actually, I should have said that first. And the old code after a resend, is it still
+      alive, two codes at once. And the expired code, does it count as a wrong try? It shouldn't,
+      because the person didn't do anything, the network was just slow, and now he's locked one hour.
+      Yeah.
+    expected:
+      - dimension: "Cases come from the rules"
+        score: 3
+        because: "Descriptor 3 — the same class spread as `strong`, out of order: correct code, wrong code, five digits, seven, letters, empty, pasting, a leading zero, the SMS arriving at all, and one code one use."
+      - dimension: "The edges the rules create"
+        score: 2
+        because: "Descriptor 2 — the ten minutes and the lock are stated but never bracketed; only the six-digit length gets values either side, and the expiry appears as a budget ('if it takes four minutes you've only got six left') rather than as 9:59 and 10:01."
+      - dimension: "Where the rules meet each other"
+        score: 4
+        because: "Descriptor 4 — Resend against the counter ('does it go back to zero? Because then the lock is useless'), the old code still alive and two codes at once, and the expired code against the five with the answer argued: 'It shouldn't, because the person didn't do anything, the network was just slow.'"
+  - kind: nigerian-english
+    text: |
+      Six digits by SMS, it stops working ten minutes after they send am, there's Resend, and five
+      wrong codes locks the account one hour. The digits part is easy — correct code enters, wrong one
+      fails, five digits, seven, letters, space, empty, paste am, and code starting with zero, make
+      sure the zero remains. Now, the ones not about the digits. Is the SMS even coming? Is the code
+      inside it what the server is expecting? And how long before it lands — if network is slow, that
+      ten minutes is just going. Then time: 9:59 should work, 10:01 should not, and whose clock? If
+      it's the phone own, I can change my time and be there forever. And one code, one use only, even
+      inside the ten minutes. Now where the rules touch each other — that's the sweet part. Resend and
+      the ten minutes — is the old code dead when they send new one, or two are working at once? And
+      does Resend restart the ten minutes? Resend and the lock — if I missed four times and I press
+      Resend, has my count gone back to zero? Then the lock is doing nothing. And expired code, is it
+      counting as one of my five? Somebody with slow network will be locked one hour for nothing.
+    expected:
+      - dimension: "Cases come from the rules"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — correct code, wrong code, five digits, seven, letters, space, empty, paste, a leading zero, the SMS arriving and carrying the code the server expects. Same missing class."
+      - dimension: "The edges the rules create"
+        score: 2
+        because: Level 2 — as strong. The expiry is bracketed either side and the attempt counter has no boundary case.
+      - dimension: "Where the rules meet each other"
+        score: 4
+        because: "Same as `strong`, descriptor 4 — Resend against the ten minutes and against the lock, two codes working at once, and the expired code counting, each with the argued answer: 'If yes, the lock is doing nothing.'"

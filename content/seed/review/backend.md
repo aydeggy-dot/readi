@@ -372,7 +372,7 @@ An exact type, with the currency beside it, and a conversion that is checked bef
 Two statements are two units of work; anything that stops in between leaves half of it done.
 
 - **0 (absent):** Blames the database, the network or the amount.
-- **1 (weak):** Locates the fault somewhere it is not, in detail — the subtraction failing, a negative balance, the notification throwing and being swallowed.
+- **1 (weak):** Locates the fault somewhere it is not — the subtraction failing, a negative balance, the notification throwing and being swallowed.
 - **2 (partial):** Says the two updates "should be together" without saying what happens if they are not.
 - **3 (solid):** Says a crash, a timeout or a thrown error between the statements commits the first and never runs the second.
 - **4 (excellent):** As 3, and notes the notification in the middle widens the window and can itself be the thing that fails.
@@ -1500,7 +1500,7 @@ Smaller than it was tempting to make, and they can say why.
 The database call yields; the mapping and joining do not, and that is the difference.
 
 - **0 (absent):** Blames the database, the row count, or the machine being too small.
-- **1 (weak):** Locates the block in the wrong place, in detail — the `await` on the query, the eighty thousand rows in memory, garbage collection, the response being large.
+- **1 (weak):** Locates the block in the wrong place — the `await` on the query, the eighty thousand rows in memory, garbage collection, the response being large.
 - **2 (partial):** Says the work is "heavy" or "synchronous" without separating it from the awaited call.
 - **3 (solid):** Says the mapping and the join run without pausing, so nothing else on the thread can run until they finish.
 - **4 (excellent):** As 3, and says the `await` above them is exactly the counter-example — waiting on I/O releases the thread, computing does not, and `async` does not change that.

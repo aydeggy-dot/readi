@@ -654,7 +654,7 @@ questions:
       are judgements about this market rather than defects. Which would you take?
 
   - slug: it-works-for-me
-    roles: [frontend, fullstack]
+    roles: [frontend, fullstack, qa]
     levels: [intern-junior, mid]
     type: scenario
     topic: debugging
@@ -679,9 +679,12 @@ questions:
       working", with nothing else, and a critique pass called it the lowest-discrimination question
       in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a
       real report, so the answer has to contain a hypothesis and not only a list of questions. Is one
-      device working and another not too strong a hint? And I have kept it off the QA role, because a
-      QA interviewer would frame this around triage and severity — should one question serve all
-      three roles instead?
+      device working and another not too strong a hint? **It now carries `qa` as well** (2026-09-23): its
+      own note asked whether one question should serve all three roles, and the answer was yes —
+      nothing in it is about the browser, and a QA copy would have been the same question with a
+      second slug to keep in step. Its rubric moved to `rubrics.shared.yaml`. Is the answer key
+      missing the triage half — how often, how many users, what severity — or does that belong to
+      `two-bugs-one-slot` in the QA bank?
 
   - slug: error-only-in-production
     roles: [frontend, fullstack]

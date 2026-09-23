@@ -1,0 +1,148 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: stale-element-diagnosis
+question: selenium-stale-element
+answers:
+  - kind: strong
+    text: |
+      So the exception is telling me that row points at a DOM node that isn't in the page
+      any more. When I called findElement on the first line, Selenium handed me back a
+      reference to that specific element — not the selector, the element. Then the filter
+      click re-rendered the results table, so the old tr was thrown away and a new one
+      built. My reference still points at the dead one. That's exactly why it only fails
+      when the filter actually changes the list.
+
+      Waiting longer wouldn't help. A stale reference never becomes fresh — it's not that
+      the element isn't ready yet, it's that this one is gone. Wrap it in a wait and I
+      spend twenty seconds throwing the same exception.
+
+      What I'd change is: don't hold an element across an action that changes the page.
+      Keep the locator, click the filter, wait for the new list, then find the row again
+      and click apply — or find it in one go, #results tr:first-child .apply, after that
+      wait.
+
+      For the other places, I wouldn't patch thirty files by hand. I'd put a helper in the
+      shared layer — click by locator, which re-finds each time — and move the page
+      objects onto it, starting with whatever is actually flaking, so nobody writes the
+      old way again.
+    expected:
+      - dimension: "What the exception means"
+        score: 3
+        because: 'Level 3: findElement returned a handle to that element, the re-render threw the node away, so the reference is detached and waiting cannot help — "a stale reference never becomes fresh"; navigation and frame switching are not named.'
+      - dimension: "The fix"
+        score: 3
+        because: "Level 3: keep the locator, click the filter, wait for the new list to be there, then find the row again — but does not say which condition to wait on or that the re-render is the event rather than a delay."
+      - dimension: "The pattern across the suite"
+        score: 3
+        because: "Level 3: a helper in the shared layer that clicks by locator and re-finds each time, with the page objects moved onto it, so no reference outlives an action; says nothing about what a catch-all retry would cost."
+  - kind: weak
+    text: |
+      So stale element means the element is no longer available on the page. It's a very
+      common Selenium error, I've seen it a lot. It's usually because the page has loaded
+      again or the element has refreshed. Would waiting help — I think yes, because
+      normally when I get errors like this I add a wait and it clears. Like Thread.sleep
+      of 3 seconds after the click, or an explicit wait, and then it can find the element.
+      So I would try that first honestly, because it's the quickest. What I'd change about
+      the test... maybe instead of taking the row first, I can do it after the click. So
+      click the filter first, then find the row, then click apply. I think that might
+      work, because then the element is fresh. I'm not fully sure why the first one goes
+      stale but I know the order matters. And for the other places in the suite, I would
+      put a try-catch around them so that if the stale element exception comes, it catches
+      it and tries again. That way the test won't fail. I think there's also a way to set
+      implicit wait in the driver so it applies everywhere, I've seen it in a project
+      before.
+    expected:
+      - dimension: "What the exception means"
+        score: 1
+        because: 'Level 1: read as a timing problem — "the page has loaded again or the element has refreshed" — and concludes waiting will resolve it, "because normally when I get errors like this I add a wait and it clears".'
+      - dimension: "The fix"
+        score: 2
+        because: 'Level 2: arrives at finding the row after the click, hedged — "I think that might work" — but its wait is a Thread.sleep, so there is nothing about waiting for the new list.'
+      - dimension: "The pattern across the suite"
+        score: 1
+        because: 'Level 1: standardises the retry — a try-catch around each place that catches the exception and tries again — and reports it fixed because "the test won''t fail", plus a driver-wide implicit wait.'
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so this is a synchronisation problem, classic one. The clue is right there in
+      the question — it only throws when the filter actually changes the list. So when the
+      list is re-rendering, the DOM is in flux, and my last line is firing while that's
+      still happening. The element isn't fully attached yet at the moment I touch it.
+      That's what "not attached to the page document" is literally saying: not attached
+      yet. So yes, waiting does help, as long as it's a proper wait and not a sleep. I'd
+      wrap it: new WebDriverWait(driver, Duration.ofSeconds(10))
+      .until(ExpectedConditions.visibilityOf(row)), and then click. visibilityOf takes the
+      WebElement and polls it, so it keeps checking until the element is attached and
+      visible again, and once the re-render finishes it comes back and my click goes
+      through. Nothing wrong with holding the reference — the reference is fine, it's the
+      timing that's off. And for the rest of the suite, the good news is you don't have to
+      touch them one by one. Implicit wait covers staleness as well as presence, so I'd
+      set the implicit wait in the driver factory to about twenty seconds, and every
+      findElement and every interaction in the whole suite inherits the retry. One line,
+      and all those other places stop flaking.
+    expected:
+      - dimension: "What the exception means"
+        score: 1
+        because: 'Level 1: read as a timing problem — "not attached yet", the DOM in flux — and concludes a proper wait resolves it.'
+      - dimension: "The fix"
+        score: 0
+        because: 'Level 0: a longer wait — WebDriverWait on visibilityOf(row), the same dead reference — and "nothing wrong with holding the reference".'
+      - dimension: "The pattern across the suite"
+        score: 1
+        because: 'Level 1: standardises the retry suite-wide — a twenty-second implicit wait in the driver factory so "every interaction in the whole suite inherits the retry" — and reports the other places as fixed.'
+  - kind: correct-poorly-explained
+    text: |
+      So the message is saying the element is not attached, which means — so when you do
+      findElement it doesn't keep the selector, it keeps the actual element, like an id to
+      that node. And then the filter click re-renders the table, so that node is destroyed
+      and a new one put in its place, and the thing I'm holding is pointing at nothing,
+      even though on screen the same row looks like it's there. And no, waiting won't
+      help, that's the thing people always try — it's not that it's not ready, it's that
+      it's dead, and a dead reference doesn't come back, so you just wait and fail. A wait
+      is useful before, for the new list, not on the old element. So what I'd do is, after
+      the filter click, wait for the list to settle and then find the row again, or better
+      just do the whole thing in one selector at that point, results, first row, the apply
+      link. And for the rest of it — there'll be plenty of places doing this. I wouldn't
+      edit them one by one. Put one method in the base, click by locator, which looks up
+      fresh every time, then move the page objects over, the flaky ones first, and then
+      new tests can't do the old thing.
+    expected:
+      - dimension: "What the exception means"
+        score: 3
+        because: 'Level 3: findElement keeps the element and not the selector, the re-render destroys that node, so the handle points at nothing and waiting cannot help — "a dead reference doesn''t come back"; no other cause named.'
+      - dimension: "The fix"
+        score: 3
+        because: 'Level 3: after the filter click, wait for the list and find the row again, or do it in one selector — "a wait is useful but before, for the new list, not on the old element" — without naming the condition.'
+      - dimension: "The pattern across the suite"
+        score: 3
+        because: 'Level 3: one method in the base that clicks by locator and "looks up fresh every time", page objects moved over flaky-first; nothing on what a catch-all retry costs.'
+  - kind: nigerian-english
+    text: |
+      The exception is telling me that this row is pointing to something that is no longer
+      inside the page. When I did findElement up there, Selenium gave me a handle to that
+      particular element, not the selector. Then the filter click re- rendered the table,
+      so that old tr, they threw am away and built a new one. My handle is still holding
+      the dead one. That's why it's only failing when the filter changes the list.
+
+      Waiting longer will not help am at all — a stale reference will never become fresh.
+      It's not that the element has not come; this one has gone. So if I wrap it inside
+      WebDriverWait on that same object, I am just wasting twenty seconds to throw the
+      same exception.
+
+      What I will change: don't hold element across any action that changes the page. Keep
+      the locator, click the filter, wait for the new list, then find the row again and
+      click apply. Or find am once with one selector, #results tr:first-child .apply.
+
+      For the other places, I won't patch thirty files one by one. I will put one helper
+      inside the shared layer — click by locator, so it finds fresh every time — then move
+      the page objects to am, starting with the tests that are flaking now.
+    expected:
+      - dimension: "What the exception means"
+        score: 3
+        because: "Level 3, same as `strong`: a handle to that element, the re-render threw the old tr away, and a stale reference will never become fresh; navigation and frames not named."
+      - dimension: "The fix"
+        score: 3
+        because: "Level 3, same as `strong`: keep the locator, click the filter, wait for the new list to show, then find the row again."
+      - dimension: "The pattern across the suite"
+        score: 3
+        because: "Level 3, same as `strong`: one helper in the shared layer that finds fresh every time, with the page objects moved onto it; no account of what a blanket retry costs."

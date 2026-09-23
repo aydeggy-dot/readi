@@ -1,8 +1,35 @@
+# The QA question bank: 33 questions for an intern/junior or mid-level interview — 23 general and 10
+# written for a particular automation stack. A QA candidate is offered 42, because nine role-general
+# questions live in the frontend and backend banks and carry this role too; stack tagging means any
+# one candidate actually sees about 34.
+#
+# **QA is the only role in the catalogue rated a full fit for this engine**, because a QA interview
+# is largely "here is a feature — how would you test it?", which is a conversation with follow-ups.
+# There is no round we are missing and no tooling we owe it, so for this role the bank is the whole
+# product (`content/seed/blueprints/qa.md`). It is weighted accordingly towards `test_design` and
+# `scenario`, and nothing in it asks a candidate to write code.
+#
+# **The level tag does work here** (owner's decision on the backend bank, 2026-09-23): each question
+# carries the level it is honestly asked at rather than both by default, and the one resulting
+# shortfall — `test-data` at intern-junior — is reported by `check-bank.mjs` every run rather than
+# filled with a mid question wearing a junior label.
+#
+# One instruction for whoever asks these, which the seed format has nowhere to put: **an answer drawn
+# from a personal project, a hypothetical, or "where I worked we did not have that, but I would…" is
+# scored on the same terms as one drawn from a job.** Much of this audience is self-taught, and a
+# large share of QA candidates in this market arrived through a bootcamp or a manual-testing role
+# with no automation, no pipeline and no staging environment.
+#
+# Draft, written by a model. `reviewer_notes` on each question says what the drafter is unsure
+# about — read those first, and see content/seed/REVIEW.md for what we are asking you to check.
 version: 1
 author: ai_draft
 status: draft
 
 questions:
+  # -------------------------------------------------------------------------------------------
+  # Test design. The role's central round, and the reason `test_design` exists as a question type.
+
   - slug: test-design-signup-form
     roles: [qa]
     levels: [intern-junior]
@@ -12,7 +39,8 @@ questions:
     difficulty: 2
     prompt: >-
       A sign-up form takes a phone number, a password and a date of birth, and the product says
-      users must be 18 or over. What would you test, and how would you decide that list is enough?
+      users must be 18 or over. What would you test? What would you put the form through that is
+      not about the values typed into it? And how would you decide your list is enough?
     context: null
     rubric: test-case-selection
     ideal_points:
@@ -24,30 +52,809 @@ questions:
     reviewer_notes: >-
       The age boundary gives an objective anchor, which is why the rule is in the prompt. Is a
       sign-up form too easy a subject at this level, and are the phone-number formats the ones you
-      would actually expect a Nigerian tester to name?
+      would actually expect a Nigerian tester to name? The middle clause was added on 2026-09-23
+      because the rubric charges 30% for thinking past the happy path and the prompt never asked for
+      it; it may now hint too heavily.
+
+  - slug: test-design-otp-screen
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: test_design
+    topic: test-design
+    subtopic: rules and boundaries
+    difficulty: 3
+    prompt: >-
+      On your screen are the rules for a sign-in screen that takes a code sent by SMS. What would you
+      test? What would you put it through that is not about the six digits themselves? And where do
+      the rules brush against each other?
+    context: |
+      ```
+      The code is six digits, sent by SMS.
+      It stops working ten minutes after it is sent.
+      There is a Resend button.
+      After five wrong codes the account is locked for an hour.
+      ```
+    rubric: rule-interaction-test-design
+    ideal_points:
+      - One case per class rather than many wrong codes — valid, wrong, expired, a code for another number, something that is not six digits.
+      - The boundaries the rules create — the fifth wrong attempt and the sixth, and a code used just before and just after ten minutes.
+      - Resend — whether the previous code still works, whether the attempt counter resets, and what two codes in flight do.
+      - The SMS being slow or never arriving, which on this network is common rather than exceptional.
+      - The rule does not say whether the fifth wrong attempt is allowed or is the one that locks, so that is a question rather than an assumption.
+      - What is deliberately out of scope — the SMS provider itself — and why.
+    reviewer_notes: >-
+      The rules moved from the spoken prompt into the context on 2026-09-23 — four numbers said once,
+      with nothing on screen to look back at, was the clearest fairness finding against this question.
+      It also gained its own rubric: `test-case-selection` could not be a true claim about both this
+      and the sign-up form, because everything this question is really about was landing in one
+      criterion. Two things for you. Two of the cases still feel mid to me — two codes in flight, and
+      whether Resend resets the counter — so is the junior tag right? And the ambiguity in the lock
+      rule is deliberate, to reward asking over assuming; if it reads as a badly written rule instead,
+      say so and I will make it explicit.
+
+  - slug: test-design-money-transfer
+    roles: [qa]
+    levels: [mid]
+    type: test_design
+    topic: test-design
+    subtopic: irreversible actions
+    difficulty: 4
+    prompt: >-
+      A transfer screen takes a recipient account number, an amount and a four-digit PIN, and the
+      daily limit is two hundred thousand naira. What would you test first, and what puts it first?
+      What would you test about the limit and the PIN rule? And after a transfer that timed out, or
+      that you tapped twice, where would you go to find out what actually happened to the money?
+    context: null
+    rubric: transactional-test-design
+    ideal_points:
+      - Start where a mistake cannot be taken back — the wrong recipient, the wrong amount, a debit with no credit.
+      - The limit boundary, and whether the field takes kobo — if it does, the values either side of ₦200,000 are one kobo away rather than one naira.
+      - Two transfers on the same day that are each under the limit and together over it.
+      - The unknown outcomes — a timeout, the app closed mid-request, the same tap twice — and whether the money moves exactly once.
+      - A wrong PIN, the attempt counter, and whether a failed attempt leaves anything behind.
+      - Check both balances and the stored record of the transfer, not the success message.
+      - Say what is out of reach — the receiving bank — and how you would test up to that line.
+    reviewer_notes: >-
+      **Reworked on 2026-09-23.** The prompt used to say "given that a mistake here moves somebody's
+      money", which gave away the first criterion — the drafter's own note asked about it and a pass
+      confirmed it. Its second and third clauses were also riddles rather than questions ("the cases
+      where you never find out what happened", "what the screen will not tell you"), which cost a
+      nervous candidate the clause carrying 35%. The rubric gained a criterion for the money rules,
+      because the limit boundary, the unit and the PIN counter were in the answer key and scored by
+      nothing. Left open: is "exactly once" a fair expectation at mid, or is it what separates mid from
+      senior? And is a mid candidate here likely to have tested anything that moves money at all?
+
+  # -------------------------------------------------------------------------------------------
+  # Risk-based testing. Three questions, because deciding where the time goes is what separates a
+  # tester from someone executing a script, and it is asked at every level.
+
+  - slug: what-to-test-when-there-is-no-time
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: risk-based-testing
+    subtopic: choosing under a deadline
+    difficulty: 3
+    prompt: >-
+      The release goes out tomorrow morning. There are forty test cases you would normally run and
+      time for about twelve. Which twelve would you run, and what makes them the twelve? And what
+      would you tell the people deciding whether to release, about the twenty-eight you did not run?
+    context: null
+    rubric: risk-prioritisation
+    ideal_points:
+      - Risk is what it would cost weighed against how likely it is, not the number of cases in an area.
+      - Start with what money or account access flows through, and with what a user cannot undo.
+      - What changed in this release, and what sits downstream of the change.
+      - Cover each path that matters once rather than one area thoroughly.
+      - Say plainly what was not run, so the release decision belongs to whoever makes it.
+      - Some of the twelve slots are better spent poking at the changed area than on the next scripted case.
+    reviewer_notes: >-
+      Forty cases and twelve slots is meant to be tight enough that the candidate has to cut
+      something they care about. Two things. Is a junior fairly asked to hand the decision back —
+      criterion 3 rewards saying what was not covered and stopping there, which assumes the candidate
+      is in a position where that is heard? And should the prompt say what changed in this release, or
+      is asking for it the point?
+
+  - slug: where-the-bugs-have-been
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: risk-based-testing
+    subtopic: reading defect history
+    difficulty: 3
+    prompt: >-
+      On your screen is where the defects have been for the last three releases. A new release is
+      coming and you have time to cover about half of what you would like to. Where would you spend
+      it, and which column matters more? And what would you be careful not to conclude from a table
+      like this?
+    context: |
+      Defects found in the last three releases, by area. The bracketed number is how many of them
+      reached users before anyone noticed.
+
+      ```
+      Payments              11   (4 reached users)
+      Sign-up / sign-in      9   (1 reached users)
+      Notifications          7   (5 reached users)
+      Job search             3   (0 reached users)
+      Profile editing        2   (1 reached users)
+      ```
+    rubric: risk-prioritisation
+    ideal_points:
+      - Notifications has the worst record of escaping — five of seven — although payments found more in total.
+      - Payments carries the most cost per defect, so volume and impact point the same way there.
+      - The table counts defects found, which is a record of where people looked rather than where the bugs are.
+      - An area with almost nothing found may be untested rather than sound, and job search is worth asking about.
+      - Ask what changed in this release; history is one input and the diff is the other.
+      - Say what is being left uncovered and why that is the cheaper risk.
+    reviewer_notes: >-
+      The table is the point — it lets a junior reason from evidence rather than from experience they
+      do not have. The trap I have built in is that the highest count is not the worst escape rate,
+      and criterion 1's level 1 is written for a candidate who ranks by the count alone. Is that trap
+      fair, or is it a puzzle rather than a testing question? And are these five areas the right
+      shape for a job-board product, or should the table be a bank app, which is what more of this
+      market's QA work actually is?
+
+  - slug: regression-scope-after-a-small-change
+    roles: [qa]
+    levels: [mid]
+    type: test_design
+    topic: risk-based-testing
+    subtopic: regression scope
+    difficulty: 3
+    prompt: >-
+      A developer has changed one line — the function that works out a discount now rounds down
+      instead of rounding to the nearest naira — and says nothing else was touched. What would you
+      re-test, and how far out from that line would you go? What would you deliberately leave alone?
+      And what would you want to see before you believed that nothing else was touched?
+    context: null
+    rubric: regression-scoping
+    ideal_points:
+      - Follow the number rather than the screens — totals, receipts, refunds, reports, anything that recomputes or compares it.
+      - The two ways of rounding agree on most values, so the cases that show anything are the ones with kobo in them rather than every order.
+      - Rows already stored were computed the old way and now disagree with a fresh calculation.
+      - Leave out what cannot reach the function, and say how you know it cannot.
+      - Widen it if the function turns out to be called from somewhere unexpected, or if a failure appears outside the area.
+      - Ask why it changed; a rounding rule is usually a finance decision with a date attached.
+    reviewer_notes: >-
+      The answer-key point about the two roundings agreeing on most values was a derivation before
+      2026-09-23 — it claimed the difference shows only where the fraction is half a naira or more,
+      which is true for round-half-up and was scored by no descriptor, so two passes called it a maths
+      puzzle rather than a testing question. It now says only that the cases with kobo in them are the
+      ones that show anything. Is even that too much to expect aloud? And is a discount the right
+      subject, given that a rounding change usually arrives with a finance decision the tester is told
+      about?
+
+  # -------------------------------------------------------------------------------------------
+  # Defect reporting. Both questions hand the candidate an artefact rather than asking them to recall
+  # a workplace, because a large share of this audience has not had one.
+
+  - slug: the-report-that-came-back
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: defect-reporting
+    subtopic: rewriting a report
+    difficulty: 2
+    prompt: >-
+      On your screen is a defect report that came back closed as "cannot reproduce". What would you go
+      and find out before reopening it? Which parts of it are what was seen and which are a guess? And
+      what would you want attached to it that is not there now?
+    context: |
+      ```
+      Title       Application fails
+      Severity    Critical
+      Device      Tecno Spark 20, Android 14
+      Build       4.2.1
+
+      Steps
+        1. Open the app and sign in
+        2. Go to Jobs
+        3. Open the first job in the list
+        4. Tap Apply
+        5. Fill in the form and tap Submit
+
+      Expected    It should work
+      Actual      Nothing happens, and after a while the app goes back to the job list. I noticed
+                  it once I had already applied for that one earlier in the day.
+      ```
+
+      Developer comment, two days later — "Cannot reproduce on my device. Closing."
+    rubric: defect-report-quality
+    ideal_points:
+      - The steps look complete and are not repeatable — no account, and no job, so the developer cannot reach the same state.
+      - The load-bearing fact is buried in the last sentence — they had already applied for that job, so this may be the duplicate path rather than a failure.
+      - The expectation, given as "it should work", is not one — what should have happened has to come from somewhere nameable.
+      - Two different observations are folded together — nothing happening, and the app returning to the list — and only one of them is the symptom.
+      - How often, out of how many attempts, and whether it happens on a job they have not applied for.
+      - Roughly when it happened, so the logs can be found — and a recording, or a request id if one can be got.
+    reviewer_notes: >-
+      **Rewritten on 2026-09-23.** The first version was conspicuously bad — no steps, no build, "please
+      fix urgently" — and two passes said the same thing: everything missing was missing so obviously
+      that the question tested whether a candidate can recite the fields of a bug-report template,
+      which is the most coachable thing in the bank. It is now complete by template and still
+      unactionable: the steps cannot be repeated because there is no account and no job, the
+      expectation is "it should work", and the fact that decides the whole thing — that they had
+      already applied for that job — is buried in the last clause. Is that now too subtle for
+      intern-junior? And is the developer's comment unfair to developers as written?
+
+  - slug: two-bugs-one-slot
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: defect-reporting
+    subtopic: severity and priority
+    difficulty: 3
+    prompt: >-
+      On your screen are two defects, and one fix will make it into tomorrow's release. Which is the
+      more serious, and what makes it so? What would you write to the person who has to choose which
+      is fixed first, so they are not relying on your word for it? And what happens to the one that
+      is left?
+    context: |
+      Both found on the same build.
+
+      ```
+      A  The amount charged is ₦50 less than the sum of the items, and the receipt shows the
+         same wrong total, so nothing on screen disagrees. Happens on every order.
+
+      B  The app closes itself when a user opens their profile while offline.
+         Two testers out of six have seen it; both were on 2G at the time.
+      ```
+    rubric: severity-judgement
+    ideal_points:
+      - A undercharges on every order and nothing on screen disagrees, so it reaches everyone and nobody — buyer or seller — has a reason to question it.
+      - B closes the app for some users on a bad connection, which is visible and recoverable by trying again.
+      - Severity is what it does to a user; which one is fixed first is the release owner's call, and giving a recommendation alongside the severity is not the same as taking that call.
+      - Give them what they would need to decide — how many, how often, what the user sees, what it costs.
+      - Two of six on 2G is a hint rather than a rate, so B needs more work before it can be judged.
+      - The one that waits gets a note in the release, a workaround if there is one, and a ticket that will not be lost.
+    reviewer_notes: >-
+      **Changed on 2026-09-23 so the money actually moves.** It used to say the total *shown* was ₦50
+      lower, which one pass pointed out reads as a display rounding bug — the exact objection that
+      undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it,
+      so there is nothing on screen to catch it. The rubric credits either ranking as long as the
+      comparison between a quiet failure and a visible one is made; a crash on a slow connection is
+      this market's normal condition and ranking B higher with that reason reaches 4. Is that the
+      right call, or should the question have a right answer? And is ₦50 too small to be taken
+      seriously?
+
+  # -------------------------------------------------------------------------------------------
+  # Testing an API. The *skill*, not the tool — nothing here needs Postman or RestAssured, which are
+  # the `api-testing` stack further down. The distinction is in `topics.yaml`.
+
+  - slug: testing-an-endpoint-without-a-ui
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: test_design
+    topic: testing-apis
+    subtopic: deriving cases from a contract
+    difficulty: 3
+    prompt: >-
+      On your screen is everything you have about an endpoint — the screen that will use it does not
+      exist yet. What would you test, and where do the cases come from when there is no interface to
+      click? What would you check about a response, beyond its status code? And what would you test
+      here that a test through a screen could never reach?
+    context: |
+      ```
+      POST /applications
+
+      Request body
+        { "job_id": "<uuid>", "cover_note": "<text, optional, up to 2000 characters>" }
+
+      Responses the team has documented
+        201   { "application_id": "<uuid>" }
+        400   validation failed
+        409   you have already applied for this job
+        401   not signed in
+      ```
+    rubric: api-test-design
+    ideal_points:
+      - The documented responses are the case list — one request that produces each of 201, 400, 409 and 401.
+      - The request's own fields give more — a missing `job_id`, one that is not a uuid, a note at 2000 characters and at 2001.
+      - Check the body as well as the status — the shape, the field names, and whether the id returned is a real application.
+      - Authorisation as its own case — no token, an expired one, and a job that is not the caller's to apply for.
+      - Send the same request twice and check the 409 comes back, and that only one application exists.
+      - Check the effect rather than the reply — the application is there afterwards, and nothing else moved.
+    reviewer_notes: >-
+      Written at both levels because a lot of junior QA work here is Postman against a documented
+      endpoint before any screen exists. The part I am unsure of is how much the document should
+      leave out — it currently says nothing about what happens to an unknown field or whether the
+      note is trimmed, and criterion 1's level 4 rewards raising those as questions. Is that a fair
+      thing to reward, or does an incomplete document just make the question ambiguous?
+
+  - slug: the-request-that-came-back-400
+    roles: [qa]
+    levels: [intern-junior]
+    type: technical
+    topic: testing-apis
+    subtopic: reading a response
+    difficulty: 2
+    prompt: >-
+      On your screen is a request you sent while testing and the response that came back. What does
+      the response tell you about what went wrong? If there is an agreed spec for this endpoint, what
+      would you check in it before writing this up? And how would you write it up so that nobody has
+      to argue about whose defect it is?
+    context: |
+      ```
+      POST /applications HTTP/1.1
+      Authorization: Bearer <a valid token>
+      Content-Type: application/json
+
+      { "jobId": "8f2c9e10-...", "coverNote": "I am interested in this role." }
+      ```
+
+      ```
+      HTTP/1.1 400 Bad Request
+      Content-Type: application/json
+
+      { "error": "validation_failed", "fields": ["job_id"] }
+      ```
+    rubric: api-evidence-reading
+    ideal_points:
+      - The response names the field it wanted — `job_id` — and the request sent `jobId`, so the spelling is the difference.
+      - The API rejected it correctly, so what is wrong is one side's idea of the field name rather than the rejection.
+      - Check what the agreed contract says the field is called before deciding anything.
+      - Check whether the app, or another endpoint, uses the other spelling — that decides which side moved.
+      - Write it as what was sent, what came back and what the contract says, so the disagreement is about a document.
+      - If there is no contract to check, the missing agreement is itself the finding and worth reporting as one.
+    reviewer_notes: >-
+      Deliberately junior-only — it is one careful reading of two blocks of text and it does not need
+      any experience of a workplace. Two worries. Criterion 2 assumes there is a contract to check,
+      which a candidate who has only tested from a screen may never have seen; the answer key allows
+      "there is no contract" but the descriptors may still read as assuming one. And is naming the
+      side that is wrong the right thing to ask a junior for at all, or does it invite the
+      developer-versus-tester framing we would rather not teach?
+
+  - slug: the-field-that-changed-shape
+    roles: [qa]
+    levels: [mid]
+    type: technical
+    topic: testing-apis
+    subtopic: contract changes
+    difficulty: 3
+    prompt: >-
+      On your screen is the same endpoint a week apart. This went out last night. What would you say
+      happened, in plain terms? How could a test have caught it before a user did, and where would
+      that test have to run? And what would you ask for so the next one is not found this way?
+    context: |
+      The same endpoint, a week apart.
+
+      ```
+      Last week   { "id": "...", "salary": 250000 }
+
+      This week   { "id": "...", "salary": { "min": 250000, "max": 400000, "currency": "NGN" } }
+      ```
+
+      Nothing in the release notes mentions it. The Android app now shows an empty salary on every
+      job, and on some versions it closes when the list loads.
+    rubric: api-contract-reasoning
+    ideal_points:
+      - A field's type changed under callers that were already reading it, which breaks them by definition.
+      - The app was not wrong — it was reading a number that is now an object.
+      - A check on the shape of the response — types and required fields — fails the moment this ships.
+      - That check has to run against the API, in the API's own pipeline; in the app's suite it fails after the release.
+      - A status-code check would have passed, which is why the pipeline said nothing.
+      - Ask for a new field or a version rather than a changed one, and ask who else reads it — the app is the caller that shouted.
+    reviewer_notes: >-
+      I have kept every product name out of this so it cannot go stale. Two judgements I would like
+      checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not
+      at fault, which is a political statement in some teams — is that the right thing to reward? And
+      is "the test has to live in the API's pipeline" too strong for a QA candidate who has no access
+      to that pipeline and would realistically add a check to their own suite?
+
+  # -------------------------------------------------------------------------------------------
+  # Automation. Strategy and judgement only — the engine has no code editor, so no question here
+  # asks a candidate to write a test (`blueprints/qa.md`, out of scope).
+
+  - slug: what-to-automate-first
+    roles: [qa]
+    levels: [mid]
+    type: scenario
+    topic: test-automation
+    subtopic: choosing what to automate
+    difficulty: 3
+    prompt: >-
+      A team has two hundred manual test cases and time for you to automate about thirty. Which
+      thirty, and what puts a case in that group? What would you deliberately leave manual? And how
+      would you know, in three months, whether it was worth doing?
+    context: null
+    rubric: automation-selection
+    ideal_points:
+      - Cases that run on every release, on the paths everything else depends on, earn it first.
+      - Automate what is stable — a screen being redesigned next month costs more in upkeep than it saves.
+      - Prefer cases where the check is unambiguous; anything needing a judgement about how a screen looks is a poor fit.
+      - Leave exploratory work, one-off checks and anything that changes weekly with a person.
+      - Thirty cases that run on every change beat two hundred that run once a quarter.
+      - Judge it on defects caught before release and on whether people still act on a failure, not on the count of tests.
+    reviewer_notes: >-
+      **Moved to mid only on 2026-09-23.** Two passes said the same thing: the third clause carries 40%
+      and needs a suite somebody has lived with for three months, so a junior with nothing automated
+      cannot earn it. That leaves `test-automation` at one question at intern-junior against a floor of
+      two, which the checker reports every run — the honest state rather than this question wearing a
+      junior label. The cheaper junior version one pass proposed is "here are five manual cases, which
+      would you automate first and why"; is that worth writing, or is
+      `the-test-that-always-passes` enough at that level?
+
+  - slug: the-test-that-always-passes
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: test-automation
+    subtopic: assertions
+    difficulty: 2
+    prompt: >-
+      On your screen is an automated test. Sign-in has been broken since yesterday morning and this
+      test passed on every run — you do not need to know the tool to see why. What is it actually
+      checking? What would it have to check instead, so that a broken sign-in fails it? And what else
+      in it would you not leave as it is?
+    context: |
+      An automated browser test, written as pseudocode — the idea is the same in any tool.
+
+      ```
+      open("/login")
+      type("#email", "tester@example.com")
+      type("#password", "correct-password")
+      click("#submit")
+      wait(3 seconds)
+      assert exists("#app-header")
+      ```
+
+      `#app-header` is the bar across the top of every page, including the login page.
+    rubric: assertion-strength
+    ideal_points:
+      - The header is on the login page too, so the assertion is true whether or not sign-in worked.
+      - A test that cannot fail is worse than no test, because it is counted as coverage.
+      - Assert on something only a signed-in user has — their own name, their own data, a page that needs the session.
+      - Assert the failure path too — a wrong password should show the error and stay where it is.
+      - The three-second wait is a guess; wait for the thing you are about to assert on.
+      - The fixed account and the structural selectors are both reasons this test will fail for something other than the product.
+    reviewer_notes: >-
+      The last line of the context — that the header is on every page — was added because without it
+      the premise does not hold and the question is unanswerable. It now gives the first criterion
+      away, which I do not like but prefer to an unfair question. Would you take that line out and
+      let the candidate ask? And is pseudocode the right call here, or would a real tool's syntax make
+      it sharper for the automation candidates and unfair to the manual ones?
+
+  - slug: the-suite-nobody-trusts
+    roles: [qa]
+    levels: [mid]
+    type: scenario
+    topic: test-automation
+    subtopic: unreliable suites
+    difficulty: 4
+    prompt: >-
+      Fifteen of a hundred and twenty automated tests fail on some runs and pass on others, never the
+      same ones. The team reruns until they pass and then puts the change in — which is a reasonable
+      response to a signal nobody can trust. What would you do about the fifteen? What would you do
+      about the rerunning? And what has the team actually lost?
+    context: null
+    rubric: flaky-suite-response
+    ideal_points:
+      - Find out which tests and at what rate before deciding anything about them.
+      - Read the failures — a test failing one run in ten may be a real defect that is already shipping.
+      - Each one is fixed, or taken out of the run with a ticket and an owner, or deleted for a stated reason.
+      - A blanket retry is the worst option — it makes the suite green and keeps whatever is wrong.
+      - A suite that fails for no reason teaches people to ignore it, so the cost is the failures they will also ignore.
+      - Something has to keep it honest afterwards — a rate somebody watches, or a rule that a new unreliable test is quarantined the day it appears.
+    reviewer_notes: >-
+      Mid only, because the answer turns on having lived with a suite long enough to see the habit
+      form. Fifteen of a hundred and twenty is meant to be bad enough that rerunning is rational,
+      which is the uncomfortable part — the team is not being lazy, they are responding sensibly to a
+      broken signal, and criterion 3's level 1 penalises a candidate who blames them. Is that
+      distinction one you would expect a mid candidate to make, or am I scoring something closer to
+      senior judgement?
+
+  # -------------------------------------------------------------------------------------------
+  # Tests in a pipeline. One at intern-junior rather than two, deliberately — a junior tester is
+  # fairly asked what a failing pipeline means and what they do about it, and is not usually the
+  # person who owns it (`blueprints/qa.md`, the one stated deviation from the floor).
+
+  - slug: the-pipeline-has-been-red
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: ci-pipelines
+    subtopic: a failing build
+    difficulty: 3
+    prompt: >-
+      The automated checks have been failing for three days. Everybody knows, and people are putting
+      their changes in anyway because the failure is "the usual one". What would you do about the
+      failure itself? What is a failing build costing them, that they may not have counted? And what
+      would you write down, and who would you send it to?
+    context: null
+    rubric: pipeline-health-response
+    ideal_points:
+      - Read the failure before doing anything about the habit — "the usual one" may be a real defect nobody has opened.
+      - If the test is wrong, fix it or take it out with a ticket and an owner; muting it with neither is how this started.
+      - If the product is wrong, it is a defect with three days of merges sitting on top of it.
+      - While it is red, nothing the pipeline runs after that step is being believed, so the cost is the rest of the suite.
+      - The more expensive loss is the habit — a team that reads past red will read past the next real failure.
+      - Ask for one thing first, owned today, and then for something structural — a fast check people will wait for, and an agreed rule for the next red build.
+    reviewer_notes: >-
+      Asked at junior because it is the pipeline question a junior actually faces — they are told to
+      ignore a failure. **Reworked on 2026-09-23**: three passes said the old prompt asked a junior to
+      make an argument to a team, which is standing most of them do not have, and one added that three
+      days of red across timezones is undone by a message and a record rather than by a conversation.
+      It now asks what they would write and who they would send it to, the criterion is weighted down
+      from 35 to 30, and "green"/"red build" is out of the spoken clause. One pass would go further and
+      make the whole team-facing half mid-only, which would empty the junior `ci-pipelines` slot — is
+      that the better trade?
+
+  - slug: where-the-tests-run
+    roles: [qa]
+    levels: [mid]
+    type: scenario
+    topic: ci-pipelines
+    subtopic: splitting a suite
+    difficulty: 4
+    prompt: >-
+      The automated suite takes fifty minutes and runs on every change. The developers have started
+      putting changes in without waiting for it, and they have asked you what should stay in the
+      quick check. What do you tell them, and what would you need to know first? What moves out of
+      the quick check? And what happens to a failure that now arrives after a change has gone in
+      rather than before?
+    context: null
+    rubric: test-pipeline-design
+    ideal_points:
+      - Split it — a short check on every pull request, the rest on the main branch or on a schedule.
+      - Draw the line on what each part catches, not on which kind of test it is.
+      - What stays is cheap and high-yield, plus a thin path through what matters most, so a merge that breaks sign-in still fails before it lands.
+      - What moves out is the slow end — the full browser suite, long data setup, the cross-browser matrix.
+      - A failure in the slow run needs an owner and a rule for the branch, or the problem has only moved.
+      - Cutting duplicate setup and running in parallel often buys more than deleting tests.
+    reviewer_notes: >-
+      **Reframed on 2026-09-23 so the candidate is advising, not deciding** — one pass said it had never
+      asked a tester to split a pipeline and would cut the question, another that it rewarded standing
+      a remote hire would not have in month one, and the drafter's own note already doubted it. The
+      developers now ask the candidate what should stay in the quick check, which tests the same
+      reasoning without assuming authority. Is that enough to keep it, or is this still the weakest
+      question in the bank?
+
+  # -------------------------------------------------------------------------------------------
+  # Exploratory testing. Three questions, because the role's own catalogue entry names it core and
+  # because it is the one part of testing that no tooling we lack can excuse.
+
+  - slug: an-hour-with-a-new-feature
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: test_design
+    topic: exploratory-testing
+    subtopic: charters
+    difficulty: 3
+    prompt: >-
+      A developer has just finished a new job-alerts screen and there are no test cases for it yet.
+      You have one hour with it, and the decision about whether it goes out will be made while you
+      are asleep. How would you spend the hour? What would you decide before touching anything? And
+      what would you leave behind, so whoever decides can decide without you?
+    context: null
+    rubric: exploratory-charter
+    ideal_points:
+      - Decide the area and the risk first — an hour spent everywhere covers nothing.
+      - Learn what the feature is for before looking for what is wrong with it.
+      - Vary things on purpose — the inputs, the order, the timing, the connection — rather than repeating the same path.
+      - Follow the surprises; that is the whole advantage over a script.
+      - Keep a record as you go, because you will not remember it by the meeting.
+      - Leave behind what was covered, what was not, the defects and what another hour would go on — written so it can be acted on without asking you anything.
+    reviewer_notes: >-
+      The feature is named as of 2026-09-23 — without it the honest answer was "it depends what it is",
+      which landed on level 2 of a 35% criterion. And the output is now for whoever decides while the
+      candidate is asleep rather than for a release meeting, because a distributed hire is not in the
+      meeting and this is the best handover question in the bank. Two things. Is one hour the right
+      size — short enough to force a choice, but it may make the charter feel like overhead? And is a
+      job-alerts screen a rich enough subject, or would something with money in it be better?
+
+  - slug: the-upload-nobody-tested
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: test_design
+    topic: exploratory-testing
+    subtopic: attacking a feature
+    difficulty: 3
+    prompt: >-
+      A job application form has a CV upload — PDF or Word, up to 5 MB. The written test cases cover a
+      valid PDF, a file that is too large and a file of the wrong type. What would you try with the
+      file itself that those three do not? What would you do to the connection, or to the app, while
+      the upload is going? And how would you decide which of the things you find is a defect?
+    context: null
+    rubric: exploratory-attack-ideas
+    ideal_points:
+      - Go at the file — an empty file, a file at exactly 5 MB, a name with spaces or another alphabet, a PDF renamed to .docx and the reverse.
+      - A photograph of a printed CV saved as a PDF — the right type, inside the limit, and unreadable by anything that reads text. A real submission here rather than a hostile one.
+      - Drop the connection mid-upload, close the app, upload twice, and check what state the application is left in each time.
+      - Upload, go back, change the file, submit — and see which one is attached.
+      - Say what the behaviour disagrees with before calling it a defect — the stated limit, the rest of the product, what a user would reasonably expect.
+      - Separate the defects from the questions, and raise the questions as questions.
+    reviewer_notes: >-
+      The photograph-of-a-printed-CV case is the one I would most like your opinion on. It is the most
+      common real upload in this market and it is not a defect in the product — it is a product
+      decision nobody has made — so criterion 3 has to reward raising it as a question. Does that read
+      as a fair expectation, or as the drafter rewarding one pet example? And is 5 MB the right limit
+      to state, given what a phone camera produces?
+
+  - slug: testing-without-a-spec
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: exploratory-testing
+    subtopic: oracles
+    difficulty: 4
+    prompt: >-
+      There is no specification for this feature, and nobody who could tell you what it should do is
+      reachable today. On your screen is something you noticed. How do you decide whether it is a
+      defect? What would you use to settle it, when there is nothing to point at? And how would you
+      raise it so it is not your opinion against somebody else's?
+    context: |
+      On the job list, a closing date shows as `03/11/2026`.
+
+      On the job's own page, the same date shows as `11 March 2026`.
+
+      Nothing in the product says which is intended, and no other screen shows a date at all.
+    rubric: oracle-reasoning
+    ideal_points:
+      - With no document, other things stand in — what the rest of the product does, what the previous version did, what a user would reasonably assume.
+      - A published standard or a rule the business has to follow can settle it — a date format, currency rounding, an accessibility requirement.
+      - Here the two are the same date if the list puts the month first, so the disagreement is about which convention the product means rather than about the data being wrong.
+      - Write it as "here is the behaviour, here is what it disagrees with", so the disagreement has something in it besides preference.
+      - Some of what you find is a question rather than a defect, and separating the two is the job.
+      - Whatever is agreed gets written down, so the next person has the document you did not.
+    reviewer_notes: >-
+      **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question
+      into a conflict question), a concrete case went into the context, and it is now offered at
+      intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one
+      correction to my own note, found by the stress test:** I had written that the two dates "cannot
+      both be right". They can — `03/11/2026` *is* `11 March 2026` if the list puts the month first,
+      and a blind answer took that wrong turn in the other direction, calling them four months apart
+      and filing a backend defect. The data does not settle this. What the question tests is which
+      convention the product means, which is the better question here, because dd/mm is the local
+      convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
+
+  # -------------------------------------------------------------------------------------------
+  # Test data. `test-data` at intern-junior is one question rather than two, and the shortfall is
+  # reported rather than filled — the second one is honestly a mid question (owner's decision 1 on
+  # the backend bank, 2026-09-23).
+
+  - slug: where-your-test-data-comes-from
+    roles: [qa]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: test-data
+    subtopic: personal data in test environments
+    difficulty: 3
+    prompt: >-
+      You need about five hundred customers with realistic transaction histories to test a statement
+      screen. The quickest route is a copy of the live database, and someone senior has offered you
+      one. What would you do? What is wrong with taking it — explained to a colleague who is not a
+      tester, without quoting a regulation at them? And where would the data come from instead?
+    context: null
+    rubric: test-data-judgement
+    ideal_points:
+      - A copy of the live database is five hundred real people's records, in a place with fewer controls than the one they came from.
+      - It is also the wrong data for a test — it changes under you, it is not repeatable, and nobody can say what the expected result is.
+      - Say the obligation plainly — these people did not agree to this, and someone answers if it leaks.
+      - Generate it — names, phone numbers and amounts that look real and belong to nobody.
+      - Build the cases on purpose — no transactions, one, thousands, a negative balance — rather than hoping a copy contains them.
+      - Where the shape of real data genuinely matters, ask for a masked extract taken by whoever is allowed to take it.
+    reviewer_notes: >-
+      This is in the bank because "we use a copy of production" is the honest answer in a lot of
+      places here, and I want a candidate to have thought about it before an interviewer asks. The
+      risk is that it reads as a compliance quiz. The rubric deliberately scores the alternative more
+      heavily than the rule, and penalises an answer that is only the regulation and the fine. Is that
+      the right balance, and is it fair to ask a junior to make the argument to a non-tester?
+
+  - slug: the-test-that-cannot-run-twice
+    roles: [qa]
+    levels: [intern-junior]
+    type: technical
+    topic: test-data
+    subtopic: repeatable setup
+    difficulty: 2
+    prompt: >-
+      On your screen is an automated test. It passed the first time it was run and failed the second
+      time, on its very first line. What is happening? What would you change so it can be run as many
+      times as you like? And what would emptying the database before every run cost you?
+    context: |
+      An automated test, as pseudocode — the idea is the same in any tool.
+
+      ```
+      createUser(email: "tester@example.com", password: "...")
+      signIn("tester@example.com")
+      applyForJob(jobId: "the-lagos-one")
+      assert applicationCount("tester@example.com") == 1
+      ```
+
+      The second run fails at `createUser` — that email is already registered.
+    rubric: repeatable-test-data
+    ideal_points:
+      - The email is written into the test and has to be unique, so the second run collides with the user the first run created.
+      - The test was never repeatable; passing once was the misleading part rather than failing twice.
+      - Generate the email per run, so the test makes its own data instead of inheriting any.
+      - Have the test remove what it created, or a hundred runs leave a hundred users behind.
+      - Emptying the database first works and takes everything else running with it, which is a high price for one fixed value.
+      - Where the suite has a database of its own, emptying it is a reasonable answer — the question is whether anything is shared.
+    reviewer_notes: >-
+      **Split out of `the-test-that-only-passes-once` on 2026-09-23.** Two passes said independently
+      that the original was two questions — the second-run collision is junior material and the
+      in-suite count failure is not — and the drafter's own note had suspected it while warning that
+      splitting would conveniently close the `test-data` shortfall at intern-junior. It does close it,
+      and the split is right on its own merits, but you should know both facts. Is the last answer-key
+      point too generous, given the question asks what emptying the database would cost?
+
+  - slug: the-test-that-only-passes-once
+    roles: [qa]
+    levels: [mid]
+    type: technical
+    topic: test-data
+    subtopic: isolation in a suite
+    difficulty: 3
+    prompt: >-
+      On your screen is an automated test that passes on its own and fails when the whole suite runs,
+      never at the same point twice. What is wrong with the way it decides whether it worked? What
+      would you change so it passes whatever else is running? And what would making the suite run one
+      test at a time cost you?
+    context: |
+      An automated test, as pseudocode. Every test in this suite creates its own user, so the sign-up
+      line is not the problem.
+
+      ```
+      signIn(myGeneratedEmail)
+      applyForJob(jobId: "the-lagos-one")
+      assert applicationCount(forJob: "the-lagos-one") == 1
+      ```
+
+      Several other tests in the suite also apply for that job.
+    rubric: test-data-isolation
+    ideal_points:
+      - The count is over a job other tests also apply for, so what the test asserts on depends on what else happened to be running.
+      - Nothing is wrong with the sign-in or the application; the assertion is asking a question the test does not own the answer to.
+      - Assert on the application this test just made rather than on a count across everything.
+      - Where a count is genuinely what matters, give the test its own job so the count is its own.
+      - Running one test at a time makes it pass and gives up the parallelism the suite was built for.
+      - A failure that moves between runs is the signature of shared data, so a retry would hide it rather than fix it.
+    reviewer_notes: >-
+      **Narrowed on 2026-09-23** to the half that is genuinely mid — the fixed-email collision went to
+      `the-test-that-cannot-run-twice` at intern-junior. The context now says explicitly that every test
+      makes its own user, so the candidate is not re-solving the junior question, and the job is what is
+      shared. What I am unsure of is whether the remaining question is too narrow: the answer is
+      essentially one move (assert on what you created), and the interesting part — when a count is the
+      right assertion at all — is in the fourth answer-key point rather than in the prompt. Should the
+      prompt ask it?
+
+  # -------------------------------------------------------------------------------------------
+  # Debugging. The second question at both levels is `it-works-for-me`, which lives in the frontend
+  # bank and carries this role as of 2026-09-23 — its own notes asked whether it should.
 
   - slug: intermittent-failure-triage
     roles: [qa]
     levels: [intern-junior, mid]
     type: scenario
-    topic: defect-reporting
-    subtopic: intermittent defects
+    topic: debugging
+    subtopic: intermittent failures
     difficulty: 3
     prompt: >-
       A test that passes on your machine fails in the pipeline about one run in four. The team is
-      about to mark it as flaky and move on. What do you do?
+      about to mark it as flaky and move on. What would you do before agreeing to that? What would
+      you be looking for in the difference between the two places it runs? And what would you put in
+      front of the team to settle it?
     context: null
-    rubric: defect-report-quality
+    rubric: failure-investigation
     ideal_points:
-      - Measure it rather than accept "sometimes" — run it repeatedly and record the rate.
-      - Look for what differs between the two environments — timing, data left over, parallelism, time zone.
-      - Treat it as a possible product bug until shown otherwise; intermittent tests often find real races.
-      - Collect what the failing run leaves behind — logs, screenshots, the failure's exact assertion.
-      - Report it with the failure rate and the evidence, rather than muting it.
+      - Measure it rather than accept "sometimes" — run it enough times, in both places, and record the rate.
+      - Look for what differs — timing, data left behind by another test, parallelism, a clock, a slower machine.
+      - Keep the product on the list of suspects; an unreliable test often finds a real race.
+      - Keep what a failing run leaves behind — the log, the screenshot, the exact assertion that failed.
+      - Put the rate and the evidence in front of the team, so muting it is a decision somebody makes rather than a default.
+      - If it is quarantined, it goes with a ticket and an owner, and the team knows what it is accepting.
     reviewer_notes: >-
-      Scored with the defect-reporting rubric, which is a stretch — the answer is as much about
-      investigation as about reporting. Should this question have its own rubric, or is the overlap
-      close enough? I would rather an expert decided that than have me invent a fourth one.
+      Moved on 2026-09-23 from `defect-reporting` to `debugging`, and off the `defect-report-quality`
+      rubric, which its own notes had called a stretch — the answer is about investigation rather than
+      about how a report is written, and it now has `failure-investigation`. Is the last clause fair
+      at intern-junior? Putting something in front of the team to overturn their decision assumes
+      standing a junior in many workplaces here does not have; the rubric accepts bringing the
+      evidence to one person instead. Is that enough?
+
+  # -------------------------------------------------------------------------------------------
+  # Behavioural. One question, because a QA candidate is already offered nine role-general judgement
+  # and communication questions from the frontend and backend banks — nine of the twelve they see
+  # before this bank existed. See Appendix C in the blueprint.
 
   - slug: pushing-back-on-a-release
     roles: [qa]
@@ -57,17 +864,477 @@ questions:
     subtopic: raising concerns
     difficulty: 3
     prompt: >-
-      Tell me about a time you thought something should not ship, and someone more senior
-      disagreed. What did you do?
+      Tell me about a time you found something close to a release — at work, or on a project of your
+      own — that you thought should stop it going out. What did you do about it, and how did it end,
+      including if it went out anyway?
     context: null
-    rubric: behavioural-answer-quality
+    rubric: raising-a-quality-concern
     ideal_points:
       - A specific occasion, with what the risk actually was.
-      - How they made the case — evidence and impact rather than opinion.
-      - That they escalated or documented rather than only objecting once.
-      - What happened, including if they were overruled and were later proved wrong.
+      - How they made the case — what it would do to a user, rather than how strongly they felt.
+      - What they did with it — who they told, what they wrote down, whether they raised it more than once.
+      - How it ended, including being overruled, and including being wrong.
       - What they would do differently, and what they now do routinely.
     reviewer_notes: >-
-      This is the question I am least sure about. It can reward people who are comfortable being
-      difficult, and penalise people from workplaces where disagreeing upwards is not done.
-      Keep, reword, or cut?
+      **Reworded on 2026-09-23**, and it now has its own rubric. It used to require that "someone more
+      senior disagreed", which made a disagreement with a senior person a precondition for answering —
+      in many workplaces here disagreeing upward is not done and the candidate has no story. And it
+      was scored with the generic `behavioural-answer-quality`, whose criteria are situation, actions
+      and outcome, so "how they made the case" landed nowhere; all four critique passes said so, as two
+      had about `incident-you-contributed-to`. The slug still says "pushing back", which the question
+      no longer requires — slugs are permanent, so it stays. What is left for you:
+      `behavioural-answer-quality` now has no question in any bank, and four questions have used it
+      and all four needed their own. Do we delete it?
+
+  # -------------------------------------------------------------------------------------------
+  # Untagged on 2026-09-23. It was `stacks: [performance-testing]`, and two critique passes and the
+  # drafter's own note all said the same thing: it names no tool, it is pure requirements
+  # elicitation, and "what do you need to know before you can test this at all" is the same question
+  # on a load test, a feature, a migration or a release. Tagged, only performance candidates ever
+  # met it. It counts towards `risk-based-testing` now, which is what it is about.
+
+  - slug: performance-what-to-ask-first
+    roles: [qa]
+    levels: [mid]
+    type: scenario
+    topic: risk-based-testing
+    subtopic: agreeing what to measure
+    difficulty: 3
+    prompt: >-
+      Somebody asks whether the platform will hold up for a campaign at the end of the month. What
+      would you need to know before you could plan any of this? What would the pass mark have to
+      state, and who would agree it with you? And what would you do if there is no answer to any of
+      that?
+    context: null
+    rubric: performance-requirements-reasoning
+    ideal_points:
+      - What load and in what shape — how many people, over how long, and whether it arrives as a spike.
+      - Which journeys matter; signing in and applying, probably not the admin report.
+      - Where from and on what — users on mobile data change what the numbers mean.
+      - A pass mark has three parts — how long a request may take, how often it may fail, and the load it holds at — and it says which environment.
+      - Somebody has to own that pass mark, or it is not one.
+      - With no answers, derive it from the traffic that already exists and write the assumption down; with no target at all, report the load at which it degrades.
+    reviewer_notes: >-
+      Untagged on 2026-09-23 (see the comment above), which leaves `performance-testing` with one
+      question against a target of two — the checker reports it every run and the next tagged question
+      goes there. Two things. I have written the pass mark as "how long a request may take, how often
+      it may fail, and the load it holds at" rather than as a percentile, because a candidate who has
+      never done performance work will not have the word and the concept is what matters — is that too
+      generous for a mid tester, or right? And now that every QA candidate meets this, is the campaign
+      framing the best one, or would "we are about to be on the radio" land better here?
+
+  # =============================================================================================
+  # Round two — the stack-tagged set. Ten questions across five automation variants.
+  #
+  # Two variants have none, for opposite reasons. `manual-exploratory` is the absence of a tool, and
+  # its subject matter — test design, exploratory charters, bug reporting — is the general set above;
+  # tagging those would hide test design from the automation candidates who most need it
+  # (`blueprints/qa.md`). And `performance-testing` has one rather than two, because
+  # `performance-what-to-ask-first` was **untagged** on 2026-09-23 after two critique passes and the
+  # drafter's own note all said the same thing: it names no tool, it is pure requirements
+  # elicitation, and tagging it hid the most portable question in the bank from everyone but
+  # performance candidates. The shortfall is reported rather than filled.
+  #
+  # Every question here names a product, so every one of them can go stale. Each opens its
+  # `reviewer_notes` with the version-sensitive marker, and the detail — including the three claims
+  # that had moved when this was checked — is in the blueprint's Appendix A.
+
+  - slug: cypress-fixed-wait
+    roles: [qa]
+    levels: [mid]
+    stacks: [cypress]
+    type: technical
+    topic: test-automation
+    subtopic: waits
+    difficulty: 3
+    prompt: >-
+      On your screen is a test that passes on a fast machine and fails on the shared runner about one
+      time in five. Why does a fixed wait behave that way? What would you use instead? And where
+      would a wait still belong, after you have fixed this one?
+    context: |
+      ```js
+      cy.get('[data-testid="apply"]').click()
+      cy.wait(3000)
+      cy.get('[data-testid="confirmation"]').should('contain', 'Application sent')
+      ```
+    rubric: wait-strategy-reasoning
+    ideal_points:
+      - Three seconds is a guess about a duration that varies with the machine, the network and the data, so it is too short somewhere and wasted everywhere else.
+      - Every test pays the worst case, so the suite's run time is the sum of the guesses.
+      - The `should()` on the confirmation already retries until it passes or the command timeout runs out, so the sleep adds nothing — and three seconds is shorter than that budget anyway.
+      - The idiomatic replacement is to wait for the request, not the clock — intercept it, alias it, and wait on the alias.
+      - A longer timeout still belongs on a genuinely slow step, set on that step rather than everywhere.
+      - A timeout's job is to fail readably, so a slow dependency is not reported as a broken selector.
+    reviewer_notes: >-
+      **Version-sensitive: that a Cypress assertion retries until it passes or `defaultCommandTimeout`
+      expires, so the preceding fixed wait adds nothing; and that waiting on an intercepted request
+      alias is the documented replacement. Checked against docs.cypress.io on 2026-09-23 (Cypress 16),
+      which calls `cy.wait(Number)` an anti-pattern in as many words.** Split out of a single
+      two-tool question on 2026-09-23 — three critique passes said the two snippets were the longest
+      thing in the bank to read aloud, and the fact-check found they could not both match one
+      application, because `getByTestId` resolves `data-testid` and the Cypress half used `data-test`.
+      Is the fourth answer-key point over-rewarded? Waiting on an intercepted alias is `cy.wait` used
+      correctly rather than abandoned, and a candidate who has only read "never use `cy.wait`" would
+      lose it.
+
+  - slug: playwright-fixed-wait
+    roles: [qa]
+    levels: [mid]
+    stacks: [playwright]
+    type: technical
+    topic: test-automation
+    subtopic: waits
+    difficulty: 3
+    prompt: >-
+      On your screen is a test that passes on a fast machine and fails on the shared runner about one
+      time in five. Why does a fixed wait behave that way? What would you use instead? And where
+      would a wait still belong, after you have fixed this one?
+    context: |
+      ```ts
+      await page.getByTestId('apply').click()
+      await page.waitForTimeout(3000)
+      await expect(page.getByTestId('confirmation')).toContainText('Application sent')
+      ```
+    rubric: wait-strategy-reasoning
+    ideal_points:
+      - Three seconds is a guess about a duration that varies with the machine, the network and the data, so it is too short somewhere and wasted everywhere else.
+      - Every test pays the worst case, so the suite's run time is the sum of the guesses.
+      - The `expect` on the confirmation re-fetches and re-checks until it passes or its own timeout runs out, so the sleep adds nothing — and three seconds is shorter than that budget anyway.
+      - The documentation marks `waitForTimeout` as for debugging only, and the actions and web assertions wait by themselves.
+      - Where an explicit wait is genuinely needed, wait for the condition — a response, a state — rather than a number.
+      - A timeout's job is to fail readably, so a slow dependency is not reported as a broken selector.
+    reviewer_notes: >-
+      **Version-sensitive: that a Playwright web assertion re-fetches and retries until its timeout,
+      so the preceding `waitForTimeout` adds nothing, and that `waitForTimeout` is documented as
+      debugging-only. Checked against playwright.dev on 2026-09-23 (Playwright 1.63), where the API
+      carries a formal "discouraged" marker.** Split out of a single two-tool question on 2026-09-23
+      (see `cypress-fixed-wait`). The two questions now share `wait-strategy-reasoning`, which is
+      tool-neutral — is that right, or does a Playwright candidate deserve a criterion about the
+      auto-waiting the tool does for them that a Cypress candidate does not?
+
+  - slug: selectors-that-break
+    roles: [qa]
+    levels: [intern-junior, mid]
+    stacks: [selenium-java, cypress, playwright]
+    type: technical
+    topic: test-automation
+    subtopic: selectors
+    difficulty: 2
+    prompt: >-
+      A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour
+      changed and a lot of tests failed. Three selectors from that suite went like this — one was a
+      full path down from the body tag, one named two classes of which one was a generated hash, and
+      one counted children to reach the fourth div and then took its button. What do those three have
+      in common? What would you select on instead, in the tool you work in? And what would you ask
+      the developers for, that is not a change to the tests?
+    context: null
+    rubric: selector-strategy-reasoning
+    ideal_points:
+      - All three address where the button sits or how it is painted, neither of which is what the button is.
+      - A generated class name is not a name — it changes when the styling does.
+      - An agreed attribute put there for testing is the documented first answer in Selenium and in Cypress, and it is treated as part of the code rather than something a refactor may remove.
+      - In a tool that has role-and-text locators, finding it the way a user does is the documented first answer, and it also fails when the button stops being reachable.
+      - A failing test after a rename is the suite's fault rather than the refactor's; reverting the rename is the wrong fix.
+      - Some churn is correct — a test should fail when the behaviour really does change.
+    reviewer_notes: >-
+      **Version-sensitive: which of a test attribute and a role-and-text locator is the vendor's own
+      first recommendation, because it differs by tool. Checked on 2026-09-23 — playwright.dev (1.63)
+      says to prioritise role locators; docs.cypress.io (16) ships no role or label query at all and
+      rates a `data-*` attribute "Always"; selenium.dev (4) has no role locator, only a post-location
+      `getAccessibleName()`.** The three snippets became prose on 2026-09-23: three code blocks in
+      three languages was the heaviest read in the bank and it landed on the junior candidates. Two
+      things for you. The answer key is now tool-conditional, which is honest but harder to score —
+      would you rather split this into one question per tool? And it overlaps
+      `the-test-that-broke-for-nothing` in the frontend bank, which asks what a brittle suite costs a
+      team rather than what to select on; one reviewer thought the overlap was fine and one thought
+      one of the two was enough.
+
+  - slug: selenium-stale-element
+    roles: [qa]
+    levels: [mid]
+    stacks: [selenium-java]
+    type: technical
+    topic: test-automation
+    subtopic: element references
+    difficulty: 3
+    prompt: >-
+      On your screen is a test that throws on its last line, and only when the filter actually changes
+      the list. What is the exception telling you, and would waiting longer help? What would you
+      change about how this test holds on to elements? And what would you do about the several other
+      places in the suite that do the same thing?
+    context: |
+      ```java
+      WebElement row = driver.findElement(By.cssSelector("#results tr:first-child"));
+
+      driver.findElement(By.id("filter-lagos")).click();   // the results list re-renders
+
+      row.findElement(By.cssSelector(".apply")).click();
+      // org.openqa.selenium.StaleElementReferenceException:
+      //   stale element reference: element is not attached to the page document
+      ```
+    ideal_points:
+      - The reference points at an element that was in the page and is no longer attached to it — the re-render replaced it.
+      - Waiting longer cannot help, because the element the reference names will never come back.
+      - A re-render is one of three ways to get here; navigating away, and switching window or frame, are the others.
+      - Take the reference after the filter has been applied, and act on the fresh one.
+      - Wait for the new list rather than for a duration — the re-render is the event, not the delay.
+      - The documented alternative is a wrapper that stores the locator and re-finds on use, so no reference outlives an action.
+    rubric: stale-element-diagnosis
+    reviewer_notes: >-
+      **Version-sensitive: that the exception means the element is no longer attached to the document,
+      that relocating it is the documented remedy, and that a locator-storing wrapper is the other
+      documented answer rather than a flourish. Checked against selenium.dev on 2026-09-23 (Selenium
+      4.49).** One thing to be careful of, which the fact-check turned up — the documentation does not
+      say in so many words that waiting cannot help. That is an inference from the remedy, and a sound
+      one, but the rubric turns level 3 on it, so it is our claim rather than the vendor's. Is it safe
+      to score on? And the docs list three causes where the question gives one; a candidate who names
+      navigation and frame switching too is reading the exception properly rather than padding.
+
+  - slug: cypress-login-in-every-test
+    roles: [qa]
+    levels: [mid]
+    stacks: [cypress]
+    type: scenario
+    topic: test-automation
+    subtopic: test setup
+    difficulty: 3
+    prompt: >-
+      On your screen is the block that runs before every test in a suite. What is signing in through
+      the screen every time costing, beyond the minutes? What would you do instead, and what do you
+      lose by doing it? And what would you keep signing in through the screen for?
+    context: |
+      ```js
+      beforeEach(() => {
+        cy.visit('/login')
+        cy.get('[data-testid="email"]').type('tester@example.com')
+        cy.get('[data-testid="password"]').type(Cypress.env('PASSWORD'))
+        cy.get('[data-testid="submit"]').click()
+        cy.url().should('include', '/dashboard')
+      })
+      ```
+
+      The suite has 140 tests across 30 spec files and takes 22 minutes. Signing in takes about six
+      seconds of each test.
+    rubric: ui-login-setup-reasoning
+    ideal_points:
+      - Every test now depends on sign-in, so a sign-in defect produces a hundred and forty failures carrying one fact.
+      - Six seconds across a hundred and forty tests is about fourteen of the twenty-two minutes.
+      - Establish the session once and restore it for later tests, rather than driving the screen each time.
+      - What you lose is certainty that the session is live, which is why a restored session needs a cheap check that re-establishes it when it fails.
+      - Caching only within a spec file leaves thirty sign-ins; caching across spec files is where most of the fourteen minutes actually goes.
+      - Keep a few real tests on the screen — the success path, a wrong password, whatever the lock is — and nothing else.
+    reviewer_notes: >-
+      **Version-sensitive: that Cypress has a first-class, non-experimental way to cache and restore a
+      session between tests, that a restored session is re-established when its validation fails, and
+      that caching across spec files is off by default. Checked against docs.cypress.io on 2026-09-23
+      (Cypress 16; both APIs default-on since 12.0.0).** The per-test timing went into the context on
+      2026-09-23 — three passes pointed out that the top band required multiplying by six seconds the
+      drafter had never stated. The fourth and fifth answer-key points came from the fact-check and
+      are the documented answer to "what do you lose"; they are also the two things a candidate is
+      least likely to volunteer. Are they a fair expectation at mid, or should they be follow-up
+      territory?
+
+  - slug: playwright-tests-sharing-an-account
+    roles: [qa]
+    levels: [mid]
+    stacks: [playwright]
+    type: scenario
+    topic: test-automation
+    subtopic: parallel runs
+    difficulty: 4
+    prompt: >-
+      Run one at a time and everything passes. Run with four workers and two or three tests fail,
+      never the same ones. Why does running in parallel change the result? What would you change so
+      the suite can run in parallel? And what would you keep serial on purpose, rather than fixing?
+    context: |
+      ```ts
+      // playwright.config.ts
+      export default defineConfig({ workers: 4 })
+      ```
+
+      ```ts
+      // every spec file
+      test.use({ storageState: 'playwright/.auth/user.json' })   // one saved session, one account
+      ```
+
+      Three of the specs change the same saved profile — the name, the phone number, the CV.
+    rubric: parallel-test-isolation
+    ideal_points:
+      - Four workers run tests at the same time against one account, so they change the data each other is asserting on.
+      - The serial run was not correct either — it passed because the order was fixed, so each test found what the one before it left.
+      - The documented answer for tests that change server-side state is one account per worker, established once per worker and keyed on the worker's own index.
+      - Assert on data the test created rather than on a count or on "the first row".
+      - A failure that moves between runs is the signature — the fix is isolation, not a retry.
+      - Where something is genuinely shared — one sandbox at a payment provider, a global setting — keep that group serial rather than the suite.
+    reviewer_notes: >-
+      **Version-sensitive: that one account per parallel worker, set up in a worker-scoped fixture
+      keyed on the worker index, is the documented recommendation for tests that modify server-side
+      state. Checked against playwright.dev on 2026-09-23 (Playwright 1.63), where that is the
+      section heading.** My open question — per worker or per test — is answered by the vendor, so
+      the answer key now names per worker rather than crediting both. Two things left. The saved
+      session is a credential in the repository and the documentation says to keep that directory out
+      of version control; no criterion scores a candidate who notices, and I am not sure it belongs in
+      this question or in `api-testing-three-environments`. And should the key require the fixture by
+      name, or is "give each worker its own account" enough at mid?
+
+  - slug: api-collection-that-only-works-in-order
+    roles: [qa]
+    levels: [intern-junior, mid]
+    stacks: [api-testing]
+    type: scenario
+    topic: testing-apis
+    subtopic: repeatable runs
+    difficulty: 3
+    prompt: >-
+      On your screen is a set of requests a team keeps and runs top to bottom, however they keep them.
+      It works when a person runs it and fails when anything else does. What stops it running without
+      you? What would you change so it can run overnight? And what would you still not automate here?
+    context: |
+      ```
+      1  POST /auth/login       the tester copies `token` out of the response and pastes it into the
+                                Authorization header of requests 2 to 7
+      2  POST /jobs             creates a job; the tester copies its `id` into request 3
+      3  POST /applications     body: { "job_id": "<pasted>" }
+      ...
+      7  DELETE /jobs/<pasted id>
+      ```
+
+      The token from request 1 stops working after an hour. No request checks anything about its
+      response.
+    rubric: api-collection-repeatability
+    ideal_points:
+      - Every pasted value is a person doing work, and nothing running without them can paste.
+      - The token expires, so signing in is the first step of the run rather than something done beforehand.
+      - Capture the token and each id out of the response into a variable the next request reads.
+      - The run has to be able to start from nothing — it creates the job it applies for, and removes it afterwards.
+      - Nothing asserts, so the run currently only proves the requests were sent.
+      - A failure has to say which request failed and what came back, or nobody will act on it in the morning.
+    reviewer_notes: >-
+      **Version-sensitive: that both Postman and RestAssured can capture a value from one response
+      into a variable the next request uses, and that a saved collection runs from a command line
+      without a person. Checked on 2026-09-23 against learning.postman.com and rest-assured.io — and
+      the command-line tool has moved: Newman no longer reads the collection format Postman v12 uses,
+      and the current tool is the Postman CLI. Nothing in the question names a tool, so a candidate
+      who says "newman" is a version behind rather than wrong.** Reworded to "a set of requests a team
+      keeps, however they keep them", because "a saved collection" is Postman's shape and a
+      RestAssured candidate was answering about a foreign artefact. Also softened from "in a pipeline
+      every night" to "overnight", since this is asked at intern-junior. Does the junior tag survive
+      that, in your view?
+
+  - slug: api-testing-three-environments
+    roles: [qa]
+    levels: [mid]
+    stacks: [api-testing]
+    type: scenario
+    topic: testing-apis
+    subtopic: environments and secrets
+    difficulty: 3
+    prompt: >-
+      The team wants these same requests run against staging and against a test environment, from
+      wherever the tests run rather than from your laptop. What has to change before the same requests
+      can go to two places? Where should the token come from instead, and who should be able to see
+      it? And what would you say if somebody asked you to point this at production?
+    context: |
+      Every request has the host typed into it, and the token is saved in the file. The file is in the
+      same repository as the tests.
+
+      ```
+      POST https://staging-api.example.ng/applications
+      Authorization: Bearer eyJhbGciOi...        <- a long-lived token, saved alongside the requests
+      ```
+    rubric: api-environment-config
+    ideal_points:
+      - The host becomes a variable with a set of values per environment, and the requests stop naming one.
+      - A token saved in a file in the repository is a committed secret — anyone who can read the repository can use it.
+      - Whatever runs the tests supplies it at run time, from wherever secrets are kept, and the run does not print it.
+      - Better still, the run signs in with a test account's credentials and gets a short-lived token of its own.
+      - Anything that creates, changes or deletes does not point at production, whoever asks.
+      - A suite that never runs anywhere but staging is testing staging, so there is a case for a read-only check against the real thing — with an account that can do nothing else.
+    reviewer_notes: >-
+      **Version-sensitive: that a host can be held in an environment variable, that a value can be
+      marked so it is stored locally and not shared, and that a secret can be injected into a
+      command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) —
+      the vocabulary has moved: there is no longer a "secret" variable *type*, it is a **secure
+      variable**, and vault secrets are now the recommended home for credentials. The docs frame the
+      hazard as syncing and team sharing rather than as committing to git, which is the framing this
+      question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the
+      secret, and production) and two passes said the production clause taught a habit we would
+      rather not teach. It is now a question about hosts and the secret, with production as something
+      to push back on. Is that the right call, or should a read-only check against production be
+      credited more warmly than the fifth answer-key point allows?
+
+  - slug: appium-passes-on-the-emulator
+    roles: [qa]
+    levels: [mid]
+    stacks: [appium]
+    type: scenario
+    topic: test-automation
+    subtopic: real devices
+    difficulty: 3
+    prompt: >-
+      A mobile suite passes on the emulator on your machine and fails on a real mid-range Android
+      phone, mostly on the screens that load data. What differs between the two that would explain
+      that? What would you change about the tests, and about where they run? And which of those
+      failures would you treat as the product's rather than the tests'?
+    context: null
+    rubric: real-device-difference-reasoning
+    ideal_points:
+      - The emulator runs on whatever the development machine has and the phone does not, which is why the data screens are where it shows.
+      - Anything that waited long enough on the emulator is now a race — the data arrives later, or not at all.
+      - A real device brings what an emulator has not — permission prompts, a keyboard over the field, an incoming call, low storage.
+      - Wait for the state you are about to assert on, rather than for a duration tuned on a fast machine.
+      - The script does not change; the capabilities do — a real device is identified differently from an emulator, and explicitly so if runs happen side by side.
+      - A screen that never loads on a real phone on a slow connection is a defect at whatever priority that argues for, not an unreliable test.
+    reviewer_notes: >-
+      **Version-sensitive: that the same script drives an emulator and a real device, and that what
+      differs is the capability set identifying the device rather than the test. Checked against
+      appium.io on 2026-09-23 (Appium 3.7, UiAutomator2 driver), which recommends identifying a real
+      device and an emulator by different capabilities rather than by device name.** The fifth
+      answer-key point came from the fact-check and sharpens what was a vaguer claim that "the
+      difference is the device rather than the tooling". This is still the only `appium` question,
+      because the blueprint asked for the variant to be checked with a reviewer before a second was
+      written: is it worth keeping at all, and if it is, what should the second question be? It also
+      leans harder than anything else here on the product's own position about mid-range phones and
+      unreliable data, which may read as us grinding an axe.
+
+  - slug: load-test-that-proved-nothing
+    roles: [qa]
+    levels: [mid]
+    stacks: [performance-testing]
+    type: scenario
+    topic: test-design
+    subtopic: load test validity
+    difficulty: 4
+    prompt: >-
+      On your screen is a load test run and the conclusion somebody drew from it. What in the run
+      makes that conclusion unsafe? What would you change about how the test is set up before running
+      it again? And what would you report instead of an average?
+    context: |
+      ```
+      virtual users      1,000, all started at once
+      run from           one laptop, on a shared connection
+      duration           2 minutes
+      requests sent      18,400
+      succeeded             920   (5%)
+      failed             17,480   (95%)  — "connection reset" and "timeout"
+      average response   240 ms          — over the 920 that succeeded
+      ```
+
+      The conclusion — "The API handles 1,000 concurrent users with an average response of 240 ms."
+    rubric: load-test-validity
+    ideal_points:
+      - The average describes the twentieth of the traffic that got through, so it says nothing about the API under that load.
+      - Connection resets and timeouts at that rate point at something refusing or dropping connections before the API is reached.
+      - The one machine and its connection may be the bottleneck, and that has to be ruled out before any result from it is believed.
+      - A thousand users starting at one instant is not how traffic arrives; ramp up and hold.
+      - Two minutes with no pause between requests measures a burst rather than a sustained load.
+      - Report the error rate first, then a median and a high percentile, then the throughput actually achieved — and the load at which it starts to degrade.
+    reviewer_notes: >-
+      **Version-sensitive: nothing in it. No tool is named on purpose, so it holds for k6 and JMeter
+      alike.** The success rate is now stated in the summary (2026-09-23). It used to be derivable
+      only by dividing 17,480 by 18,400, and three passes said the same thing: 40% of the score turned
+      on arithmetic done aloud under interview pressure rather than on judgement. "Office wifi" became
+      "a shared connection" for the same reason the rest of the bank avoids an imported baseline. What
+      I would like your view on is whether stating the rate has made the first criterion too easy —
+      the insight left is that the average was taken over the survivors, which is still the thing most
+      people miss. Has stating the rate made the first criterion too easy?

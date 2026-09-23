@@ -322,7 +322,7 @@ That the value is derived and does not need to be state, or that the effect dupl
 An extra render, a frame of stale UI, and a second place for the value to go wrong.
 
 - **0 (absent):** No consequence given.
-- **1 (weak):** A consequence that does not follow — "it is slower" with nothing behind it, or a detailed account of a runaway loop this code does not have.
+- **1 (weak):** A consequence that does not follow — "it is slower" with nothing behind it, or an account of a runaway loop this code does not have.
 - **2 (partial):** Mentions an extra render without saying why it happens.
 - **3 (solid):** Explains that the effect runs after render, so the user briefly sees the old value.
 - **4 (excellent):** As 3, and notes that the state can now disagree with the props it came from.
@@ -492,7 +492,7 @@ One occasion that actually happened, with the concrete detail an outsider needs 
 
 Evidence of a real attempt — what they read, what they ruled out — rather than a search and a shrug.
 
-- **0 (absent):** No attempt of their own described — including a detailed account of an attempt that was somebody else's.
+- **0 (absent):** No attempt of their own described — including an account of an attempt that was somebody else's.
 - **1 (weak):** "I looked it up", with nothing they learned from doing so.
 - **2 (partial):** One thing tried, with no account of what it told them.
 - **3 (solid):** Several things tried, and what each one ruled out.
@@ -611,7 +611,7 @@ How they got to the bottom of it. Pushing back is one route and is not available
 That the array holds objects, that the function received the same objects, and that it wrote to them.
 
 - **0 (absent):** Does not identify what changed the caller's data.
-- **1 (weak):** Blames the loop, the framework or the caller rather than the assignment — including a detailed account of how the loop binding is at fault.
+- **1 (weak):** Blames the loop, the framework or the caller rather than the assignment — including an account of how the loop binding is at fault.
 - **2 (partial):** Says the array was "passed by reference" without saying what that means for the items inside it.
 - **3 (solid):** Says the function is writing to the same objects the caller holds, and points at the assignment.
 - **4 (excellent):** As 3, and separates the array from the objects in it — copying the array alone would not have helped.
@@ -1318,7 +1318,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 
 ### 22. it-works-for-me
 
-**scenario** · difficulty 2/5 · roles: frontend, fullstack · intern-junior, mid · topic: Debugging and diagnosis (reproducing a report)
+**scenario** · difficulty 2/5 · roles: frontend, fullstack, qa · intern-junior, mid · topic: Debugging and diagnosis (reproducing a report)
 
 **The interviewer asks**
 
@@ -1370,7 +1370,7 @@ The user's device, connection and data — not a laptop on office wifi.
 - **3 (solid):** Reproduces with a throttled connection and a comparable device, on the same data if possible.
 - **4 (excellent):** As 3, and says what they would do if it still does not reproduce, rather than closing it.
 
-> **The drafter is unsure about:** Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not working", with nothing else, and a critique pass called it the lowest-discrimination question in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a real report, so the answer has to contain a hypothesis and not only a list of questions. Is one device working and another not too strong a hint? And I have kept it off the QA role, because a QA interviewer would frame this around triage and severity — should one question serve all three roles instead?
+> **The drafter is unsure about:** Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not working", with nothing else, and a critique pass called it the lowest-discrimination question in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a real report, so the answer has to contain a hypothesis and not only a list of questions. Is one device working and another not too strong a hint? **It now carries `qa` as well** (2026-09-23): its own note asked whether one question should serve all three roles, and the answer was yes — nothing in it is about the browser, and a QA copy would have been the same question with a second slug to keep in step. Its rubric moved to `rubrics.shared.yaml`. Is the answer key missing the triage half — how often, how many users, what severity — or does that belong to `two-bugs-one-slot` in the QA bank?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1699,7 +1699,7 @@ Rotating it, and finding out whether it was used, rather than quietly removing i
 That destructuring copied the number out of the reactive object.
 
 - **0 (absent):** Blames the click handler or the template syntax.
-- **1 (weak):** Puts the break somewhere else — reactivity "not working" with no mechanism, or a detailed mechanism that rules the destructuring out.
+- **1 (weak):** Puts the break somewhere else — reactivity "not working" with no mechanism, or a named mechanism that rules the destructuring out.
 - **2 (partial):** Suspects the destructuring but describes it as a style problem.
 - **3 (solid):** Says the destructured value is a plain number, so nothing links it to later changes.
 - **4 (excellent):** As 3, and confirms the object is still updating — only the template's copy is stale.
@@ -2235,7 +2235,7 @@ That rebuilding the markup throws away everything in it, and the data only exist
 
 - **0 (absent):** Sees nothing wrong; the code works.
 - **1 (weak):** Says it is "not scalable" without naming a failure.
-- **2 (partial):** Objects to `innerHTML` without saying what it destroys — on style grounds, or on a detailed performance argument.
+- **2 (partial):** Objects to `innerHTML` without saying what it destroys — on style grounds, or on a performance argument.
 - **3 (solid):** Says rewriting `innerHTML` rebuilds every row, so anything the user had in one is lost.
 - **4 (excellent):** As 3, and adds what else goes with it — listeners, focus, scroll position.
 

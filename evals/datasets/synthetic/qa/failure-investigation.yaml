@@ -1,0 +1,134 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: failure-investigation
+question: intermittent-failure-triage
+answers:
+  - kind: strong
+    text: |
+      One in four isn't random, that's a pattern, so I wouldn't agree to flaky yet — flaky is a
+      conclusion, and we haven't done the work for it.
+      First, numbers: run it in the pipeline twenty times, write down which ones failed, and run it
+      locally twenty times too, because "it passes on my machine" usually means three runs. Then see
+      whether the failures cluster — same machine, same time, same tests running alongside — and compare
+      a failing run with a passing one, error, screenshot, timestamps.
+      What I'm looking for: speed first — that machine is loaded, so anything waiting a fixed amount of
+      time loses the race over there and wins on mine. Then shared data: if tests run in parallel and
+      two use the same account, they step on each other. Leftover state from whatever ran before, so I'd
+      run it on its own as well. And whether that environment is shared.
+      And the one people skip — the product might genuinely be intermittent. A race in the app looks
+      exactly like a flaky test, and marking it flaky throws away the only thing that noticed.
+      To the team: the table of runs, the step it dies on, the difference I found, and either the fix
+      or, if we park it, a ticket with an owner.
+    expected:
+      - dimension: 'Measures it rather than accepting "sometimes"'
+        score: 4
+        because: "Level 4 — twenty runs in the pipeline and twenty locally with the failures written down, and the runs are read for clustering by machine, time and what ran alongside: the variables level 4 asks the batches to answer."
+      - dimension: "Looks for what differs between the two places"
+        score: 3
+        because: "Level 3 — lists what differs and how each would show (a loaded machine against a fixed wait, a shared account under parallelism, leftover state, a shared environment) and keeps the product on the list; it asserts the product may be intermittent but not how it would tell."
+      - dimension: "What they put on the record"
+        score: 3
+        because: "Level 3 — the table of runs, the step it dies on, the difference found and the failing-versus-passing comparison, taken to the team, with a ticket and an owner if it is parked; nothing about what is being accepted in the meantime."
+  - kind: weak
+    text: |
+      Ehm. So, I've not used a pipeline before, honestly — I run my tests on my laptop, that's
+      all I've done, so I don't fully know what's different over there.
+      But before we say flaky... I'd run it again a few times, to see. If it fails again then
+      it's not just one time.
+      Maybe the internet is slow on that side? Or the data is different — I'd check whether the
+      data the test needs is actually there, because on my laptop I know my data, but over there
+      I don't know who put what.
+      And I'd ask whoever set up the pipeline to show me the log, and see what the error is
+      saying. If it's saying it can't find an element, then maybe the page didn't load in time,
+      so... maybe increase the waiting time.
+      Then I'd tell the team what I found. If it really is failing sometimes and I still can't
+      say why, then flaky is fair, I think, but at least we tried. I wouldn't argue about it, I'd
+      just show them what I did.
+    expected:
+      - dimension: 'Measures it rather than accepting "sometimes"'
+        score: 2
+        because: 'Level 2 — "I''d run it again a few times, to see", with no record of the outcome and no rate.'
+      - dimension: "Looks for what differs between the two places"
+        score: 2
+        because: "Level 2 — names differences (a slow connection, data it does not control, a page that did not load in time) and how it would check the data, but the product never appears on the list, which keeps it off 3."
+      - dimension: "What they put on the record"
+        score: 2
+        because: "Level 2 — reports that it fails sometimes and shows what it did, with no rate and nothing kept from a failing run; it explicitly declines to argue a position."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, intermittent is nearly always a synchronisation problem, and I can show that. Look at
+      the maths — three out of four runs pass. If the application had a genuine defect it would
+      fail every time; defects are deterministic, that's what makes them defects. So the variable
+      can't be the product, it has to be the test's timing against a slower machine.
+      So before I agree it's flaky, I'd prove that properly. I'd add a retry, two attempts, and
+      run it fifty times. If it passes on the retry, that's the evidence: a failure that clears
+      on retry is by definition a test failure and not a product failure, and then nobody has to
+      argue about it.
+      The difference between the two places is machine speed, basically. My laptop renders faster
+      than a shared runner, so any implicit wait tuned to my machine runs out over there. So the
+      fix is explicit waits where I can write them, and where I can't, raise the global timeout —
+      ten seconds to thirty — plus a small sleep before the assertion.
+      And what I'd put in front of the team is the fifty-run report with zero failures after the
+      retry and the timeout change. Then it isn't flaky any more, it's fixed, and we don't
+      quarantine anything.
+    expected:
+      - dimension: 'Measures it rather than accepting "sometimes"'
+        score: 1
+        because: 'Level 1 — reasons from a cause instead of a measurement ("defects are deterministic", so the variable cannot be the product) and proceeds to fix it; the fifty runs measure the retried, retimed test rather than the rate.'
+      - dimension: "Looks for what differs between the two places"
+        score: 1
+        because: "Level 1 — settles on machine speed as the difference and rules the product out by argument, although a one-in-four failure would be a real race either way."
+      - dimension: "What they put on the record"
+        score: 1
+        because: 'Level 1 — brings a position rather than evidence: "it isn''t flaky any more, it''s fixed", with no rate for the original failure and nothing kept from a failing run.'
+  - kind: correct-poorly-explained
+    text: |
+      Yeah, so, I don't like "flaky" as an answer, because — okay. One in four. That's not nothing,
+      that's like a quarter of the time, so something is different, we just haven't found it.
+      So first I'd run it plenty of times, both sides, and write down what failed, because "it passes on
+      my machine" — how many times did you run it, you know? Two? So, numbers first.
+      Then the difference. The pipeline machine is slower, or it's busy, so if the test waits a fixed
+      amount of time it can run out over there and still pass on mine. That's the usual one. Also data —
+      over there everybody is on the same environment, so somebody else's test can be using the same
+      record as mine, and if they run together, ehm, they'll clash. Which is why I'd run my test on its
+      own too, not with the others.
+      And — I should have said this earlier — it might be a real bug. Like the app has a race and my test
+      is catching it, and if we mark it flaky we've thrown away the one thing that noticed.
+      So to the team: the table of runs, where exactly it fails, what I found. And if we park it, park it
+      with somebody's name on it.
+    expected:
+      - dimension: 'Measures it rather than accepting "sometimes"'
+        score: 3
+        because: 'Level 3 — runs it plenty of times on both sides and writes down what failed, against "it passes on my machine — how many times did you run it, two?"; no clustering and nothing varied between batches.'
+      - dimension: "Looks for what differs between the two places"
+        score: 3
+        because: "Level 3 — the slower, busier machine against a fixed wait, another test holding the same record under parallelism, running it alone to rule out leftovers, and that it might be a real race in the app."
+      - dimension: "What they put on the record"
+        score: 3
+        because: "Level 3 — the table of runs, where exactly it fails, what was found, and if it is parked it is parked with somebody's name on it; nothing about what is accepted meanwhile."
+  - kind: nigerian-english
+    text: |
+      One in four is not random o, that is a pattern, so me I will not agree to flaky yet.
+      So first, numbers. I will run it in the pipeline twenty times and write down the ones that failed,
+      and on my laptop too, because when people say it passes on their machine, they ran it twice. Then
+      I check whether the failures are clustering — same machine, same time, which other tests were
+      running with it. And I will compare one failing run with one passing run, error, screenshot, time
+      stamps.
+      What I am looking for: first, speed. That machine is loaded, so if the test is waiting a fixed
+      time, over there it will just pass am. Then the data — if two tests are using the same account,
+      they will clash. And leftover from whatever ran before it, so I will run the test alone and see.
+      And the one people forget — the app itself may be intermittent. A race in the product looks
+      exactly like a flaky test, so marking it flaky throws away the only thing that saw it.
+      So I will bring the table of runs, the step where it dies, what I found, and then the fix — or if
+      we must park it, park it with a ticket and somebody's name.
+    expected:
+      - dimension: 'Measures it rather than accepting "sometimes"'
+        score: 4
+        because: "Level 4 — same as `strong`: twenty runs in the pipeline and on the laptop, the failures written down, then read for clustering by machine, time and which other tests ran with it."
+      - dimension: "Looks for what differs between the two places"
+        score: 3
+        because: "Level 3 — same list as `strong`: speed against a fixed wait, two tests on the same account, leftovers from what ran before, and the product itself kept on the list."
+      - dimension: "What they put on the record"
+        score: 3
+        because: "Level 3 — the table of runs, the step where it dies, what was found, and a ticket with somebody's name if it must be parked."

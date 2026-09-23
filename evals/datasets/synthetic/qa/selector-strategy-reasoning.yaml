@@ -1,0 +1,139 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: selector-strategy-reasoning
+question: selectors-that-break
+answers:
+  - kind: strong
+    text: |
+      What they've got in common is that none of them says what the button is — they all
+      say where it is. The full path down from body is pure position. The two classes are
+      styling, and one of them is a generated hash so it changes on every build anyway.
+      And counting children to the fourth div, position again. So all three are tied to
+      the markup and the CSS, which the developer can change any time, and not to the
+      behaviour, which is the thing that didn't change. That's why nothing broke but
+      everything failed. I work in Playwright, so I'd go for role plus the accessible name
+      — getByRole('button', { name: 'Apply' }). That's what the user actually sees, and it
+      survives being moved into a wrapper because it doesn't care about the tree. Where
+      the text is dynamic or translated, getByTestId with a data-testid. And I'd keep the
+      locator in one page object, so when it changes I fix one line, not forty tests. What
+      I'd ask the developers for, that isn't a change to the tests: put data-testid
+      attributes on the elements we automate and treat them like an API — don't rename or
+      remove them without telling us. And real button elements with real labels, so
+      role-based locators work.
+    expected:
+      - dimension: Names what the three share
+        score: 4
+        because: Level 4 — all three name where the button sits or how it is painted rather than what it is, and that is given as the reason nothing broke but everything failed.
+      - dimension: What to use instead
+        score: 3
+        because: Level 3 — the role-and-text route, correctly for Playwright, getByRole with the accessible name, with getByTestId where the text is dynamic or translated, and says which route the tool offers; nothing about what a role locator's failure would itself have told them.
+      - dimension: What the tests cannot fix alone
+        score: 3
+        because: Level 3 — asks for data-testid attributes treated like an API and real buttons with real labels, with the markup named as the developer's to change at any time; nothing about which churn is correct.
+  - kind: weak
+    text: |
+      Erm, what they have in common is that they are all too long. Like the selector is
+      very long, and long selectors are not good practice. The body one especially — if
+      you copy XPath from the browser it gives you that kind of thing. So I wouldn't use
+      those ones. What I'd use instead is the ID, because ID is unique on the page, so ID
+      is the best one and it doesn't change. If there's no ID then I'd use the class name,
+      and if the class name is not working then XPath, because XPath can reach anything.
+      I'd also put a wait before clicking, because sometimes the test fails because the
+      element hasn't loaded yet, so an implicit wait helps with these kind of failures.
+      And what I'd ask the developers... I'd ask them to please not be changing the code
+      without informing the QA team, because if they tell us before, we can update the
+      tests before it breaks and we won't meet forty failures in the morning. Or they
+      should just add IDs to everything. Yeah, IDs everywhere would solve this one.
+    expected:
+      - dimension: Names what the three share
+        score: 0
+        because: Level 0 — the selectors are said to be wrong because they are long, which is not a pattern in them; the copied-XPath remark stays about one of the three.
+      - dimension: What to use instead
+        score: 1
+        because: "Level 1 — a more specific selector of the same kind, treated as durable: ID because it is the best one and it doesn't change, then class name, then XPath because it can reach anything, plus a wait before clicking."
+      - dimension: What the tests cannot fix alone
+        score: 1
+        because: Level 1 — puts the problem on the developer's change, asking that code not be changed without informing QA; the second ask, IDs everywhere, is the same kind of locator rather than something agreed to select on.
+  - kind: fluent-but-wrong
+    text: |
+      Okay. What those three have in common is that they're all CSS-style selectors —
+      flat, static strings matched against the document as it was written. That's the
+      weakness. CSS can't traverse, so the moment the tree shifts it has nothing to fall
+      back on. XPath does traverse, it's evaluated against the live DOM at runtime, so it
+      adapts. So what I'd write instead is a relative XPath anchored on the structure,
+      using the axes — something like //div[contains(@class,'wrapper')]//button[1], or
+      find a stable neighbour and go following-sibling::button, or ancestor::div and come
+      back down. Structure is the stable thing in a page: developers rename classes
+      constantly, cosmetics change every sprint, but the shape of a form — label, input,
+      button, in that order — nobody restructures that. So anchoring on the hierarchy is
+      exactly what makes a locator survive a class rename, and contains() handles the
+      generated hash, because I match the fixed prefix and ignore the random part. On what
+      I'd ask the developers for — I wouldn't ask for data-testid. Test attributes are
+      test code shipped into production markup, it bloats the DOM and it's our concern
+      leaking into theirs. What I'd ask for is a rule that the DOM structure is frozen
+      once there are tests against a screen, and any restructuring comes to QA first.
+    expected:
+      - dimension: Names what the three share
+        score: 1
+        because: Level 1 — the remedy is three better selectors of the same kind, structural XPath on the axes, because the shared cause is read as CSS versus XPath rather than position versus identity; the shared cause the criterion asks for is missed, and the body path was itself an XPath.
+      - dimension: What to use instead
+        score: 1
+        because: "Level 1 — a more specific selector of the same kind treated as durable: relative XPath anchored on the hierarchy with contains() for the generated hash, and data-testid explicitly refused."
+      - dimension: What the tests cannot fix alone
+        score: 1
+        because: Level 1 — asks for the DOM structure to be frozen once there are tests and restructuring to come to QA first, and refuses to ask for anything to select on.
+  - kind: correct-poorly-explained
+    text: |
+      They all... okay, they all point at where the thing is instead of what the thing is.
+      That's the common one. Like the body one is just position, top all the way down. The
+      two classes, one is a hash, regenerating every build anyway, and classes are
+      styling, styling is not behaviour. And the fourth div, counting children — position
+      again. So all of them are hanging on the markup, and the markup is the developer's
+      own thing to change, meanwhile the behaviour, which is what we're actually testing,
+      didn't change at all. That's why a harmless move broke forty tests. What I'd use —
+      I'm in Playwright — getByRole, button, with the name, the visible name, Apply or
+      whatever it says, because a person finds a button by reading it, not by where it's
+      sitting in the tree. And if the text changes or it's translated, then data-testid,
+      getByTestId. Oh and, the locators should live in the page object, one place, so it's
+      one line to fix. And the ask, the non-test one — data-testids on the things we
+      automate, and treat them as a contract, don't delete them, tell us if they change.
+      And real button tags with labels, because if it's a div pretending to be a button
+      then getByRole has nothing to find.
+    expected:
+      - dimension: Names what the three share
+        score: 4
+        because: "Level 4 — position rather than identity in all three, and why it mattered: the markup is the developer's own thing to change while the behaviour did not change, so a harmless move broke forty tests."
+      - dimension: What to use instead
+        score: 3
+        because: Level 3 — getByRole with the visible name in Playwright, because a person finds a button by reading it, and getByTestId where the text changes or is translated; nothing about what the role route's own failure would tell them.
+      - dimension: What the tests cannot fix alone
+        score: 3
+        because: Level 3 — data-testids on what is automated, treated as a contract and not deleted, plus real button tags with labels so getByRole has something to find.
+  - kind: nigerian-english
+    text: |
+      The three of them, na the same problem: none of them is saying what the button is,
+      they're all saying where it is sitting. The body one is pure position. The two
+      classes — one is a hash that is changing every build, and classes are styling,
+      styling is not behaviour. Then counting to the fourth div, position again. So all of
+      them are holding onto the markup, and the markup belongs to the developer, he can
+      change it anytime. Meanwhile the behaviour, the thing we are actually testing, it
+      didn't change. That's why nothing broke but plenty tests failed. Me I work with
+      Playwright, so I'll use getByRole, button, with the name showing — Apply, or
+      whatever it's saying. Because that's how a person finds a button — by reading it,
+      not counting divs. If the text changes or they translate it, then getByTestId. And
+      the locator will stay in one page object, so when it changes I change one line, not
+      forty places. Then what I'll ask the developers for, that is not test work: put
+      data-testid on the elements we are automating, and treat it like agreement — don't
+      remove or rename it without telling us. And use real button tag with proper label,
+      because if it's a div doing button work, getByRole won't see anything.
+    expected:
+      - dimension: Names what the three share
+        score: 4
+        because: Level 4 — none of the three says what the button is, only where it is sitting, and that is why nothing broke but plenty of tests failed.
+      - dimension: What to use instead
+        score: 3
+        because: Level 3 — getByRole with the name showing in Playwright, because that is how a person finds a button, and getByTestId if the text changes or is translated.
+      - dimension: What the tests cannot fix alone
+        score: 3
+        because: Level 3 — data-testid on the elements being automated, treated like an agreement and not removed or renamed without telling QA, plus a real button tag with a proper label.

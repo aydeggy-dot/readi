@@ -1,0 +1,71 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: real-device-difference-reasoning
+question: appium-passes-on-the-emulator
+answers:
+  - kind: strong
+    text: |
+      So the emulator isn't a phone, it's my laptop pretending. It's my laptop's processor and connection, so a request comes back almost immediately. A real mid-range Android is a slower chip, less RAM, real mobile data with proper latency, a smaller screen at a different density so things sit off-screen and need scrolling, and an OS with its own ideas — battery saver, permission dialogs, other apps eating memory in the background. That's exactly why the data screens are the ones failing: the call that took two hundred milliseconds now takes three or four seconds, and the assertion runs before the list has painted. On the tests: wait for the element or the state, not a sleep, and give the data screens explicit waits; scroll to an element before touching it; use accessibility ids instead of xpath positions; handle the permission popups; reset the app between tests. On where they run: the emulator stays for the quick loop while I'm writing, but the suite has to run on at least one real mid-range phone, the kind our candidates actually carry, and on a throttled connection. And which failures are the product's: fifteen seconds with no loading state, a timeout with no error message, losing what the user typed when a call comes in. Those I raise as defects.
+    expected:
+      - dimension: Names the real differences
+        score: 4
+        because: Lands on 4 — the emulator is the laptop's processor and connection, the phone brings battery saver, permission dialogs and background apps, and the two hundred millisecond call now taking three or four seconds is named as why the data screens are the ones failing.
+      - dimension: What changes in the tests, and where they run
+        score: 3
+        because: Lands on 3 — wait for the element or the state rather than a sleep, and run the suite on a real mid-range phone of the kind candidates carry, on a throttled connection; nothing separating the script from the capabilities.
+      - dimension: Which failures are the product's
+        score: 3
+        because: Lands on 3 — fifteen seconds with no loading state, a timeout with no error message and losing typed input to an incoming call are raised as defects, against the timing failures that are the tests'; no priority argument from users' normal conditions.
+  - kind: weak
+    text: |
+      Okay so the emulator is not a real phone, so obviously things will behave differently. The real phone is slower, it has less power, and the network is different — the emulator is using the laptop's wifi and the phone is probably on data. So on the data screens the phone is slower to load and the test doesn't wait long enough. What I'd change is add more waiting time on those screens, increase the timeouts, so it has time to load properly. And where they run — it's better to test on a real phone, so I'd ask for a test phone, or use my own phone to run it and see. Emulator I'd keep for when I'm writing the tests because it's faster to open. Which failures are the product's... I'd say if it's failing on the phone and the same thing passes on the emulator, that's more the test's problem, the test just needs to be adjusted. But if the app is generally slow or it closes by itself on the phone, then that one I'd report to the developers, because a user would see that.
+    expected:
+      - dimension: Names the real differences
+        score: 2
+        because: Lands on 2 — the phone is slower and on data, with nothing the phone brings that the emulator has not.
+      - dimension: What changes in the tests, and where they run
+        score: 1
+        because: Lands on 1 — add more waiting time and increase the timeouts on the data screens so it goes green on that phone; asking for a real test phone does not reach 3 without waiting for a condition.
+      - dimension: Which failures are the product's
+        score: 1
+        because: Lands on 1 exactly — sorted by whether the test can be made to pass, so anything that passes on the emulator is the test's to adjust and only general slowness or a crash is escalated.
+  - kind: fluent-but-wrong
+    text: |
+      So I'd look at the driver before I look at the app, because the symptom points at the harness. On the emulator, UiAutomator2 is talking to adb over the loopback interface — it's all on one machine, so the round trip on every command is sub-millisecond. On a real device those same commands leave the laptop and go over USB, or worse over wifi if it's connected that way, so every single find, every tap, every getText now carries real transport latency. Appium issues a lot of commands per step, so that adds up fast, and the session hits newCommandTimeout mid-step and the driver tears down the context. The data screens look worse simply because they have the most elements, so the most commands. So the fix is at the harness level: raise newCommandTimeout, switch to adb over TCP so you're not bottlenecked on the USB stack, and keep the driver session alive between tests instead of a fresh session each time. I wouldn't touch the waits in the tests — the waits are fine, they were never the problem. And to your last question, none of these would be the product's. The app is doing the same work on both; it's the automation channel that changed, so this is our infrastructure to fix, not a defect to raise.
+    expected:
+      - dimension: Names the real differences
+        score: 1
+        because: Lands on 1 exactly — built on the automation transport, adb over loopback against USB and newCommandTimeout, and concludes the app does the same work on both while the failures sit on the screens that fetch data.
+      - dimension: What changes in the tests, and where they run
+        score: 1
+        because: Lands on 1 — tuning at the harness level, newCommandTimeout raised and the session kept alive between tests, with the waits in the tests explicitly left alone.
+      - dimension: Which failures are the product's
+        score: 0
+        because: Lands on 0 — none of these would be the product's, it is the automation channel that changed, so every failure is ours to fix.
+  - kind: correct-poorly-explained
+    text: |
+      So, the emulator is on my laptop, that's the main thing — laptop CPU, laptop internet — so nothing there is real. The phone is slower and it's on data. Hence the data screens. Because... okay, what's actually failing is the assertion runs before the list has come, the call that was instant is now three seconds, so it's a timing thing, which means the tests are sleeping instead of waiting for the thing to appear, so you'd fix that first, wait for the element, and give the data screens a longer explicit wait. Also scrolling — smaller screen, so the element is there but it's below the fold, and the keyboard covers things, and you get permission popups you never saw on the emulator. Sorry, and accessibility ids, not xpath, because the layout shifts. Where they run: real mid-range phone, the kind people here actually use, keep the emulator for writing. And the product's ones — no loading state, or fifteen seconds and then a blank screen with no error, or it loses your typing when a call comes in, or it dies when memory is low. That's not my test being wrong. That's a defect, I'd raise it. The ones where I just didn't wait properly, those ones are mine.
+    expected:
+      - dimension: Names the real differences
+        score: 4
+        because: Lands on 4 — laptop CPU and laptop internet against a phone on data, the keyboard, permission popups and low memory, and the assertion running before the list has come named as why it is the data screens.
+      - dimension: What changes in the tests, and where they run
+        score: 3
+        because: Lands on 3 — wait for the element instead of sleeping, a longer explicit wait on the data screens, and the suite on a real mid-range phone of the kind people here actually use.
+      - dimension: Which failures are the product's
+        score: 3
+        because: Lands on 3 — no loading state, fifteen seconds then a blank screen with no error, lost typing on a call and dying on low memory are defects, and the ones where I just did not wait properly are mine.
+  - kind: nigerian-english
+    text: |
+      The emulator is not a phone, it's my laptop pretending to be phone. It's using laptop processor and my laptop network, so the request will come back immediately. But a real mid-range Android: slower chip, small RAM, real data with latency. The screen is smaller and different density, so the element is there but it's below, you have to scroll. And the phone has its own thing — battery saver, permission popup, other apps eating memory in background. That's why it's the data screens that are failing: the call that was taking two hundred milliseconds is now three, four seconds, so the assertion will run before the list has shown. For the tests: wait for the element or the state, don't sleep; give the data screens proper explicit wait; scroll to the element first; use accessibility id, not xpath by position; handle the permission dialog; reset the app for each test. Where they run: emulator is fine while writing, but the suite must run on at least one real mid-range phone — the type our candidates are actually holding — and throttle the network. And the ones that are the product's own: fifteen seconds with no loading indicator, timeout with no error message, or it will lose what you typed because call entered. Those ones I will report.
+    expected:
+      - dimension: Names the real differences
+        score: 4
+        because: Lands on 4 — same as strong, laptop processor and network against a slower chip and real data with latency, permission popup and background apps, and the two hundred millisecond call now three or four seconds explaining the data screens.
+      - dimension: What changes in the tests, and where they run
+        score: 3
+        because: Lands on 3 — same as strong, wait for the element or the state rather than sleeping, scroll first, accessibility id, and the suite on at least one real mid-range phone with the network throttled.
+      - dimension: Which failures are the product's
+        score: 3
+        because: Lands on 3 — same as strong, fifteen seconds with no loading indicator, a timeout with no error message, and losing what you typed because a call entered, all reported.

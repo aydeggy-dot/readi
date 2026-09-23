@@ -1,0 +1,122 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: risk-prioritisation
+question: what-to-test-when-there-is-no-time
+answers:
+  - kind: strong
+    text: |
+      Okay so — twelve out of forty. I wouldn't just take the first twelve on the list. I'd pick by
+      what hurts most if it breaks. So sign-in first, because if people can't get in, nothing else
+      matters. Then whatever touches money — for us that was checkout and the payment callback.
+      Then the thing that actually changed in this release, and the screens around it, because
+      that's where new bugs live. And then one or two that broke last time, since those come back.
+      What I'd drop is the cosmetic stuff, the admin screens two people use, and anything nobody
+      touched. For the twenty-eight I'd be specific — I wouldn't say "we tested everything." I'd
+      say: these twelve we ran, they passed, these twenty-eight we didn't run at all, and here's
+      what could be sitting inside them. Like, we didn't check the statement export, so if that's
+      broken you'll hear it from customers on Monday. Then they decide. That's their call, not
+      mine — but they should make it knowing.
+    expected:
+      - dimension: What makes something worth the time
+        score: 3
+        because: "Level 3: picks by what it would cost if it breaks against where new bugs live, and names what changed in this release; nothing about what it would have to find out before trusting the ranking, so not 4."
+      - dimension: The selection, and the cut line
+        score: 3
+        because: "Level 3: sign-in, money, the changed area and one or two repeat offenders, each path once, with the cosmetic and admin screens named as what was traded; all twelve are scripted cases, so not 4."
+      - dimension: What is said about what was not covered
+        score: 3
+        because: "Level 3: names the twenty-eight as not run and one concrete consequence (the statement export), and hands the decision back; nothing about putting it in writing or what a further hour buys."
+  - kind: weak
+    text: |
+      Um, twelve out of forty... I would pick the twelve most important ones. I think I'd go
+      through the list and the ones that look like main features, I do those. The small ones I can
+      leave. Maybe I'd also run them faster — like if I move quickly, maybe I can even fit more
+      than twelve in, if I don't write down everything as I go. For the twenty-eight, I'd tell the
+      team we didn't finish testing, and... ask for more time? I mean if it's tomorrow morning,
+      maybe they can push it to the afternoon and then I can do all forty. That would be the
+      safest. If they can't, then I'd just say I tested what I could and it was fine. I'd probably
+      also ask the developers whether they already tested those parts themselves, and if they say
+      yes then it's, you know, less of a problem. Sorry — I know "most important" is vague. I'd
+      have to see the actual list to say which twelve.
+    expected:
+      - dimension: What makes something worth the time
+        score: 1
+        because: "Level 1: the rule is prominence — 'the ones that look like main features' — which does not measure risk, and the candidate admits 'most important' is vague."
+      - dimension: The selection, and the cut line
+        score: 2
+        because: "Level 2: a category-level cut (main features in, small ones out) with no reasoning about breadth against depth, and an offer to stop writing things down to fit more in."
+      - dimension: What is said about what was not covered
+        score: 1
+        because: "Level 1: a judgement in place of the gap — 'I tested what I could and it was fine' — with nothing about which twenty-eight were left."
+  - kind: fluent-but-wrong
+    text: |
+      Right, so my approach here is defect probability. Bugs aren't spread evenly, they cluster,
+      so I want my twelve where the bugs actually are. And the core flows — login, checkout, the
+      happy path — the developers run those constantly, they've got unit tests underneath them,
+      and every other test exercises them as a side effect anyway. So spending my twelve there is
+      wasted effort. I'd spend them on the edges: boundary values, awkward inputs, error handling,
+      the screens nobody looks at, because that's untrodden ground and that's where the defect
+      density is. The happy path is honestly the one part of the product I'm confident in without
+      testing it. Then for the twenty-eight, I'd check when each one last ran. If a case passed in
+      the last release and the code under it didn't change, it's low risk — a regression test
+      mostly confirms what it already confirmed. So what I'd tell the release group is: twelve
+      executed, twenty-eight previously passing, residual risk low. That's a defensible position,
+      and it's the twelve highest-yield cases, not just the twelve easiest.
+    expected:
+      - dimension: What makes something worth the time
+        score: 1
+        because: "Level 1 verbatim: holds that a case which passed last release over unchanged code is low risk now, and ranks by defect density rather than by cost."
+      - dimension: The selection, and the cut line
+        score: 1
+        because: "Level 1 verbatim: spends all twelve on the edges and leaves login and checkout out because unit tests and other cases are held to cover them incidentally."
+      - dimension: What is said about what was not covered
+        score: 1
+        because: "Level 1: 'twenty-eight previously passing, residual risk low' is a judgement offered in place of the gap."
+  - kind: correct-poorly-explained
+    text: |
+      So — the important ones. Sorry, let me... the ones where if it breaks it's really bad. That's
+      how I'd pick. Money, and login. Because, you know, if login is broken then. Yeah. And also
+      the new stuff, the thing they just changed, that one too, and around it, because they might
+      have broken something near it while they were changing it. Um. The other twenty-eight. I
+      would tell them. I mean I would say which ones. Not just "we didn't finish," because that
+      doesn't help anybody, they need to know which parts are dark. So I'd list them. Actually —
+      going back — I'd also ask what changed before I pick, because I can't really choose twelve
+      without knowing what they touched. Should have said that first. And then the low ones, the
+      settings page, fonts, that kind of thing, those I drop, nobody's losing money there. And
+      then it's their decision. They can ship it. I'm not the one who says no, I'm the one who
+      says what we don't know. Yeah.
+    expected:
+      - dimension: What makes something worth the time
+        score: 3
+        because: "Level 3: impact ('if it breaks it's really bad'), likelihood around the change, and it asks what changed before choosing; otherwise presented as settled."
+      - dimension: The selection, and the cut line
+        score: 3
+        because: "Level 3: money, login, the changed thing and its surroundings once each, with the settings page and fonts named as the cut."
+      - dimension: What is said about what was not covered
+        score: 3
+        because: "Level 3: refuses 'we didn't finish', insists on naming which parts are dark, and leaves the ship decision with whoever makes it."
+  - kind: nigerian-english
+    text: |
+      Okay. So me I will start from the ones that if they break, it is serious. Sign-in first — if
+      person cannot enter, the rest of the app is useless, so that one must run. Then the money
+      side. For us it was checkout and the payment callback, that one I will run am myself. Then
+      whatever they changed in this release, and the screens around it, because that is where new
+      bug likes to hide. And one or two that broke the last time, because those ones, they like to
+      come back. The ones I will drop are the small small things — colour, the admin page that only
+      two people open, anything nobody touched. Then for the twenty-eight, I will not tell them
+      say we tested everything. I will name them. I will say, these twelve we ran, they passed,
+      these twenty-eight we did not run at all, and this is what can be hiding inside. Like, the
+      statement export we did not check, so if it is broken, customers will be the one to tell you
+      on Monday. Then they will decide. It is their call, not mine, but let them decide with eye
+      open.
+    expected:
+      - dimension: What makes something worth the time
+        score: 3
+        because: "Level 3, as strong: impact first, then what they changed this release and the ones that broke last time."
+      - dimension: The selection, and the cut line
+        score: 3
+        because: "Level 3, as strong: the same twelve and the same cut — colour, the admin page two people open, anything nobody touched."
+      - dimension: What is said about what was not covered
+        score: 3
+        because: "Level 3, as strong: names the twenty-eight and the statement export, and hands the decision over — 'let them decide with eye open'."

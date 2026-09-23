@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: test-data-isolation
+question: the-test-that-only-passes-once
+answers:
+  - kind: strong
+    text: |
+      The problem is the last line. It says applicationCount for job "the-lagos-one" equals one —
+      but that job is shared, and the brief says other tests apply for it too. So that count isn't
+      counting what this test did, it's counting what everybody did. On its own the number happens
+      to be one, so it passes; in the suite it's one plus whatever the others added, and which
+      number you get depends on who got there first, which is why it never fails at the same
+      point. It's asserting on a global, and it doesn't own that global. So I'd change what it
+      asks. Count applications for that job by my user — I already have a unique email, so scope
+      the question to me. Better still, have the test create its own job and apply to that,
+      then one is genuinely one. Or just assert on what the call returned, the application id or
+      its status. On running one at a time — you pay in wall-clock time, and the suite people
+      won't wait for is a suite people stop running. And it hides this rather than fixing it: the
+      day somebody turns parallel back on, all of it comes back.
+    expected:
+      - dimension: "Names what the assertion depends on"
+        score: 4
+        because: 'Level 4: the count is over a job other tests apply for, and the test is asking a question it does not own — "it''s asserting on a global, and it doesn''t own that global".'
+      - dimension: "The fix"
+        score: 4
+        because: 'Level 4: assert on what the call returned, and a count is fine once the test creates its own job — "then one is genuinely one" — so the rule is ownership rather than avoiding counts.'
+      - dimension: "The shortcut, and what it costs"
+        score: 3
+        because: "Level 3: serial running costs wall-clock time and a suite people stop running, and it hides the coupling rather than fixing it; the retry case is not distinguished."
+  - kind: weak
+    text: |
+      Okay, so it passes alone and fails in the suite, so something in the suite is affecting it.
+      Looking at it... sign in, apply for the job, then it checks the count is one. Hmm. I think
+      the issue is that when the whole suite runs, the application maybe hasn't finished saving
+      before it checks, so the count is still zero. That would explain why it's not always the
+      same place, because sometimes it's fast and sometimes slow. So I would put a small wait
+      before the assert, or retry the check a few times. It says every test makes its own user so
+      it's not the sign up, okay. Maybe... maybe the other tests are also using the same job and
+      that's a problem? I'm not sure how, because each user applies separately. Running one at a
+      time — that would be safer I think, everything is predictable then. The cost is it's slower,
+      you wait longer for results. But if it makes the tests pass consistently I'd take slow over
+      tests nobody trusts. Sorry, I'm not fully sure on this one.
+    expected:
+      - dimension: "Names what the assertion depends on"
+        score: 1
+        because: "Level 1: reads the moving failure as the application not having finished saving before the check, and treats the assertion as sound; the shared job is raised and then argued against."
+      - dimension: "The fix"
+        score: 0
+        because: "Level 0: no fix — a small wait before the assert, or retrying the check a few times."
+      - dimension: "The shortcut, and what it costs"
+        score: 2
+        because: Level 2 — recommends running one test at a time and names a cost it is content to pay ("it's slower"), without weighing that against fixing the assertion.
+  - kind: fluent-but-wrong
+    text: |
+      So I'd say the assertion itself is sound — applicationCount for the job is exactly the
+      question you want to ask after applying, that's a proper outcome check, not a UI check. The
+      defect isn't in the assertion, it's in the execution model. The clue is "never at the same
+      point twice": that's the signature of a race between workers. The suite is running tests in
+      parallel, so two tests are inside that job's application table in the same instant, and the
+      count you read is whatever the other worker's transaction had committed at that microsecond.
+      Non-deterministic by construction. So two changes. One, this test declares that job as a
+      resource and takes a lock on it, so only one test is in it at a time. Two, and this is the
+      important one, the test clears the ground before it starts — delete all applications for
+      "the-lagos-one" in setup, then apply, then count. Now one is guaranteed to mean one. As for
+      running one at a time, the cost is purely duration. It's the same tests, the same
+      assertions, just sequenced — you buy determinism with minutes, and honestly that's usually
+      the right trade.
+    expected:
+      - dimension: "Names what the assertion depends on"
+        score: 1
+        because: 'Level 1: "the assertion itself is sound" and the moving failure is a race between parallel workers reading a half-committed count.'
+      - dimension: "The fix"
+        score: 1
+        because: "Level 1: keeps the count and bends the shared data to fit it — a lock on the job and deleting every application for it in setup."
+      - dimension: "The shortcut, and what it costs"
+        score: 1
+        because: 'Level 1: serial running costs "purely duration" and is presented as buying determinism, "usually the right trade".'
+  - kind: correct-poorly-explained
+    text: |
+      The assert is the problem. Not the applying, the assert. Because it's counting the job's
+      applications, the whole job, and other tests are applying to the same job, they said that,
+      so the number is not mine. It's everybody's. So alone it's one and it's fine and in the
+      suite it's two, three, whatever, depending on timing, that's the never-the-same-point thing.
+      So — sorry, what would I change. I'd count my own. Filter by my user, the generated email,
+      because that part is already unique so use it. Or the test makes its own job, which is
+      cleaner honestly, then nobody else is in it and one means one. Either one. What I would not
+      do is delete the other applications first, that just moves the breakage to somebody else's
+      test. And one at a time... time, mostly, it gets slow, and slow suites don't get run. And
+      the coupling is still there, you just can't see it, so somebody turns parallel on in six
+      months and it's all back and nobody remembers why it was sequential.
+    expected:
+      - dimension: "Names what the assertion depends on"
+        score: 4
+        because: 'Level 4: "Not the applying, the assert" — the count is the job''s, other tests apply to it, so "the number is not mine. It''s everybody''s".'
+      - dimension: "The fix"
+        score: 4
+        because: 'Level 4: count its own user''s applications, or let the test make its own job so "one means one", and explicitly not delete other tests'' applications.'
+      - dimension: "The shortcut, and what it costs"
+        score: 3
+        because: "Level 3: serial costs time and slow suites do not get run, and the coupling is still there for whoever turns parallel back on; the retry case is not distinguished."
+  - kind: nigerian-english
+    text: |
+      The problem is that last line. It is saying applicationCount for "the-lagos-one" should be
+      one — but that job is shared, and they said other tests are applying to the same job. So
+      that count is not counting what this test did, it is counting what everybody did. When it is
+      running alone, the number is one, so it will pass. Inside the suite, it is now one plus
+      whatever the others added, and which number you will meet depends on who reached there
+      first — that is why it is not failing at the same place. It is checking a thing it does not
+      own. So me I will change the question. Let it count applications for that job by my own
+      user — I already have my own unique email, so I will scope am to myself. Or better, let the
+      test create its own job and apply to that one, then one will really mean one. Or just check
+      what the call returned, the application id. For running one at a time — you will pay with
+      time, and suite that is slow, people will stop running am. And it did not fix anything, it
+      only covered it: the day somebody turn parallel back on, everything will come back.
+    expected:
+      - dimension: "Names what the assertion depends on"
+        score: 4
+        because: 'Level 4, as `strong`: the count is over a shared job, so "it is checking a thing it does not own".'
+      - dimension: "The fix"
+        score: 4
+        because: "Level 4, as `strong`: scope the count to its own user, or let the test create its own job so one really means one, or check what the call returned."
+      - dimension: "The shortcut, and what it costs"
+        score: 3
+        because: "Level 3, as `strong`: you pay with time, people stop running a slow suite, and sequencing only covered the problem for whoever turns parallel back on."

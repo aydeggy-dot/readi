@@ -1,0 +1,145 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: exploratory-attack-ideas
+question: the-upload-nobody-tested
+answers:
+  - kind: strong
+    text: |
+      With the file itself I'd start at the edges, because "too large" in their case is
+      probably a 20 MB file. Something just under 5, exactly 5, just over. Then an empty
+      file — zero bytes, named cv.pdf. That normally goes through and the recruiter opens
+      nothing.
+
+      Then a file that lies: take a JPEG, or an .exe, rename it cv.pdf. If the check is
+      only on the extension it'll be accepted, and I want to know whether anybody looks at
+      the content. Also a password-protected PDF, and a corrupt one — copy a PDF and cut
+      it off half way. And the name: very long, spaces, an apostrophe, a double extension
+      like cv.pdf.exe.
+
+      While it's uploading — airplane mode when the bar is half way, switch WiFi to data,
+      lock the screen and go to WhatsApp and come back. Does it resume, does it tell me
+      something I can act on, or does it sit at 99 percent and lose the form I typed?
+
+      Whether it's a defect — I check the requirement first. If nothing says what should
+      happen, I write what I saw, what I expected and what it costs the user, and take it
+      to the PM. Losing a CV you uploaded on your own data is a defect even if no document
+      says so.
+    expected:
+      - dimension: "Attacks the thing itself"
+        score: 3
+        because: "Level 3: goes at the file itself — boundaries either side of 5 MB, a zero-byte cv.pdf, a JPEG or .exe renamed, a password-protected and a truncated PDF, a very long name, spaces, an apostrophe, a double extension — but names no innocent real submission such as a photographed CV."
+      - dimension: "Attacks the conditions"
+        score: 3
+        because: 'Level 3: airplane mode mid-bar, WiFi to data, leaving the app for WhatsApp, and what state it leaves behind — does it resume, "does it tell me something I can act on", is the typed form lost; no second upload attempt, which is why it is not 4.'
+      - dimension: "Knows what would settle a question"
+        score: 3
+        because: "Level 3: checks the requirement first, and where nothing is written takes what was seen, what was expected and what it costs the user to the PM rather than filing it as a defect; does not say which questions need a decision now."
+  - kind: weak
+    text: |
+      Okay. So I would test with different files. Like a very big one — sorry, they said
+      that's covered already. Then maybe a picture, a JPEG, to see if it will reject it.
+      And Excel, maybe an Excel file. And I can test with a file that has a long name. For
+      the connection, I would off my data in the middle of the upload and see what
+      happens. It should show an error message. And maybe press the back button while it
+      is uploading, or minimise the app and come back. How I decide if something is a
+      defect — if the app crashes, then it's a defect for sure, because crashing is never
+      expected behaviour, that one is clear. If it just shows an error message then I
+      would say it's working, because it caught the problem and told the user. If I'm not
+      sure, I'd check the test cases, and if it's not there I'd ask my team lead whether
+      to raise it or not. I wouldn't want to raise something that turns out to be by
+      design.
+    expected:
+      - dimension: "Attacks the thing itself"
+        score: 2
+        because: "Level 2: a wrong file type and a long name — a JPEG, maybe an Excel file — with no empty file, no boundary and no file renamed to look like a PDF."
+      - dimension: "Attacks the conditions"
+        score: 1
+        because: 'Level 1: interrupts the upload and checks only what the screen says — "It should show an error message" — with nothing about what state the application is left in.'
+      - dimension: "Knows what would settle a question"
+        score: 1
+        because: "Level 1: decided by the strength of the reaction — a crash is certainly a defect, an error message means it is working — with no reference to what should have happened."
+  - kind: fluent-but-wrong
+    text: |
+      So what they've written is one positive case and two negative ones. What's missing
+      is boundary value analysis — exactly 5 MB, just under, just over, and a zero-byte
+      file. Now, renaming an .exe to .pdf — people suggest that, but it isn't a valid test
+      here, and I'd push back on it. The file picker has an accept filter, so the
+      operating system won't even let the user select a non-PDF. That path is unreachable
+      from the UI, so it's out of scope. Testing what the user cannot do is wasted effort.
+      Same with the connection. Interrupting the upload can't corrupt anything, because
+      TCP handles retransmission — that's the whole point of a reliable protocol. If I
+      turn off data mid-upload, the connection is held and resumes when the network is
+      back, so what lands is either the complete file or nothing. What I'd check there is
+      the spinner and the error copy. And how I decide what's a defect: a defect is a
+      deviation from a documented requirement. The requirement is PDF or Word, up to 5 MB.
+      So if something outside that behaves oddly, it isn't a defect, it's an enhancement
+      request, and I'd put it in a suggestions list rather than raise a bug the dev will
+      reject.
+    expected:
+      - dimension: "Attacks the thing itself"
+        score: 2
+        because: "Level 2: goes at the file's size only — exactly 5 MB, either side, zero bytes — and rules the renamed .exe out of scope because the picker's accept filter makes it unreachable, so no wrong-type or naming case is tried."
+      - dimension: "Attacks the conditions"
+        score: 1
+        because: 'Level 1: interrupts it and checks only what the screen says — "just the spinner and the error copy" — on the belief that TCP makes a partial file impossible.'
+      - dimension: "Knows what would settle a question"
+        score: 1
+        because: 'Nearest descriptor, with none written for this: a defect is only a documented deviation, so everything outside "PDF or Word, up to 5 MB" becomes a suggestions list nobody decides on.'
+  - kind: correct-poorly-explained
+    text: |
+      So the file, okay. Empty file is the one I'd do first, zero bytes but you call it
+      cv.pdf, because that normally passes and then there's nothing to open on the other
+      side. And exactly 5 MB, and 5 MB and a bit, because their "too large" test is
+      probably something huge. And rename a JPEG to .pdf — that's the important one
+      actually, whether it's checking the extension or the actual file, because if it's
+      only the extension then anything can go in. Password-protected one too, and a half-
+      copied one that's broken. Long name, name with an apostrophe. Then during the upload
+      — airplane mode half way, that's the main one. And leaving the app, going to
+      WhatsApp and coming back, and switching WiFi to data. And what I'm watching for is
+      not really the error, it's whether the form I filled is still there after, because
+      if I typed everything and it wiped, that's worse than the upload failing. And the
+      last part — if there's a requirement I check against the requirement. If there's
+      nothing written, which is normally the case, then I raise it anyway but I write what
+      I expected and why, and let the PM decide, because if I only report the behaviour
+      they'll say it's by design.
+    expected:
+      - dimension: "Attacks the thing itself"
+        score: 3
+        because: "Level 3: the empty cv.pdf first, exactly 5 MB and just over, a JPEG renamed to .pdf as the important one, password-protected, truncated, long name, apostrophe — no innocent real-submission case."
+      - dimension: "Attacks the conditions"
+        score: 3
+        because: 'Level 3: airplane mode half way, leaving for WhatsApp and back, WiFi to data, and what state it is left in — "whether the form I filled is still there after" — but no second upload attempt.'
+      - dimension: "Knows what would settle a question"
+        score: 3
+        because: "Level 3: checks the requirement where there is one, and where there is not, raises it with what was expected and why for the PM to decide rather than reporting behaviour alone."
+  - kind: nigerian-english
+    text: |
+      Me I will start from the edges, because their "too large" test is probably 20 MB.
+      Below 5, exactly 5, and small above 5. Then empty file — zero byte, but you name am
+      cv.pdf. That one normally enters, then recruiter will open am and nothing is inside.
+
+      Then a file that is lying: take JPEG, or .exe, rename am to cv.pdf. If they are only
+      checking extension it will pass, and I want to know if anybody looks inside the
+      content. Then PDF with password, a corrupt one — copy one PDF and cut am half way.
+      And the name: long name, spaces, apostrophe, double extension cv.pdf.exe.
+
+      While it's uploading, I will put airplane mode when the bar reach half, switch WiFi
+      to data, lock the screen and go to WhatsApp. Then I now check am: is it resuming, is
+      it telling me something I can act on, or it will stay at 99 percent and the form I
+      typed has cleared?
+
+      To know whether it's a defect, I read the requirement first. If nothing is written,
+      I write what I saw, what I was expecting and what it is costing the user, then carry
+      am to the PM. Person losing the CV he uploaded with his own data, that one is
+      defect, even if no document said so.
+    expected:
+      - dimension: "Attacks the thing itself"
+        score: 3
+        because: "Level 3, same as `strong`: edges around 5 MB, zero-byte cv.pdf, a JPEG or .exe renamed to cv.pdf, password-protected, corrupt, long name, spaces, apostrophe, double extension; no innocent real-submission case."
+      - dimension: "Attacks the conditions"
+        score: 3
+        because: 'Level 3, same as `strong`: airplane mode at half, WiFi to data, WhatsApp, then "is it resuming, is it telling me something I can act on", and has the form cleared; no second upload attempt either.'
+      - dimension: "Knows what would settle a question"
+        score: 3
+        because: "Level 3, same as `strong`: read the requirement first, else write what was seen, expected and what it costs, and carry it to the PM."

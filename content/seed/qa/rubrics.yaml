@@ -1,3 +1,19 @@
+# The QA rubrics: 30 of them for 33 questions, because several `test_design` questions score the
+# same three dimensions against different features and share one rubric (blueprints/qa.md).
+#
+# Two conventions carried from the frontend and backend banks, each paid for by a defect there:
+#
+# 1. **No descriptor says how an answer was delivered.** Not "confidently", not "articulately", not
+#    "at length". Every word in a descriptor is a scoring instruction, and one about manner tells the
+#    evaluator to attend to how a spoken answer sounded — which is the accent and the idiom of this
+#    audience, not their engineering. `check-bank.mjs` enforces it as an error.
+# 2. **Every criterion has a descriptor written for a specific wrong answer**, not only for an
+#    unspecific one. A fluent wrong answer is detailed and the detail is wrong; scored against a
+#    descriptor written for absence, it lands on the right number and the evaluator's evidence quote
+#    then contradicts the descriptor it was scored against. M4's feedback is built on those quotes.
+#    The wording comes from each rubric's own `fluent-but-wrong` stress answer.
+#
+# Draft, written by a model.
 version: 1
 author: ai_draft
 status: draft
@@ -8,31 +24,31 @@ rubrics:
     criteria:
       - dimension: Covers the obvious ground economically
         description: Valid and invalid inputs chosen by partition rather than by listing examples.
-        weight: 35
+        weight: 25
         levels:
           "0": A handful of arbitrary cases.
-          "1": Many cases from the same equivalence class.
+          "1": Many cases the system would treat the same way — or a named technique applied to the wrong thing, such as grouping the screen's buttons rather than the values a field accepts.
           "2": Valid and invalid cases, without a stated reason for the selection.
-          "3": Partitions the input space and takes one case from each.
+          "3": Groups the values that would be treated the same and takes one from each group, whether or not they name the technique.
           "4": As 3, and says what is deliberately not being tested, and why.
       - dimension: Tests the edges
         description: Boundaries, empty values, maximum lengths, and the values either side of a rule.
-        weight: 35
-        levels:
-          "0": No boundary cases.
-          "1": One boundary, found by chance.
-          "2": Some boundaries, missing the values either side.
-          "3": Tests each boundary and its neighbours.
-          "4": As 3, including edges that are easy to forget — empty input, whitespace, very long values, duplicates.
-      - dimension: Thinks past the happy path
-        description: States and sequences — double submission, going back, a dropped connection, a slow network.
         weight: 30
         levels:
+          "0": No boundary cases.
+          "1": Tests a boundary on the wrong side of the rule, or treats a round number as the boundary when the rule puts it elsewhere.
+          "2": One or two boundaries, missing the values either side — a single empty-field check is level 1, not this.
+          "3": Tests each boundary and its neighbours.
+          "4": As 3, including edges that are easy to forget — empty input, whitespace, very long values, duplicates — and the input formats that actually occur here, such as a number entered with a leading zero and the same number in +234 form.
+      - dimension: Thinks past the happy path, and says where the list stops
+        description: States and sequences — double submission, going back, a dropped connection — and a stated reason the list is long enough.
+        weight: 45
+        levels:
           "0": Happy path only.
-          "1": One error case, and only the one the form was designed for.
+          "1": Names error cases that the input validation already covers and calls that the failure paths — the second tap, the back button and the dropped request are treated as the same case as a bad value.
           "2": Several error cases, all of them about input validation.
-          "3": Covers behaviour as well as input — resubmission, navigation, failure mid-request.
-          "4": As 3, with cases drawn from how the software will really be used here (bad connection, small screen).
+          "3": Covers behaviour as well as input — resubmission, navigation, failure mid-request — and cases drawn from how the software will really be used here, on a bad connection and a small screen.
+          "4": As 3, and says where the list stops and why — what is deliberately out of scope, and what would make them add to it.
 
   - slug: defect-report-quality
     name: Reporting a defect
@@ -42,25 +58,1006 @@ rubrics:
         weight: 40
         levels:
           "0": A description of the problem with no steps.
-          "1": Steps that skip preconditions or assume the reader's setup.
+          "1": Steps that skip preconditions or assume the reader's setup — or a precise sequence of taps that leaves out the account and the data it was done with, so it cannot be repeated.
           "2": Mostly complete steps, missing test data or an account detail.
           "3": Numbered steps, preconditions, and the data used.
-          "4": As 3, and states how often it happens out of how many attempts.
+          "4": As 3, and states how often it happens out of how many attempts — and a developer who has never seen the screen could act on it without asking anything back.
       - dimension: Separates observation from interpretation
         description: What happened and what was expected, kept apart from a theory about the cause.
         weight: 30
         levels:
           "0": A theory with no observation.
-          "1": Observation and cause mixed together in one sentence.
+          "1": A named mechanism offered as the observation — "the API is timing out", "it is a race condition" — with nothing about what was actually seen on the screen.
           "2": Both present, but the title is a guess at the cause.
-          "3": Clear observed versus expected, with the source of the expectation named.
+          "3": What was seen and what was expected are two separate statements, with the source of the expectation named.
           "4": As 3, with a theory offered separately and marked as one.
       - dimension: Gives the evidence and the context
         description: Build, environment, device, time, and an attachment that shows it.
         weight: 30
         levels:
           "0": No context.
-          "1": Environment only.
+          "1": Environment only — or a long list of context that omits the build and the time, which are the two a developer needs to find the logs.
           "2": Some context, missing the build or the time.
           "3": Build, environment, device and time, with a screenshot or recording.
-          "4": As 3, plus logs, a request id, or a network capture that points to where it failed.
+          "4": As 3, plus something that points at where it failed — a log, a request id, a network capture — or, where they cannot get one themselves, what they would ask for and who from.
+
+  - slug: transactional-test-design
+    name: Testing something that moves money
+    criteria:
+      - dimension: Orders the work by what cannot be undone
+        description: What gets tested first, and the reason being the cost of getting it wrong rather than the order of the fields on the screen.
+        weight: 30
+        levels:
+          "0": Works down the screen field by field.
+          "1": Ranks by how likely a bug is rather than by what it would cost — starts with PIN validation because "that is where bugs usually are" and reaches the wrong-recipient case last.
+          "2": Names the important cases without saying what makes them important.
+          "3": Starts where a mistake cannot be taken back — the wrong recipient, the wrong amount, money debited and not credited — and says so.
+          "4": As 3, and separates what a user can recover from themselves from what needs somebody at a bank, and tests accordingly.
+      - dimension: The cases where the outcome is unknown, and where the money is checked
+        description: A timeout, the app closed mid-request, the same tap twice — whether the money moved exactly once, and where that is read.
+        weight: 35
+        levels:
+          "0": Not considered; every request either succeeds or fails.
+          "1": Treats the unknown outcome as a display problem — plans to check that a spinner or an error message appears, and never checks what happened to the money.
+          "2": Mentions a network failure, without saying what would be checked afterwards.
+          "3": Tests the interrupted cases, and checks the money moved exactly once somewhere other than the success message.
+          "4": As 3, and says how the app should behave when it genuinely cannot tell — and that showing "failed" when the transfer succeeded is the worse of the two errors.
+      - dimension: Covers the rules the money follows
+        description: The daily limit and its edges, the unit the amount is held in, and the PIN attempt counter.
+        weight: 35
+        levels:
+          "0": No case touches the limit or the PIN rule.
+          "1": Touches the rules without testing them — one value over the limit and none at it, or PIN field validation (three digits, five digits, masking) offered as the attempt-counter rule — or treats ₦199,999 and ₦200,001 as the boundary without asking what step the field accepts.
+          "2": Tests at the limit and over it, and stops there.
+          "3": The values either side of the limit in whatever unit the field accepts, two transfers each under it and together over it, and a wrong PIN against the attempt counter.
+          "4": As 3, and asks which of the rules the screen enforces and which the server does, because only one of those a tester can trust.
+
+  - slug: risk-prioritisation
+    name: Deciding where the testing time goes
+    criteria:
+      - dimension: What makes something worth the time
+        description: Impact and likelihood, what changed, and what the evidence in front of them supports.
+        weight: 35
+        levels:
+          "0": No basis for the choice.
+          "1": Uses a rule that does not measure risk — the area with the most test cases, the newest feature, the highest defect count with no reference to what those defects cost, or the belief that a case which passed last time over unchanged code is safe now.
+          "2": Names impact or likelihood, applied to one area only.
+          "3": Weighs what it would cost against how likely it is, and says — or asks — what changed in this release. Where they have been handed a defect history, says what it cannot tell them, because a count of defects found is a record of where people looked.
+          "4": As 3, and names what they would have to find out before trusting their own ranking, rather than presenting it as settled.
+      - dimension: The selection, and the cut line
+        description: An actual list, covering the critical paths once rather than one area in depth.
+        weight: 25
+        levels:
+          "0": No selection is made.
+          "1": Spends everything on the edges and nothing on the path everything depends on — sign-in and checkout left out because unit tests or other cases are held to cover them incidentally — so a broken critical path ships untested.
+          "2": A list, with no reasoning about breadth against depth.
+          "3": Covers each path that matters once, and says what was traded to do it.
+          "4": As 3, and puts some of the time into unscripted work on what changed, rather than into the next scripted case.
+      - dimension: What is said about what was not covered
+        description: The gap named plainly, so the release decision belongs to whoever makes it.
+        weight: 40
+        levels:
+          "0": Silent on the gap.
+          "1": Reports a judgement in place of the gap — "it is safe to release" or "I am not comfortable" — with no account of what was left untested.
+          "2": Says some things were not tested, without saying which or what it would mean.
+          "3": States what was not run and what the risk of that is, in writing, and says what a further hour would buy. A recommendation given alongside the gap counts the same as handing the decision over — many candidates are required to give a view and that is a fact about the workplace.
+          "4": As 3, and the note can be acted on without a reply — it reaches whoever decides before the decision is taken, rather than being available to them.
+
+  - slug: regression-scoping
+    name: Deciding what a change puts at risk
+    criteria:
+      - dimension: Follows the change to what depends on it
+        description: Where the changed value travels, and what recomputes or compares it.
+        weight: 40
+        levels:
+          "0": Re-tests the screen the change was on.
+          "1": Follows the journey rather than the number — walks the screens a user visits, so a nightly report or a refund that recomputes the same value is never reached.
+          "2": Names one or two places downstream, found by guessing.
+          "3": Names the places the number reappears — totals, receipts, refunds, reports, a nightly job — however they found them, including by asking which callers use it.
+          "4": As 3, and reaches data already stored, where rows computed the old way now disagree with a fresh calculation.
+      - dimension: Justifies what is left out
+        description: An argument for the exclusion, not an apology for it.
+        weight: 25
+        levels:
+          "0": Would re-test everything, or cannot say what is out.
+          "1": Justifies the exclusion by the size of the change — "it is one line, so nothing else can be affected" — which is the premise, not a reason.
+          "2": Names what is out, with no account of how they know it is safe.
+          "3": Says what cannot reach the change and how they know — it never shows the number, or whoever knows the code confirmed it does not read it.
+          "4": As 3, and says which of those exclusions they are least sure about.
+      - dimension: What would widen it
+        description: The signal that the scope was drawn too small, decided in advance.
+        weight: 35
+        levels:
+          "0": Nothing would; the plan is the plan.
+          "1": Names a trigger that would come too late to act on — a user complaint after release, or the next regression cycle — and treats that as the safety net.
+          "2": Says they would widen it "if something looks wrong", with nothing specific.
+          "3": Names what would do it — the function turning out to be called from somewhere unexpected, or a failure outside the area — and treats "nothing else was touched" as a claim rather than a fact.
+          "4": As 3, and says what they would want to see before believing that claim, so the scope is checked before the testing rather than by a failure.
+
+  - slug: severity-judgement
+    name: Judging how bad a defect is
+    criteria:
+      - dimension: Judges by what it does to a user
+        description: Reach, whether the user can tell, and whether they can recover — rather than how alarming the symptom looks.
+        weight: 40
+        levels:
+          "0": No basis; picks one.
+          "1": Ranks by the symptom rather than the harm — the crash is the more serious because a crash is always serious, and a wrong total on every receipt is "only a display issue".
+          "2": Compares them on reach alone — every order against two testers in six — with nothing about whether the user can tell or recover.
+          "3": Compares them on reach, visibility and whether the user can recover, and says which is worse on that basis.
+          "4": As 3, and weighs the quiet failure against the visible one — a wrong number nobody questions does a kind of harm a crash does not, and a crash on a slow connection is this market's normal condition. Either verdict reaches 4 if that comparison is made; neither does without it.
+      - dimension: Keeps severity and priority apart
+        description: What it does to a user is the tester's judgement; what gets fixed first is somebody else's, and saying so is part of the answer.
+        weight: 25
+        levels:
+          "0": The two are one thing.
+          "1": Inflates the severity in order to win the slot, or gives the order of work with no severity behind it.
+          "2": Uses both words without a difference between them.
+          "3": Gives the severity as their own judgement and a recommendation with it, saying plainly that the order of work is the release owner's call. A candidate whose workplace expects a straight answer gives one and still reaches 3.
+          "4": As 3, and asks what severity means here rather than importing a scale — and says what would change their own judgement, a number or a count of affected users.
+      - dimension: What happens to the one that waits
+        description: The defect is not closed by not being chosen.
+        weight: 35
+        levels:
+          "0": Not addressed.
+          "1": Treats the deferral as the end of it — the fix is scheduled for "the next release" with nothing recorded, no workaround and nobody told.
+          "2": Says it will be fixed later, with nothing about the meantime.
+          "3": Names what happens now — a note in the release, a workaround if there is one, a ticket that will not be lost.
+          "4": As 3, and says what more they would find out about it in the meantime, so the next decision is better informed than this one.
+
+  - slug: api-test-design
+    name: Testing an endpoint with no screen in front of it
+    criteria:
+      - dimension: Cases come from the contract
+        description: The documented responses and the shape of the request are the case list.
+        weight: 30
+        levels:
+          "0": Would wait for a screen, or test only the success case.
+          "1": Builds the case list from an imagined user journey rather than from the document, so it never produces one of the documented responses — or contradicts the document from a general principle, deciding a documented response must be a mistake in the documentation and testing for the other one.
+          "2": Tests the success case and one failure, chosen at random.
+          "3": One request that produces each documented response, cases derived from the request's own fields, and what the document does not say — whether the note is trimmed, what an unknown field does — raised as questions rather than assumptions.
+          "4": As 3, and says which of those unanswered questions would change the test plan and which they would decide themselves.
+      - dimension: What is checked about a response
+        description: Status, body shape, the values in it, and the effect it claims to have had.
+        weight: 40
+        levels:
+          "0": Checks the status code only.
+          "1": Checks the body against the example in the document field by field, and treats matching the example as proof — so an endpoint that returns the same id every time passes.
+          "2": Checks status and that a body came back.
+          "3": Status, the shape and field types, and that the values are the right ones for this request.
+          "4": As 3, and checks the effect rather than the reply — the application exists afterwards, and nothing else moved.
+      - dimension: What only this route can reach
+        description: Requests a screen would never send, and authorisation as its own case.
+        weight: 30
+        levels:
+          "0": Nothing a screen could not do.
+          "1": Sends malformed requests and stops at the status code — a list of bad payloads with no account of what a correct rejection looks like, so a 500 on a missing field reads as a pass.
+          "2": Names one such case — a missing field, or no token.
+          "3": Missing and wrong-typed fields, a note over the limit, extra fields, and requests with no token or somebody else's.
+          "4": As 3, and sends the same request twice to check the documented conflict, and that only one thing was created.
+
+  - slug: api-evidence-reading
+    name: Reading what a response is telling you
+    criteria:
+      - dimension: Reads what the response actually says
+        description: The error names the field it wanted; the difference is in front of them.
+        weight: 40
+        levels:
+          "0": Reports it as "the API is broken".
+          "1": Names a mechanism the response does not support — an expired token, a server fault, a missing body — while the response names the field and the request shows a different spelling of it.
+          "2": Notices the field is named in the error, without connecting it to what was sent.
+          "3": Puts the two side by side and says the name is the difference.
+          "4": As 3, and says that the API rejected the request correctly — the defect is in one of the two sides' idea of the field name, not in the rejection.
+      - dimension: What they check before writing it up
+        description: The agreed contract, and whether anything else uses the other spelling.
+        weight: 35
+        levels:
+          "0": Writes it up straight away.
+          "1": Verifies by repetition — sends the request again, tries it in another tool, checks the token — rather than checking what the field is supposed to be called.
+          "2": Says they would "check the documentation", with nothing about what would settle it.
+          "3": Checks what the contract says the field is, and whether the app and other endpoints agree.
+          "4": As 3, and says what they would conclude if there is no contract to check — that the missing agreement is itself the finding.
+      - dimension: Writes it so the evidence decides it
+        description: The write-up puts the disagreement on a document rather than on a person, and needs no one to be named.
+        weight: 25
+        levels:
+          "0": Assigns blame with nothing behind it, or declines to write it up at all on the strength of a cause they have invented.
+          "1": Reports "a mismatch between the app and the API" with neither side's idea of the field name stated, although both are in front of them.
+          "2": Says which side is wrong without saying how they know.
+          "3": Quotes what was sent, what came back and what the contract says, so the answer is obvious without anyone being named.
+          "4": As 3, and says what would change the answer — a contract that has itself changed, or an older client still in use.
+
+  - slug: api-contract-reasoning
+    name: A response that changed shape
+    criteria:
+      - dimension: Names it as a breaking change
+        description: A field's type changed, which breaks every client already reading it, whatever the release notes say.
+        weight: 40
+        levels:
+          "0": Reports it as an app defect.
+          "1": Describes the change correctly and calls it an improvement the app should catch up with — a richer salary object is better data, so the app is behind rather than broken.
+          "2": Says the API changed, without saying why that is a problem in itself.
+          "3": Says a field's type changed under callers who were already reading it, which breaks them by definition.
+          "4": As 3, stated as what the contract did rather than who erred — and says the same change as a new field, or behind a version, would have broken nobody.
+      - dimension: The test that would have caught it, and where it runs
+        description: A check on the shape of the response, running against the API rather than against the app.
+        weight: 35
+        levels:
+          "0": Nothing would have caught it.
+          "1": Proposes a test that would still have passed — a status-code check, an end-to-end journey through the app's own screens, or a snapshot of the response taken after the change.
+          "2": Says a test on the response, without saying what it asserts or where it runs.
+          "3": A check on types and required fields, running somewhere it fails before users see it, and says where it ought to live even if that is not somewhere they can put it today.
+          "4": As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for.
+      - dimension: What changes so the next one is not found by a user
+        description: Who else reads the field, and what agreement is missing.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Puts the remedy anywhere but the contract — on communication alone, or on the caller, asking for defensive parsing and a device pass before release — with nothing that would fail automatically on the API's side.
+          "2": Asks for the release notes to say more.
+          "3": Asks for a contract checked in the pipeline, and for additive changes or a version rather than a changed field.
+          "4": As 3, and asks who else reads that field, on the grounds that the app is only the caller that shouted.
+
+  - slug: automation-selection
+    name: Choosing what to automate
+    criteria:
+      - dimension: What makes a case worth automating
+        description: How often it runs, how stable it is, how unambiguous the check is, and what it costs if it breaks.
+        weight: 35
+        levels:
+          "0": No basis; picks the first thirty.
+          "1": Selects by difficulty or by coverage arithmetic — the hardest cases, or thirty chosen to touch every screen once — rather than by what running them repeatedly is worth.
+          "2": Names one reason, usually "the important ones", without saying what makes them important.
+          "3": Chooses what runs on every release, on parts that are not about to be redesigned, where the check is unambiguous.
+          "4": As 3, and weighs the cost of keeping each one working, not only the cost of writing it.
+      - dimension: What stays manual
+        description: Exploratory work, one-offs, anything needing a human judgement, anything changing weekly.
+        weight: 25
+        levels:
+          "0": Everything should eventually be automated.
+          "1": Keeps the wrong things manual for a stated reason — the critical paths stay with a person because they matter too much to trust to a script, while the stable low-value cases are automated.
+          "2": Names something that stays manual, with no reason.
+          "3": Keeps exploratory work and judgement calls with a person, and says why a script cannot do them.
+          "4": As 3, and names something automated badly that would be better manual than wrong — a check on how a screen looks, or a case that changes every sprint.
+      - dimension: How they would know it paid off
+        description: A measure that is about defects and trust rather than about the number of tests.
+        weight: 40
+        levels:
+          "0": Nothing; it is obviously worth doing.
+          "1": Measures the output rather than the effect — the count of automated cases, the percentage automated, execution time — or measures the wrong effect and inverts the point of a regression suite, judging it by the new defects it finds and treating an always-green suite as one that is not working.
+          "2": Says "we would save time", with no way to tell.
+          "3": Names what they would look at — defects caught before release, defects that still reached users, how long the check takes, whether people still act on a failure.
+          "4": As 3, and says what would tell them to stop — a suite whose failures nobody reads is a cost with no return.
+
+  - slug: assertion-strength
+    name: What a test is really checking
+    criteria:
+      - dimension: Says what the assertion proves
+        description: Whether the thing asserted on could differ between the feature working and the feature broken.
+        weight: 40
+        levels:
+          "0": Cannot say what is wrong; the test looks reasonable.
+          "1": Names the wrong culprit — the wait is too short, the selector is wrong, the credentials are stale — or reads it as presence against visibility, holding that the header is rendered and hidden until the user is entitled to it, which the page contradicts.
+          "2": Says the assertion is not really checking sign-in, without saying what it is checking instead — the premise read back rather than a consequence drawn from it.
+          "3": Says what the assertion is actually true of — that a page opened at all — so the same result follows whether sign-in worked or failed.
+          "4": As 3, and says that a test which cannot fail is worse than no test, because it is counted as coverage.
+      - dimension: An assertion tied to what the feature is for
+        description: Something only true when the feature worked.
+        weight: 40
+        levels:
+          "0": No replacement offered.
+          "1": Proposes a stronger-looking check on the same element or its neighbours — that the header is visible rather than present, the URL after the redirect, the absence of an error message — none of which differs between a working sign-in and a broken one.
+          "2": Says to assert "something on the dashboard", without saying what makes it specific to a signed-in user.
+          "3": Asserts on something only a signed-in user has — their own name or data, or a response that required the session.
+          "4": As 3, and adds the failure path, because a wrong password showing the dashboard is the defect this test was supposed to catch.
+      - dimension: The fixed wait
+        description: Three seconds is a guess where a condition belongs. The shared account and the structural selectors are a bonus, not a requirement.
+        weight: 20
+        levels:
+          "0": Nothing else noticed.
+          "1": Reads the fixed wait as a performance problem to tune — proposes a shorter or longer number — rather than as a guess that should be a condition.
+          "2": Says the wait is bad practice, without saying what to wait for instead.
+          "3": Waits for the thing being asserted on rather than for a number of seconds.
+          "4": As 3, and names one more thing that would fail for a reason that has nothing to do with the product — the fixed account, or the selectors tied to the page's structure.
+
+  - slug: flaky-suite-response
+    name: A suite the team has stopped believing
+    criteria:
+      - dimension: Treats the unreliability as information
+        description: Which tests, how often, and whether any of them is failing for a real reason.
+        weight: 30
+        levels:
+          "0": Would rerun until green, as the team does.
+          "1": Explains the unreliability by a single named cause before measuring — the environment, the test data, the parallel runs — and starts fixing that.
+          "2": Says they would "look into the flaky tests", without a way of telling which or how often.
+          "3": Finds out which tests, at what rate, and reads the failures to see whether any is a real defect.
+          "4": As 3, and says what a rerun-until-green habit has already hidden — a defect that fails one run in ten is still shipping.
+      - dimension: What happens to each one
+        description: Fixed, quarantined with an owner, or deleted — and the decision recorded.
+        weight: 35
+        levels:
+          "0": Nothing specific.
+          "1": Applies one remedy to all of them — an automatic retry, a longer timeout, or deleting the fifteen — and treats a green run as the outcome.
+          "2": Says they would fix them, with no account of what to do in the meantime.
+          "3": Each one is fixed, or taken out of the run with a ticket and a name on it, or deleted for a stated reason.
+          "4": As 3, and says why a blanket retry is the worst of the options — it makes the suite green and keeps the defect.
+      - dimension: Why the suite lost its credibility
+        description: What the habit costs, and what would stop it returning.
+        weight: 35
+        levels:
+          "0": Not addressed.
+          "1": Denies anything was lost — a pass on the rerun is taken as proof the application was fine, so the only costs named are time and morale and the coverage is called intact — or treats it as a discipline problem the team needs a rule about.
+          "2": Says people ignore failures, without saying what follows from that.
+          "3": Says a suite that fails for no reason teaches people to ignore it, so the cost is the real failures they will also ignore — and names something that would keep it honest, such as a watched rate, or quarantining a new unreliable test the day it appears.
+          "4": As 3, and says what they would give up to get the signal back — deleting tests that were never worth their upkeep, or running fewer of them more often.
+
+  - slug: pipeline-health-response
+    name: A build that has been red for days
+    criteria:
+      - dimension: Deals with the failure itself first
+        description: What is actually failing, before anything about the habit.
+        weight: 45
+        levels:
+          "0": Would report the situation and wait.
+          "1": Starts with the process — a rule about not merging, a conversation about discipline — while "the usual one" remains unread, so nobody yet knows whether it is a defect.
+          "2": Says they would look at the failure, without saying what they would do with either answer.
+          "3": Reads the failure and separates the two cases — a broken test, or a real defect with three days of merges on top of it.
+          "4": As 3, and says which of the two they would assume until shown otherwise, and why that is the safer assumption.
+      - dimension: What the team is losing
+        description: Everything the pipeline runs after the failure, and the habit of reading it.
+        weight: 25
+        levels:
+          "0": Treats it as one broken test.
+          "1": Prices it in time — the minutes people waste, or the cost of the build machine — rather than in the coverage nobody is getting.
+          "2": Says the team will trust the suite less, without saying what is not being checked.
+          "3": Says nothing after the failing step is being believed, so the cost is the rest of the suite rather than one test.
+          "4": As 3, and says the habit is the more expensive loss — a team that reads past red will read past the next real failure too.
+      - dimension: Who they take it to, and what keeps it green
+        description: One person or the whole team, and an agreement that survives the week.
+        weight: 30
+        levels:
+          "0": Nobody in particular.
+          "1": Nothing is written down anywhere — the whole remedy is a conversation, with no owner for this failure and no record of it.
+          "2": Raises it somewhere sensible and leaves a record, and asks for nothing — no owner for this failure and no request — or says they would raise it without saying with whom.
+          "3": Names who owns this failure and asks for it owned today, in a ticket or a channel so it exists after the conversation. A candidate who has never worked with automated checks reaches 3 by saying who it would have to be and what they would send.
+          "4": As 3, and names what they would propose for the next time — a check people are willing to wait for, or an agreed rule when it fails — as a proposal, not an agreement they have to win.
+
+  - slug: test-pipeline-design
+    name: Deciding what runs when
+    criteria:
+      - dimension: Splits the suite by what the feedback is worth
+        description: A short check on every change, the rest later, decided on what each catches.
+        weight: 35
+        levels:
+          "0": No proposal; the developers should wait.
+          "1": Proposes only more hardware with no split — or deletes the slow tests on the grounds that a behaviour need only be covered once and a line-coverage figure already proves the upper layers add nothing.
+          "2": Says to split it, with no basis for the line.
+          "3": A short check on every pull request and the slow remainder on the main branch or a schedule, with the line drawn on what each catches.
+          "4": As 3, and says what makes a check worth waiting for — how often it catches something the later run would not.
+      - dimension: What stays in the fast check
+        description: Cheap, high-yield, and the paths everything else depends on.
+        weight: 30
+        levels:
+          "0": Not specified.
+          "1": Chooses the fast set by test type alone — all the unit tests in, every browser test out — so nothing at all covers signing in before a merge.
+          "2": Names a category to keep, with no reason.
+          "3": Keeps the cheap tests and a thin path through what matters most, so a merge that breaks sign-in fails before it lands.
+          "4": As 3, and says what they would cut from the fast check if it grew past what people will wait for.
+      - dimension: What happens to a failure found later
+        description: The slow run's failures become somebody's job, or the problem has only moved.
+        weight: 35
+        levels:
+          "0": Not addressed.
+          "1": Relies on the failure being noticed — a channel, a dashboard, an email — with nobody owning it; or presumes the slow run's reds are flake, rerunning first and investigating only a second red.
+          "2": Says someone should look at it.
+          "3": Names who owns a failure in the slow run and what happens on the branch while it is failing.
+          "4": As 3, and says how they would tell whether the split was right — how often the slow run finds something the fast one did not.
+
+  - slug: exploratory-charter
+    name: An hour of unscripted testing
+    criteria:
+      - dimension: Goes in with a plan that is not a script
+        description: An area, a risk, and what they are looking for — decided before touching anything.
+        weight: 35
+        levels:
+          "0": Would click around and see.
+          "1": Either extreme argued as method — a plan that is a script, so nothing is left to what the software does next; or a refusal to learn anything first, on the grounds that deciding beforehand would make it scripted testing.
+          "2": Names the area, with nothing about what they are looking for in it.
+          "3": Picks the area and the risk, and says what would count as finding something.
+          "4": As 3, and says how they would know an hour in that the charter was wrong, and switch.
+      - dimension: How the hour is spent
+        description: Learning the feature, varying things on purpose, and following the surprises.
+        weight: 25
+        levels:
+          "0": No account of the hour.
+          "1": Spends it on breadth as an end in itself — every screen visited once, every field filled — and treats an unexplained oddity as out of scope; or keeps no record during the hour on the grounds that writing breaks the flow.
+          "2": Describes trying things, with no variation or reaction.
+          "3": Learns what the feature is for, varies inputs, timing and sequence on purpose, and follows what looks odd.
+          "4": As 3, and gives up coverage to chase one surprise, and can say why that was the better use of the time.
+      - dimension: What is left behind
+        description: Notes, defects, what was covered, what was not, and where they would look next.
+        weight: 40
+        levels:
+          "0": Nothing; the testing happened and is gone.
+          "1": Leaves a verdict rather than a record — "I tested it and it is fine", or a list of defects with nothing about what was and was not covered.
+          "2": Reports the defects found, and nothing about coverage.
+          "3": Says what was covered and what was not, with the defects, written so whoever is deciding can decide without them in the room — and says what an extra hour would go on.
+          "4": As 3, and the record needs no follow-up question to act on, and names what should become a written case now that the behaviour is known.
+
+  - slug: exploratory-attack-ideas
+    name: Finding what the cases would have missed
+    criteria:
+      - dimension: Attacks the thing itself
+        description: Ideas that come from what an upload is, rather than from the form around it.
+        weight: 30
+        levels:
+          "0": Uploads a file and checks it worked.
+          "1": Varies the form instead of the file — every field left empty, the button clicked twice, the page resized — and treats that as having explored the upload.
+          "2": Tries a wrong file type and a large file.
+          "3": Goes at the file — the wrong type, an empty file, one far too large, a name with spaces and other alphabets, a file renamed to look like a PDF.
+          "4": As 3, and names something that needs no bad intent to happen here — a photograph of a printed CV, taken on a phone, several megabytes and unreadable.
+      - dimension: Attacks the conditions
+        description: The connection, the interruption, and the second attempt.
+        weight: 35
+        levels:
+          "0": Assumes the upload completes.
+          "1": Interrupts it and checks only what the screen says — an error message appears, so the case passes — with nothing about what was left behind.
+          "2": Mentions a slow connection, without saying what would be checked.
+          "3": Drops the connection mid-upload, closes the app, uploads twice, and checks what state the application is left in each time.
+          "4": As 3, and says what the user would do next in each case, and whether the screen makes that possible.
+      - dimension: Knows what would settle a question
+        description: Which of these is a defect, and what they would check to say so.
+        weight: 35
+        levels:
+          "0": Everything odd is a defect.
+          "1": Decides it by the strength of the reaction — an error message means handled, ugly means defect — or by the letter of the written requirement alone, so anything the requirement does not mention becomes an enhancement nobody has to decide, and every finding the exploration produced is filed away.
+          "2": Says they would ask someone, with nothing about what they would ask.
+          "3": Says what the behaviour disagrees with — the stated limit, the rest of the product, what a user would reasonably expect — before calling it a defect, and separates the defects from the questions rather than filing the questions as defects.
+          "4": As 3, and says which of the questions is worth somebody's decision now and which can wait, so the list is not simply handed on.
+
+  - slug: oracle-reasoning
+    name: Deciding what is a defect with nothing to point at
+    criteria:
+      - dimension: Knows what stands in for a specification
+        description: Consistency with the rest of the product, the previous behaviour, a standard, a rule outside the product, what a user would reasonably assume.
+        weight: 30
+        levels:
+          "0": Without a spec there is no defect.
+          "1": Substitutes a single authority for the missing document — whatever the developer says, or whatever the candidate would have built — and reasons from that one source alone.
+          "2": Names one substitute, usually "what the user would expect", with nothing behind it.
+          "3": Names several and uses them — the rest of the product, the old version, a published standard, a rule the business has to follow.
+          "4": As 3, and picks the one that actually settles this case, rather than listing them.
+      - dimension: Settles it with something checkable
+        description: Evidence that does not depend on whose opinion it is.
+        weight: 35
+        levels:
+          "0": Nothing; it is a matter of opinion.
+          "1": Reaches for agreement with no evidence attached — a meeting, a vote, or an escalation carrying nothing that could be checked afterwards. Escalating is a route, and in many teams the only one; escalating empty-handed is the defect.
+          "2": Gathers evidence that cannot decide it — two screenshots of the disagreement, which show that the screens differ and say nothing about which is right — or says they would gather evidence with no example at all.
+          "3": Finds something checkable — the numbers not adding up, the same screen behaving differently elsewhere, a format a bank or a regulator requires.
+          "4": As 3, and says what they would do when nothing settles it — and that an unresolvable question is a decision somebody has to make and write down.
+      - dimension: Raises it as a question about the product
+        description: The disagreement put on the behaviour rather than between two people.
+        weight: 35
+        levels:
+          "0": Argues it out with the developer.
+          "1": Cannot say what would have settled it — the behaviour is left alone with nothing recorded and nothing anyone could act on later.
+          "2": Forecloses it rather than raising it — decides which reading is right and files a defect without asking whether anybody intended the other — or says they would raise it without saying how.
+          "3": Writes what the behaviour is and what it disagrees with, so the conversation is about the product rather than about who is right, and gets what is agreed written down. Scored on what they put on the record, never on whether they could overrule anyone — that is a fact about the workplace.
+          "4": As 3, and says what they would do if it is decided against them and they still think it is wrong.
+
+  - slug: test-data-judgement
+    name: Where test data comes from
+    criteria:
+      - dimension: Recognises what the copy is
+        description: Five hundred real people's records, on a machine with fewer controls than the one they came from.
+        weight: 30
+        levels:
+          "0": Cannot say what is wrong with taking the copy. Using one they were handed by someone senior is not the defect — not being able to say what is wrong with it is.
+          "1": Names an objection that is not about the people in the file — the copy is large, it will go stale, or there is no exposure because it never leaves the company network — and treats the personal data as a detail to handle rather than the reason not to take it.
+          "2": Says it is "sensitive data", with nothing about who it belongs to or what could follow.
+          "3": Says these are real people who did not agree to this, in a place with fewer controls, and that a leak from a test environment is still a leak.
+          "4": As 3, and says it is also the wrong data for a test — it changes under you, it is not repeatable, and nobody can say what the expected result should be.
+      - dimension: Names the harm, not only the rule
+        description: Who is harmed and who answers for it, alongside the obligation — rather than the regulation on its own.
+        weight: 20
+        levels:
+          "0": Neither a harm nor an obligation is named — including a refusal with no explanation.
+          "1": Argues the harm away rather than naming it — the names were overwritten so it is no longer personal data, or it never leaves the company network so there is no exposure — or argues entirely on the rule, naming the regulation and the penalty as the whole case.
+          "2": Says "it is against data protection", with nothing about what would actually happen.
+          "3": Puts it as what it would do to the people in the file and to whoever is answerable, and names the obligation as one reason among those.
+          "4": As 3, and names the alternative alongside the objection, and who they would take it to and what they would put in writing — so the listener is given a route rather than a refusal.
+      - dimension: Where the data comes from instead
+        description: Generated, masked by whoever is allowed to, or built on purpose to cover the cases.
+        weight: 50
+        levels:
+          "0": No alternative.
+          "1": Proposes a copy with a step in front of it — the same export with names removed by the tester, or a subset taken by hand — and treats that as no longer personal data.
+          "2": Says "generate test data", with nothing about what it has to contain.
+          "3": Generates records that look real and belong to nobody, and builds the cases deliberately — no transactions, one, thousands, a negative balance.
+          "4": As 3, and says when the shape of real data genuinely matters, and that the extract is then taken and masked by whoever is allowed to take it, not by them.
+
+  - slug: test-data-isolation
+    name: A test that can only run once
+    criteria:
+      - dimension: Names what the assertion depends on
+        description: A count taken over a job other tests also apply for, so the number is not the test's to predict.
+        weight: 40
+        levels:
+          "0": Says the test is broken, with no cause.
+          "1": Reads the moving failure as a race in the plumbing — parallel workers seeing a half-committed count, or a delay between the application being made and being readable — and treats the assertion itself as sound.
+          "2": Says other tests interfere, without saying through what.
+          "3": The count is over a job other tests also apply for, so what the test asserts on depends on whatever else happened to be running.
+          "4": As 3, and says nothing is wrong with the sign-in or the application — the test is asking a question it does not own the answer to.
+      - dimension: The fix
+        description: An assertion about something the test made, rather than a count across everything.
+        weight: 35
+        levels:
+          "0": No fix, or rerun it.
+          "1": Keeps the count and bends the shared data to fit it — locking the job, or deleting every other application for it in setup so the number comes out at one — which makes this test pass by breaking the tests it deletes under.
+          "2": Says the test needs its own data, without saying what changes about the assertion.
+          "3": Asserts on the application this test just created rather than on a count across everything.
+          "4": As 3, and says when a count *is* the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
+      - dimension: The shortcut, and what it costs
+        description: Running one test at a time makes it pass, and takes something away.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Recommends running the suite one test at a time, or retrying until it passes, with no cost named at all.
+          "2": Recommends it and names a cost they are content to pay — it is slower — without weighing that against fixing the assertion.
+          "3": Says what running serially costs — the parallelism the suite was built for — and why fixing the assertion is cheaper than paying that on every run.
+          "4": As 3, and says a retry is different in kind from the others — it would turn a real intermittent product defect green, so it hides rather than trades.
+
+  - slug: failure-investigation
+    name: Investigating an unreliable failure
+    criteria:
+      - dimension: Measures it rather than accepting "sometimes"
+        description: A rate, from repeated runs, before any argument about what to do.
+        weight: 35
+        levels:
+          "0": Accepts "about one in four" and moves on.
+          "1": Reasons from a cause instead of a measurement — says why a shared environment would produce roughly that rate, and proceeds to fix it without having run anything.
+          "2": Says they would run it again a few times, with no record of the outcome.
+          "3": Runs it enough times and records the rate so it becomes a number rather than an impression — in both places where they have both, and otherwise saying what they would want counted in the one they cannot reach.
+          "4": As 3, and says what they would vary between batches — the machine, the time, the rest of the suite — so the runs answer a question.
+      - dimension: Looks for what differs between the two places
+        description: Timing, data left behind, parallelism, time zone, machine speed — and the product itself.
+        weight: 30
+        levels:
+          "0": No comparison; the pipeline is "just different".
+          "1": Settles on the environment as the difference and stops — names the runner's speed or its configuration as the cause and rules the product out, although the failure would be a real race either way.
+          "2": Names differences and how they would check them, and never puts the product on the list — or names one difference with nothing about how it would be checked.
+          "3": Lists what differs and how each would show — data from another test, an ordering assumption, a clock, a slower machine — and keeps the product on the list.
+          "4": As 3, and says that a test failing one run in four on a slower machine is often the product's race rather than the test's, and how they would tell.
+      - dimension: What they put on the record
+        description: The number, the evidence from a failing run, and what muting it would mean — to the team, or to one person.
+        weight: 35
+        levels:
+          "0": Nothing; it gets muted.
+          "1": Brings a position rather than evidence — argues that the test should not be muted, or that it should be rewritten — with no rate and nothing kept from a failing run.
+          "2": Reports that it is unreliable, without the rate or the artefacts.
+          "3": The rate, and the failing run's log, screenshot and exact assertion kept and attached where the decision is made — to the whole team or to one person who owns it; either counts.
+          "4": As 3, and says that if it is quarantined it goes with a ticket and an owner, and what is being accepted in the meantime.
+
+  - slug: wait-strategy-reasoning
+    name: Waiting for the page
+    criteria:
+      - dimension: Why a fixed wait is unreliable
+        description: It encodes a guess about a duration that varies with the machine and the network.
+        weight: 40
+        levels:
+          "0": Says the wait is too short and would lengthen it.
+          "1": Explains it by a mechanism that is not the cause — the element exists but is not yet interactive, or the framework has not finished rendering — rather than by three seconds being a guess about a varying duration.
+          "2": Says a fixed wait is bad practice, without saying what varies.
+          "3": Says the duration varies with the machine, the network and the data, so any fixed number is either too short somewhere or wasted everywhere.
+          "4": As 3, and says what it costs when it is too long — every test pays the worst case, and the suite's run time is the sum of the guesses.
+      - dimension: What replaces it
+        description: Waiting for the condition the test is about to assert on, and knowing what the tool already retries.
+        weight: 40
+        levels:
+          "0": No alternative offered.
+          "1": Replaces one guess with another — a longer fixed wait, a retry around the whole test, or a wait for the page load event — and treats that as waiting for a condition. Waiting on an intercepted request is not this; that is a condition.
+          "2": Says to "use an explicit wait", without saying for what.
+          "3": Waits for the state being asserted on — the confirmation appearing, the request finishing — in the idiom of whichever of the two tools they work in.
+          "4": As 3, and says the assertion already retries until its own timeout, so three seconds was shorter than the budget the tool was going to give it anyway.
+      - dimension: Where a timeout still belongs
+        description: A cap, a genuinely slow operation, and what a failed timeout should say.
+        weight: 20
+        levels:
+          "0": Says no waits at all, or never addresses where one belongs.
+          "1": Keeps a timeout as a safety margin on every step — a generous default everywhere — which restores the original problem under a different name.
+          "2": Says timeouts are still needed, with no example.
+          "3": Names where a longer cap is right — an upload, a report, a payment going out to a third party — and that it is set on that step rather than globally.
+          "4": As 3, and says the timeout's job is to fail with something readable, so a slow dependency is not reported as a broken selector.
+
+  - slug: selector-strategy-reasoning
+    name: Finding an element the way a user does
+    criteria:
+      - dimension: Names what the three share
+        description: All of them address the page's structure or its styling rather than the thing itself.
+        weight: 30
+        levels:
+          "0": Says the selectors are wrong, with no pattern — or names a shared cause that is not one, such as all three being CSS when one is an XPath.
+          "1": Diagnoses them individually and correctly without the shared cause — the XPath is too long, the class is generated, the child index is fragile — so the remedy is three better selectors of the same kind.
+          "2": Notices two of the three are structural.
+          "3": Says all three name where the element sits or how it is painted, neither of which is what the element is.
+          "4": As 3, and says that is why a rename and a wrapper broke them while the behaviour did not change.
+      - dimension: What to use instead
+        description: What the element is rather than where it sits — its role and visible text where the tool offers that, an agreed test attribute where it does not.
+        weight: 35
+        levels:
+          "0": No alternative.
+          "1": Proposes a more specific selector of the same kind — a longer CSS path, an id added to the wrapper, or a class named for the test — and treats that as durable.
+          "2": Names one route with no account of why it is durable, or names a route their tool does not have.
+          "3": Either documented route, correctly for their tool — an agreed test attribute, which is the first answer in Selenium and Cypress, or a role-and-text locator, which is the first answer where the tool has one — and says which theirs offers.
+          "4": As 3, and says what the other route buys where it exists — a selector that fails when the button stops being reachable is telling you something true — or what is lost without it.
+      - dimension: What the tests cannot fix alone
+        description: What to ask the developers for, and what is not their fault.
+        weight: 35
+        levels:
+          "0": Not addressed.
+          "1": Puts the problem on the developer's change — asks for renames to be announced, or for the structure to be frozen — rather than asking for something to select on.
+          "2": Says they would "talk to the developers", with nothing specific.
+          "3": Asks for something to select on that survives a refactor — a test attribute treated as part of the code and not removed, or accessible names — and says the rename was not the defect.
+          "4": As 3, and says which churn is correct, because a test should fail when the behaviour really does change.
+
+  - slug: stale-element-diagnosis
+    name: A reference to an element that is gone
+    criteria:
+      - dimension: What the exception means
+        description: The reference points at an element that was in the page and no longer is.
+        weight: 30
+        levels:
+          "0": Reads it as the element not being found.
+          "1": Reads it as a timing problem — the list is still re-rendering, so the reference is being used too early — and concludes that waiting longer will resolve it.
+          "2": Says the element became stale, without saying what happened to it.
+          "3": Says the re-render replaced the element, so the reference is to something detached from the page — and that waiting cannot help, because the element it names will never come back.
+          "4": As 3, and knows a re-render is one of several ways to get here, naming navigating away or switching window or frame as the others.
+      - dimension: The fix
+        description: Find it again after the change, and wait for the new state rather than for a duration.
+        weight: 30
+        levels:
+          "0": No fix, or a longer wait.
+          "1": Wraps the failing line in a retry that re-runs the whole step — and says nothing about where the reference is taken, so a retry that succeeds may act on a different row.
+          "2": Says to find the element again, with nothing about when.
+          "3": Takes the reference after the filter has been applied, and waits for the new list rather than for a number of seconds.
+          "4": As 3, and says what to wait for — the old list being replaced, or the expected row being present — because the re-render is the event and not the delay.
+      - dimension: The pattern across the suite
+        description: No reference outliving an action, and what a blanket retry hides.
+        weight: 40
+        levels:
+          "0": Not addressed; fixes this line.
+          "1": Standardises the retry — a helper that catches the exception everywhere it occurs — and reports the suite as fixed because the failures stopped.
+          "2": Says the same problem exists elsewhere, with no approach to it.
+          "3": Re-finds the element at the moment of use everywhere the pattern occurs — a wrapper that keeps the locator and locates on use is the documented way — so no reference outlives an action.
+          "4": As 3, and says what a catch-all retry costs — the row you clicked may not be the row you meant, and the test still passes.
+
+  - slug: ui-login-setup-reasoning
+    name: Signing in before every test
+    criteria:
+      - dimension: What it costs besides time
+        description: Every test now depends on sign-in, so one defect produces one piece of information many times.
+        weight: 40
+        levels:
+          "0": Sees only the minutes.
+          "1": Prices it in minutes and infrastructure and stops there — proposes more parallel workers to absorb it, leaving every test still dependent on sign-in working.
+          "2": Says it is slow and a bit fragile, without saying what the coupling does.
+          "3": Says a broken sign-in fails the whole suite, so a hundred and forty failures carry one fact and the real failures are buried.
+          "4": As 3, and reasons about what share of the twenty-two minutes sign-in accounts for, using whatever per-test figure they are given or assume aloud.
+      - dimension: What replaces it
+        description: Getting the session without the screen, and reusing it.
+        weight: 35
+        levels:
+          "0": No alternative.
+          "1": Makes the screen route faster rather than removing it — filling the fields more quickly, skipping the URL assertion, or caching the password — and treats that as setting up the session directly.
+          "2": Says to "log in via the API", with nothing about what the browser then needs.
+          "3": Gets a session without the screen and puts what the app needs in place before the test starts, reusing it between tests.
+          "4": As 3, and says what the shortcut costs — a restored session can be dead, so it needs a cheap check that re-establishes it, and caching it only within one spec file still leaves one sign-in per file.
+      - dimension: What still needs the screen
+        description: Sign-in itself, including the failure paths.
+        weight: 25
+        levels:
+          "0": Nothing; the shortcut replaces it entirely.
+          "1": Keeps one test through the screen for the successful sign-in only, and treats the wrong-password and locked-account paths as covered by the endpoint.
+          "2": Says sign-in should still be tested, without saying what.
+          "3": Keeps a handful of real tests on the screen — the success path, a wrong password, whatever the account lock is — and nothing else.
+          "4": As 3, and says what would catch the shortcut drifting from what a real sign-in sets, rather than assuming it will not.
+
+  - slug: parallel-test-isolation
+    name: Tests that only pass one at a time
+    criteria:
+      - dimension: Why running in parallel changes the result
+        description: The tests share one account's state, and parallelism removes the order that was hiding it.
+        weight: 40
+        levels:
+          "0": Says parallel runs are unreliable.
+          "1": Explains it as contention on the infrastructure — four browsers on one machine, the API rate-limiting, the runner short of memory — and not as three tests changing the same account.
+          "2": Says the tests interfere, without saying through what.
+          "3": Says the shared saved session is one account, so tests running at the same time change the data each other is asserting on.
+          "4": As 3, and says the serial run was not correct either — it passed because the order was fixed, so each test found what the one before it left.
+      - dimension: The fix
+        description: Data and accounts the test owns, and assertions about what it created.
+        weight: 35
+        levels:
+          "0": Run it serially.
+          "1": Isolates the session and not the data — a saved session per worker, still pointing at the same account — so four workers now sign in separately and collide exactly as before.
+          "2": Says each test needs its own data, with nothing about the account.
+          "3": An account per worker — established once per worker and told apart by the worker's own index — with data the test creates and assertions about that data rather than about a count or a first row.
+          "4": As 3, and says why per worker rather than per test is the usual answer for tests that change stored state, and how they would stop a new test quietly reusing the shared account.
+      - dimension: What stays serial on purpose
+        description: Genuinely global state, and containing it rather than serialising everything.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Declares nothing has to be serial once the data is isolated — including tests that change a setting the whole application reads — and treats full parallelism as the goal.
+          "2": Says some tests cannot run in parallel, with no example.
+          "3": Names what is genuinely shared — one sandbox account at a payment provider, a global setting, a licence — and keeps that group serial rather than the suite.
+          "4": As 3, and says what they would do to shrink that group, because it will otherwise grow back into the whole suite.
+
+  - slug: api-collection-repeatability
+    name: A request collection that can run unattended
+    criteria:
+      - dimension: What makes it manual
+        description: Pasted values, an order that cannot be departed from, and a token with a lifetime.
+        weight: 35
+        levels:
+          "0": Says it needs to be automated, with no diagnosis.
+          "1": Locates the problem in the order rather than in the pasting, with the values still copied by hand — or holds that the run already checks itself because the tool stops on a failed response, which is not the same as asserting anything.
+          "2": Notices the pasted token, and not the pasted ids.
+          "3": Every pasted value is a person doing work, the token expires, and each request depends on the one before it having been read by someone.
+          "4": As 3, and says the run also has no idea whether it succeeded — nothing asserts, so it only proves the requests were sent.
+      - dimension: What changes
+        description: Values captured from responses, sign-in as a step, data created and removed by the run.
+        weight: 40
+        levels:
+          "0": No specifics.
+          "1": Automates the sequence and leaves the inputs fixed — a scheduled run against a job id and a token stored in the collection, which works until either changes.
+          "2": Says to use variables, without saying where their values come from.
+          "3": Captures the token and each id out of the response into a variable the next request reads, signs in as the first step, and creates the job it applies for.
+          "4": As 3, and has the run clean up after itself, so it can start from nothing tomorrow and the night after.
+      - dimension: What stays manual, and what a failure has to say
+        description: Exploring a new endpoint by hand, and a failure report somebody will act on.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Treats the unattended run as replacing the manual work entirely — everything the tester did by hand is now scheduled — with no account of who reads a failure or what it tells them.
+          "2": Says a person is still needed and gives a reason, with nothing about what a failing run has to report.
+          "3": Keeps exploring a new or changed endpoint with a person, and makes a failure say which request failed and what came back.
+          "4": As 3, and says what makes a nightly run worth having — somebody looks at it in the morning, or it may as well not run.
+
+  - slug: api-environment-config
+    name: One collection, three environments
+    criteria:
+      - dimension: Separates the collection from the environment
+        description: The host becomes a variable with a set of values, and the requests stop naming one.
+        weight: 35
+        levels:
+          "0": Would copy the collection three times.
+          "1": Parameterises the wrong layer — one collection per environment kept in step by hand, or a variable holding the whole URL per request — so the requests still each carry a host.
+          "2": Says to use a base URL variable, with nothing about how the values are chosen per run.
+          "3": One collection, a base URL variable, and a set of values per environment selected when the run starts.
+          "4": As 3, and says what else differs per environment besides the host — the account, the data it may touch, which endpoints exist at all.
+      - dimension: Where the secret comes from
+        description: Not the file, not the repository — injected at run time, short-lived if possible.
+        weight: 40
+        levels:
+          "0": Leaves the token where it is.
+          "1": Moves the secret without getting it out of the repository — into a separate committed environment file, or into a variable whose value is still saved and shared — and calls it configuration.
+          "2": Says not to commit secrets, with nothing about where it should live.
+          "3": Whatever runs the tests supplies it per run, from wherever secrets are kept, without it ever being saved beside the requests — and it can be replaced without editing them.
+          "4": As 3, and prefers the run signing in with a test account's credentials for a short-lived token of its own, so a leak has a deadline on it.
+      - dimension: Production is different
+        description: Read-only, its own account, data it is allowed to touch.
+        weight: 25
+        levels:
+          "0": Runs the same collection everywhere.
+          "1": Guards production by convention — a note in the collection, or a tester who remembers which requests to skip — with the same account and the same requests available.
+          "2": Says read-only, or read-only with somebody's sign-off, without an account that can do nothing else behind it.
+          "3": Reads only, with an account that can do nothing else, against data they are allowed to touch, and nothing that creates or deletes.
+          "4": As 3, and says what it is for — checking that the deployed thing is up and shaped as expected — and that a suite which never runs anywhere but staging is testing staging.
+
+  - slug: real-device-difference-reasoning
+    name: Passes on the emulator, fails on a phone
+    criteria:
+      - dimension: Names the real differences
+        description: Processor, network, memory, permissions, the keyboard, what else the phone is doing.
+        weight: 40
+        levels:
+          "0": Says real devices are unreliable.
+          "1": Builds the account on a difference in the tooling rather than in the device — the screen size, the Android version, or latency in the automation transport tripping a command timeout — and concludes the app is the same on both, although the failures sit on the screens that fetch data.
+          "2": Says the phone is slower, with nothing else.
+          "3": The emulator runs on whatever the development machine has and the phone does not, and the phone brings what the emulator has not — permission prompts, a keyboard over the field, low storage, whatever else is running.
+          "4": As 3, and picks out which of those would produce failures concentrated on the screens that load data.
+      - dimension: What changes in the tests, and where they run
+        description: Conditions instead of durations, and a real device in the loop.
+        weight: 35
+        levels:
+          "0": No change proposed.
+          "1": Tunes the timings for the device — longer waits, a per-device timeout, a retry on the data screens — so the suite goes green on that phone and encodes its speed.
+          "2": Says to wait properly, without saying for what.
+          "3": Waits for the state being asserted on, and runs the suite on a real device of the kind users own — the phone in their own hand counts — on a throttled connection.
+          "4": As 3, and separates what does not change from what does — the script is the same, and the configuration identifying the device is not, which is a setup change rather than a test change.
+      - dimension: Which failures are the product's
+        description: A screen that never loads on a real phone is a defect, not an unreliable test.
+        weight: 25
+        levels:
+          "0": Treats all of them as test failures.
+          "1": Sorts them by whether the test can be made to pass — anything a longer wait fixes is the test's, anything else is escalated — so a screen that takes thirty seconds on 3G is recorded as a test problem solved.
+          "2": Says some might be real defects, without saying which.
+          "3": Separates them — a timeout on a real phone on a slow connection is usually the product's, a stale selector is the test's — and says how they would tell.
+          "4": As 3, and says what they would do with the product defect — it is the users' normal conditions, so it is a defect at whatever priority that argues for.
+
+  - slug: load-test-validity
+    name: Whether a load test measured anything
+    criteria:
+      - dimension: Reads the run against the conclusion
+        description: What share of the requests failed, and what the average was taken over.
+        weight: 40
+        levels:
+          "0": Accepts the conclusion.
+          "1": Questions the average for the wrong reason — an average hides the slow tail, so a percentile is needed — without noticing that it was taken over the one request in twenty that did not fail.
+          "2": Notices the failures, without connecting them to the reported average.
+          "3": Says almost all of them failed — "nearly all", "the vast majority" or the proportion — so the 240 milliseconds describes the survivors and the run measured a failure rather than a capacity.
+          "4": As 3, and says what the failures themselves suggest — connection resets and timeouts at that rate point at something refusing or dropping connections before the API is reached — or puts a number on the share.
+      - dimension: What is wrong with the setup
+        description: The client, the arrival pattern, the duration, the absence of think time.
+        weight: 35
+        levels:
+          "0": Nothing wrong with the setup.
+          "1": Corrects the scale rather than the design — fewer virtual users, or a longer run at the same instant start from the same laptop — so the client and the arrival pattern remain the experiment.
+          "2": Names one problem, usually the laptop.
+          "3": The one machine and its connection may be the bottleneck, a thousand users starting at one instant is not how traffic arrives, and two minutes with no pause between requests is a burst rather than a sustained load.
+          "4": As 3, and says how they would establish that the client is not the limit before believing any result from it.
+      - dimension: What to report instead
+        description: Error rate first, percentiles, throughput, and the load at which it degrades.
+        weight: 25
+        levels:
+          "0": No change to the report.
+          "1": Reports more numbers of the same kind — averages per endpoint, a total request count, the peak users reached — with no error rate and no point of degradation.
+          "2": Says to use percentiles, with nothing else.
+          "3": Error rate first, then a median and a high percentile, the throughput actually achieved, and on what environment.
+          "4": As 3, and says the useful output is the load at which it starts to degrade rather than a pass mark at one number.
+
+  - slug: performance-requirements-reasoning
+    name: What to find out before writing a load test
+    criteria:
+      - dimension: What has to be known
+        description: The load and its shape, which journeys, from where, and what matters to whoever asked.
+        weight: 40
+        levels:
+          "0": Would start writing a test.
+          "1": Asks for a target and treats that as sufficient — a number of concurrent users and a response time — with nothing about which journeys, the shape of the arrival, or where the users are.
+          "2": Asks how many users, and nothing else.
+          "3": How many, over how long, whether it arrives in a spike, which journeys matter, and on what connections and devices.
+          "4": As 3, and asks what the campaign is actually for, because the journey that must not fail is a business answer rather than a technical one.
+      - dimension: A pass mark that can be judged
+        description: A time at a percentile, an error ceiling, at a stated load, on a stated environment — and an owner.
+        weight: 25
+        levels:
+          "0": No pass mark.
+          "1": Sets a target that cannot be failed or passed — "it should be fast", or a response time with no load and no percentile attached — and records it as agreed.
+          "2": Names a response time, without a percentile or a load.
+          "3": A percentile, a time, an error rate and the load they hold at, on a named environment, agreed with whoever owns the campaign.
+          "4": As 3, and says who signs it off, because a pass mark nobody owns is not a pass mark.
+      - dimension: When nobody can answer
+        description: Derive it, state the assumption, or find the breaking point instead.
+        weight: 35
+        levels:
+          "0": Refuses to test without requirements.
+          "1": Invents the requirement and proceeds — picks a round number of users and a round response time, tests against it and reports a pass, with nothing recorded about where the numbers came from.
+          "2": Says they would estimate, with no basis for the estimate.
+          "3": Derives it from the traffic that already exists and past peaks, writes the assumption down beside the result, and says it is an assumption.
+          "4": As 3, and says that with no target at all the right output is the point at which it degrades, which is useful to whoever asked even without a pass mark.
+
+  # Added 2026-09-23 from the critique passes.
+  #
+  # `rule-interaction-test-design` exists because `test-case-selection` could not be a true claim
+  # about both of its questions: one pass found that its top boundary band ("where the rule does not
+  # say which side the boundary falls on") was unreachable on the sign-up form, where "18 or over" is
+  # exact, and another found that everything `test-design-otp-screen` is really about — Resend against
+  # the counter, two codes in flight, the expiry clock — landed in one 30% criterion. The OTP question
+  # gets this; `test-case-selection` keeps the form and is now weighted for it.
+  - slug: rule-interaction-test-design
+    name: Testing a feature with several rules
+    criteria:
+      - dimension: Cases come from the rules
+        description: One case per class of behaviour the rules create, rather than many attempts at the same one.
+        weight: 30
+        levels:
+          "0": Types a code and checks it works.
+          "1": Many wrong codes — too short, letters, the wrong six digits — counted as coverage of the rules, while three of the four rules are never exercised.
+          "2": A valid and an invalid code, and one of the rules.
+          "3": One case for each class the rules create — valid, wrong, expired, a code for another number, something that is not six digits.
+          "4": As 3, and says which of those the screen can decide and which only the server can, because a tester can only trust one of the two.
+      - dimension: The edges the rules create
+        description: The values either side of each threshold, and where the rule as written does not say which side it falls on.
+        weight: 30
+        levels:
+          "0": No boundary cases.
+          "1": Tests one attempt past the limit and calls that the boundary, without the attempt at the limit itself.
+          "2": Brackets one threshold properly and leaves the other untouched — the minute either side of the expiry with no case on the attempt counter, or the reverse.
+          "3": Both — the fifth wrong attempt and the sixth, and a code used just before and just after it stops working.
+          "4": As 3, and says the rule does not state whether the fifth wrong attempt is allowed or is the one that locks, so it is a question rather than an assumption.
+      - dimension: Where the rules meet each other
+        description: Resend against the expiry and against the counter, and two codes alive at once.
+        weight: 40
+        levels:
+          "0": Treats each rule on its own.
+          "1": Tests Resend as its own case — a new code arrives — without asking anything about the code it replaced or the counter it may reset.
+          "2": Notices one interaction, without saying what should happen — or asserts what the interactions are instead of asking, including that Resend clears the attempt counter, which would make the lock unenforceable by resending.
+          "3": Asks what Resend does to the previous code and to the attempt counter, and what two codes in flight should do, rather than deciding any of the three.
+          "4": As 3, and says which answer they would argue for and why — an old code that still works is the difference between a convenience and a way in.
+
+  # `raising-a-quality-concern` — all four passes said the same thing, and it is the same defect two
+  # passes found in `incident-you-contributed-to` on the backend bank: the generic
+  # `behavioural-answer-quality` scores situation, actions and outcome, so the only thing this
+  # question is actually about — how the case was made — had nowhere to land, and the question
+  # rewarded story shape instead. Built the established way: the middle criterion stays close to the
+  # shared one, and the first and last become what the question is about.
+  - slug: raising-a-quality-concern
+    name: Saying something should not ship
+    criteria:
+      - dimension: What the case rested on
+        description: What the risk was and how they knew — reach, what it would do to a user, what they had seen — rather than how strongly they felt about it.
+        weight: 40
+        levels:
+          "0": No risk described; the answer is about their own diligence, or about caring.
+          "1": A specific worry argued from how it felt — it seemed risky, they had a bad feeling — with nothing about what it would do to anyone; or a well-told account in which the case was somebody else's to make and the candidate's own part is that they admired it.
+          "2": Names the risk, with nothing about how they established it or who it would reach.
+          "3": Says what the risk was, how they found it, and what it would have done to a user, so the case rests on something outside their own judgement.
+          "4": As 3, and says what they were unsure about at the time, and how they went about closing that before raising it.
+      - dimension: Who they told, in what form, and when
+        description: >-
+          Whether the concern reached whoever could act while they still could. Escalating, writing it
+          down and asking all count the same, and so does a project with nobody to tell. Never scored
+          on willingness to argue — that is a fact about the workplace.
+        weight: 35
+        levels:
+          "0": Told nobody, and cannot say who they would have told.
+          "1": Raised it in a way that could not be acted on — mentioned once in passing, or after the release had gone, described as having done what they could.
+          "2": Says they raised it, without saying to whom or when relative to the decision.
+          "3": Says who they told, in what form, and that it was while the decision could still change. A candidate whose project had nobody to tell says who they would have told and what they would have sent.
+          "4": As 3, and the thing they sent could be acted on without a conversation — what the risk was, what it would cost, and what they were asking for.
+      - dimension: How it ended, and what is different now
+        description: Including that it shipped anyway, and including that they turned out to be wrong.
+        weight: 25
+        levels:
+          "0": No outcome, or an outcome that does not follow from what they did.
+          "1": Ends with having been right, and with the concern vindicated, and nothing about what they would do again or differently.
+          "2": An outcome, with a lesson that is a platitude.
+          "3": How it ended — including being overruled, or being wrong — and one specific thing they now do because of it.
+          "4": As 3, and separates what they would still argue for from what they now think was the right call against them.
+
+  # `repeatable-test-data` — `the-test-that-only-passes-once` was two questions, which two passes said
+  # independently and the drafter's own note suspected. The second-run collision is junior material;
+  # the in-suite count failure is not. This scores the junior half.
+  - slug: repeatable-test-data
+    name: A test that can only run once
+    criteria:
+      - dimension: Names what cannot be repeated
+        description: A value the system requires to be unique, fixed in the test.
+        weight: 40
+        levels:
+          "0": Says the test is broken, with no cause.
+          "1": Attributes it to something the second run shares rather than to what it creates — a stale session, a cached response, the browser remembering — while the email the first run already registered is in front of them.
+          "2": Says the user already exists, without connecting it to the fixed value in the test.
+          "3": The email is written into the test and has to be unique, so the second run collides with the user the first run made.
+          "4": As 3, and says the test is not repeatable rather than failing — it never could have run twice, and passing once was the misleading part.
+      - dimension: The fix
+        description: Data the test makes for itself, different every run.
+        weight: 35
+        levels:
+          "0": No fix, or run it again later.
+          "1": Cleans up instead of generating — deletes the user at the end of the test, or types a new email in before each run — which works until a run fails before the cleanup, and argues against a generated value on the grounds that a fixed one is easier to find afterwards.
+          "2": Says to change the email, without saying how it stays unique.
+          "3": Generates the value per run so the test creates what it needs and does not inherit anything.
+          "4": As 3, and says the test should also leave nothing behind, so a hundred runs do not leave a hundred users.
+      - dimension: The shortcut, and what it costs
+        description: Emptying the database before each run works, and takes something away.
+        weight: 25
+        levels:
+          "0": Not addressed.
+          "1": Recommends clearing the database before every run as the fix, with no cost named at all.
+          "2": Recommends it and names a cost they are content to pay — it takes time, or data somebody wanted is gone — without weighing that against making the test own its data.
+          "3": Says what clearing the database costs — everything else running at the same time, and any data somebody else was relying on — and why making the test own its data is cheaper.
+          "4": As 3, and says where clearing it is the right answer, because a suite with a database of its own is a different situation from a shared one.

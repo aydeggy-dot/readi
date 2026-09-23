@@ -1356,3 +1356,84 @@ cost. The bank is **34 questions** (25 general, 9 stack-tagged), 38 offered to a
       22 of 34 already hand the candidate a planted defect.
 - [ ] **The junior shortfall above is a worklist.** Seven topic-level gaps at `intern-junior`, each
       one a question that has to be genuinely junior rather than a mid question relabelled.
+
+## Question banks — QA (the same branch, `content/catalogue-banks`)
+
+**Drafted 2026-09-23. 3 questions to 35** (25 general, 10 stack-tagged), 33 rubrics, six new topic
+rows. A QA candidate is offered **45**, because ten role-general questions in the frontend and backend
+banks carry `qa` — nine already did, and `it-works-for-me` gained the role in this pass, which its own
+notes had asked for. Everything is `status: draft` / `author: ai_draft`.
+
+Built to `content/seed/blueprints/qa.md`, which now carries the fact-check log (Appendix A), what the
+four critique passes changed (Appendix B) and the coverage (Appendix C).
+
+- [x] Six new topics: `risk-based-testing`, `testing-apis`, `test-automation`, `ci-pipelines`,
+      `exploratory-testing`, `test-data`
+- [x] 23 new questions and 3 reworked; 30 new rubrics
+- [x] Four critique passes, run separately — 139 findings, 105 applied, 25 left in `reviewer_notes`
+- [x] Fact-check: 8 version-sensitive claims against current vendor docs; **3 had moved**
+- [x] Arithmetic worklist — three numeric defects found and fixed, none of them by the fact-check
+- [ ] Stress test — 33 rubrics × 5 answers, in progress
+- [ ] `content:review-doc` regenerated for the reviewers
+- [ ] Owner's decisions (below)
+
+### The two shortfalls, reported rather than filled
+
+Decision-1 doctrine from the backend bank, applied here. `check-bank.mjs` prints both every run.
+
+- `test-automation` @ intern-junior: **1 of 2** — `what-to-automate-first` went mid-only because its
+  40% criterion needs a suite somebody has maintained.
+- `performance-testing` stack: **1 of 2** — `performance-what-to-ask-first` was untagged.
+
+### What the skill learned, and what became a check
+
+- **Weights were a template, not a claim.** 21 of 30 QA rubrics were exactly 35/35/30 against 11
+  distinct patterns in frontend and 12 in backend. `check-bank.mjs` now warns when one split covers
+  more than half a rubric file.
+- **The manner defect returned in a third form** — the wrong answer defined by the _quantity_ of
+  speech ("a detailed plan", "a thorough set of flows", "Prices it accurately"). Nine in QA, and the
+  new check found **seven more in the frontend, backend and shared files**, so it was never a QA
+  problem. All sixteen fixed; `detailed`, `in detail`, `thorough*`, `accurately` and `at length` are
+  now on the suspect list.
+- **A promise the evaluator cannot read is not a promise.** `qa/rubrics.yaml` had none of the
+  protective clauses `rubrics.shared.yaml` carries eleven of, and the bank's fairness promise sat in a
+  YAML comment that said the seed format had nowhere to put it. It does: the descriptor.
+- **The thing you would hire on belongs at level 3, not level 4.** All 90 QA level-4 descriptors were
+  additive; in six criteria the behaviour worth hiring on was in the level-4 clause, so a candidate
+  scoring 3 throughout read as competent while missing the point of every criterion.
+
+### Open for the owner — the QA decisions
+
+1. **The triple-barrelled prompt, and the engine.** Both the senior-interviewer and the
+   nervous-junior pass made this their first finding, and the senior pass's argument is the one that
+   matters: asking all three clauses up front **pre-empts the engine**, whose job is to generate
+   follow-ups that probe missing rubric points (CLAUDE.md §5). Against it stands the prompt-clause
+   rule, written because the frontend pass found nine criteria charging for something never asked and
+   the backend pass eighteen, and enforced by `check-bank.mjs`. **This changes every bank and the
+   skill, so it was not resolved inside QA.** The likely resolution: the prompt must raise every
+   criterion's _subject_, and the follow-up draws out the detail.
+2. **`behavioural-answer-quality` now has no question in any bank** and the checker says so every run.
+   Four questions have used it and all four needed a rubric of their own. Delete it, or keep it as the
+   starting point a new role's behavioural rubric is expected to outgrow?
+3. **`manual-exploratory` is the default QA variant and has zero tagged questions.** The blueprint's
+   argument for that still holds — its subject matter is the general set, and tagging would hide test
+   design from automation candidates. The consequence it did not state: the most common candidate in
+   this market practises nothing about their own working week (keeping 400 manual cases useful, how a
+   cycle is planned and reported, what goes in a summary a stakeholder reads).
+4. **The largest content gap is Android on a real phone, as general content.** Almost everything
+   shipped here is an Android app on a mid-range phone, and the only question about devices, network,
+   permissions, storage or app upgrade is `appium-passes-on-the-emulator` — tagged, mid, about a tool.
+5. **Two questions one pass would cut or replace**: `where-the-tests-run` (reframed so the candidate
+   advises rather than decides, which may not be enough) and one of the three questions about a signal
+   nobody believes (`the-suite-nobody-trusts`, `intermittent-failure-triage`,
+   `the-pipeline-has-been-red` — a senior interviewer would ask one of the three in an hour).
+6. **Appendix C lists eight more gaps** worth a round two, the cheapest being "here is a user story
+   and its acceptance criteria — what would you refuse to sign off?"
+
+### Still open from earlier passes, unchanged
+
+The **version-sensitive re-check cycle** (now 23 marked claims across three banks, and **three of the
+eight QA claims had moved after one day**), the **seven backend junior shortfalls**, the **four
+backend judgement slots**, and the missing `intern-junior` backend track / `mid` frontend track /
+`mid` QA track — `track_not_found` for those candidates, and lessons work rather than
+question-bank work.

@@ -1,0 +1,142 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: api-contract-reasoning
+question: the-field-that-changed-shape
+answers:
+  - kind: strong
+    text: |
+      In plain terms — salary used to be a number, 250000, and now it's an object with
+      min, max and currency inside. So somebody changed the shape of a field that was
+      already live, and shipped it. The app was written to read a number there, so it
+      reads nothing and shows empty. And on some versions the parser is strict: it gets an
+      object where it expected a number, throws, and the whole list screen goes down with
+      it. Different parsing code in different releases, same cause.
+
+      A test could have caught it, but it has to be on the response, not through the UI.
+      Something that calls the endpoint and asserts salary is a number — the type, not
+      just that the field is there and it returned 200. And it has to run in the backend's
+      own pipeline before that build goes out. If it only runs in my suite against
+      production, I find it after the users do. And the painful part: you can't fix the
+      installed app versions with a deploy. People don't update.
+
+      What I'd ask for: don't change a field's type. Add salary_range next to it, keep
+      salary for a release or two, then remove it. Or version the endpoint. And put API
+      changes in the release notes, before, not after.
+    expected:
+      - dimension: "Names it as a breaking change"
+        score: 4
+        because: "Level 4: stated as what the contract did — the shape of a live field changed under an app written to read a number — and asks for salary_range beside it or a version, which would have broken nobody."
+      - dimension: "The test that would have caught it, and where it runs"
+        score: 4
+        because: 'Level 4: asserts the type, not 200 and presence, in the backend''s own pipeline before the build goes out, and says what it costs to have it only in their suite — "I find it after the users do" — plus what it would ask the API''s owners for.'
+      - dimension: "What changes so the next one is not found by a user"
+        score: 3
+        because: "Level 3: additive field kept for a release or two, or a versioned endpoint, plus release notes; never asks who else reads that field."
+  - kind: weak
+    text: |
+      Okay so the salary is now showing different. Before it was just the amount and now
+      it's showing minimum, maximum and the currency. So I think they wanted to show a
+      range instead of one figure, like 250k to 400k, which is actually better for the
+      user. The problem is the app is not showing it, so the app has not been updated to
+      match. So the fix is the mobile developers should update the app. How a test could
+      catch it... I would have tested the app after the release. Like, open the app, go to
+      job list, check if salary is showing. That's a smoke test, and if we had run the
+      smoke test on the app we'd have seen the empty salary before the users. Maybe it
+      should be part of the regression suite. Where it should run — on my system, or on
+      the test environment before we go live. And what I'd ask for, I would ask them to
+      always tell QA when they're changing something, so that we can test it. Because
+      nobody told us, it's not even in the release notes, so we didn't know we should look
+      at salary. That's really the main problem here, communication.
+    expected:
+      - dimension: "Names it as a breaking change"
+        score: 1
+        because: 'Level 1: describes the change correctly and calls it better for the user, so the app is behind rather than broken — "the fix is the mobile developers should update the app".'
+      - dimension: "The test that would have caught it, and where it runs"
+        score: 1
+        because: "Level 1: an end-to-end journey through the app's own screens after the release, which finds it only once it has shipped."
+      - dimension: "What changes so the next one is not found by a user"
+        score: 1
+        because: 'Level 1: the remedy is communication alone — tell QA, put it in the release notes — "that''s really the main problem here, communication".'
+  - kind: fluent-but-wrong
+    text: |
+      So what happened is they enriched the salary field into a range object — min, max,
+      currency. Technically that's an additive change, and I'd defend that: backwards
+      compatibility is about the contract surface — same endpoint, salary is still there,
+      nothing removed, nothing renamed. What they put inside the field is an
+      implementation detail of that field. So no version bump was needed and they didn't
+      do anything wrong by not announcing it. Which makes this a client defect, not an API
+      defect. The app is reading the field without checking what it got — no null-safety,
+      no type guard — so it blanks, and on the versions with a strict parser it crashes.
+      If the app had been written defensively, worst case you see an empty salary, you
+      never crash. On catching it — a contract test wouldn't have helped, honestly, and
+      I've seen people expect too much from them. A contract test checks the fields in the
+      schema are present and the response is valid JSON, and salary is present and it is
+      valid JSON, so it passes green. What catches this is UI regression on the app
+      against the new build. So what I'd ask for is a proper device regression pass before
+      release, and defensive parsing as a coding standard on the mobile side.
+    expected:
+      - dimension: "Names it as a breaking change"
+        score: 0
+        because: 'Level 0: reports it as an app defect — "a client defect, not an API defect", no version bump needed, the app should have parsed defensively.'
+      - dimension: "The test that would have caught it, and where it runs"
+        score: 1
+        because: "Level 1: proposes a test that would still have passed — UI regression on the app against the new build — while arguing a contract test goes green."
+      - dimension: "What changes so the next one is not found by a user"
+        score: 1
+        because: "Level 1 is the nearest: nothing on the API side would fail automatically — a device regression pass and defensive parsing as a client coding standard, with no agreement asked of the API's owners."
+  - kind: correct-poorly-explained
+    text: |
+      So salary was a number and now it's an object, so... the app is expecting a number
+      so it can't read it, that's the empty. And the crash is the same thing, it's just
+      that some versions parse strictly, so it throws when the type doesn't match and the
+      whole list fails, not only the salary. Same cause, two symptoms. The test — okay so
+      it can't be a UI test, or it can, but by then it's out. It has to hit the endpoint
+      directly and check the type of salary, that it's a number. Not just 200 and the
+      field exists, the type. And it has to run where the change is made, so in the
+      backend's pipeline on their build before deploy, because if it runs in my suite
+      against live then, I mean, the users already have it. And the other thing, sorry,
+      going back — the apps that are already installed, you can't fix them by deploying.
+      People don't update, so even after backend fixes it, those old ones... yeah. So what
+      I'd ask for is they add a new field instead and keep the old one for some time, and
+      then remove it later, and write it in the release notes. Version the endpoint if
+      they really must change it.
+    expected:
+      - dimension: "Names it as a breaking change"
+        score: 4
+        because: "Level 4: purely what the contract did — a number became an object, so the reader cannot read it, same root cause for both symptoms — and asks for a new field kept alongside, or a version."
+      - dimension: "The test that would have caught it, and where it runs"
+        score: 4
+        because: 'Level 4: hit the endpoint and check the type, in the backend''s pipeline before deploy, and says the cost of it living in their own suite — "the users already have it".'
+      - dimension: "What changes so the next one is not found by a user"
+        score: 3
+        because: "Level 3: a new field with the old one kept and removed later, or a version, in the release notes; the installed old apps are raised but not who else reads the field."
+  - kind: nigerian-english
+    text: |
+      In plain terms, salary was ordinary number before, 250000, now they have turned am
+      into object — min, max, currency inside. So somebody changed the shape of a field
+      that is already live, and pushed am last night. The app was built to read number
+      there, so nothing is showing — that's your empty salary. And for some versions the
+      parser is strict: it sees object where it expects number, it throws, and the whole
+      list screen will go down with it. That's why some are blank and some are closing.
+
+      A test can catch it, but it must touch the response directly, not through UI.
+      Something that calls the endpoint and checks that salary is a number — the type, not
+      just that 200 came. And it must run inside the backend own pipeline, before the
+      build goes out. If it's only running in my suite against live, I am seeing it after
+      the users. And the one that will pain you: the apps people have installed already,
+      you cannot fix them by deploying. People don't update.
+
+      So what I will ask for: don't change the type of a field. Add salary_range beside
+      it, leave old salary for one or two releases, then remove am. Or version the
+      endpoint. And write API changes inside release notes, before, not after.
+    expected:
+      - dimension: "Names it as a breaking change"
+        score: 4
+        because: "Level 4, same as `strong`: the shape of a live field changed, and the remedy is salary_range beside it or a versioned endpoint."
+      - dimension: "The test that would have caught it, and where it runs"
+        score: 4
+        because: "Level 4, same as `strong`: the type checked against the response in the backend's own pipeline, with the cost of only having it in their suite stated."
+      - dimension: "What changes so the next one is not found by a user"
+        score: 3
+        because: "Level 3, same as `strong`: additive field, old one kept for a release or two, or a version, written in release notes; no question of who else reads it."

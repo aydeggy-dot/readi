@@ -14,8 +14,10 @@
 //   - a question's levels and stacks against what its roles actually offer
 //   - cross-file slug resolution, which the importer only does once it has a database
 //   - the bank against its blueprint's `targets` block
-//   - descriptors that score the manner rather than the answer ("confidently", "with conviction")
+//   - descriptors that score the manner rather than the answer ("confidently", "with conviction"),
+//     including by the *quantity* of speech ("a detailed plan", "a thorough set of flows")
 //   - a prompt that asks for fewer things than its rubric scores
+//   - a rubric file whose weights are a template rather than a claim
 //
 // `--numbers` prints every quantitative claim in the bank as a worklist and checks nothing: a
 // fact-check asks a vendor whether a claim about their product holds, and cannot tell you that a
@@ -226,7 +228,16 @@ function countAsks(prompt) {
 
 const MANNER_BANNED =
   /\b(confiden\w*|conviction|articulat\w*|fluen\w*|eloquen\w*|polish\w*|rambl\w*|waffl\w*|hesitan\w*|well[- ]spoken|glib|smooth[- ]talk\w*)/i;
-const MANNER_SUSPECT = /\b(vague\w*|concise\w*|coherent\w*|succinct\w*)/i;
+const MANNER_SUSPECT =
+  /\b(vague\w*|concise\w*|coherent\w*|succinct\w*|detailed|in detail|thorough\w*|accurately|at length)/i;
+// The second group — `detailed`, `in detail`, `thorough`, `accurately`, `at length` — was added on
+// 2026-09-23, when the QA fairness pass found **nine** level-1 descriptors defining the wrong answer
+// by the *quantity* of speech: "a detailed plan that starts with PIN validation", "a thorough set of
+// flows", "Names the wrong culprit in detail", "Prices it accurately in minutes". That is the manner
+// defect in its third form in three banks, and the first two forms were the ones a lexical check
+// already covered. A terse correct answer in a second language matches neither that level 1 nor the
+// level 3 above it and drifts down, while a long wrong one is at least recognised. They warn rather
+// than error, because each can legitimately describe the *content* being specific.
 // `clear` and `verbose` are deliberately NOT on either list. They do too much ordinary work in a
 // descriptor — "clearing the cache", "one clear misuse", "JSON is verbose" — for a lexical check to
 // be worth the noise, and "every criterion's top band turned on clear" is a defect the fairness
@@ -525,6 +536,40 @@ for (const question of questions) {
       question.file,
       at,
       "`reviewer_notes` asks the expert nothing — it should be an uncertainty, not a summary",
+    );
+}
+
+/*
+ * Weights that are a template rather than a claim.
+ *
+ * `content/seed/REVIEW.md` tells the expert that a rubric's weights "are a claim about what matters
+ * most", so a file where nearly every rubric carries the same split is making no claim at all — and
+ * the criterion carrying the judgement that transfers ends up being the lightest one by default,
+ * because it is the one written last. Found in the QA bank on 2026-09-23 by a critique pass, in one
+ * command: 21 of 30 rubrics were exactly 35/35/30 and 8 were 35/30/35, against 11 distinct patterns
+ * across frontend's 30 and 12 across backend's 29. Reweighting all 30 on the merits produced 13.
+ *
+ * The threshold is deliberately loose — this catches a file written on autopilot, not a file with
+ * some repetition, and three rubrics sharing a split is normal.
+ */
+for (const [file, list] of Object.entries(
+  [...rubrics.values()].reduce((byFile, rubric) => {
+    (byFile[rubric.file] ??= []).push(rubric);
+    return byFile;
+  }, {}),
+)) {
+  if (list.length < 8) continue;
+  const patterns = new Map();
+  for (const rubric of list) {
+    const key = (rubric.criteria ?? []).map((criterion) => criterion.weight).join("/");
+    patterns.set(key, (patterns.get(key) ?? 0) + 1);
+  }
+  const [top, count] = [...patterns].sort((a, b) => b[1] - a[1])[0];
+  if (count / list.length > 0.5)
+    warn(
+      file,
+      "weights",
+      `${count} of ${list.length} rubrics carry the same weights (${top}) — weights are a claim about what matters most in an answer, and a file that repeats one split is not making one`,
     );
 }
 

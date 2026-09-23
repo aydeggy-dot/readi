@@ -174,8 +174,15 @@ role**.
   from the passes, `the-overnight-blocker` and `something-you-built`, and the second of each belongs
   in the backend pass.
 - **Backend** — three questions to a full bank, and the junior level from zero. Seven new topics.
-- **QA** — three to a full bank. The catalogue's best engine fit, so the bank alone is the whole
-  product. Six new topics.
+- **QA — done 2026-09-23.** 3 questions to 35 (25 general, 10 stack-tagged), 33 rubrics, six new
+  topics, 165 stress answers. Handover: `docs/progress/2026-09-23-qa-bank.md`. The two findings that
+  reach beyond this bank: **the weights were a template, not a claim** (21 of 30 rubrics identical,
+  against 11 and 12 distinct patterns in the other two banks — now a check), and **`qa/rubrics.yaml`
+  carried none of the protective clauses the shared file has eleven of**, because the bank's fairness
+  promise was in a YAML comment the evaluator never reads. The open question for the owner is the
+  **triple-barrelled prompt**: two passes say it pre-empts the engine's own follow-ups, and the
+  prompt-clause rule says every criterion needs a clause — that conflict changes every bank and was
+  deliberately not resolved inside this one.
 - **Full-stack** — no new bank: a skeleton `track.yaml`, the second role tag on everything that
   transfers, the full-stack variant tag on every stack question that transfers, and the ~8 boundary
   questions neither side covers.

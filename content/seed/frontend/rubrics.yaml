@@ -156,7 +156,7 @@ rubrics:
         weight: 30
         levels:
           "0": No consequence given.
-          "1": A consequence that does not follow — "it is slower" with nothing behind it, or a detailed account of a runaway loop this code does not have.
+          "1": A consequence that does not follow — "it is slower" with nothing behind it, or an account of a runaway loop this code does not have.
           "2": Mentions an extra render without saying why it happens.
           "3": Explains that the effect runs after render, so the user briefly sees the old value.
           "4": As 3, and notes that the state can now disagree with the props it came from.
@@ -250,7 +250,7 @@ rubrics:
         weight: 40
         levels:
           "0": Does not identify what changed the caller's data.
-          "1": Blames the loop, the framework or the caller rather than the assignment — including a detailed account of how the loop binding is at fault.
+          "1": Blames the loop, the framework or the caller rather than the assignment — including an account of how the loop binding is at fault.
           "2": Says the array was "passed by reference" without saying what that means for the items inside it.
           "3": Says the function is writing to the same objects the caller holds, and points at the assignment.
           "4": As 3, and separates the array from the objects in it — copying the array alone would not have helped.
@@ -623,39 +623,6 @@ rubrics:
           "3": Selects by role, label or visible text, so the next refactor does not break them.
           "4": As 3, and names a change to this screen that *should* break a test, so the fix is not "make the tests never fail".
 
-  - slug: reproducing-a-report
-    name: Turning a vague report into something you can work on
-    criteria:
-      - dimension: Asks for what is missing
-        description: Specific questions — which screen, what they tapped, what they expected — rather than "can you give more detail".
-        weight: 40
-        levels:
-          "0": Asks nothing — starts on the code, closes the report, or declares the cause already known from what is written.
-          "1": Asks for "more information" without saying what.
-          "2": Asks one or two questions, missing the conditions the failure depends on.
-          "3": Asks what they did, what happened, what they expected, and on what device and connection.
-          "4": As 3, and the questions avoid jargon the reporter would not have — they ask about what the person saw, not about the system.
-      - dimension: Looks before spending the reporter's time
-        description: >-
-          What signals already exist gets checked first — logs, other reports, what changed recently.
-          A candidate with none of those available scores on naming what they would look at if they had it.
-        weight: 30
-        levels:
-          "0": Checks nothing that already exists — waits for the reporter, or settles on a cause and goes straight to the code.
-          "1": Says they would "check the logs" with no idea what for.
-          "2": Names one source to check.
-          "3": Names what would already know something — errors being recorded, other reports, what shipped recently — and what each would tell them.
-          "4": As 3, and uses what they find to narrow the questions rather than asking everything.
-      - dimension: Reproduces under their conditions
-        description: The user's device, connection and data — not a laptop on office wifi.
-        weight: 30
-        levels:
-          "0": Does not reproduce it — cannot, so treats it as not real, or would not spend the time because the fix is already decided.
-          "1": Tries once on their own machine and stops.
-          "2": Tries a narrow screen, but not the connection or the account.
-          "3": Reproduces with a throttled connection and a comparable device, on the same data if possible.
-          "4": As 3, and says what they would do if it still does not reproduce, rather than closing it.
-
   - slug: production-error-investigation
     name: Investigating an error only real users see
     criteria:
@@ -792,7 +759,7 @@ rubrics:
         weight: 45
         levels:
           "0": Blames the click handler or the template syntax.
-          "1": Puts the break somewhere else — reactivity "not working" with no mechanism, or a detailed mechanism that rules the destructuring out.
+          "1": Puts the break somewhere else — reactivity "not working" with no mechanism, or a named mechanism that rules the destructuring out.
           "2": Suspects the destructuring but describes it as a style problem.
           "3": Says the destructured value is a plain number, so nothing links it to later changes.
           "4": As 3, and confirms the object is still updating — only the template's copy is stale.
@@ -981,7 +948,7 @@ rubrics:
         levels:
           "0": Sees nothing wrong; the code works.
           "1": Says it is "not scalable" without naming a failure.
-          "2": Objects to `innerHTML` without saying what it destroys — on style grounds, or on a detailed performance argument.
+          "2": Objects to `innerHTML` without saying what it destroys — on style grounds, or on a performance argument.
           "3": Says rewriting `innerHTML` rebuilds every row, so anything the user had in one is lost.
           "4": As 3, and adds what else goes with it — listeners, focus, scroll position.
       - dimension: Recognises the page as the store

@@ -1,0 +1,136 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: test-data-judgement
+question: where-your-test-data-comes-from
+# **Criterion 2 has no rung for `fluent-but-wrong`.** Its levels 0-4 are all written for a candidate
+# who declines the copy (level 0 is "refuses with no explanation"); this answer takes it and argues the
+# harm away — "the data never leaves the building... so there's no exposure". 0 is the nearest number,
+# not a descriptor that fits. Criterion 1 anticipates exactly this candidate ("using one they were
+# handed by someone senior is not the defect") and catches it at level 1; criterion 2 does not.
+# Separately, level 3 of criterion 2 asks for the obligation named as one reason among the harms, while
+# the question asks the candidate to explain it "without quoting a regulation at them" — `strong`,
+# `correct-poorly-explained` and `nigerian-english` all follow the question and none names an
+# obligation, and all three still land on 3 on the strength of the harm.
+answers:
+  - kind: strong
+    text: |
+      So — I'd say no to the copy. Politely, but no. The thing is, once it's in the test database
+      it's still real people's money. Real names, real transactions, and now it's on my laptop, in
+      a database with a weak password because it's only test, that the whole team can reach, and
+      that somebody will dump and send around when they're debugging. If it leaks, that's not a
+      test problem, that's a customer whose statement a stranger read. And there's the other side —
+      I might trigger something. If the test environment is still pointing at a real email service,
+      I've just sent five hundred real customers a statement email at two in the morning. That has
+      happened to people. So instead I'd generate it. Five hundred customers is a script, honestly
+      — a seed script with a library that makes fake names and account numbers, and then I write
+      the transaction histories on purpose: one customer with two hundred transactions so I can see
+      the pagination, one with zero, one with a refund, one with a huge amount to see if the
+      formatting breaks. That's better than live data anyway, because live data mostly won't have
+      my edge cases in it.
+    expected:
+      - dimension: Recognises what the copy is
+        score: 3
+        because: "Level 3: real people's money in a test database with a weak password that the whole team can reach, and a leak from there is still a leak; the 'better than live data' point it makes is about missing edge cases, not repeatability, so not 4."
+      - dimension: Names the harm, not only the rule
+        score: 3
+        because: "Level 3: put as what it does to the customer whose statement a stranger read, with the real email service as a second harm; no obligation named."
+      - dimension: Where the data comes from instead
+        score: 3
+        because: "Level 3: a seed script with a fake-name and account-number library, and the cases written on purpose — two hundred transactions, zero, a refund, a huge amount."
+  - kind: weak
+    text: |
+      Um, okay. If someone senior offers it, I'd probably... I mean, I'd take it, but I'd ask first
+      whether it's allowed. If they say it's fine then it's on them, they're senior. But I do know
+      you're not supposed to use real customer data, I've heard that. The reason is privacy — it's
+      people's personal information and it's not meant for testing. I think there's a law about it
+      here, NDPR or something, I'm not sure of the details. Where would the data come from instead
+      — I'd create the customers myself through the app. Sign up, add some transactions, then the
+      next one. Five hundred is a lot though. Maybe I'd do like twenty and test with twenty, and
+      say that's enough to see whether the screen works. Or ask a developer to help me make more,
+      because I don't really know how to put data straight into the database. Honestly for a
+      statement screen I'd mostly be checking does it load, do the numbers line up, does the
+      download work. Yeah.
+    expected:
+      - dimension: Recognises what the copy is
+        score: 2
+        because: "Level 2: 'it's people's personal information', with nothing about who it belongs to or what could follow — and it would take the copy if a senior said it was allowed."
+      - dimension: Names the harm, not only the rule
+        score: 2
+        because: "Level 2: 'the reason is privacy... there's a law about it here, NDPR or something', with nothing about what would actually happen."
+      - dimension: Where the data comes from instead
+        score: 2
+        because: "Level 2: an alternative source is named — create the customers through the app — with nothing about what the data has to contain, and five hundred shrinks to twenty."
+  - kind: fluent-but-wrong
+    text: |
+      I'd take it, but I'd sanitise it first — that's the standard approach. So: restore the copy
+      into the test database, then run an update over it. Names become Customer 001 through 500,
+      emails get rewritten to at-example-dot-com, phone numbers get one fixed dummy number. Once
+      you've done that pass it isn't personal data any more — what's left is just numbers, and
+      numbers aren't personal. The transaction amounts and dates I'd keep exactly as they are,
+      because that's the whole point, that's the realism I can't fake, and an amount on its own
+      doesn't identify anybody. And how I'd explain it to someone who isn't a tester: the data
+      never leaves the building. It goes from our production server to our test server, both inside
+      our own network, nobody outside ever touches it, so there's no exposure. The risk with
+      customer data is it getting out, and it isn't getting out. That's the argument I'd make. And
+      honestly it saves me a week writing a generator, and generated data will never have the messy
+      real-world cases in it that find the real bugs.
+    expected:
+      - dimension: Recognises what the copy is
+        score: 1
+        because: "Level 1 verbatim: the objection it answers is exposure — 'it never leaves our network' — and the personal data is treated as a step to handle rather than the reason not to take it."
+      - dimension: Names the harm, not only the rule
+        score: 1
+        because: Level 1 — argues the harm away rather than naming it. The names were overwritten so it is held to be no longer personal data, and it never leaves the company network so it is held to carry no exposure.
+      - dimension: Where the data comes from instead
+        score: 1
+        because: "Level 1 verbatim: the same export with names rewritten by the tester, treated as no longer personal data, amounts and dates kept."
+  - kind: correct-poorly-explained
+    text: |
+      No. I wouldn't take it. Because — okay so. It's real people. Um. The way I'd say it to
+      somebody who isn't a tester is, look, if that file ends up somewhere it shouldn't, that's a
+      real person's account that somebody is reading. And test environments are... they're loose.
+      Everybody has the password. Nobody encrypts anything. It gets copied into a spreadsheet. So.
+      Yeah. Where would I get it instead — make it. You write a script. There are libraries for
+      fake names, I've used one. And — oh, actually, the bigger thing, sorry, going back: with fake
+      data I get to choose. Like the customer with no transactions at all, and the one with three
+      hundred, and a negative amount. Real data won't have those, it'll have five hundred normal
+      customers and the bug is in the weird one. So generated is actually better, not just safer.
+      The other risk is the emails. If the test system can still send mail and the addresses are
+      real... yeah. That one scares me more than the privacy, to be honest. Both. Both are bad.
+    expected:
+      - dimension: Recognises what the copy is
+        score: 3
+        because: "Level 3: real people, and test environments where everybody has the password and nothing is encrypted, so a leak from one is still a leak."
+      - dimension: Names the harm, not only the rule
+        score: 3
+        because: "Level 3: said for a non-tester — 'that's a real person's account that somebody is reading' — with the still-live email service as the second harm."
+      - dimension: Where the data comes from instead
+        score: 3
+        because: "Level 3: a script and a fake-name library, and the cases chosen on purpose — no transactions, three hundred, a negative amount."
+  - kind: nigerian-english
+    text: |
+      Me I will say no to the copy. I will say am with respect, but no. Because once that thing
+      enters the test database, it is real people money inside there. Real name, real transaction.
+      And now it is on my laptop, inside a test database that the password is anyhow, that
+      everybody on the team can enter, and somebody will dump it and send am on WhatsApp when they
+      are debugging. If it leak, it is not a test problem again — it is somebody's statement that a
+      stranger read. And the other side, I can trigger something by mistake. If the test
+      environment is still pointing to a real email service, I have just sent five hundred
+      customers a statement email by two in the morning. It has happened to people. So instead, I
+      will generate am. Five hundred customer, that one is just a script — one seed script with a
+      library that makes fake name and account number, then I write the transaction histories
+      myself on purpose. One customer with two hundred transactions so I can see the pagination,
+      one with zero, one with refund, one with plenty money so I can see whether the formatting
+      will break. That one is even better than live data, because live data will not have my edge
+      cases inside.
+    expected:
+      - dimension: Recognises what the copy is
+        score: 3
+        because: "Level 3, as strong: real people's money in a test database whose password is anyhow, and a dump sent on WhatsApp while debugging."
+      - dimension: Names the harm, not only the rule
+        score: 3
+        because: "Level 3, as strong: somebody's statement that a stranger read, plus five hundred statement emails sent by mistake."
+      - dimension: Where the data comes from instead
+        score: 3
+        because: "Level 3, as strong: one seed script, fake names and account numbers, and the histories written deliberately for pagination, zero, a refund and a large amount."

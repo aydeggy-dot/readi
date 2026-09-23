@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: api-collection-repeatability
+question: api-collection-that-only-works-in-order
+answers:
+  - kind: strong
+    text: |
+      What stops it running without me is me. Request one, the tester copies the token out and
+      pastes it into the next six — that's a person, so nothing can run it at night. Same with the
+      job id going into request three and the delete at seven. And then the bigger thing: no
+      request checks its response. So even if it ran, it can't tell you it passed. It just... ran.
+      To change it — request one saves the token into a variable, and the other requests reference
+      that variable in the header instead of a pasted string. Request two captures the id from its
+      response into a variable, and three and seven use that. Then I'd add checks on each one:
+      status code first, and then something real — that login actually returned a token, that the
+      application came back with my job id. And the job it creates should have a unique name each
+      run, so yesterday's leftover doesn't collide. Also the password shouldn't sit in the file.
+      What I wouldn't automate — whether the error messages actually make sense to a person, and a
+      brand-new endpoint the first time. That one I want to poke by hand before I write anything.
+    expected:
+      - dimension: "What makes it manual"
+        score: 4
+        because: 'Level 4: "What stops it running without me is me" — every pasted value is a person, each request needs the one before read — and the run has no idea whether it succeeded: "it can''t tell you it passed. It just... ran." The token''s lifetime is not mentioned.'
+      - dimension: "What changes"
+        score: 4
+        because: "Level 4: token and id captured from responses into variables the later requests read, sign-in as request one, the job created with a unique name each run, and request seven's delete wired to the captured id."
+      - dimension: "What stays manual, and what a failure has to say"
+        score: 3
+        because: "Level 3: a new endpoint and whether the error messages read sensibly stay with a person; it does not say what the morning's failure report has to contain."
+  - kind: weak
+    text: |
+      Okay so the problem is the copying. The tester is copying the token and the ids by hand, so
+      if he's not there, nobody will copy them, so it will fail. So I would need a way for the
+      requests to pass the values themselves. I know in Postman there's environment variables, so
+      I think you'd save the token into a variable after login and use it in the other ones. I
+      haven't really done the scripting part, I've mostly used it by hand, so I'd have to look up
+      how you pull the id out of the response. And then for overnight... you'd need something to
+      run it when nobody's there, like a schedule. I don't know what we'd use for that, maybe the
+      tool has it. And, um, the checking — yeah, nothing is being checked, so I'd check that every
+      one returns 200. What I wouldn't automate, I'd say the login, because that's security and
+      you should test that manually. Sorry, I'm not very strong on this area, I've mostly done
+      manual testing.
+    expected:
+      - dimension: "What makes it manual"
+        score: 3
+        because: "Level 3: the copying is the diagnosis — the token and the ids are pasted by hand, so with nobody there to copy, it fails; the token's lifetime and what a green run proves are absent."
+      - dimension: "What changes"
+        score: 2
+        because: 'Level 2: use an environment variable for the token, but where the id comes from is openly unknown — "I''d have to look up how you pull the id out of the response".'
+      - dimension: "What stays manual, and what a failure has to say"
+        score: 2
+        because: 'Level 2: a person is still needed — for the login, "because that''s security" — which is a label rather than a reason, and nothing about who reads a failure.'
+  - kind: fluent-but-wrong
+    text: |
+      The fragility here is the session, mainly. The token in request one is short-lived — that's
+      why it works when a person drives it and dies otherwise, because a person pastes a fresh one
+      and a scheduler is running against an hour-old token. So my fix is to take the token out of
+      the run entirely: ask the backend team for a long-lived service token, put it in an
+      environment variable once, and delete request one. One less moving part. Then the ids. I'd
+      stop creating the job at all and point request three at a fixed job that's seeded in the
+      test environment — a hardcoded id is far more stable than a captured one, because a captured
+      id depends on request two having succeeded, and now nothing depends on anything. Drop
+      request seven too, since we're not creating anything to clean up. On the assertions, I'd say
+      the collection already has them implicitly: the runner fails the run on any non-2xx. That's
+      your check. Writing "expect 200" on top of that is duplicating what the tool does for free.
+      What I still wouldn't automate is the response bodies — reading those is a human judgement
+      call.
+    expected:
+      - dimension: "What makes it manual"
+        score: 1
+        because: 'Level 1: locates the fragility in the session rather than the pasting, and holds that the run already checks itself because "the runner fails the run on any non-2xx. That''s your check."'
+      - dimension: "What changes"
+        score: 1
+        because: "Level 1: automates the sequence with the inputs left fixed — a long-lived service token in an environment variable and a hardcoded seeded job id, request one and request seven deleted."
+      - dimension: "What stays manual, and what a failure has to say"
+        score: 2
+        because: 'Level 2: a person is still needed to read response bodies, "a human judgement call", with no account of who reads a failure or what it would tell them.'
+  - kind: correct-poorly-explained
+    text: |
+      It's the pasting. Him. The tester is the thing that makes it work, he's copying the token
+      into two through seven and the id into three, so overnight there's nobody to copy, so it
+      dies at request two, or at three rather, with a 401 or an empty job id. So variables. Login
+      writes the token to a variable, everything else reads the variable, and request two pulls
+      the id out of its own response into another variable and three and seven use that one, so
+      nothing is typed by hand. And — this is maybe the bigger one, sorry, I should have said it
+      first — nothing checks anything. Seven requests and not one assertion, so a green run means
+      seven requests got sent, not that the feature works. So status codes, and then actual
+      fields, like did login give a token, does the application have the right job_id. Also the
+      job name, make it different every run, otherwise a leftover from a failed night blocks you.
+      Things I'd leave manual — reading whether an error message makes sense, and anything
+      touching real money.
+    expected:
+      - dimension: "What makes it manual"
+        score: 4
+        because: 'Level 4: the tester is the thing that makes it work, and "seven requests and not one assertion, so a green run means seven requests got sent, not that the feature works".'
+      - dimension: "What changes"
+        score: 4
+        because: "Level 4: login writes the token to a variable, request two pulls its id out into another that three and seven read, and the job name differs every run so a failed night's leftover does not block it."
+      - dimension: "What stays manual, and what a failure has to say"
+        score: 3
+        because: "Level 3: reading whether an error message makes sense, and anything touching real money, stay manual; what a failure has to report is not said."
+  - kind: nigerian-english
+    text: |
+      What is stopping it is me myself. Request one, the tester will copy
+      the token, paste am inside the next six — that one is human being, so nothing can run am at
+      night. Same thing with the job id going to three, and the delete at seven. Then the
+      bigger one: no request is checking its own response. So even if it run, it cannot tell you
+      say it passed. It just ran, finish. So what I will change: let request one save the token
+      inside a variable, then the other requests will reference that variable in the header, not
+      pasted text. Request two will collect the id from its response into a variable, then three
+      and seven will use am. Then I will add checks on each one — status code first, then
+      something real, like did login actually bring token, is the application carrying my job id.
+      And the job it is creating should carry a different name every run, so yesterday own
+      will not clash with today own. The password too should not be inside the file. The
+      one I will not automate: whether the error message is making sense to a human being, and a
+      new endpoint the first time — that one I will touch am with my hand first.
+    expected:
+      - dimension: "What makes it manual"
+        score: 4
+        because: 'Level 4, as `strong`: the pasting is a human being, and no request checks its response — "even if it run, it cannot tell you say it passed".'
+      - dimension: "What changes"
+        score: 4
+        because: "Level 4, as `strong`: the token saved into a variable the others reference, the id collected into a variable three and seven use, and a different job name every run."
+      - dimension: "What stays manual, and what a failure has to say"
+        score: 3
+        because: "Level 3, as `strong`: whether the error message makes sense to a human, and a new endpoint the first time, stay by hand; the failure report's content is not named."

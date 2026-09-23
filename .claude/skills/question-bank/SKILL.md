@@ -80,6 +80,24 @@ generalist reviewer.` The seed contract has no field for this and does not need 
   question may describe those things; it may not require having had them. Where a scenario needs a
   workplace, the prompt supplies it (a report on screen, the fields the tool shows) rather than
   asking the candidate to recall one.
+- **A question must not hand over a criterion it then scores.** `the-test-that-always-passes` told
+  the candidate, in its context, the very fact criterion 1 was worth 40% for noticing — and the stress
+  test measured the cost: a `weak` answer read the line back, scored 3, and the rubric failed its
+  separation. The drafter had already written the worry into `reviewer_notes` ("it now gives the first
+  criterion away, which I do not like but prefer to an unfair question") and left it. Where fairness
+  really does require stating the fact, the criterion has to score the _consequence_ drawn from it
+  rather than the fact itself. Conversely, a rubric may not require what the question never supplies:
+  `api-collection-repeatability` scored "the token expires" at level 3 against a context that never
+  said the token had a lifetime, so the band was reachable only by guessing.
+- **The evaluator reads descriptors. It does not read your comments.** Every fairness promise has to
+  live in a `dimension`, a `description` or a descriptor, because that is the only text that reaches
+  the model that scores the answer. `rubrics.shared.yaml` carries eleven such clauses — "a team that
+  treats asking as weakness is a fact about the workplace, not a fault in the candidate"; "a candidate
+  with no colleagues says who they would have told". The QA bank was drafted with **none**, and its
+  whole promise — that an answer from a personal project scores the same as one from a job — sat in a
+  YAML comment at the top of `questions.yaml` which said, in so many words, that the seed format had
+  nowhere to put it. It has somewhere: the descriptor of every criterion that asks for recall, access
+  or standing. A promise the model cannot read is not a promise.
 
 ## House style
 
@@ -96,6 +114,17 @@ critique pass found nine times in one bank: the prompt asks for a diagnosis and 
 were asked, completely, and loses a third of the score. Read each criterion, find the words in the
 prompt that ask for it, and if there are none, add them or drop the criterion.
 
+**An open tension, not yet resolved.** The first finding of both the senior-interviewer and the
+nervous-junior pass on the QA bank was that a prompt shaped this way is triple-barrelled, and the
+senior pass gave the argument that matters: it **pre-empts the engine**, whose job is to generate
+follow-ups that probe missing rubric points (CLAUDE.md §5). The junior's version is that the last
+clause is the one they forget and it carries a third of the marks. Both are right, and the rule below
+is also right — it was written because the frontend pass found nine criteria charging for something
+never asked and the backend pass eighteen. The resolution is probably that the prompt must raise every
+criterion's **subject** while the follow-up draws out the detail, which would mean changing this rule
+and the check together. Until the owner decides, write the clauses plainly and short, and do not
+resolve it inside one bank.
+
 **`check-bank.mjs` counts the asks** — a rubric with three criteria needs a prompt that asks for
 three things — and warns where a prompt asks for fewer. It was made a check after the rule was
 written down, made a hard rule here, and then broken **eighteen times in the next bank by the same
@@ -105,10 +134,23 @@ criteria, and then the drafter says which in `reviewer_notes` and moves on. It i
 silently.
 
 **Rubrics.** Three criteria; five if the answer genuinely has five separable parts. Weights total
-exactly 100 and are a claim about what matters most. Each criterion carries five descriptors, 0
+exactly 100 and are a claim about what matters most — **and if every rubric in the file carries the
+same split, the file is making no claim at all.** The QA bank was written with 21 of 30 rubrics at
+exactly 35/35/30 and 8 at 35/30/35, against 11 distinct patterns across frontend's 30 and 12 across
+backend's 29. The consequence is not cosmetic: the criterion that carries the judgement which
+actually transfers ends up the lightest one, because it is the one written last. Decide each split
+against the question, and expect a defensible bank to contain 25/30/45 and 45/25/30 and 30/20/50.
+`check-bank.mjs` warns when one split covers more than half a file. Each criterion carries five descriptors, 0
 (absent) to 4 (excellent), and the test is that **two readers scoring the same answer pick the same
 number**. If 2 and 3 differ only in tone, or 4 is "as 3, but more confident", the rubric is
 defective — sharpen it before the stress test finds it.
+
+**Put the thing you would hire on at level 3, not level 4.** Level 4 is the rare answer; level 3 is
+"this person can do the job". If the behaviour that makes a candidate worth hiring sits in the level-4
+clause, then a candidate scoring 3 across the bank reads as competent while missing the whole point of
+every criterion — which is what a critique pass found in six QA criteria at once, and what the nervous
+junior found from the other end ("I would understand the 0s and the 3s, but not one of the 4s"). The
+test is to read level 3 alone and ask whether you would hire someone who answered exactly that.
 
 **Level 4 must contain something that cannot be bluffed.** "Would keep a sample of awkward content
 around", "checks the error rate afterwards", "tests on a real device" — a claimed habit costs
@@ -137,16 +179,49 @@ a specific wrong mechanism and level 2 is vague**, and a hesitant candidate nami
 mechanism has to land in the same band. No descriptor contains "confidently", "with conviction",
 "however fluently" or "argued in detail".
 
+**And never the quantity, either.** The rule was written twice and broken a third time, in a form
+neither version covered: nine level-1 descriptors in the QA bank defined the wrong answer by how
+_much_ was said — "a detailed plan that starts with PIN validation", "a thorough set of flows", "Names
+the wrong culprit in detail", "Prices it accurately in minutes". It reads as harmless, because the
+point being made is that a wrong answer is specific rather than absent. It is not harmless: a terse
+correct answer in a second language matches neither that level 1 nor the level 3 above it, and drifts
+down, while a long wrong one is at least recognised. The same check found seven more across the
+frontend, backend and shared files, so it was never a QA problem. **Name the belief. Not how
+confidently it was held, and not how long it took to say.**
+
 **`check-bank.mjs` enforces this as an error.** `confiden*`, `conviction`, `articulat*`, `fluen*`,
 `eloquen*`, `polish*`, `rambl*`, `waffl*`, `hesitan*`, `well-spoken`, `glib` and `smooth-talking`
 are banned outright in a dimension, a description or any descriptor — there is no reading on which
-they belong. `vague*`, `concise*`, `coherent*` and `succinct*` warn instead, because they usually
-describe the _content_ being unspecific, which is legitimate and is exactly what separates level 1
-from level 2 — but they are the words the defect arrives through, so a human confirms each one.
+they belong. `vague*`, `concise*`, `coherent*`, `succinct*`, `detailed`, `in detail`, `thorough*`,
+`accurately` and `at length` warn instead, because they can describe the _content_ being unspecific
+or specific, which is legitimate and is exactly what separates level 1 from level 2 — but they are the
+words the defect arrives through, so a human confirms each one.
 `clear` is deliberately on neither list: it does too much ordinary work in a descriptor ("clearing
 the cache", "one clear misuse") for a lexical check to be worth the noise, and "every criterion's
 top band turned on _clear_" is a defect the **fairness critique pass** caught by reading, in
 context, which is where it has to be caught.
+
+**One descriptor per criterion is not enough.** Two scorers on the QA bank named the same shape
+independently: _the level-1 descriptor was written for a wrong answer, not for **this** wrong answer._
+Twenty-four times, a writer who could not see the rubric reached for a different wrong belief of equal
+plausibility, and the scorer then had to land on a descriptor that was _literally_ satisfied while the
+answer's actual error went unnamed — which is exactly the case the rule exists to prevent. Three times
+the wrong belief scored **3** on the heaviest criterion, because by the letter of level 3 it had done
+what level 3 asked. So: when the stress answers come back, read each `fluent-but-wrong` against the
+descriptor you expected it to hit, and if it hits a different one, the descriptor is the thing that
+changes.
+
+**Check that levels 1 and 2 are ordered on one axis.** Two QA rubrics had level 1 as "recommends the
+shortcut as the fix" and level 2 as "mentions a shortcut without saying what it costs" — so an answer
+that recommended it _and_ named a cost fitted neither, and two readers would split. If a real answer
+can satisfy parts of both, they are measuring two different things.
+
+**Anchor the bottom of the scale, not only the top.** `references/stress-test.md` says the `weak`
+answer should not score above 1 on the content criteria. In the QA bank it reached 2.00 in seven
+rubrics, because the level-2 descriptors were reachable by naming the right topic with no content
+behind it — "right number, wrong number" satisfying "valid and invalid cases without a stated reason",
+a single empty-field check satisfying "some boundaries". A floating `weak` does not fail the
+separations, so nothing catches it but reading.
 
 The `fluent-but-wrong` answer in the stress test is where the wrong belief comes from, which is why
 the test is worth running before the rubric is finished rather than after. Applied across every
@@ -179,8 +254,17 @@ pass doing the sums.
 - `node-async-error-never-caught` said the request hangs until it times out. Since Node 15 an
   unhandled rejection is an uncaught exception and the **process exits**.
 
+- `testing-without-a-spec` gave two renderings of a date and its `reviewer_notes` claimed they
+  "cannot both be right". They can: `03/11/2026` **is** `11 March 2026` if the list puts the month
+  first. The question was fine — better than described, because what it really tests is which
+  convention the product means — but the note and one answer-key point described a question that had
+  not been written, and a blind stress writer found it by taking the same wrong turn in the other
+  direction. **The claim to check is sometimes in your own prose about the question, not in the
+  question.**
+
 So: before the critique passes, go through every question and rubric and **verify each quantitative
-or behavioural claim by working it out**, not by recognising it.
+or behavioural claim by working it out**, not by recognising it. Then do it again to the sentences you
+wrote _about_ them.
 
 1. **Do the sum.** Every number in a prompt, a context block, an `ideal_point` or a descriptor —
    row counts, timings, percentages, money, sizes, limits, precision. Does the stated consequence

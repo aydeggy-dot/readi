@@ -60,6 +60,12 @@ function roleRubricFiles() {
 const problems = [];
 const rows = [];
 
+// A function declaration, not a `const`: the problem messages below are built inside the loop,
+// so an arrow defined after it is still in its temporal dead zone when a separation actually fails.
+function fmt(value) {
+  return (value ?? 0).toFixed(2);
+}
+
 const datasets = join(ROOT, "evals/datasets/synthetic");
 for (const role of readdirSync(datasets).filter((entry) =>
   statSync(join(datasets, entry)).isDirectory(),
@@ -129,8 +135,6 @@ for (const role of readdirSync(datasets).filter((entry) =>
     rows.push({ role, rubric: data.rubric, score, gapFluent, gapWeak });
   }
 }
-
-const fmt = (value) => (value ?? 0).toFixed(2);
 
 console.log(`${rows.length} rubric stress test(s)`);
 console.log(

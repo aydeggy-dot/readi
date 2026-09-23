@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: oracle-reasoning
+question: testing-without-a-spec
+answers:
+  - kind: strong
+    text: |
+      Okay, so on the list it's `03/11/2026` and on the job's own page the same date is `11 March
+      2026`. First thing: those two are only the same date if the list one is month first. And nobody
+      here reads 03/11 as March — I'd read that as the third of November. So a candidate looks at the
+      list, thinks he has till November, and the thing actually closes in March. Or he doesn't even
+      open the page and just misses it. That's the defect, and I don't need a spec to say so: the
+      product is disagreeing with itself, and one of the two readings makes a user miss a deadline. So
+      the things I'm using instead of a document — internal consistency first, that's the strongest
+      one, an app contradicting itself is always something. Then convention, what a Nigerian user
+      expects, which is day first. Then consequence: can somebody be harmed, and here yes. And how I
+      raise it — I don't write "the format should be DD/MM". I write what both screens show,
+      screenshots of both, steps to reach each one, and the risk in plain words, user reads the wrong
+      closing date. Then one line: which one is intended? So it's a question with evidence on it, and
+      the product owner decides the format, not me.
+    expected:
+      - dimension: "Knows what stands in for a specification"
+        score: 4
+        because: "Descriptor 4 — names internal consistency, convention and consequence, and picks: 'internal consistency first, that's the strongest one, an app contradicting itself is always something.'"
+      - dimension: "Settles it with something checkable"
+        score: 3
+        because: "Descriptor 3 — the checkable thing is the product disagreeing with itself across two screens, and that one of the two readings makes a user miss a deadline. Not 4: nothing on an unresolvable question being a decision someone has to write down."
+      - dimension: "Raises it as a question about the product"
+        score: 3
+        because: "Descriptor 3 — what both screens show, screenshots, steps, the risk in plain words, then 'which one is intended?' — the disagreement is put on the behaviour, not on a person. Not 4: nothing on what it would do if decided against it."
+  - kind: weak
+    text: |
+      So there's no spec... hmm, okay. On the list page the date is showing 03/11/2026 and on the job
+      page it's showing 11 March 2026, so the formats are different. Without a spec I can't really say
+      which one is correct, because nobody has told me what it's supposed to be. But I would still log
+      it, and in the ticket I'd say the date format is not consistent between the two pages and it
+      should be the same, and let the developer or the product owner decide which one they want. I'd
+      attach screenshots of both so they can see it themselves. I'd probably put it as low priority,
+      because the date is still there, it's not like the date is missing, it's just written
+      differently. Then tomorrow when the product owner is around I'd ask them which format they want
+      and update the ticket. I wouldn't want to argue with the developer over it because it's just
+      formatting, so asking is the best thing. That's what I'd do.
+    expected:
+      - dimension: "Knows what stands in for a specification"
+        score: 1
+        because: "Descriptor 1 — a single authority replaces the document: 'Without a spec I can't really say which one is correct, because nobody has told me', then the developer or product owner decides. The two dates being four months apart is never noticed."
+      - dimension: "Settles it with something checkable"
+        score: 2
+        because: "Descriptor 2 — screenshots are named as the evidence it would gather, but nothing in the answer could settle it; it explicitly declines to say anything is wrong and calls it low priority because 'it's not like the date is missing'."
+      - dimension: "Raises it as a question about the product"
+        score: 3
+        because: "Descriptor 3 — the ticket carries the behaviour and what it disagrees with (the two pages differ), with screenshots, the decision left to the product owner rather than argued with the developer, and the ticket updated once it is answered."
+  - kind: fluent-but-wrong
+    text: |
+      Right, let me read what I'm looking at. List page, `03/11/2026`. Detail page, `11 March 2026`.
+      Now — this is not a formatting issue, and I think that's the trap in the question. Read the list
+      value properly, day first: the third of November. The detail page says the eleventh of March.
+      Those are two completely different dates, four months apart. So the format is a red herring,
+      what we actually have is a data defect. And I'll go further on the mechanism: this is almost
+      certainly the date being stored as a string and then parsed as UTC on one of the two screens, so
+      the conversion shifts it. You see it constantly — one component parses it properly, the other
+      does a naive date parse and the offset moves the day. So there's nothing to settle with anybody
+      and it isn't my opinion. A date that renders as two different days is objectively wrong, spec or
+      no spec, the requirement is implied. I'd raise it as critical, against the backend, title it
+      "closing date inconsistent between list and detail", attach both screenshots, and say which of
+      the two I believe is the real stored value. I wouldn't wait for the product owner on this one,
+      it's a straightforward bug.
+    expected:
+      - dimension: "Knows what stands in for a specification"
+        score: 1
+        because: "Descriptor 1 — reasons from one source alone, its own day-first reading of an ambiguous string, and converts it into certainty: 'the format is a red herring, what we actually have is a data defect'. No other oracle is brought in."
+      - dimension: "Settles it with something checkable"
+        score: 2
+        because: "Descriptor 2 — the evidence stops at two screenshots and a belief about the stored value; the mechanism ('stored as a string and then parsed as UTC') is asserted as 'almost certainly' rather than checked, and nothing named would distinguish a format difference from a data difference."
+      - dimension: "Raises it as a question about the product"
+        score: 2
+        because: Level 2 — forecloses it rather than raising it. Decides it is a backend data defect and files it, without asking whether anybody intended the other reading.
+  - kind: correct-poorly-explained
+    text: |
+      Okay so on the list it's 03/11/2026 and on the page it's 11 March 2026, and... is it a bug. I
+      think yes. Not because of the format exactly. It's because — okay, for those two to be the same
+      date, the list one has to be month first, March the eleventh. But if I'm looking at it as a
+      Nigerian, 03/11 is third of November. So the user is reading a different date from what the
+      system means, and it's a closing date, so he can miss it. That's the harm, and that's how I
+      decide, is there harm. And the other one — the product is disagreeing with itself, which I don't
+      need any spec for, two screens, one date, two answers, something is wrong somewhere even if I
+      can't tell you which one is right. And how I raise it so it's not me against somebody — both
+      screenshots, the steps, and just what the two screens show, that part is fact, nobody can argue
+      with it. Then the risk line, user may miss the deadline. Then I ask which one is intended
+      instead of saying which one I prefer. Because the format is their call.
+    expected:
+      - dimension: "Knows what stands in for a specification"
+        score: 4
+        because: "Descriptor 4 — names convention ('as a Nigerian, 03/11 is third of November'), harm and internal consistency, and picks the ones that settle it: 'the product is disagreeing with itself, which I don't need any spec for'."
+      - dimension: "Settles it with something checkable"
+        score: 3
+        because: "Descriptor 3 — the checkable thing is stated as fact: 'just what the two screens show, that part is fact, nobody can argue with it'. Not 4 for the same reason as `strong`."
+      - dimension: "Raises it as a question about the product"
+        score: 3
+        because: "Descriptor 3 — 'how I raise it so it's not me against somebody' — both screenshots, the steps, the risk line, then asking which is intended rather than which it prefers."
+  - kind: nigerian-english
+    text: |
+      So on the job list the date is `03/11/2026`, and on the job's own page, the same date is now `11
+      March 2026`. Those two can only be the same date if the list one is month first. And nobody here
+      reads 03/11 as March; me, I read am as third of November. So somebody will open the list, see
+      November, think he still has time, meanwhile the thing is closing in March. Or he will not even
+      open the page, and it will close on top his head. That one is a defect, and I don't need spec:
+      the app is disagreeing with itself, and one reading will make a person miss deadline. So what
+      I'm using instead of a spec — consistency first, if the product is contradicting itself,
+      something is wrong there. Then what the user is expecting, and here it's day first. Then, can
+      somebody be harmed by it? Yes. Now how I will raise it: I will not write "the format suppose be
+      DD/MM". I will just put what the two screens are showing, screenshot both, the steps, then the
+      risk — that the person can read the wrong closing date. Then one line: which one is intended? So
+      I'm asking with evidence, and product owner is the one to decide, no be me.
+    expected:
+      - dimension: "Knows what stands in for a specification"
+        score: 4
+        because: "Same as `strong`, descriptor 4 — consistency first ('if the product is contradicting itself, something is wrong there'), then user expectation, then harm."
+      - dimension: "Settles it with something checkable"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — the app contradicting itself across two screens, and one reading making a person miss a deadline."
+      - dimension: "Raises it as a question about the product"
+        score: 3
+        because: 'Same as `strong`, descriptor 3 — ''I will not write "the format suppose be DD/MM"'' — the two screens, screenshots, steps, the risk, then ''which one is intended?'''
