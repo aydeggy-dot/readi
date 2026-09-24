@@ -1,0 +1,58 @@
+<script>
+render('d10', 1240, 620, 'What the owner has to provide, and when', 'Nothing external is needed to keep building: the default configuration reaches no paid service. The column that matters is the third — those are the items with sign-up, verification or DNS work behind them.', () => {
+  const cols = [
+    ['Held or generated today', 'nothing to buy', '#15803D', [
+      ['Anthropic API key','already in the worker’s .env'],
+      ['Three local secrets','openssl rand — auth, proxy, worker token'],
+      ['Docker services','Postgres + pgvector, Redis, S3, LiveKit'],
+      ['Fakes that stand in','fake LLM, fake embeddings, console email and SMS'],
+    ]],
+    ['Before milestone M3 finishes', 'the interview engine', '#B45309', [
+      ['Langfuse Cloud, EU region','public key, secret key, host — and a signed data-processing agreement'],
+      ['Approval to spend','a real end-to-end run costs roughly 2–4 cents per 30-minute mock'],
+      ['Ten minutes of your time','look at the interview screen at 360px after phase 4'],
+    ]],
+    ['Before anything goes public', 'these gate a deployment', '#B91C1C', [
+      ['A domain name','used by the app, the sending domain and every OAuth callback'],
+      ['Resend + a verified sending domain','DNS records; the API refuses to start in production on anything else'],
+      ['Termii: key, base URL, sender ID','the sender ID must be approved for the DND route — an approval, not a signup'],
+      ['A real support mailbox','placeholder .invalid addresses are refused in production'],
+      ['Cloudflare R2','bucket, S3 token, plus the CORS rule and the upload-expiry rule'],
+      ['A hosting decision','three services, managed Postgres 16 with pgvector, managed Redis, and an edge that sets a trustworthy client-IP header'],
+      ['Voyage AI key','production refuses the fake embedding provider'],
+      ['Sentry projects · Google OAuth production client'],
+      ['Privacy policy, terms, refund policy','the landing page has nothing to link to'],
+    ]],
+    ['Later milestones', 'M5, M8 and phase 2', '#6B7280', [
+      ['LiveKit Cloud, Deepgram, a text-to-speech vendor','M5 — all billed per minute or per character'],
+      ['Consented Nigerian-accented audio','M5 — a collection task with its own lead time'],
+      ['Paystack','M8 — Nigerian business verification before live keys'],
+      ['Stripe','M8 — USD only at launch'],
+      ['PostHog','M9 — analytics'],
+      ['Meta WhatsApp · app store accounts','phase 2 — business verification, template approval'],
+    ]],
+  ];
+  function wrapText(t, n) { const out=[]; let cur=''; t.split(' ').forEach(w=>{ if((cur+' '+w).trim().length<=n) cur=(cur+' '+w).trim(); else {out.push(cur); cur=w;} }); out.push(cur); return out; }
+  let x = 24;
+  cols.forEach(([h, sub, col, items], ci) => {
+    const w = ci === 2 ? 380 : 268;
+    const wrap = ci === 2 ? 46 : 32;
+    const laid = items.map(([t, d]) => ({ t: wrapText(t, wrap), d: d ? wrapText(d, wrap + 4) : [] }));
+    let hgt = 66;
+    laid.forEach(it => { hgt += 15 * it.t.length + 2 + 14 * it.d.length + 12; });
+    push(`<rect x="${x}" y="8" width="${w}" height="${hgt}" rx="6" fill="#FFFFFF" stroke="${P.border}" stroke-width="1.5"/>`);
+    push(`<rect x="${x}" y="8" width="${w}" height="4" rx="2" fill="${col}"/>`);
+    label(x + 14, 34, h, {anchor:'start', size:13, weight:700, fill:P.ink});
+    label(x + 14, 51, sub, {anchor:'start', size:11, fill:col});
+    let y = 74;
+    laid.forEach(it => {
+      push(`<circle cx="${x + 18}" cy="${y - 4}" r="3" fill="${col}"/>`);
+      it.t.forEach((ln, i) => label(x + 30, y + i*15, ln, {anchor:'start', size:11.5, weight:700, fill:P.ink}));
+      y += 15 * it.t.length + 2;
+      it.d.forEach((ln, i) => label(x + 30, y + i*14, ln, {anchor:'start', size:10.5}));
+      y += 14 * it.d.length + 12;
+    });
+    x += w + 12;
+  });
+});
+</script>

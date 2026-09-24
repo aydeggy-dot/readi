@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="480" viewBox="0 0 1240 480" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">One source of truth for every contract</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Zod schemas in packages/shared-types are the only place a cross-service shape is written by hand. Everything else is generated, committed, and checked for drift by CI.</text></g><g transform="translate(0,50)"><rect x="40" y="130" width="230" height="100" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="155" y="151" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="14" font-weight="650" fill="#374151">packages/shared-types</text>
+<text x="155" y="167" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Zod schemas — written by hand</text>
+<text x="155" y="181.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">11 contract modules</text>
+<text x="155" y="196" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">constants with no Zod, for the browser</text>
+<rect x="346" y="40" width="210" height="76" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="451" y="61" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#374151">JSON Schema</text>
+<text x="451" y="77" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">draft 2020-12</text>
+<text x="451" y="91.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">17 shared definitions</text>
+<rect x="622" y="40" width="230" height="76" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="737" y="61" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#374151">Pydantic models</text>
+<text x="737" y="77" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">generated into the Python worker</text>
+<text x="737" y="91.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">never hand-edited</text>
+<rect x="346" y="236" width="210" height="76" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="451" y="257" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#374151">NestJS DTOs</text>
+<text x="451" y="273" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">the same Zod schemas,</text>
+<text x="451" y="287.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">used at the HTTP boundary</text>
+<rect x="622" y="236" width="230" height="76" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="737" y="257" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#374151">OpenAPI document</text>
+<text x="737" y="273" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">40 paths, 109 components</text>
+<text x="737" y="287.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">exported without a database</text>
+<rect x="918" y="236" width="230" height="76" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="1033" y="257" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#374151">@readi/api-client</text>
+<text x="1033" y="273" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">typed client the web app uses</text>
+<text x="1033" y="287.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">stable error codes, no English copy</text>
+<path d="M 270 160 L 308 160 L 308 78 L 346 78" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<path d="M 270 200 L 308 200 L 308 274 L 346 274" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<path d="M 556 78 L 622 78" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="526.9" y="62" width="124.19999999999999" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="589" y="73.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">datamodel-codegen</text>
+<path d="M 556 274 L 622 274" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="550" y="258" width="78" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="589" y="269.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">nestjs-zod</text>
+<path d="M 852 274 L 918 274" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="819.6" y="258" width="130.8" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="885" y="269.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">openapi-typescript</text>
+<path d="M 852 78 L 900 78" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<text x="910" y="82" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">the worker</text>
+<text x="910" y="100" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">speaks the same shapes</text>
+<rect x="40" y="336" width="1160" height="84" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="60" y="366" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12.5" font-weight="700" fill="#C2410C">pnpm check:contracts</text>
+<text x="210" y="366" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">regenerates both chains and fails on any difference — so a shape cannot change in TypeScript without the Python worker and the web client</text>
+<text x="60" y="390" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">following it in the same commit. CI runs it as its own job. Every generated file is committed, so a reviewer sees the consequence of a contract change in the diff.</text></g></svg>

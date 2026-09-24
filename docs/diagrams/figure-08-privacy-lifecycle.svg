@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="602" viewBox="0 0 1240 602" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">Privacy by construction — consent, export and deletion</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Built and covered by tests since milestone M1, before there was any personal data worth protecting. The Nigeria Data Protection Act 2023 and GDPR were designed for, not retrofitted.</text></g><g transform="translate(0,50)"><rect x="30" y="48" width="206" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="133" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Deletion requested</text>
+<text x="133" y="85" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">a typed confirmation and a</text>
+<text x="133" y="99.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">recent sign-in</text>
+<rect x="266" y="48" width="206" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="369" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Soft delete</text>
+<text x="369" y="85" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">every sign-in method blocked</text>
+<text x="369" y="99.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">immediately</text>
+<rect x="502" y="48" width="206" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="605" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">7-day grace period</text>
+<text x="605" y="85" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">support can cancel it — an</text>
+<text x="605" y="99.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">audited action</text>
+<rect x="738" y="48" width="206" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="841" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Hourly sweep</text>
+<text x="841" y="85" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">erases everything due,</text>
+<text x="841" y="99.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">idempotently</text>
+<rect x="974" y="48" width="236" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="1092" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Tombstone id</text>
+<text x="1092" y="85" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">the rows that must be kept</text>
+<text x="1092" y="99.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">lose the person</text>
+<path d="M 236 88 L 266 88" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<path d="M 472 88 L 502 88" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<path d="M 708 88 L 738 88" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<path d="M 944 88 L 974 88" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<rect x="30" y="162" width="580" height="376" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="181" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">WHAT IS KEPT, AND WHAT IS ERASED</text>
+<circle cx="52" cy="192" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="196" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Erased</text>
+<text x="68" y="213" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">the account, the profile, the CV and its file, the parsed CV,</text>
+<text x="68" y="229" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">consent records, sessions and transcripts.</text>
+<circle cx="52" cy="280" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="284" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Kept without the person</text>
+<text x="68" y="301" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">payments, subscriptions, webhook events, audit logs and AI</text>
+<text x="68" y="317" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">call logs — required records, re-keyed to a tombstone id with</text>
+<text x="68" y="333" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">no foreign key back.</text>
+<circle cx="52" cy="368" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="372" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Never written down at all</text>
+<text x="68" y="389" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">no transcript, CV, email address or phone number reaches an</text>
+<text x="68" y="405" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">application log or an error report. Sentry runs with request</text>
+<text x="68" y="421" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">bodies and stack-frame locals switched off, and there is a</text>
+<text x="68" y="437" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">test for it.</text>
+<circle cx="52" cy="456" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="460" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">A schema test enforces this</text>
+<text x="68" y="477" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">any new column holding a user id that must survive erasure has</text>
+<text x="68" y="493" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">to be listed, or the test fails.</text>
+<rect x="630" y="162" width="580" height="376" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="642" y="181" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">CONSENT, AND THE PARTS STILL TO COME</text>
+<circle cx="652" cy="192" r="3.5" fill="#C2410C"></circle>
+<text x="668" y="196" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Consent is versioned</text>
+<text x="668" y="213" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">four purposes — recording audio, storing recordings, camera</text>
+<text x="668" y="229" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">coaching, marketing. Change the wording and the version bumps;</text>
+<text x="668" y="245" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">decisions on the old version stop counting as granted.</text>
+<circle cx="652" cy="280" r="3.5" fill="#C2410C"></circle>
+<text x="668" y="284" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Camera coaching runs in the browser</text>
+<text x="668" y="301" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">only numeric metrics are ever sent. No raw video leaves the</text>
+<text x="668" y="317" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">device. It is opt-in and it is phase 2.</text>
+<circle cx="652" cy="368" r="3.5" fill="#B45309"></circle>
+<text x="668" y="372" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Still to be wired</text>
+<text x="668" y="389" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">recording retention (default 30 days), Langfuse trace</text>
+<text x="668" y="405" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">retention and erasure — both planned, neither written.</text>
+<text x="668" y="421" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">Langfuse is treated as a personal-data store and needs a</text>
+<text x="668" y="437" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">signed data-processing agreement.</text>
+<circle cx="652" cy="456" r="3.5" fill="#B45309"></circle>
+<text x="668" y="460" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Still owed to launch</text>
+<text x="668" y="477" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">a privacy policy, terms, and a refund policy. None exists; the</text>
+<text x="668" y="493" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">landing page has nothing to link to.</text></g></svg>

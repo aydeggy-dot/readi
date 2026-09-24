@@ -1,0 +1,40 @@
+<script>
+render('d12', 1240, 450, 'The question banks — what exists, and what is still owed', '104 questions and 102 rubrics are written, critiqued and fact-checked. Every one of them is still a draft, and no human expert has reviewed any of it.', () => {
+  const rows = [
+    ['Frontend engineer', 35, 0, 70],
+    ['Backend engineer', 34, 0, 68],
+    ['QA engineer', 35, 74, 74],
+    ['Full-stack engineer', 0, 0, 0],
+  ];
+  label(40, 34, 'Questions written', {anchor:'start', size:12, weight:700, fill:P.ink});
+  label(560, 34, 'Planned follow-up probes', {anchor:'start', size:12, weight:700, fill:P.ink});
+  rows.forEach(([name, q, p, pt], i) => {
+    const y = 60 + i * 52;
+    label(40, y + 18, name, {anchor:'start', size:12, fill:P.ink});
+    const x0 = 210, max = 300, scale = max / 40;
+    push(`<rect x="${x0}" y="${y}" width="${max}" height="24" rx="3" fill="#F3F4F6"/>`);
+    push(`<rect x="${x0}" y="${y}" width="${Math.max(q * scale, 2)}" height="24" rx="3" fill="${q ? '#C2410C' : '#E5E7EB'}"/>`);
+    label(x0 + max + 14, y + 17, q ? `${q}` : 'none of its own — 62 borrowed from other roles', {anchor:'start', size:11.5, fill: q ? P.ink : P.muted});
+    if (!q) return;
+    const x1 = 740, m2 = 280, s2 = m2 / 80;
+    push(`<rect x="${x1}" y="${y}" width="${pt * s2}" height="24" rx="3" fill="#F3F4F6"/>`);
+    push(`<rect x="${x1}" y="${y}" width="${Math.max(p * s2, 1)}" height="24" rx="3" fill="${p ? '#15803D' : '#F3F4F6'}"/>`);
+    if (!p) push(`<rect x="${x1}" y="${y}" width="${pt * s2}" height="24" rx="3" fill="none" stroke="#B45309" stroke-width="1.3" stroke-dasharray="4 3"/>`);
+    label(x1 + pt * s2 + 14, y + 17, p ? `${p} of ${pt} — done` : `0 of ${pt} — retrofit outstanding`, {anchor:'start', size:11.5, fill: p ? P.ok : P.warn});
+  });
+
+  band(30, 276, 580, 160, 'also in the catalogue');
+  [['4 roles','frontend, backend, QA, full-stack'],['3 levels','intern/junior, mid, and a senior level no role offers yet'],['23 stack variants','a question with no tags is general to its role'],['29 topics · 102 rubrics','each rubric has 3–5 weighted criteria and five descriptors']].forEach(([h,b],i)=>{
+    push(`<circle cx="52" cy="${306 + i*32 - 4}" r="3.5" fill="${P.pen}"/>`);
+    label(68, 306 + i*32, h, {anchor:'start', size:12, weight:700, fill:P.ink});
+    label(68 + h.length*7.2 + 12, 306 + i*32, b, {anchor:'start', size:11.5});
+  });
+
+  band(630, 276, 580, 160, 'what is still owed');
+  [['No human review','all 104 questions are marked as a model’s draft'],['138 probes to retrofit','frontend and backend, to the shape the QA pilot settled'],['3 tracks for 8 role-level pairs','five combinations return "no track" — lessons work, M7'],['16 of 94 blueprint targets unmet','reported by the offline checker on every run']].forEach(([h,b],i)=>{
+    push(`<circle cx="652" cy="${306 + i*32 - 4}" r="3.5" fill="${P.warn}"/>`);
+    label(668, 306 + i*32, h, {anchor:'start', size:12, weight:700, fill:P.ink});
+    label(668, 306 + i*32 + 15, b, {anchor:'start', size:11});
+  });
+});
+</script>

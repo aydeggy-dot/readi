@@ -1,0 +1,36 @@
+<script>
+render('d5', 1240, 600, 'How content is created, reviewed and published', 'Built and in use today. Roles, levels, stacks, tracks, lessons, rubrics and questions all carry the same workflow — which is why adding a new role is a content task, never a migration.', () => {
+  const seed = box({x:50,y:52,w:180,h:86,title:'/content/seed/*.yaml',lines:['written from a blueprint','author: ai_draft | human','linked by slug'],ts:13});
+  const imp  = box({x:250,y:52,w:180,h:86,title:'pnpm db:seed',lines:['idempotent importer','skips what is unchanged','never publishes or deletes'],ts:13});
+  const d    = box({x:450,y:64,w:160,h:62,title:'draft',lines:['the expert writes'],state:'ext',ts:14});
+  const r    = box({x:630,y:64,w:160,h:62,title:'in_review',lines:['the expert submits'],state:'ext',ts:14});
+  const p    = box({x:810,y:64,w:160,h:62,title:'published',lines:['an admin publishes'],state:'accent',ts:14});
+  const rt   = box({x:990,y:64,w:160,h:62,title:'retired',lines:['an admin retires'],state:'ext',ts:14});
+  arrow(seed.right, 95, imp.left, 95, {color:'mute'});
+  arrow(imp.right, 95, d.left, 95, {color:'mute'});
+  arrow(d.right, 95, r.left, 95, {color:'pen'});
+  arrow(r.right, 95, p.left, 95, {color:'pen'});
+  arrow(p.right, 95, rt.left, 95, {color:'pen'});
+  label(1150, 150, 'a transition is not an edit', {anchor:'end', size:10.5, style:'italic'});
+
+  band(30, 174, 1180, 122, 'every mutation is one database transaction');
+  box({x:52,y:202,w:360,h:72,title:'the row itself',lines:['the new values'],state:'ext',ts:13});
+  box({x:438,y:202,w:360,h:72,title:'content_versions',lines:['a snapshot of what it was,','children included'],state:'ext',ts:13});
+  box({x:824,y:202,w:360,h:72,title:'audit_logs',lines:['who, what, which status to which —','ids and enums, never prose'],state:'ext',ts:13});
+
+  band(30, 316, 1180, 250, 'the rules that hold it together');
+  const rules = [
+    ['Only published content reaches a candidate','and dependencies count: a lesson also needs its track published, a question its rubric.'],
+    ['Candidate responses never carry the answer key','a test walks every candidate route in the OpenAPI document and checks the raw JSON for rubrics, criteria, descriptors, ideal points and planned follow-ups.'],
+    ['The files create; the CMS owns','every row carries seed_managed — true while the seed file is its source, false from the first save in the CMS. The importer then leaves it alone and names it in its report.'],
+    ['A model’s draft cannot be published unreviewed in production','the importer marks it; production refuses unless an admin explicitly acknowledges, which the audit entry records. A typo fix is not a review, so saving an edit never clears the mark.'],
+    ['Publishing a question embeds it','the prompt and context go to the worker and the 1024-dimension vector is stored with the model that made it. A near-duplicate is a warning, never a refusal.'],
+  ];
+  rules.forEach(([h,b],i)=>{
+    const y = 348 + i*44;
+    push(`<circle cx="52" cy="${y-4}" r="3.5" fill="${P.pen}"/>`);
+    label(68, y, h, {anchor:'start', size:12, weight:700, fill:P.ink});
+    label(68, y+17, b, {anchor:'start', size:11.5});
+  });
+});
+</script>

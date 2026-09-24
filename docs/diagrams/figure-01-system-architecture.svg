@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="850" viewBox="0 0 1240 850" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">Readi — system architecture</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Solid boxes are built and tested today; dashed boxes are planned. Only the API reaches the database (ADR-0004); every AI provider call is made by the worker.</text></g><g transform="translate(0,50)"><rect x="30" y="8" width="1180" height="96" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="27" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">CLIENTS</text>
+<rect x="60" y="32" width="470" height="45" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="295" y="53" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Candidate browser — installable PWA</text>
+<text x="295" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Next.js pages · forms · (M5) LiveKit voice client</text>
+<rect x="700" y="32" width="470" height="45" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="935" y="53" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Staff browser — /admin CMS</text>
+<text x="935" y="69" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">server-rendered; filtering and paging need no JavaScript</text>
+<rect x="30" y="132" width="1180" height="340" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="151" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">OUR SERVICES — THIS REPOSITORY</text>
+<rect x="60" y="158" width="660" height="76" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="390" y="179" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">apps/web — Next.js (App Router, TypeScript)</text>
+<text x="390" y="195" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">pages resolve the user on the server: requireUser / requireOnboarded / requireAdmin</text>
+<text x="390" y="209.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">calls the API through @readi/api-client, generated from the OpenAPI document</text>
+<rect x="671" y="150" width="43" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="692.5" y="161.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">BUILT</text>
+<rect x="60" y="280" width="660" height="176" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="390" y="301" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">apps/api — NestJS · the only service with database access</text>
+<text x="390" y="317" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280"></text>
+<rect x="671" y="272" width="43" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="692.5" y="283.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">BUILT</text>
+<rect x="790" y="280" width="390" height="176" rx="5" fill="#FFFFFF" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="985" y="301" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">apps/ai-worker — Python 3.12 / FastAPI</text>
+<text x="985" y="317" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">provider adapters behind interfaces</text>
+<text x="985" y="331.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">versioned Jinja2 prompts, injection-hardened</text>
+<text x="985" y="346" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">no database access, service-token gated</text>
+<text x="985" y="360.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">today: CV parse + embeddings only</text>
+<rect x="1100" y="272" width="74" height="16" rx="8" fill="#FFFFFF" stroke="#B45309" stroke-width="1.2"></rect>
+<text x="1137" y="283.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#B45309">PART BUILT</text>
+<text x="76" y="322" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">Modules — orange = shipped, grey = planned</text>
+<rect x="76" y="332" width="45.6" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="98.8" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">auth</text>
+<rect x="128.6" y="332" width="52.5" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="154.85" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">users</text>
+<rect x="188.1" y="332" width="73.2" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="224.7" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">profiles</text>
+<rect x="268.3" y="332" width="73.2" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="304.90000000000003" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">consents</text>
+<rect x="348.5" y="332" width="31.8" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="364.4" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">cv</text>
+<rect x="387.3" y="332" width="66.30000000000001" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="420.45000000000005" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">content</text>
+<rect x="460.6" y="332" width="66.30000000000001" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="493.75" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">account</text>
+<rect x="533.9000000000001" y="332" width="52.5" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="560.1500000000001" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">admin</text>
+<rect x="593.4000000000001" y="332" width="59.400000000000006" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="623.1000000000001" y="347" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">health</text>
+<rect x="76" y="360" width="66.30000000000001" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="109.15" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">storage</text>
+<rect x="149.3" y="360" width="80.1" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="189.35000000000002" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">ai-worker</text>
+<rect x="236.4" y="360" width="73.2" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="273" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">ai-calls</text>
+<rect x="316.6" y="360" width="52.5" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="342.85" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">audit</text>
+<rect x="376.1" y="360" width="107.7" height="22" rx="11" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.1"></rect>
+<text x="429.95000000000005" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">notifications</text>
+<rect x="490.8" y="360" width="73.2" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="527.4" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">sessions</text>
+<rect x="571" y="360" width="93.9" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="617.95" y="375" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">evaluations</text>
+<rect x="76" y="388" width="80.1" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="116.05" y="403" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">readiness</text>
+<rect x="163.1" y="388" width="52.5" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="189.35" y="403" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">plans</text>
+<rect x="222.6" y="388" width="66.30000000000001" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="255.75" y="403" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">billing</text>
+<rect x="295.9" y="388" width="73.2" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="332.5" y="403" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">feedback</text>
+<rect x="376.09999999999997" y="388" width="45.6" height="22" rx="11" fill="#FAFAFA" stroke="#B0B6BE" stroke-width="1.1" stroke-dasharray="4 3"></rect>
+<text x="398.9" y="403" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#9CA3AF">orgs</text>
+<rect x="30" y="496" width="1180" height="104" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="515" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">STATE — OWNED BY THE API</text>
+<rect x="60" y="520" width="330" height="45" rx="5" fill="#EEF2F7" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="225" y="541" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">PostgreSQL 16 + pgvector</text>
+<text x="225" y="557" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">28 Prisma models · 12 migrations</text>
+<rect x="420" y="520" width="230" height="45" rx="5" fill="#EEF2F7" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="535" y="541" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">Redis</text>
+<text x="535" y="557" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">queues · rate limits</text>
+<rect x="680" y="520" width="330" height="45" rx="5" fill="#EEF2F7" stroke="#4B5563" stroke-width="1.6"></rect>
+<text x="845" y="541" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13.5" font-weight="650" fill="#374151">S3-compatible object storage</text>
+<text x="845" y="557" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">SeaweedFS local · Cloudflare R2 in production</text>
+<rect x="30" y="626" width="1180" height="156" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="645" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">THIRD PARTIES</text>
+<line x1="700" y1="640" x2="700" y2="770" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="4 4"></line>
+<text x="66" y="658" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="600" fill="#6B7280">reached by the API</text>
+<text x="722" y="658" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="600" fill="#6B7280">reached by the worker</text>
+<rect x="62" y="666" width="162" height="48" rx="5" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.3"></rect>
+<text x="143" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#374151">Better Auth + Google</text>
+<text x="143" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">sign-in</text>
+<rect x="234" y="666" width="110" height="48" rx="5" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.3"></rect>
+<text x="289" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#374151">Resend</text>
+<text x="289" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">email</text>
+<rect x="354" y="666" width="112" height="48" rx="5" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.3"></rect>
+<text x="410" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#374151">Termii</text>
+<text x="410" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">SMS / OTP</text>
+<rect x="476" y="666" width="96" height="48" rx="5" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.3"></rect>
+<text x="524" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#374151">Sentry</text>
+<text x="524" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">errors</text>
+<rect x="582" y="666" width="100" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="632" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">PostHog</text>
+<text x="632" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">analytics</text>
+<rect x="62" y="726" width="120" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="122" y="747" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">Paystack</text>
+<text x="122" y="763" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">checkout NGN</text>
+<rect x="192" y="726" width="120" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="252" y="747" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">Stripe</text>
+<text x="252" y="763" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">checkout USD</text>
+<rect x="322" y="726" width="140" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="392" y="747" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">Meta WhatsApp</text>
+<text x="392" y="763" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">reminders (P2)</text>
+<rect x="718" y="666" width="110" height="48" rx="5" fill="#F3F4F6" stroke="#9CA3AF" stroke-width="1.3"></rect>
+<text x="773" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#374151">Anthropic</text>
+<text x="773" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">LLM</text>
+<rect x="838" y="666" width="120" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="898" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">Voyage AI</text>
+<text x="898" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">embeddings</text>
+<rect x="968" y="666" width="120" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="1028" y="687" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">Langfuse</text>
+<text x="1028" y="703" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">LLM tracing</text>
+<rect x="718" y="726" width="130" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="783" y="747" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">Deepgram</text>
+<text x="783" y="763" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">speech-to-text</text>
+<rect x="858" y="726" width="130" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="923" y="747" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">ElevenLabs</text>
+<text x="923" y="763" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">text-to-speech</text>
+<rect x="998" y="726" width="130" height="48" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="1063" y="747" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="650" fill="#6B7280">LiveKit</text>
+<text x="1063" y="763" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">real-time media</text>
+<path d="M 295 77 L 250 158" fill="none" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"></path>
+<rect x="250" y="109.5" width="45" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="272.5" y="121" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">HTTPS</text>
+<path d="M 935 77 L 570 158" fill="none" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"></path>
+<rect x="730" y="109.5" width="45" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="752.5" y="121" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">HTTPS</text>
+<path d="M 390 234 L 390 280" fill="none" stroke="#C2410C" stroke-width="1.8" marker-end="url(#ap)"></path>
+<rect x="298.2" y="249" width="183.6" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="390" y="260.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">REST /api · session cookie</text>
+<path d="M 160 456 L 185 520" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<rect x="124.2" y="487" width="51.599999999999994" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="150" y="498.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">Prisma</text>
+<path d="M 400 456 L 535 520" fill="none" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"></path>
+<path d="M 640 456 L 805 520" fill="none" stroke="#4B5563" stroke-width="1.5" marker-end="url(#a)"></path>
+<rect x="647.8" y="487" width="104.39999999999999" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="700" y="498.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">presigned URLs</text>
+<path d="M 720 300 L 790 300" fill="none" stroke="#C2410C" stroke-width="1.5" marker-end="url(#ap)"></path>
+<rect x="709.4" y="284" width="91.19999999999999" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="755" y="295.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#C2410C">Bearer token</text>
+<path d="M 790 430 L 720 430" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="650" y="442" width="210" height="15" rx="3" fill="#FFFFFF" opacity="0.95"></rect>
+<text x="755" y="453.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" fill="#6B7280">typed events + AI-call records</text>
+<path d="M 300 458 L 300 612 L 300 612 L 300 666" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ag)"></path>
+<path d="M 985 456 L 985 612 L 900 612 L 900 666" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ag)"></path></g></svg>
