@@ -98,6 +98,27 @@ generalist reviewer.` The seed contract has no field for this and does not need 
   YAML comment at the top of `questions.yaml` which said, in so many words, that the seed format had
   nowhere to put it. It has somewhere: the descriptor of every criterion that asks for recall, access
   or standing. A promise the model cannot read is not a promise.
+- **A criterion that assumes a workplace needs a route for someone without one** (owner's decision,
+  2026-09-24, after the frontend retrofit). Count the protective clauses in the file you are writing:
+  `rubrics.shared.yaml` has eleven across thirty criteria and `frontend/rubrics.yaml` had **two**
+  across ninety. That asymmetry was survivable while a prompt asked three things at once and a
+  candidate could answer around the criterion they had no standing to answer. **Planned follow-ups
+  remove that escape route by design** — every criterion is now asked by name, of the candidate who
+  did not volunteer it, with no second chance — so a criterion that quietly assumes a colleague, an
+  employer or a paid tool is a fairness bug pointed at the bootcamp graduate this bank is written
+  for. The worst example found: `help-seeking-judgement` criterion 3, 40% of its question, scoring
+  "judgement about when to ask" with no route above level 0 for a candidate who has never had anyone
+  to ask. **Where the act itself is the criterion, widen what counts as the act** rather than
+  excusing its absence: asking includes posting in a community, finding someone who hit the same
+  error, a Discord or WhatsApp group, an issue thread. Recognising you are stuck and reaching outward
+  is the signal; a colleague is one way to do it, not the thing being scored.
+- **A level descriptor defined by the absence of what a probe supplies is unreachable.** Three
+  frontend descriptors were made dead by the format itself: `state-placement-reasoning` criterion 2
+  level 1 is "notices the duplication **only when prompted**", and the probe _is_ the prompting, so
+  every candidate reached by it caps at 1 on a 30% criterion. `url-state-reasoning` criterion 3 and
+  `client-boundary-reasoning` criterion 2 have level 0s defined by not having been told the thing the
+  probe tells them. After writing a probe, read its criterion's level 0 and level 1 and ask whether
+  the probe has just made them impossible.
 
 ## House style
 
@@ -160,6 +181,19 @@ criterion worth 40% or more. The fix is to narrow the opening until it asks one 
 hope. Where the opening genuinely cannot be narrowed, the question needs a probe on every criterion
 and the skill's "one per criterion the prompt does not ask" stops being enough — say so in
 `reviewer_notes` rather than shipping the gap.
+
+**A prompt cut to its first clause is not a prompt cut to its first criterion.** This is the check to
+run first when retrofitting a bank, and it is the defect all four critique passes on the frontend
+retrofit found from different directions. Deleting the trailing clauses of a triple-barrelled prompt
+is the obvious move and it was right in 22 of 35 questions — but in six the criterion left without a
+probe was then **not** the one the opening asked, and because it has no probe there is no recovery by
+construction. `fetch-failure-states` asked "everything that screen has to handle", which any of its
+three criteria answers. `what-to-test-on-a-login-screen` asked for the subjects of tests while the
+un-probed criterion was about how a test is written. `stuck-and-asked-for-help` lost the word
+"asked", so both probes presumed a story the candidate may never have told. Per question: name the
+criterion the opening asks, check it is the one without a probe, and check nothing else answers the
+opening as well. `check-bank.mjs` cannot do this — it counts asks and probes and cannot tell which
+criterion an opening names.
 
 **Ask the criterion in the order the work happens.** A probe about what the candidate would decide
 _before starting_ cannot follow an answer describing what they did. Two QA questions had the plan

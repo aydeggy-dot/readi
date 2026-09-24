@@ -1531,7 +1531,10 @@ shared-types tests.
 - [x] Ten probes handed over what their criterion scores; reworded.
 - [x] Five criteria that score two separable things gained a second probe (ten in total now).
 
-### Open — for the owner, and none of it a question change
+### Decided by the owner, 2026-09-24 — `docs/progress/2026-09-24-frontend-probes.md`
+
+All four were decided the same day. The detail and the reasoning are in the handover; what follows is
+the work each one leaves, and none of it is a question change.
 
 1. **Six frontend descriptors need a fairness clause.** `frontend/rubrics.yaml` carries **two**
    protective clauses across ninety criteria; `rubrics.shared.yaml` carries eleven. The
@@ -1555,7 +1558,17 @@ shared-types tests.
    fixes the ambush the probes were creating, and it is a **shared** rubric used by four banks —
    the descriptor fix in (1) is what makes it fair rather than merely coherent.
 
-### Next
+### Next, in this order
 
-- [ ] Backend (68 probes), to the rules above — including the mis-aim check the frontend pass added.
+- [ ] **The six fairness clauses and the three dead descriptors** (decision 2), starting with
+      `help-seeking-judgement` criterion 3, and widening what counts as asking so
+      `stuck-and-asked-for-help` is fair as well as coherent (decision 1). Changing a descriptor
+      moves scoring, so this needs its own `check-stress.mjs` run.
+- [ ] **Check QA and backend for the same two gaps** — criteria that assume a workplace, and level 0
+      or 1 descriptors the probe has made unreachable.
+- [ ] **Backend (68 probes)**, opening with the mis-aim check (decision 5): per question, name the
+      criterion the opening asks and check it is the one without a probe.
 - [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.
+
+Done 2026-09-24: `error-only-in-production`'s opening tightened (decision 3); five uncertain probes
+flagged in `reviewer_notes` rather than changed (decision 4); three rules added to `SKILL.md`.

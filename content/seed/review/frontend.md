@@ -245,7 +245,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Their signal drops halfway through and the request never comes back — what then?
 
-> **The drafter is unsure about:** This is deliberately open rather than a puzzle, so a candidate who has built a real screen does well and one who has memorised trivia does not. The risk is that it rewards talkers. Does the rubric weight (40% on HTTP error handling) put enough of the score on the one thing that is objectively right or wrong? The prompt now says "what the code actually has to check", because without it the wording pointed candidates at spinners and empty states and then scored them on `response.ok`. A reviewer also suggested this would be stronger as a code review — a happy-path component with the missing status check in it — which would make that 40% something the candidate finds rather than recalls. Worth doing?
+> **The drafter is unsure about:** This is deliberately open rather than a puzzle, so a candidate who has built a real screen does well and one who has memorised trivia does not. The risk is that it rewards talkers. Does the rubric weight (40% on HTTP error handling) put enough of the score on the one thing that is objectively right or wrong? The prompt now says "what the code actually has to check", because without it the wording pointed candidates at spinners and empty states and then scored them on `response.ok`. A reviewer also suggested this would be stronger as a code review — a happy-path component with the missing status check in it — which would make that 40% something the candidate finds rather than recalls. Worth doing? The 500 follow-up is deliberately open so that it does not hand over that `fetch` resolves — is it too open to score criterion 2 cleanly?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -313,7 +313,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Six months from now, what about that decision is most likely to annoy whoever is working on this page?
 
-> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
+> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three. The cost probe is the drafter’s least certain in this bank: does "annoy" invite analysis or complaint?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -826,7 +826,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > What would you look at to settle it?
 
 > **The drafter is unsure about:** This is the general version of `react-state-placement`, written so that a Vue, Angular or vanilla candidate meets the idea too — until now every question on this topic was React-tagged. Is "derive rather than store" a fair expectation at intern-junior, or is the honest junior answer "I would keep a count variable and update it", which I have put at level 2?
-> The opening and the first probe were swapped after the critique passes: the rubric runs diagnosis then design, and asking for the design first left the diagnosis being asked about a page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the recalculation matters here, and how they would find out — so it carries two follow-ups.
+> The opening and the first probe were swapped after the critique passes: the rubric runs diagnosis then design, and asking for the design first left the diagnosis being asked about a page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the recalculation matters here, and how they would find out — so it carries two follow-ups. The swap of opening and first probe is the drafter’s call, not a reviewer’s — is the diagnosis the right opening here?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1423,7 +1423,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > What do those messages actually say?
 
 > **The drafter is unsure about:** I have deliberately not asked for attribute names, because reciting `aria-describedby` is not the skill and a candidate who has built accessible forms in a framework may never have typed it. The rubric rewards the behaviour and treats naming the mechanism as level 4. Is that the right way round for an interview here, where a lot of people learned from framework docs?
-> Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes somewhere useful — so it carries two follow-ups.
+> Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes somewhere useful — so it carries two follow-ups. Is "how do they find out which ones?" enough of an opening at difficulty 3, or still too thin?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1634,7 +1634,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > How would you go about seeing it for yourself?
 
 > **The drafter is unsure about:** Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not working", with nothing else, and a critique pass called it the lowest-discrimination question in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a real report, so the answer has to contain a hypothesis and not only a list of questions. Is one device working and another not too strong a hint? **It now carries `qa` as well** (2026-09-23): its own note asked whether one question should serve all three roles, and the answer was yes — nothing in it is about the browser, and a QA copy would have been the same question with a second slug to keep in step. Its rubric moved to `rubrics.shared.yaml`. Is the answer key missing the triage half — how often, how many users, what severity — or does that belong to `two-bugs-one-slot` in the QA bank?
-> Opening and first probe swapped after the critique passes, so the looking comes before the asking.
+> Opening and first probe swapped after the critique passes; nobody has reviewed the swap.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1650,7 +1650,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This is what the tool that collects errors from real users is showing you. It never happens on your machine. What do you do with this?
+> This is what the tool that collects errors from real users is showing you. It never happens on your machine. What do you do with that stack trace?
 
 **Setup the candidate is given**
 
@@ -1714,7 +1714,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > You have found the line — what actually needs fixing?
 
-> **The drafter is unsure about:** The trace is realistic but it is also the most common error message in JavaScript, which may make the question feel like a quiz about that one message rather than about method. Would you rather it were an error the candidate has to reason about from scratch? The fields the tool shows are now listed in the question, because 45% of the score was on using them and a candidate who has never had such a tool was being scored on their employer rather than on their reasoning.
+> **The drafter is unsure about:** The trace is realistic but it is also the most common error message in JavaScript, which may make the question feel like a quiz about that one message rather than about method. Would you rather it were an error the candidate has to reason about from scratch? The fields the tool shows are now listed in the question, because 45% of the score was on using them and a candidate who has never had such a tool was being scored on their employer rather than on their reasoning. Opening tightened 2026-09-24 to ask the un-probed criterion and nothing else; criterion 2 carries 45% and has a follow-up, so answering the prompt literally is not penalised.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2593,7 +2593,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > What did you not know then that you know now?
 
 > **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
-> Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups.
+> Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

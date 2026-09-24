@@ -145,6 +145,8 @@ questions:
       them on `response.ok`. A reviewer also suggested this would be stronger as a code review — a
       happy-path component with the missing status check in it — which would make that 40% something
       the candidate finds rather than recalls. Worth doing?
+      The 500 follow-up is deliberately open so that it does not hand over that `fetch` resolves —
+      is it too open to score criterion 2 cleanly?
 
   - slug: react-state-placement
     roles: [frontend, fullstack]
@@ -184,6 +186,8 @@ questions:
       **is the React tag right when the prompt reads framework-neutral** — untagging it would give
       Vue, Angular and vanilla candidates a question on state ownership they never see now, at the
       price of taking `react-typescript` below its blueprint target of three.
+      The cost probe is the drafter’s least certain in this bank: does "annoy" invite analysis or
+      complaint?
 
   - slug: react-unnecessary-effect
     roles: [frontend, fullstack]
@@ -470,6 +474,8 @@ questions:
       diagnosis then design, and asking for the design first left the diagnosis being asked about a
       page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the
       recalculation matters here, and how they would find out — so it carries two follow-ups.
+      The swap of opening and first probe is the drafter’s call, not a reviewer’s — is the diagnosis
+      the right opening here?
   - slug: url-as-state
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -757,6 +763,7 @@ questions:
 
       Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes
       somewhere useful — so it carries two follow-ups.
+      Is "how do they find out which ones?" enough of an opening at difficulty 3, or still too thin?
   - slug: what-to-test-on-a-login-screen
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -861,8 +868,7 @@ questions:
       missing the triage half — how often, how many users, what severity — or does that belong to
       `two-bugs-one-slot` in the QA bank?
 
-      Opening and first probe swapped after the critique passes, so the looking comes before the
-      asking.
+      Opening and first probe swapped after the critique passes; nobody has reviewed the swap.
   - slug: error-only-in-production
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -872,7 +878,7 @@ questions:
     difficulty: 3
     prompt: >-
       This is what the tool that collects errors from real users is showing you. It never happens on
-      your machine. What do you do with this?
+      your machine. What do you do with that stack trace?
     context: |
       ```
       TypeError: Cannot read properties of undefined (reading 'name')
@@ -904,6 +910,8 @@ questions:
       shows are now listed in the question, because 45% of the score was on using them and a
       candidate who has never had such a tool was being scored on their employer rather than on
       their reasoning.
+      Opening tightened 2026-09-24 to ask the un-probed criterion and nothing else; criterion 2
+      carries 45% and has a follow-up, so answering the prompt literally is not penalised.
 
   # ---------------------------------------------------------------------------------------------
   # Stack-tagged questions: round two of the review. Each is here because it would be unfair or
@@ -1426,6 +1434,7 @@ questions:
 
       Criterion 3 scores two things at 30% — something specific they would do differently, and why
       they did not know it then — so it carries two follow-ups.
+      Does the second follow-up just re-ask the first?
   - slug: vanilla-dom-as-the-source-of-truth
     roles: [frontend]
     levels: [intern-junior, mid]
