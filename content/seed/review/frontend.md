@@ -290,7 +290,7 @@ _Asked for by the opening prompt; no planned follow-up._
 Derives what can be derived; does not keep two copies that have to be kept in step.
 
 - **0 (absent):** Copies the same value into several places — without noticing, or defending it as an optimisation.
-- **1 (weak):** Notices the duplication only when prompted.
+- **1 (weak):** Keeps both copies and proposes keeping them in step — passing the title down as well and updating it alongside the id.
 - **2 (partial):** Avoids duplication in the example but cannot generalise the rule.
 - **3 (solid):** States the rule — one source of truth, derive the rest during render.
 - **4 (excellent):** As 3, with an example of what goes wrong when it is broken (values drifting apart).
@@ -505,12 +505,12 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **Separates network from CPU — 30%**
 
-Knows that bytes and main-thread time are different budgets that fail differently, and works out which one this is.
+Bytes and main-thread time are different budgets that fail differently. Scored on telling them apart and on knowing what would settle it, never on having used a particular tool: describing what to look at counts the same as naming the panel.
 
 - **0 (absent):** Treats "slow" as one undifferentiated thing.
 - **1 (weak):** Settles on one of the two without checking — usually the network, sometimes argued as a rule that it is always the network.
 - **2 (partial):** Mentions both but does not say how to tell them apart.
-- **3 (solid):** Reads the waterfall and the main thread and says which dominates here.
+- **3 (solid):** Says what would settle which dominates here — the waterfall for bytes and round trips, the main thread for long tasks — whether or not they name the tool.
 - **4 (excellent):** As 3, and knows a mid-range phone's CPU is often the binding constraint, not bandwidth.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
@@ -557,7 +557,8 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 - One specific occasion, with the detail an outsider needs to follow it.
 - What they tried before asking — what each attempt ruled out, not just that they searched.
 - How they asked — what they had tried, what they expected, what happened instead.
-- Whether asking was easy or hard where they were, and what they did about that.
+- Who or what they reached out to. A colleague, a mentor, a community, a Discord or WhatsApp group, an issue thread — all of them count, and none of them counts more than another.
+- Whether asking was easy or hard wherever they had to ask, and what they did about that.
 - What they do differently now, stated concretely.
 
 **Rubric: Judgement about when to ask for help** (`help-seeking-judgement`)
@@ -590,19 +591,19 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **Judgement about when to ask — 40%**
 
-Why they asked when they did. The decision can show in the story rather than be stated. Scored on the judgement, never on the hours — a team that treats asking as weakness is a fact about the workplace, not a fault in the candidate.
+Why they asked when they did. The decision can show in the story rather than be stated. Scored on the judgement, never on the hours and never on having had a colleague — a team that treats asking as weakness, or no team at all, is a fact about the candidate's circumstances and not a fault in them.
 
-- **0 (absent):** No decision about their own asking — not treated as a decision at all, or a lesson drawn about the team's process instead.
+- **0 (absent):** No decision about their own asking — not treated as a decision at all, or a lesson drawn about somebody else's process instead.
 - **1 (weak):** A rule with nothing behind it ("I always try for an hour first").
 - **2 (partial):** Says they waited or asked, with no reason tied to what was at stake or what they had ruled out.
-- **3 (solid):** The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why.
-- **4 (excellent):** As 3, and says what made asking easy or hard where they were, and how they worked with or around that.
+- **3 (solid):** The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why. Asking is reaching outward by whatever route was open — a colleague, a community, a group chat, an issue thread.
+- **4 (excellent):** As 3, and says what made asking easy or hard wherever they had to ask — a team, a group chat, a thread of strangers — and how they worked with or around that.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
 > What made that the moment you stopped trying on your own?
 
-> **The drafter is unsure about:** Reworked 2026-09-22. It used to ask "how long did you spend before you asked for help" and be scored by the shared behavioural rubric — so the part a candidate would agonise over was worth nothing, and the judgement the question exists to test had nowhere to be scored. It now has its own rubric, and the timing criterion asks what made asking easy or hard **on that team** rather than treating three days as a failure: in a workplace where asking early reads as weakness, the honest answer was being scored as the candidate's fault. "Properly stuck" is now "really stuck" — the first is a British intensifier that reads oddly spoken aloud. Does the question still sound like a trap to you, and is 40% on the timing judgement too much?
+> **The drafter is unsure about:** Reworked 2026-09-22. It used to ask "how long did you spend before you asked for help" and be scored by the shared behavioural rubric, so the judgement the question exists to test had nowhere to be scored. It now has its own rubric, and the timing criterion asks what made asking easy or hard **where they had to ask** rather than treating three days as a failure. Widened 2026-09-24 (owner's decision): criterion 3 used to score the judgement of a candidate who had a colleague to turn to, which most candidates here become only once they are hired. Asking is now defined in the rubric as reaching outward by whatever route was open — a community, a group chat, an issue thread. **The widening is in the rubric, not in the opening**, which still says "asking someone for help". Should it say so aloud too, so a self-taught candidate does not hear a question about a workplace they have not had? And is 40% on the timing judgement too much?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -884,7 +885,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Ephemeral interface state — an open menu, an unsent draft — is not a URL concern.
 
-- **0 (absent):** Would put everything in the URL, or nothing.
+- **0 (absent):** Draws no line — names nothing that would stay out of the link, or would keep the filter itself out of it.
 - **1 (weak):** Gives no principle for deciding.
 - **2 (partial):** Offers a rule of thumb that does not survive an example.
 - **3 (solid):** Draws the line at what someone else opening the link should see.
@@ -1055,12 +1056,12 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **Tests with real content — 25%**
 
-Deliberately trying the worst content available rather than the sample you built against.
+Deliberately trying the worst content rather than the sample you built against. Scored on going looking for what breaks it, never on having production data to look in: inventing the worst case counts the same as pulling it from a live database.
 
 - **0 (absent):** Nothing left to test — the sample data is assumed representative, or the geometry is treated as a guarantee.
 - **1 (weak):** Would wait for a bug report.
 - **2 (partial):** Says they would "test with different data" without saying which.
-- **3 (solid):** Describes trying the longest, the shortest and the missing, before it ships.
+- **3 (solid):** Describes trying the longest, the shortest and the missing — found or invented — before anyone else sees it.
 - **4 (excellent):** As 3, and names a case where their own approach would be the wrong call — where truncating hides something the user needed.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
@@ -1340,12 +1341,12 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **Separates looks from meaning — 25%**
 
-That styling was never the reason to avoid a button.
+That styling was never the reason to avoid a button. Scored on knowing the element is chosen for what it means and styled afterwards, never on whether they had the standing to say so: a junior told to match a mockup exactly is describing their workplace, not their understanding.
 
 - **0 (absent):** Not addressed — the answer says nothing about why a div was used or whether it had to be.
-- **1 (weak):** Believes a button could not have been styled this way, or accepts the div because "the design needed it".
+- **1 (weak):** Treats the visual design as the reason the element could not be a button — a button could not have been styled this way.
 - **2 (partial):** Says a button can be styled, without addressing why the div was chosen.
-- **3 (solid):** States that the element is chosen for what it means and then styled to match the design.
+- **3 (solid):** States that the element is chosen for what it means and then styled to match the design — including someone who says they would have had to take that up with whoever owned the design.
 - **4 (excellent):** As 3, and names the one or two resets that make a button look like anything.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
@@ -1533,12 +1534,12 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **Knows what it costs — 25%**
 
-A suite that cries wolf stops being read, which is worse than having no suite.
+A suite that cries wolf stops being read, which is worse than having no suite. Scored on the cost they can name, never on having lived it — a candidate reasoning it out from a course project, or from first principles, is scored the same as one describing a team they were on.
 
 - **0 (absent):** Sees no cost — an inconvenience, or the safety net doing its job.
 - **1 (weak):** Says it "wastes time" and nothing more.
 - **2 (partial):** Mentions that people start ignoring failures.
-- **3 (solid):** Says the team loses trust in the suite and begins skipping or deleting tests.
+- **3 (solid):** Says the suite stops being trusted — failures go unread, and tests get skipped or deleted.
 - **4 (excellent):** As 3, and notes that the refactor itself gets avoided next time, which is the real cost.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
@@ -1849,7 +1850,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 More JavaScript on a phone, and server rendering given up for the whole page.
 
-- **0 (absent):** Sees no cost.
+- **0 (absent):** Names no cost — the rest of the page is no different, or the answer is about what the button can now do rather than about what the page pays for it.
 - **1 (weak):** Says it is "less efficient" with nothing behind it.
 - **2 (partial):** Names bundle size alone.
 - **3 (solid):** Names the extra JavaScript and the loss of server rendering for the list.
@@ -1946,13 +1947,13 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **Treats a leaked key as leaked — 30%**
 
-Rotating it, and finding out whether it was used, rather than quietly removing it.
+Rotating it, and finding out whether it was used, rather than quietly removing it. Scored on treating the key as out and on knowing what has to happen next, never on holding the credentials themselves — saying whose account it is and what they would ask for counts the same as doing it.
 
 - **0 (absent):** Does not treat the key as out — not considered, or argued to be safe because it was never committed anywhere public.
 - **1 (weak):** Removes it from the code and considers the matter closed.
 - **2 (partial):** Says it "should probably be rotated" with no follow-through.
-- **3 (solid):** Rotates the key, and checks the provider's usage for calls that were not ours.
-- **4 (excellent):** As 3, and checks the deployed bundles and the history for how long it was exposed.
+- **3 (solid):** Gets the key rotated and the provider's usage checked for calls that were not ours — doing it, or saying who has to and by when.
+- **4 (excellent):** As 3, and wants the deployed bundles and the history checked for how long it was exposed.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 

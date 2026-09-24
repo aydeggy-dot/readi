@@ -328,7 +328,10 @@ questions:
       - One specific occasion, with the detail an outsider needs to follow it.
       - What they tried before asking — what each attempt ruled out, not just that they searched.
       - How they asked — what they had tried, what they expected, what happened instead.
-      - Whether asking was easy or hard where they were, and what they did about that.
+      - >-
+        Who or what they reached out to. A colleague, a mentor, a community, a Discord or WhatsApp
+        group, an issue thread — all of them count, and none of them counts more than another.
+      - Whether asking was easy or hard wherever they had to ask, and what they did about that.
       - What they do differently now, stated concretely.
     planned_follow_ups:
       - criterion: 1
@@ -339,13 +342,16 @@ questions:
           What made that the moment you stopped trying on your own?
     reviewer_notes: >-
       Reworked 2026-09-22. It used to ask "how long did you spend before you asked for help" and be
-      scored by the shared behavioural rubric — so the part a candidate would agonise over was worth
-      nothing, and the judgement the question exists to test had nowhere to be scored. It now has
-      its own rubric, and the timing criterion asks what made asking easy or hard **on that team**
-      rather than treating three days as a failure: in a workplace where asking early reads as
-      weakness, the honest answer was being scored as the candidate's fault. "Properly stuck" is
-      now "really stuck" — the first is a British intensifier that reads oddly spoken aloud. Does
-      the question still sound like a trap to you, and is 40% on the timing judgement too much?
+      scored by the shared behavioural rubric, so the judgement the question exists to test had
+      nowhere to be scored. It now has its own rubric, and the timing criterion asks what made
+      asking easy or hard **where they had to ask** rather than treating three days as a failure.
+      Widened 2026-09-24 (owner's decision): criterion 3 used to score the judgement of a candidate
+      who had a colleague to turn to, which most candidates here become only once they are hired.
+      Asking is now defined in the rubric as reaching outward by whatever route was open — a
+      community, a group chat, an issue thread. **The widening is in the rubric, not in the
+      opening**, which still says "asking someone for help". Should it say so aloud too, so a
+      self-taught candidate does not hear a question about a workplace they have not had? And is
+      40% on the timing judgement too much?
 
   - slug: feedback-on-your-code
     roles: [frontend, backend, qa, fullstack]

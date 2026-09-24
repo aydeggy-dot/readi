@@ -4,6 +4,31 @@
 # House style: three criteria, weights adding to 100, five descriptors each (0 absent … 4
 # excellent). The descriptors are what the evaluator scores against, so two people reading the same
 # answer should pick the same number — if 2 and 3 are hard to tell apart, that is a defect.
+#
+# **Nine descriptors changed on 2026-09-24** (owner's decisions, after the planned-follow-up
+# retrofit). Two defects, both created or exposed by the retrofit rather than by the questions:
+#
+# 1. **Five criteria assumed a workplace.** This file carried two protective clauses across ninety
+#    criteria; `../rubrics.shared.yaml` carries eleven across thirty. That asymmetry was survivable
+#    while a prompt asked three things at once and a candidate could answer around the criterion
+#    they had no standing to answer — planned follow-ups remove that escape route by design, so the
+#    silence became load-bearing and pointed at the bootcamp graduate this bank is written for.
+#    `test-brittleness-diagnosis` 2 required having lived with a suite on a team,
+#    `performance-investigation` 2 required a profiler, `semantic-html-diagnosis` 3 punished
+#    deferring to a design a junior had no standing to argue with, `secret-exposure-diagnosis` 3
+#    required holding the provider's credentials, and `resilient-layout-reasoning` 3 required
+#    production content to test against. Each now says what it is scored on and what it is not.
+# 2. **Three level descriptors were made unreachable by the format.** A descriptor defined by the
+#    absence of what a probe supplies cannot be reached by a candidate the probe reaches.
+#    `state-placement-reasoning` 2 level 1 was "notices the duplication only when prompted" and the
+#    probe *is* the prompting; `url-state-reasoning` 3 level 0 and `client-boundary-reasoning` 2
+#    level 0 were defined by not having been told what their probe tells them. All three are now
+#    defined by what the candidate says, not by what they were not asked.
+#
+# Both rules are in `.claude/skills/question-bank/SKILL.md`. Every stress set under
+# `evals/datasets/synthetic/frontend/` was re-read against the new descriptors: no score moved, and
+# `help-seeking-judgement`'s `correct-poorly-explained` answer was rewritten, because nothing in
+# that set had a candidate with nobody to ask and so nothing in it exercised the widening.
 version: 1
 author: ai_draft
 status: draft
@@ -125,7 +150,7 @@ rubrics:
         weight: 30
         levels:
           "0": Copies the same value into several places — without noticing, or defending it as an optimisation.
-          "1": Notices the duplication only when prompted.
+          "1": Keeps both copies and proposes keeping them in step — passing the title down as well and updating it alongside the id.
           "2": Avoids duplication in the example but cannot generalise the rule.
           "3": States the rule — one source of truth, derive the rest during render.
           "4": As 3, with an example of what goes wrong when it is broken (values drifting apart).
@@ -217,14 +242,15 @@ rubrics:
           "4": As 3, and gathers what the report is missing first — device, page, whether it is every visit.
       - dimension: Separates network from CPU
         description: >-
-          Knows that bytes and main-thread time are different budgets that fail differently, and
-          works out which one this is.
+          Bytes and main-thread time are different budgets that fail differently. Scored on telling
+          them apart and on knowing what would settle it, never on having used a particular tool:
+          describing what to look at counts the same as naming the panel.
         weight: 30
         levels:
           "0": Treats "slow" as one undifferentiated thing.
           "1": Settles on one of the two without checking — usually the network, sometimes argued as a rule that it is always the network.
           "2": Mentions both but does not say how to tell them apart.
-          "3": Reads the waterfall and the main thread and says which dominates here.
+          "3": Says what would settle which dominates here — the waterfall for bytes and round trips, the main thread for long tasks — whether or not they name the tool.
           "4": As 3, and knows a mid-range phone's CPU is often the binding constraint, not bandwidth.
       - dimension: Chooses a proportionate change
         description: The fix follows from the measurement, and its effect is checked.
@@ -329,7 +355,7 @@ rubrics:
         description: Ephemeral interface state — an open menu, an unsent draft — is not a URL concern.
         weight: 30
         levels:
-          "0": Would put everything in the URL, or nothing.
+          "0": Draws no line — names nothing that would stay out of the link, or would keep the filter itself out of it.
           "1": Gives no principle for deciding.
           "2": Offers a rule of thumb that does not survive an example.
           "3": Draws the line at what someone else opening the link should see.
@@ -390,7 +416,10 @@ rubrics:
           "3": Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
           "4": As 3, and prefers a limit the content flows inside to a fixed size that hides it.
       - dimension: Tests with real content
-        description: Deliberately trying the worst content available rather than the sample you built against.
+        description: >-
+          Deliberately trying the worst content rather than the sample you built against. Scored on
+          going looking for what breaks it, never on having production data to look in: inventing
+          the worst case counts the same as pulling it from a live database.
         weight: 25
         levels:
           "0": Nothing left to test — the sample data is assumed representative, or the geometry is treated as a guarantee.
@@ -398,7 +427,7 @@ rubrics:
           "2":
             Says they would "test with different data" without saying which.
             # Level 3 is the working habit; level 4 is the habit made routine.
-          "3": Describes trying the longest, the shortest and the missing, before it ships.
+          "3": Describes trying the longest, the shortest and the missing — found or invented — before anyone else sees it.
           "4": As 3, and names a case where their own approach would be the wrong call — where truncating hides something the user needed.
 
   - slug: image-delivery-judgement
@@ -521,13 +550,17 @@ rubrics:
           "3": Replaces it with a `<button>`, and says what that brings without extra code.
           "4": As 3, and says when the attribute route is the right one — an element you cannot change.
       - dimension: Separates looks from meaning
-        description: That styling was never the reason to avoid a button.
+        description: >-
+          That styling was never the reason to avoid a button. Scored on knowing the element is
+          chosen for what it means and styled afterwards, never on whether they had the standing to
+          say so: a junior told to match a mockup exactly is describing their workplace, not their
+          understanding.
         weight: 25
         levels:
           "0": Not addressed — the answer says nothing about why a div was used or whether it had to be.
-          "1": Believes a button could not have been styled this way, or accepts the div because "the design needed it".
+          "1": Treats the visual design as the reason the element could not be a button — a button could not have been styled this way.
           "2": Says a button can be styled, without addressing why the div was chosen.
-          "3": States that the element is chosen for what it means and then styled to match the design.
+          "3": States that the element is chosen for what it means and then styled to match the design — including someone who says they would have had to take that up with whoever owned the design.
           "4": As 3, and names the one or two resets that make a button look like anything.
 
   - slug: accessible-error-feedback
@@ -605,13 +638,17 @@ rubrics:
           "3": Says the tests assert on structure and styling rather than on what the screen does.
           "4": As 3, and distinguishes these eleven failures from a failure that would have been real.
       - dimension: Knows what it costs
-        description: A suite that cries wolf stops being read, which is worse than having no suite.
+        description: >-
+          A suite that cries wolf stops being read, which is worse than having no suite. Scored on
+          the cost they can name, never on having lived it — a candidate reasoning it out from a
+          course project, or from first principles, is scored the same as one describing a team
+          they were on.
         weight: 25
         levels:
           "0": Sees no cost — an inconvenience, or the safety net doing its job.
           "1": Says it "wastes time" and nothing more.
           "2": Mentions that people start ignoring failures.
-          "3": Says the team loses trust in the suite and begins skipping or deleting tests.
+          "3": Says the suite stops being trusted — failures go unread, and tests get skipped or deleted.
           "4": As 3, and notes that the refactor itself gets avoided next time, which is the real cost.
       - dimension: Fixes the tests, not the code
         description: Rewriting the selectors rather than reverting a change that was an improvement.
@@ -705,7 +742,7 @@ rubrics:
         description: More JavaScript on a phone, and server rendering given up for the whole page.
         weight: 35
         levels:
-          "0": Sees no cost.
+          "0": Names no cost — the rest of the page is no different, or the answer is about what the button can now do rather than about what the page pays for it.
           "1": Says it is "less efficient" with nothing behind it.
           "2": Names bundle size alone.
           "3": Names the extra JavaScript and the loss of server rendering for the list.
@@ -742,14 +779,18 @@ rubrics:
           "3": Puts the call in a server component or a route handler and has the client call that.
           "4": As 3, and keeps the response shape the client needs, rather than proxying the provider wholesale.
       - dimension: Treats a leaked key as leaked
-        description: Rotating it, and finding out whether it was used, rather than quietly removing it.
+        description: >-
+          Rotating it, and finding out whether it was used, rather than quietly removing it. Scored
+          on treating the key as out and on knowing what has to happen next, never on holding the
+          credentials themselves — saying whose account it is and what they would ask for counts
+          the same as doing it.
         weight: 30
         levels:
           "0": Does not treat the key as out — not considered, or argued to be safe because it was never committed anywhere public.
           "1": Removes it from the code and considers the matter closed.
           "2": Says it "should probably be rotated" with no follow-through.
-          "3": Rotates the key, and checks the provider's usage for calls that were not ours.
-          "4": As 3, and checks the deployed bundles and the history for how long it was exposed.
+          "3": Gets the key rotated and the provider's usage checked for calls that were not ours — doing it, or saying who has to and by when.
+          "4": As 3, and wants the deployed bundles and the history checked for how long it was exposed.
 
   - slug: vue-reactivity-diagnosis
     name: Diagnosing a value that stopped being reactive

@@ -27,6 +27,16 @@
 # generic behavioural rubric now, and a new role should not write one — see "A behavioural question
 # needs its own rubric" in the question-bank skill. The importer never deletes, so a developer
 # database still holds the row; retire it in the CMS if it matters there.
+#
+# **`help-seeking-judgement` criterion 3 was widened on 2026-09-24** (owner's decision, after the
+# frontend planned-follow-up retrofit). It is 40% of `stuck-and-asked-for-help`, and it scored
+# "judgement about when to ask" with no route above level 0 for a candidate who has never had
+# anyone at work to ask — the bootcamp graduate and the self-taught developer this bank is written
+# for. Planned follow-ups removed the escape route those candidates used to have, because the
+# criterion is now asked by name of whoever did not volunteer it. So asking is defined as reaching
+# outward by whatever route was open — a community, a group chat, an issue thread — rather than as
+# turning to a colleague. The rule is in the question-bank skill: where the act itself is the
+# criterion, widen what counts as the act rather than excusing its absence.
 version: 1
 author: ai_draft
 status: draft
@@ -56,15 +66,16 @@ rubrics:
       - dimension: Judgement about when to ask
         description: >-
           Why they asked when they did. The decision can show in the story rather than be stated.
-          Scored on the judgement, never on the hours — a team that treats asking as weakness is a
-          fact about the workplace, not a fault in the candidate.
+          Scored on the judgement, never on the hours and never on having had a colleague — a team
+          that treats asking as weakness, or no team at all, is a fact about the candidate's
+          circumstances and not a fault in them.
         weight: 40
         levels:
-          "0": No decision about their own asking — not treated as a decision at all, or a lesson drawn about the team's process instead.
+          "0": No decision about their own asking — not treated as a decision at all, or a lesson drawn about somebody else's process instead.
           "1": A rule with nothing behind it ("I always try for an hour first").
           "2": Says they waited or asked, with no reason tied to what was at stake or what they had ruled out.
-          "3": The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why.
-          "4": As 3, and says what made asking easy or hard where they were, and how they worked with or around that.
+          "3": The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why. Asking is reaching outward by whatever route was open — a colleague, a community, a group chat, an issue thread.
+          "4": As 3, and says what made asking easy or hard wherever they had to ask — a team, a group chat, a thread of strangers — and how they worked with or around that.
 
   - slug: handling-review-feedback
     name: Handling feedback on your own work

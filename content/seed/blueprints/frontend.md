@@ -412,3 +412,52 @@ format itself — `state-placement-reasoning` 2 level 1 ("notices the duplicatio
 prompted**", when the prompting is now built in), `url-state-reasoning` 3 level 0, and
 `client-boundary-reasoning` 2 level 0. Changing a descriptor moves scoring and invalidates the
 stress answers written against it, so it is the owner's call, not this pass's.
+
+## Appendix B4 — the fairness clauses and the dead descriptors (2026-09-24)
+
+Appendix B3 ended by handing nine descriptor changes to the owner, because changing a descriptor
+moves scoring. All nine were approved and are applied here. **No question changed in this pass** —
+one prompt, one set of `ideal_points` and two `reviewer_notes` did, and the rest is rubric work.
+
+### The six criteria that assumed a workplace
+
+Each gained one sentence in its `description` saying what it is scored on and what it is not, and,
+where the assumption had reached the ladder, a level descriptor reworded to match. The rule is now
+in the skill: a criterion that assumes a workplace needs a route for someone without one.
+
+| Criterion                           | What it assumed                     | The route it now states                                        |
+| ----------------------------------- | ----------------------------------- | -------------------------------------------------------------- |
+| `help-seeking-judgement` 3 (shared) | somebody at work to ask             | asking is reaching outward by whatever route was open          |
+| `test-brittleness-diagnosis` 2      | having lived with a suite on a team | reasoning the cost out scores the same as having felt it       |
+| `performance-investigation` 2       | having used the Performance panel   | describing what to look at scores the same as naming the panel |
+| `semantic-html-diagnosis` 3         | standing to argue with a design     | knowing the element is chosen for meaning, said or not         |
+| `secret-exposure-diagnosis` 3       | holding the provider's credentials  | saying who has to rotate it scores the same as doing it        |
+| `resilient-layout-reasoning` 3      | production content to test against  | inventing the worst case scores the same as finding it         |
+
+`help-seeking-judgement` is the widest of the six and the reason it was first: 40% of its question,
+and the criterion **is** the act. So the act was widened rather than its absence excused — a
+community, a group chat, an issue thread, a question posted where strangers would see it. That is
+now a rule in the skill too, and the change reaches four banks, because the rubric is shared.
+
+### The three descriptors the probes had killed
+
+Each was defined by the absence of something its own probe supplies, so no candidate the probe
+reached could land on it.
+
+- `state-placement-reasoning` 2 level 1 — "notices the duplication only when prompted", when the
+  probe _is_ the prompting. Now the answer that keeps both copies and proposes keeping them in
+  step, which is the real junior answer that sits between not noticing and not generalising.
+- `url-state-reasoning` 3 level 0 — "would put everything in the URL, or nothing", when the probe
+  asks what they would leave out. Now: draws no line, or would keep the filter itself out of it.
+- `client-boundary-reasoning` 2 level 0 — "sees no cost", when the probe says the rest of the page
+  is affected. Now: names no cost, or answers about what the button can do rather than what the
+  page pays.
+
+### The stress run
+
+`check-stress.mjs` was re-run over all 103 sets and every separation still passes; no score moved.
+One stress answer was rewritten rather than re-scored: `help-seeking-judgement`'s
+`correct-poorly-explained` candidate asked a team lead, so nothing in the set exercised the
+widening. They are now self-taught and ask in their cohort's WhatsApp group, with the same substance
+said just as badly, and still score 3 / 3 / 3. A rubric change that no stress answer reaches is
+untested, which is worth remembering the next time a clause is added rather than a level.

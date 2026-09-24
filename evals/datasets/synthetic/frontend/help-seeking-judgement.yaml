@@ -79,10 +79,12 @@ answers:
       duplicating, and I was on it for like a day and a half, which was too long, I kept
       thinking I was nearly there. I did try things, I mean I checked the API response and it
       was fine, only one of each, and I checked the map, and the key, and I even rewrote the
-      component from scratch. And then when I finally asked my team lead, the first thing he
-      asked was what have you tried, and I couldn't really answer him properly because none of
-      it was written down. So, yeah. That's the thing that changed — now I keep a running note
-      of everything I've ruled out while I'm still debugging, and I paste that in when I ask.
+      component from scratch. I'm self-taught, so there was nobody at a desk to turn to, it was
+      just me and the laptop. So in the end I put it in the WhatsApp group from my cohort, and
+      somebody who'd had the same thing answered me, and the first thing he asked was what have
+      you tried, and I couldn't really answer him properly because none of it was written down.
+      So, yeah. That's the thing that changed — now I keep a running note of everything I've
+      ruled out while I'm still debugging, and I paste that in when I ask.
     expected:
       - dimension: "A specific, real situation"
         score: 3
@@ -92,7 +94,7 @@ answers:
         because: "Checked the API response, the map, the key, rewrote the component — each ruling something out."
       - dimension: "Judgement about when to ask"
         score: 3
-        because: "Says plainly it was too long, and why: they kept thinking they were nearly there."
+        because: "Says plainly it was too long, and why: they kept thinking they were nearly there. Asking a cohort group chat is asking — this answer is what the 2026-09-24 widening exists for, and it is scored on the judgement, not on the absence of a colleague."
   - kind: nigerian-english
     text: |
       So there was this signup form I was building for our group project, and after I submit,

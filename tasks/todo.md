@@ -1560,15 +1560,62 @@ the work each one leaves, and none of it is a question change.
 
 ### Next, in this order
 
-- [ ] **The six fairness clauses and the three dead descriptors** (decision 2), starting with
+- [x] **The six fairness clauses and the three dead descriptors** (decision 2), starting with
       `help-seeking-judgement` criterion 3, and widening what counts as asking so
       `stuck-and-asked-for-help` is fair as well as coherent (decision 1). Changing a descriptor
       moves scoring, so this needs its own `check-stress.mjs` run.
+      **Done 2026-09-24** — see the section below and
+      `docs/progress/2026-09-24-rubric-fairness.md`.
 - [ ] **Check QA and backend for the same two gaps** — criteria that assume a workplace, and level 0
-      or 1 descriptors the probe has made unreachable.
+      or 1 descriptors the probe has made unreachable. A regex for the phrasing these clauses use
+      finds all five written on 2026-09-24 in frontend and **none at all** in `backend/rubrics.yaml`
+      across 87 criteria, against three in QA's 99 — a place to look, not a count to quote (it
+      finds five of the eleven the owner counted in `rubrics.shared.yaml`).
 - [ ] **Backend (68 probes)**, opening with the mis-aim check (decision 5): per question, name the
       criterion the opening asks and check it is the one without a probe.
 - [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.
 
 Done 2026-09-24: `error-only-in-production`'s opening tightened (decision 3); five uncertain probes
 flagged in `reviewer_notes` rather than changed (decision 4); three rules added to `SKILL.md`.
+
+## Frontend rubric fairness — items 1–3 (2026-09-24, branch `content/catalogue-banks`)
+
+The owner's decisions 1–3 from `docs/progress/2026-09-24-frontend-probes.md`, done and stopped for
+review. **Nine descriptor changes, no question changed.** Handover:
+`docs/progress/2026-09-24-rubric-fairness.md`; blueprint detail: `frontend.md` Appendix B4.
+
+- [x] **Decision 1** — `help-seeking-judgement` criterion 3 (shared, 40% of its question) widened:
+      asking is reaching outward by whatever route was open — a colleague, a community, a group
+      chat, an issue thread — in the description and in levels 3 and 4. The question's
+      `ideal_points` say the same, and the shared file's header records why. Reaches four banks.
+- [x] **Decision 2** — six fairness clauses (`help-seeking-judgement` 3,
+      `test-brittleness-diagnosis` 2, `performance-investigation` 2, `semantic-html-diagnosis` 3,
+      `secret-exposure-diagnosis` 3, `resilient-layout-reasoning` 3) and the three descriptors the
+      probes had made unreachable (`state-placement-reasoning` 2 level 1, `url-state-reasoning` 3
+      level 0, `client-boundary-reasoning` 2 level 0).
+- [x] **Decision 3** — verified, not re-done: `error-only-in-production`'s opening was already
+      tightened in `a294ea6`.
+- [x] Checks: `check-bank.mjs` no errors and **53 warnings byte-identical to HEAD's** (diffed
+      against a worktree, not eyeballed); `check-stress.mjs` 103 sets, every separation passes, no
+      score moved; `db:seed --dry-run`; `content:review-doc`; `format`; `lint`; 365 API + 91
+      shared-types tests.
+
+### What this pass sends back to the owner
+
+1. **The widening is in the rubric, not in the opening**, which still says "asking someone for
+   help". A self-taught candidate may still hear a question about a workplace they have not had,
+   and no rubric clause reaches them before they answer. Flagged in `reviewer_notes` too. Your
+   call whether the opening should say it aloud.
+2. **A stress set that does not reach the descriptor you changed proves nothing.** Every
+   `help-seeking-judgement` answer had a colleague to ask. The `correct-poorly-explained` answer
+   was rewritten — self-taught, asking in a cohort WhatsApp group, same substance said just as
+   badly — and still scores 3 / 3 / 3. A skill rule if the backend pass hits it again.
+3. **The reviewer pages are built per directory, not per role.** `buildReviewDoc` filters by the
+   seed file's path, so the four role-general behavioural questions living in
+   `content/seed/frontend/` appear only on the frontend reviewer's page — a QA reviewer signs off
+   35 questions while their candidates are offered 45. A code change in
+   `apps/api/src/content/review-doc.ts`, and the owner's call whether it comes before the
+   reviewers are sent the pages.
+4. **Fairness clauses do not fit in a criterion description.** `criterionDescriptionMaxLength` is
+   300 characters; two of the six clauses moved down into the level descriptors, which is the
+   better place anyway — a clause in the description is guidance, a clause in level 3 is a score.
