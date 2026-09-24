@@ -28,7 +28,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 **The interviewer asks**
 
-> A tester says that when they tap Save on their phone the screen goes dead for about two seconds — nothing on it changes at all — and then the "Saved" message appears. They expected to see "Saving…" while they waited. Why does that line never show up, what is the browser doing for those two seconds, and what would you change?
+> A tester says that when they tap Save on their phone the screen goes dead for about two seconds — nothing on it changes at all — and then the "Saved" message appears. They expected to see "Saving…" while they waited. Why does that line never show up?
 
 **Setup the candidate is given**
 
@@ -76,7 +76,9 @@ One thread runs the handler and draws the page and cannot do both at once, so th
 - **3 (solid):** Says the same thread runs the handler and paints, so no frame can be produced until the handler returns.
 - **4 (excellent):** As 3, and extends it to the rest of the page — the tap that goes unanswered, the scroll that stalls — because they wanted the same thread.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Two seconds is a long time — what is the phone actually busy with?
 
 **Gets the work out of the way — 30%**
 
@@ -88,9 +90,14 @@ What they would change, and how they would know it had worked.
 - **3 (solid):** Lets the browser paint before the work starts, or moves the work off the main thread, and says why that is what fixes it.
 - **4 (excellent):** As 3, and says how they would check — a throttled profile, or a real mid-range phone — and what their choice costs against the other one.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What would you change so the tester sees that message?
+
+> How would you know the change had worked?
 
 > **The drafter is unsure about:** **The snippet changed on 2026-09-22 and the question is now mid only** (owner's decision). It used to be four `console.log`s and a zero-delay `setTimeout` — the snippet in every "top ten JavaScript interview questions" video, which sorted candidates by how much interview prep they had watched rather than by what they understood, and three of the four critique passes wanted it changed or cut. It asks the same thing about the main thread from a symptom nobody can have memorised, and the follow-up ("so where does the work go?") is a real one. What I would like checked is whether the fix is still reachable at mid: "let it paint first" is easy to say and fiddly to do, so the rubric puts the mechanism at level 3 and the yielding at level 4, and a candidate who only says "move it to a worker" still scores 3.
+> Criterion 3 scores two things at 30% — the change, and knowing it worked — so it carries two follow-ups, the second only reached if the first has not already drawn it out.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -106,7 +113,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> This function is meant to give back the jobs that are still open, and whoever calls it gets `undefined` every time. Talk me through what actually happens when it runs, why the `return` does not do what it looks like it does, and how you would write it instead.
+> This function is meant to give back the jobs that are still open, and whoever calls it gets `undefined` every time. Where is that `undefined` coming from?
 
 **Setup the candidate is given**
 
@@ -152,7 +159,9 @@ That it throws away whatever the callback returns, so no `return` inside it can 
 - **3 (solid):** Says `forEach` ignores what the callback gives back, and is there for side effects.
 - **4 (excellent):** As 3, and separates it from the methods whose whole purpose is the value the callback returns.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where does the value from that inner `return` end up?
 
 **Writes it the way that says what it means — 30%**
 
@@ -164,7 +173,9 @@ _Asked for by the opening prompt; no planned follow-up._
 - **3 (solid):** Uses `filter`, and says it gives back a new array of the items that passed.
 - **4 (excellent):** As 3, and says what they would use if only the first open job were wanted, and why that is a different question.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you write it instead?
 
 > **The drafter is unsure about:** New on 2026-09-22, because `js-async-ordering` became mid only and `javascript-fundamentals` would otherwise have had one general question at intern-junior instead of the floor of two. It is the cheapest question in the bank and deliberately so: the topic needed something a self-taught junior meets in their own code rather than in a video. The risk runs the other way — is it too easy to be worth one of the six questions an hour holds, or does the "which function is this `return` in" part carry it? The follow-up I have in mind is "and if you only wanted the first one?", which is where `find` comes in.
 
@@ -182,7 +193,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> You are building a screen that loads a list of jobs from an API and shows them. Walk me through everything that screen has to handle — not just the case where the jobs come back — and tell me what the code actually has to check to know which of those it is in.
+> You are building a screen that loads a list of jobs from an API and shows them. Besides the jobs arriving, what else does that screen have to be able to show?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -216,7 +227,9 @@ Knows that `fetch` resolves for a 404 or a 500 and that the status must be check
 - **3 (solid):** Checks `response.ok`, and separates "the request failed" from "the server said no".
 - **4 (excellent):** As 3, and distinguishes statuses that deserve different handling (401 vs 404 vs 500).
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> The server answers with a 500 — walk me through what happens in your code from there.
 
 **Thinks about a bad connection — 25%**
 
@@ -228,7 +241,9 @@ Timeouts, a request that never returns, retries, and what is safe to retry.
 - **3 (solid):** Gives the request a deadline (e.g. `AbortController`) and retries deliberately.
 - **4 (excellent):** As 3, and notes that retrying a non-idempotent request can repeat a side effect.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Their signal drops halfway through and the request never comes back — what then?
 
 > **The drafter is unsure about:** This is deliberately open rather than a puzzle, so a candidate who has built a real screen does well and one who has memorised trivia does not. The risk is that it rewards talkers. Does the rubric weight (40% on HTTP error handling) put enough of the score on the one thing that is objectively right or wrong? The prompt now says "what the code actually has to check", because without it the wording pointed candidates at spinners and empty states and then scored them on `response.ok`. A reviewer also suggested this would be stronger as a code review — a happy-path component with the missing status check in it — which would make that 40% something the candidate finds rather than recalls. Worth doing?
 
@@ -246,7 +261,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Two components on the same page need to know which job the user has selected: a list on the left and a detail panel on the right. Where would you keep that selection, why there, and what does that choice cost you?
+> Two components on the same page need to know which job the user has selected: a list on the left and a detail panel on the right. Where would you keep that selection, and why there?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -280,7 +295,9 @@ Derives what can be derived; does not keep two copies that have to be kept in st
 - **3 (solid):** States the rule — one source of truth, derive the rest during render.
 - **4 (excellent):** As 3, with an example of what goes wrong when it is broken (values drifting apart).
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> The detail panel also needs the selected job's title — where does it get that from?
 
 **Names the cost of the choice — 30%**
 
@@ -292,7 +309,9 @@ Prop drilling, re-renders, a store that outlives the screen — no choice is fre
 - **3 (solid):** Names the real cost of their choice and when it would push them to a different one.
 - **4 (excellent):** As 3, and gives the signal they would watch for to change the decision later.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Six months from now, what about that decision is most likely to annoy whoever is working on this page?
 
 > **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three.
 
@@ -310,7 +329,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> This component works, but a reviewer has asked you to change it. What is wrong with it, what does the user actually see because of it, and how would you write it instead?
+> This component works, but a reviewer has asked you to change it. What is wrong with it?
 
 **Setup the candidate is given**
 
@@ -358,7 +377,9 @@ An extra render, a frame of stale UI, and a second place for the value to go wro
 - **3 (solid):** Explains that the effect runs after render, so the user briefly sees the old value.
 - **4 (excellent):** As 3, and notes that the state can now disagree with the props it came from.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What does the user actually see because of that?
 
 **Proposes the simpler version — 30%**
 
@@ -370,7 +391,9 @@ Removes the state and the effect, computing the value where it is used.
 - **3 (solid):** Computes during render; the state and the effect both disappear.
 - **4 (excellent):** As 3, and says what they would do if the calculation really were expensive — measure it first, rather than assume.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you write it instead?
 
 > **The drafter is unsure about:** This is the clearest "one right answer" question in the bank, which makes it good for calibration but weak at separating a solid candidate from an excellent one. The excellence descriptors lean on naming the rule and on memoisation — is that the right bar, or would you rather see them notice the one-frame-stale UI? The top of criterion 3 no longer rewards knowing when to memoise, because rewarding that teaches juniors to reach for `useMemo` in interviews, which is the habit an interviewer here said they spend most of their time undoing. "What does it actually cost" is now "what does the user actually see", because spoken aloud the first version was vague — cost in milliseconds, in money, in maintenance? Tagged React + Next.js and React + Node: the candidate is shown JSX with `useState` and `useEffect`, so it would be meaningless to anyone on Vue, Angular or vanilla JS — but it reads the same for a full-stack candidate writing that component as for a frontend one.
 
@@ -388,7 +411,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A tester reports that on their phone the page scrolls sideways — there is a strip of empty space to the right of everything. It looks fine on your laptop. How do you find what is causing it, what would you expect the culprit to be, and how would you fix it so that it holds at every width?
+> A tester reports that on their phone the page scrolls sideways — there is a strip of empty space to the right of everything. It looks fine on your laptop. How do you find what is causing it?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -422,7 +445,9 @@ Fixed widths, long unbroken strings, wide tables and images, negative margins, `
 - **3 (solid):** Several plausible causes, with a reason for checking one first.
 - **4 (excellent):** As 3, including a cause that is easy to miss (overflowing text, or a `min-width: auto` flex item).
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you expect the culprit to turn out to be?
 
 **Fixes without breaking wider screens — 30%**
 
@@ -434,7 +459,9 @@ A fix that holds from 360px upward, rather than a media query patching one width
 - **3 (solid):** A fix that works at every width (fluid sizing, wrapping, `max-width: 100%`).
 - **4 (excellent):** As 3, and says how they would check it stays fixed — a test or a screenshot at 360px.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you fix it?
 
 > **The drafter is unsure about:** Listed at difficulty 2 because the method matters more than the knowledge, but juniors who have only built desktop-first sites may never have met it. Are the "usual suspects" the right list for the sites people here actually build? `100vw` next to a scrollbar has been removed from the answer key: the scenario is a phone, where scrollbars are overlaid and `100vw` is the viewport, so it cannot be the culprit here and a candidate naming it was being rewarded for something that could not be true. It belongs in a follow-up about the laptop, if anywhere.
 
@@ -452,7 +479,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A user writes in: "your site takes forever to load on my phone". You cannot reproduce it — on your laptop the page appears instantly. What do you do, in order, and how do you decide what to change?
+> A user writes in: "your site takes forever to load on my phone". You cannot reproduce it — on your laptop the page appears instantly. Before you change anything, how would you see what they are seeing?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -486,7 +513,9 @@ Knows that bytes and main-thread time are different budgets that fail differentl
 - **3 (solid):** Reads the waterfall and the main thread and says which dominates here.
 - **4 (excellent):** As 3, and knows a mid-range phone's CPU is often the binding constraint, not bandwidth.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What tells you where the time is actually going?
 
 **Chooses a proportionate change — 30%**
 
@@ -498,9 +527,14 @@ The fix follows from the measurement, and its effect is checked.
 - **3 (solid):** A change that addresses the dominant cost, then re-measures.
 - **4 (excellent):** As 3, and weighs effort against benefit, naming what they would not bother with.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What would you change on the strength of that?
+
+> How would you know the change had actually helped?
 
 > **The drafter is unsure about:** The intended shape of a strong answer is "reproduce, measure, then act", and the rubric puts 40% on that. My worry is that a candidate who has never used the Performance panel but says sensible things scores 3s across the board. Is there a follow-up you would always ask here to tell those two apart? A reviewer argued this should be mid only, because telling a network budget from a CPU budget by reading a recorded load is a mid skill and few juniors here have opened the Performance panel — which would also answer the question above. I have left it at both levels; your call.
+> Criterion 3 scores two things at 30% — the change following from the measurement, and its effect being checked — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -516,7 +550,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Tell me about a time you were really stuck on something. What had you already tried before you asked anyone, what did you ask, and what do you do differently now?
+> Tell me about a time you were really stuck on something and ended up asking someone for help.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -550,7 +584,9 @@ Evidence of a real attempt — what they read, what they ruled out — rather th
 - **3 (solid):** Several things tried, and what each one ruled out.
 - **4 (excellent):** As 3, and the attempt narrowed the problem enough that the question they finally asked was a small one.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What had you already tried before you asked?
 
 **Judgement about when to ask — 40%**
 
@@ -562,7 +598,9 @@ Why they asked when they did. The decision can show in the story rather than be 
 - **3 (solid):** The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why.
 - **4 (excellent):** As 3, and says what made asking easy or hard where they were, and how they worked with or around that.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What made that the moment you stopped trying on your own?
 
 > **The drafter is unsure about:** Reworked 2026-09-22. It used to ask "how long did you spend before you asked for help" and be scored by the shared behavioural rubric — so the part a candidate would agonise over was worth nothing, and the judgement the question exists to test had nowhere to be scored. It now has its own rubric, and the timing criterion asks what made asking easy or hard **on that team** rather than treating three days as a failure: in a workplace where asking early reads as weakness, the honest answer was being scored as the candidate's fault. "Properly stuck" is now "really stuck" — the first is a British intensifier that reads oddly spoken aloud. Does the question still sound like a trap to you, and is 40% on the timing judgement too much?
 
@@ -580,7 +618,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Tell me about a piece of your work that someone gave you a lot of feedback on — a reviewer, a mentor, a maintainer on a pull request, a tutor. What did they say, what did you do about it, and was there anything you did not agree with or did not understand?
+> Tell me about a piece of your work that someone gave you a lot of feedback on — a reviewer, a mentor, a maintainer on a pull request, a tutor.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -613,7 +651,9 @@ The changes they made, and how the work ended up different.
 - **3 (solid):** What they changed and why it was an improvement is recoverable from the answer.
 - **4 (excellent):** As 3, and something they now do earlier so that comment would not arise again.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What did you actually change as a result?
 
 **A comment they did not agree with, or did not understand — 40%**
 
@@ -625,7 +665,9 @@ How they got to the bottom of it. Pushing back is one route and is not available
 - **3 (solid):** Describes finding out what the comment was really about — by asking, reading, or trying it — and where that left them.
 - **4 (excellent):** As 3, and can say which of them turned out to be right, including when it was not them.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Which of those comments took you longest to accept, and what got you there?
 
 > **The drafter is unsure about:** Reworked 2026-09-22 on two findings. It required an employer with code review — the only question in the bank with a hard experience prerequisite — so it now names a mentor, a maintainer or a tutor as well. And it asked for a comment they **disagreed with**, which rewards standing to push back that not every workplace gives a junior; it now asks for one they did not agree with **or did not understand**, which gets at the same engineering judgement by a route everyone has. It has its own rubric for the same reason `stuck-and-asked-for-help` does. Is "a lot of feedback" still leading them towards a story where they were wrong?
 
@@ -643,7 +685,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A colleague says this function is "corrupting their data" — after they call it, the array they passed in has changed. They tell you they declared it with `const`, so they do not see how it can have. Walk me through what is happening, and how you would fix it.
+> A colleague says this function is "corrupting their data" — after they call it, the array they passed in has changed. They tell you they declared it with `const`, so they do not see how it can have. Walk me through what is actually happening.
 
 **Setup the candidate is given**
 
@@ -692,7 +734,9 @@ That it fixes the binding, not the contents — the single most common misreadin
 - **3 (solid):** States that `const` stops `cart` being pointed elsewhere and nothing else.
 - **4 (excellent):** As 3, and names what would actually prevent the change instead.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> So what is `const` actually protecting there?
 
 **Fixes it without breaking the caller — 40%**
 
@@ -704,9 +748,14 @@ Returns new data rather than editing what was passed in, and says why that is th
 - **3 (solid):** Builds and returns new items, leaving the input untouched.
 - **4 (excellent):** As 3, and says when editing in place is legitimate — and that the name should then say so.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> How would you fix it?
+
+> Would you write it that way everywhere, or only here?
 
 > **The drafter is unsure about:** I have kept this at intern-junior because the bug shape is common in real work rather than because the language rule is easy. The risk is that it reads as a trick question about `const`. Does the shallow-copy point (criterion 3's level 4) belong at junior at all, or should it be the thing that separates junior from mid here?
+> Criterion 3 scores two things at 40% — a fix that does not write to what it was given, and why that is the better default — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -722,7 +771,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A page shows a list of items, a badge saying how many are selected, and a running total. A tester says that after you remove an item, the badge sometimes says three when only two rows are highlighted. What would you expect to find, what would you actually store to stop it happening again, and does recalculating on every render worry you?
+> A page shows a list of items, a badge saying how many are selected, and a running total. A tester says that after you remove an item, the badge sometimes says three when only two rows are highlighted. How do you think the badge ended up saying three?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -744,7 +793,9 @@ Recognises that the selection is the state and the count and total follow from i
 - **3 (solid):** Holds the selection alone and calculates the count and total where they are shown.
 - **4 (excellent):** As 3, and generalises — anything filtered, sorted or summed from data already held is derived.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> So what would you actually keep in state on that page?
 
 **Says what goes wrong otherwise — 30%**
 
@@ -768,9 +819,14 @@ Whether doing the work on every render matters here, and how they would find out
 - **3 (solid):** Says the work is small for a cart-sized list and would only be optimised if measured.
 - **4 (excellent):** As 3, and names what would change the answer — list size, or the cost per item.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What does it cost to work that total out again on every render?
+
+> What would you look at to settle it?
 
 > **The drafter is unsure about:** This is the general version of `react-state-placement`, written so that a Vue, Angular or vanilla candidate meets the idea too — until now every question on this topic was React-tagged. Is "derive rather than store" a fair expectation at intern-junior, or is the honest junior answer "I would keep a count variable and update it", which I have put at level 2?
+> The opening and the first probe were swapped after the critique passes: the rubric runs diagnosis then design, and asking for the design first left the diagnosis being asked about a page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the recalculation matters here, and how they would find out — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -786,7 +842,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A user filters a list of jobs down to the ones in Lagos, copies the link and sends it to a friend. The friend opens it and sees every job in the country. What has happened, what would you change, and is there anything on that page you would keep out of the link?
+> A user filters a list of jobs down to the ones in Lagos, copies the link and sends it to a friend. The friend opens it and sees every job in the country. What has happened?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -820,7 +876,9 @@ The filter becomes part of the URL, and the page reads its starting state from t
 - **3 (solid):** Describes both halves — writing the filter to the query string and reading it on load.
 - **4 (excellent):** As 3, and keeps the address in step as the filter changes, without adding a history entry per keystroke.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change so the friend sees the same list?
 
 **Knows what does not belong there — 30%**
 
@@ -832,7 +890,9 @@ Ephemeral interface state — an open menu, an unsent draft — is not a URL con
 - **3 (solid):** Draws the line at what someone else opening the link should see.
 - **4 (excellent):** As 3, with an example on each side of the line.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What on that page would you leave out of that link?
 
 > **The drafter is unsure about:** `react-state-placement`'s notes asked whether "put it in the URL" was reasonable to expect at intern-junior; this question makes it the subject rather than a bonus point, which I think is the fairer way round. The scenario is shareable links, which is how most people here meet the problem. Is the back-button point (level 4 of criterion 2) common enough to be worth rewarding, or is it a different question?
 
@@ -850,7 +910,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> This is the CSS for a grid of job cards. It works. What does it cost, what would you write instead, and which screen width would you start from?
+> This is the CSS for a grid of job cards. It works. What is wrong with writing it this way?
 
 **Setup the candidate is given**
 
@@ -909,7 +969,9 @@ The number of cards per row follows from the space available and a minimum card 
 - **3 (solid):** Gives the grid a minimum card width and lets it fit as many as will go.
 - **4 (excellent):** As 3, and keeps breakpoints for where the design genuinely changes shape rather than removing them all.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you write it instead?
 
 **Starts narrow — 25%**
 
@@ -921,7 +983,9 @@ Building up from the small screen rather than patching a wide layout down.
 - **3 (solid):** Describes checking at the narrow width first and adding rules as space appears.
 - **4 (excellent):** As 3, and names what they would give up by starting narrow — a desktop layout that has to be added rather than assumed.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> The design you were given is a desktop mock-up only — where do you start building?
 
 > **The drafter is unsure about:** Rewritten 2026-09-22. It used to ask which layout tool you would use for a header and a card grid, and two critique passes wanted it cut: "flex for the row, grid for the cards" is the sentence in every tutorial, everyone who has built one page clears it, and nobody clears it in a way that tells you anything. Inverting it — here is the breakpoint-per-size version, what does it cost — gives the conversation somewhere to go. Is the new version still fair at intern-junior, given the candidate has to read CSS rather than describe an approach, and is "let the grid decide" something you would actually expect at that level?
 
@@ -939,7 +1003,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Here is the data your card layout looks right with, and here is what three of the cards look like in production. What breaks, and how do you build so that it does not?
+> Here is the data your card layout looks right with, and here is what three of the cards look like in production. What breaks?
 
 **Setup the candidate is given**
 
@@ -985,7 +1049,9 @@ Wrapping, space reserved for what may not arrive, and sizes the content can flow
 - **3 (solid):** Allows long text to wrap or break, reserves space for the image, and lets card heights agree.
 - **4 (excellent):** As 3, and prefers a limit the content flows inside to a fixed size that hides it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you build it so that it does not?
 
 **Tests with real content — 25%**
 
@@ -997,7 +1063,9 @@ Deliberately trying the worst content available rather than the sample you built
 - **3 (solid):** Describes trying the longest, the shortest and the missing, before it ships.
 - **4 (excellent):** As 3, and names a case where their own approach would be the wrong call — where truncating hides something the user needed.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you have caught this before anyone else saw it?
 
 > **The drafter is unsure about:** Written from a real failure shape rather than a CSS property list, and the examples are ones this market produces — long company names, missing logos on smaller employers. I am unsure about truncation: hiding part of a job title is a product decision as much as a CSS one, and I have put it at level 3 rather than 4. Where would you put it?
 
@@ -1015,7 +1083,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Six large photographs have been added to the landing page. Users on mobile data are complaining that it takes forever and eats their data. How would you find out what is actually being sent, what would you change, and is there a conversation to be had with whoever asked for them?
+> Six large photographs have been added to the landing page. Users on mobile data are complaining that it takes forever and eats their data. How would you find out what is actually being sent?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1049,7 +1117,9 @@ Right-sized images, a sensible format, and loading later what is not yet on scre
 - **3 (solid):** Serves a size suited to the device, a modern format, and defers what is below the fold.
 - **4 (excellent):** As 3, and reserves the space so deferring does not make the page jump as it loads.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change to bring that down?
 
 **Knows which part is a conversation — 25%**
 
@@ -1061,7 +1131,9 @@ That six large photographs may be a product decision rather than a delivery prob
 - **3 (solid):** Can say what they would put in front of them — the cost in data per image — and what decision it would let them make.
 - **4 (excellent):** As 3, and has done the technical work first, so the conversation is only about what is left.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you take back to whoever asked for the six photographs?
 
 > **The drafter is unsure about:** The last ideal point is the one I am least sure about scoring: "push back on the requirement" is a real senior answer and can also be an excuse not to do the work. I have made it level 4 of criterion 3 rather than its own criterion. Also, is data cost something you would expect a junior here to raise unprompted, or does the prompt have to mention the bundle as it does now?
 
@@ -1079,7 +1151,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A user taps Pay. The request takes a long time and eventually times out, so they tap again. Later they find they were charged twice. What went wrong, what would you have built differently, and what would you need from the backend to make it safe?
+> A user taps Pay. The request takes a long time and eventually times out, so they tap again. Later they find they were charged twice. Why did that first request still charge them, even though it timed out?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1113,7 +1185,11 @@ What the interface does while the request is in flight, and after it times out.
 - **3 (solid):** Disables the button, says what is happening, and offers a deliberate next step rather than a retry.
 - **4 (excellent):** As 3, and the next step is to check the state — "let me confirm whether it went through".
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What should that screen have been doing while they waited?
+
+> And once it had timed out — what is on screen then?
 
 **Makes a repeat safe — 35%**
 
@@ -1125,9 +1201,12 @@ Something that identifies the attempt, so a second send can be recognised as the
 - **3 (solid):** Does not resend blindly — asks the server what the state is first — and separates reads, which are safe to retry, from actions that move money.
 - **4 (excellent):** As 3, and sends a value that identifies the attempt, generated before the first send and reused on a retry, so the server can recognise it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would make a second attempt safe?
 
 > **The drafter is unsure about:** This needs the server to cooperate, and I have written the ideal points as "what the front end does about it" rather than a full idempotency design, which belongs to the backend bank. Is that the right split, or would an interviewer here expect a frontend candidate to describe the server side too? The scenario is a payment because that is where candidates have felt it.
+> Criterion 2 scores two things at 30% — what the interface does in flight, and what it does after the timeout, which is the half that caused the second tap — so it carries two follow- ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1143,7 +1222,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A user updates their name in their profile, the save succeeds, and the page still shows the old name — but only sometimes, and reloading fixes it. Where would you look, in what order, and once you have found it, what would you change?
+> A user updates their name in their profile, the save succeeds, and the page still shows the old name — but only sometimes, and reloading fixes it. Where would you look first?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1178,7 +1257,11 @@ More than one thing can be holding the old value — the page's own data, the br
 - **3 (solid):** Names two or more and a way to tell them apart — a private window, the network panel, what the response headers say.
 - **4 (excellent):** As 3, and uses what reloading does and does not clear to narrow the list before testing anything.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> Say the server does have the new name — what could still be putting the old one on screen?
+
+> How would you tell which of them it is?
 
 **Fixes the write, not just the symptom — 35%**
 
@@ -1190,9 +1273,12 @@ After a successful save, the held copy is refreshed or replaced rather than left
 - **3 (solid):** Updates or invalidates the copy the page holds as part of the save.
 - **4 (excellent):** As 3, and says what the caching headers for that request should have been in the first place.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change so that it stops happening?
 
 > **The drafter is unsure about:** I like this as a debugging question because "it works after a hard refresh" is a phrase every candidate has heard, but the honest answer depends on the stack — a service worker, an HTTP cache and a client data cache are different things and I have written the rubric to accept any of them. Is that too generous, or is naming the layer enough at this level?
+> Criterion 2 scores two things at 25% — naming more than one place a copy can live, and a way to tell them apart — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1208,7 +1294,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> This works when you click it. Who cannot use it, and what would you change?
+> This works when you click it. Who cannot use it?
 
 **Setup the candidate is given**
 
@@ -1248,7 +1334,9 @@ A real `<button>`, rather than attributes bolted onto the div.
 - **3 (solid):** Replaces it with a `<button>`, and says what that brings without extra code.
 - **4 (excellent):** As 3, and says when the attribute route is the right one — an element you cannot change.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change?
 
 **Separates looks from meaning — 25%**
 
@@ -1260,7 +1348,9 @@ That styling was never the reason to avoid a button.
 - **3 (solid):** States that the element is chosen for what it means and then styled to match the design.
 - **4 (excellent):** As 3, and names the one or two resets that make a button look like anything.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Is "a real button was too hard to style" a good reason?
 
 > **The drafter is unsure about:** The shortest question in the bank and the one I most expect a strong junior to get right, which is deliberate — accessibility had no questions at all until this pass and a first question should be reachable. Is it too easy to be worth a slot, and if so what would you replace it with that is still fair for someone who has never used a screen reader?
 
@@ -1278,7 +1368,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A user submits a sign-up form and two fields are wrong. Describe everything that should happen next, what each message actually says to them, and how you would make sure it works for someone using a screen reader.
+> A user submits a sign-up form and two fields are wrong. How do they find out which ones?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1312,7 +1402,11 @@ Colour is not the signal; text is, and focus goes somewhere useful.
 - **3 (solid):** Text on every error, and focus moved to the first field that needs attention.
 - **4 (excellent):** As 3, and the failure is announced rather than silently appearing on screen.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> Someone is filling that form in with a screen reader — what do they get?
+
+> After they hit submit, where does the cursor end up?
 
 **Says how to fix it — 30%**
 
@@ -1324,9 +1418,12 @@ The message describes what to do, not that the input is invalid.
 - **3 (solid):** Says what is expected — the format, the length, the missing piece.
 - **4 (excellent):** As 3, and keeps what the user typed rather than clearing the field.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What do those messages actually say?
 
 > **The drafter is unsure about:** I have deliberately not asked for attribute names, because reciting `aria-describedby` is not the skill and a candidate who has built accessible forms in a framework may never have typed it. The rubric rewards the behaviour and treats naming the mechanism as level 4. Is that the right way round for an interview here, where a lot of people learned from framework docs?
+> Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes somewhere useful — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1342,7 +1439,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> You have built a login screen — email, password, a submit button, and an error message when the credentials are wrong. If you were starting this screen's tests from nothing, what would you write tests for, what would you deliberately leave untested, and why is that the right call?
+> You have built a login screen — email, password, a submit button, and an error message when the credentials are wrong. Starting from nothing, take me through the first test you would write for that screen.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1376,7 +1473,9 @@ The failure cases, which are the ones manual testing misses.
 - **3 (solid):** Covers wrong credentials and a failing request, with the message each should produce.
 - **4 (excellent):** As 3, and stubs the network so the test is about this screen rather than about the server.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you cover that someone clicking through the screen by hand would never reach?
 
 **Says what they would not test — 30%**
 
@@ -1388,7 +1487,9 @@ Styling, framework behaviour, and anything whose test would only restate the cod
 - **3 (solid):** Names what they would leave out and why it is not worth the maintenance.
 - **4 (excellent):** As 3, and prefers a few tests that would catch a regression to many that assert the obvious.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you deliberately leave untested, and why is that the right call?
 
 > **The drafter is unsure about:** Asking what they would deliberately leave untested is the part I think separates people. The prompt now says "if you were starting this screen's tests from nothing", so a candidate whose employer had no test suite is not answering about a world they have never seen. Does that read as neutral to you? And should criterion 3, the scoping judgement, outweigh the two coverage criteria rather than sit level with them?
 
@@ -1406,7 +1507,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour changed, and eleven tests failed. What does that tell you about those tests, what does having a suite like that cost the team, and what would you do about it?
+> A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour changed, and eleven tests failed. What does that tell you about those tests?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1440,7 +1541,9 @@ A suite that cries wolf stops being read, which is worse than having no suite.
 - **3 (solid):** Says the team loses trust in the suite and begins skipping or deleting tests.
 - **4 (excellent):** As 3, and notes that the refactor itself gets avoided next time, which is the real cost.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What does living with a suite like that cost you?
 
 **Fixes the tests, not the code — 35%**
 
@@ -1452,7 +1555,9 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 - **3 (solid):** Selects by role, label or visible text, so the next refactor does not break them.
 - **4 (excellent):** As 3, and names a change to this screen that _should_ break a test, so the fix is not "make the tests never fail".
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you do about it?
 
 > **The drafter is unsure about:** This is the strongest testing question in the bank in my view, but it assumes the candidate has lived with a test suite long enough to have felt the cost, which many juniors here will not have. Two passes said mid only; one said keep both levels but move criterion 2's weight onto the two criteria that test reasoning rather than experience. I have done neither, because both are judgements about this market rather than defects. Which would you take?
 
@@ -1470,7 +1575,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Someone has sent this in about the job board. What do you do next, what would you want to know before you touch any code, and how would you go about seeing it for yourself?
+> Someone has sent this in about the job board. What would you go and look at before you reply?
 
 **Setup the candidate is given**
 
@@ -1498,7 +1603,9 @@ Specific questions — which screen, what they tapped, what they expected — ra
 - **3 (solid):** Asks what they did, what happened, what they expected, and on what device and connection.
 - **4 (excellent):** As 3, and the questions avoid jargon the reporter would not have — they ask about what the person saw, not about the system.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you write back to them?
 
 **Looks before spending the reporter's time — 30%**
 
@@ -1522,9 +1629,12 @@ The user's device, connection and data — not a laptop on office wifi.
 - **3 (solid):** Reproduces with a throttled connection and a comparable device, on the same data if possible.
 - **4 (excellent):** As 3, and says what they would do if it still does not reproduce, rather than closing it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you go about seeing it for yourself?
 
 > **The drafter is unsure about:** Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not working", with nothing else, and a critique pass called it the lowest-discrimination question in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a real report, so the answer has to contain a hypothesis and not only a list of questions. Is one device working and another not too strong a hint? **It now carries `qa` as well** (2026-09-23): its own note asked whether one question should serve all three roles, and the answer was yes — nothing in it is about the browser, and a QA copy would have been the same question with a second slug to keep in step. Its rubric moved to `rubrics.shared.yaml`. Is the answer key missing the triage half — how often, how many users, what severity — or does that belong to `two-bugs-one-slot` in the QA bank?
+> Opening and first probe swapped after the critique passes, so the looking comes before the asking.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1540,7 +1650,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> This is what the tool that collects errors from real users is showing you. It never happens on your machine. How do you work out what is going on?
+> This is what the tool that collects errors from real users is showing you. It never happens on your machine. What do you do with this?
 
 **Setup the candidate is given**
 
@@ -1586,7 +1696,9 @@ The fields listed beside the trace — page, browser, device, users, first seen.
 - **3 (solid):** Groups the occurrences — which page, which devices, how many distinct users, since when.
 - **4 (excellent):** As 3, and puts forty a day against total sessions before deciding how urgent it is.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you work out how urgent this is?
 
 **Fixes the cause, not the symptom — 25%**
 
@@ -1598,7 +1710,9 @@ A missing property means data that was assumed to be there was not.
 - **3 (solid):** Guards the immediate case and traces why the data was missing — an empty or failed response.
 - **4 (excellent):** As 3, and says what would tell them the fix did not work — the rate not moving, or moving for one browser only.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> You have found the line — what actually needs fixing?
 
 > **The drafter is unsure about:** The trace is realistic but it is also the most common error message in JavaScript, which may make the question feel like a quiz about that one message rather than about method. Would you rather it were an error the candidate has to reason about from scratch? The fields the tool shows are now listed in the question, because 45% of the score was on using them and a candidate who has never had such a tool was being scored on their employer rather than on their reasoning.
 
@@ -1616,7 +1730,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Have a look at what happened to the tester here. What is going on, and how would you fix it?
+> Have a look at what happened to the tester here. What is going on?
 
 **Setup the candidate is given**
 
@@ -1669,7 +1783,9 @@ That the note is state inside the row component, not a field on the application.
 - **3 (solid):** Says the note is the child's own state and React kept it when it reused the child.
 - **4 (excellent):** As 3, and notes that nothing in the data was ever wrong, which is why it looks so strange.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Is the note wrong in the data now too, or only on screen?
 
 **Fixes it and knows the boundary — 30%**
 
@@ -1681,9 +1797,14 @@ A key from the item itself, and an honest account of when an index is acceptable
 - **3 (solid):** Uses the application's id, and says it must be stable and unique among siblings.
 - **4 (excellent):** As 3, and says an index is only safe for a list that never reorders, filters or removes.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> How would you fix it?
+
+> You have changed the key — is there a case where the old one would have been fine?
 
 > **The drafter is unsure about:** **Version-sensitive: React list reconciliation, checked against react.dev on 2026-09-22.** This is the bug I would most expect to actually happen to a junior on a real project, which is why it is here rather than a rendering-performance question. It needs the candidate to know that a child holds state, which the snippet has to state in prose because the component is not shown. Does that prose line give too much away, or is it the minimum the question needs?
+> Criterion 3 scores two things at 30% — the fix, and an honest account of when an index is acceptable — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1699,7 +1820,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> You have a page that lists jobs from a database, and one button on it that opens a filter panel. A colleague has put "use client" at the top of the page file to make the button work. What does that line actually do, what does it cost, and what would you do instead?
+> You have a page that lists jobs from a database, and one button on it that opens a filter panel. A colleague has put "use client" at the top of the page file to make the button work. What does that line actually do?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1734,7 +1855,9 @@ More JavaScript on a phone, and server rendering given up for the whole page.
 - **3 (solid):** Names the extra JavaScript and the loss of server rendering for the list.
 - **4 (excellent):** As 3, and ties it to this audience — a mid-range phone parsing a larger bundle on mobile data.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What happens to the rest of the page because of it?
 
 **Moves the boundary rather than the page — 30%**
 
@@ -1746,7 +1869,9 @@ Only the interactive part becomes a client component; the page stays on the serv
 - **3 (solid):** Makes the filter panel the client component and leaves the page and its data on the server.
 - **4 (excellent):** As 3, and says how far down the tree the boundary should go as a general habit.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you do instead?
 
 > **The drafter is unsure about:** **Version-sensitive: Next.js `"use client"` semantics, checked against nextjs.org on 2026-09-22.** The App Router's server-and-client split is the thing Next.js candidates most often half-know, so I think this is the right question — but it is also the part of the framework that has moved most in the last two years, and a candidate who learned on the Pages Router will answer about `getServerSideProps` instead. Should the rubric give credit for that, or is being current part of what is being tested?
 
@@ -1764,7 +1889,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> What is wrong with this component, and how would you find out whether anyone else has already used that key?
+> What is wrong with this component?
 
 **Setup the candidate is given**
 
@@ -1815,7 +1940,9 @@ The request belongs on the server, with the key kept out of anything the browser
 - **3 (solid):** Puts the call in a server component or a route handler and has the client call that.
 - **4 (excellent):** As 3, and keeps the response shape the client needs, rather than proxying the provider wholesale.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where should that request be happening instead?
 
 **Treats a leaked key as leaked — 30%**
 
@@ -1827,7 +1954,9 @@ Rotating it, and finding out whether it was used, rather than quietly removing i
 - **3 (solid):** Rotates the key, and checks the provider's usage for calls that were not ours.
 - **4 (excellent):** As 3, and checks the deployed bundles and the history for how long it was exposed.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> That key has been in a deployed build for three weeks — what now?
 
 > **The drafter is unsure about:** **Version-sensitive: Next.js `NEXT_PUBLIC_` inlining, checked against nextjs.org on 2026-09-22.** This is as much a security question as a framework one, and I have weighted "what do you do about a key that has already shipped" at 30% because I think the rotation instinct matters more than the framework trivia. Is that the right balance for a frontend interview, or would a reviewer here expect the whole score on the `NEXT_PUBLIC_` rule?
 
@@ -1845,7 +1974,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> The count on screen never changes, even though clicking the button clearly runs the function. Why, what would you change, and what is the general rule you would take away from it?
+> The count on screen never changes, even though clicking the button clearly runs the function. Why is the screen not seeing the change?
 
 **Setup the candidate is given**
 
@@ -1899,7 +2028,9 @@ Keep the reference, or convert the properties so they stay connected.
 - **3 (solid):** Uses the object in the template, or converts its properties to refs before destructuring.
 - **4 (excellent):** As 3, and says which they would choose here and why.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change?
 
 **Generalises the rule — 25%**
 
@@ -1911,7 +2042,9 @@ Reactivity belongs to the container, not to the value taken out of it.
 - **3 (solid):** States that copying a value out of any reactive container loses the connection.
 - **4 (excellent):** As 3, and applies it to a second case — a prop, or a value passed into a function.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you tell someone else to watch out for?
 
 > **The drafter is unsure about:** **Version-sensitive: Vue reactivity and `<script setup>`, checked against vuejs.org on 2026-09-22 — needs a reviewer who knows what this audience actually learned Vue on.** Checked against vuejs.org on 2026-09-22: destructuring a `reactive()` object still breaks the connection, and **Vue 3.5 made destructuring `defineProps` reactive**, which the answer key now mentions — a candidate who learned on 3.5 may reasonably expect this to work too, and knowing why props are the exception is the best answer available here. What I am less sure of is the audience: this is the Composition API with `<script setup>`, and someone who learned on the Options API would hit the same bug in unfamiliar syntax. Is that the right default to write for, or should one of the two Vue questions use the Options API?
 
@@ -1929,7 +2062,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Users say the list sometimes shows jobs that do not match what they typed, and it comes right as soon as they type another letter. What is going on, and how would you write it instead?
+> Users say the list sometimes shows jobs that do not match what they typed, and it comes right as soon as they type another letter. What is going on?
 
 **Setup the candidate is given**
 
@@ -1981,7 +2114,9 @@ The filtered list follows from the jobs and the term, so it should not be stored
 - **3 (solid):** Makes it a computed value that depends on both, so there is one list rather than two.
 - **4 (excellent):** As 3, and says why that removes the whole class of bug rather than this instance of it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you write it instead?
 
 **Knows what a watcher is still for — 25%**
 
@@ -1993,7 +2128,9 @@ Something that has to happen when a value changes, as opposed to a value that fo
 - **3 (solid):** Gives an example that has to happen rather than be shown — analytics, saving a draft, a request.
 - **4 (excellent):** As 3, and separates it from the filtered list by asking whether anything outside the component has to change.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Is there anything you would still reach for a watcher for?
 
 > **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when _is_ a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
 
@@ -2011,7 +2148,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A user moves between the job list and a job's detail page a few dozen times. The app gets slower, and the list starts showing results from a search they ran several pages ago. What is wrong here, what would you change, and what else in a component would you check for the same thing?
+> A user moves between the job list and a job's detail page a few dozen times. The app gets slower, and the list starts showing results from a search they ran several pages ago. What is wrong here?
 
 **Setup the candidate is given**
 
@@ -2055,7 +2192,9 @@ Any fix that ties the subscription's lifetime to the component's.
 - **3 (solid):** Ties it to the component's destruction, or lets the template own the subscription instead.
 - **4 (excellent):** As 3, and prefers the approach that cannot be forgotten on the next component someone writes.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would you change?
 
 **Generalises — 25%**
 
@@ -2067,7 +2206,9 @@ Anything started in a component — subscription, timer, listener — is ended w
 - **3 (solid):** Names timers and listeners as the same class of problem.
 - **4 (excellent):** As 3, and says how they would catch it in review rather than in production.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What else in a component would you check for the same thing?
 
 > **The drafter is unsure about:** **Version-sensitive: the idiomatic Angular cleanup, checked against angular.dev on 2026-09-22.** The bug and the reasoning are stable across Angular versions, but **the idiomatic fix is not**: the async pipe, `takeUntil` with a subject, `takeUntilDestroyed`, and signals are all answers a candidate might give depending on when they learned. I have written the rubric to reward any fix that ties the subscription to the component's lifetime and not to name a mechanism. Is that too lenient for a mid-level Angular interview here? The snippet also has a second problem on a current Angular — assigning to a field inside `subscribe` notifies a zoneless application of nothing — which I have added as an ideal point rather than rewriting the snippet, because the leak is what the question is about. Would you rather the snippet used the async pipe and the leak came from somewhere else?
 
@@ -2085,7 +2226,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> The new job appears in the console, but the list on screen does not change. Nothing throws. Where would you start, what would you expect to find, and how would you fix it?
+> The new job appears in the console, but the list on screen does not change. Nothing throws. What would you check first?
 
 **Setup the candidate is given**
 
@@ -2144,7 +2285,9 @@ Angular re-renders on a short list of notifications; an assignment to a plain fi
 - **3 (solid):** Names the shape that applies here — the array was changed in place, so the reference a child compares against never differed.
 - **4 (excellent):** As 3, and separates it from the other way a change goes unnoticed — nothing told Angular that anything had happened at all.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> The property really has changed and the screen still has not — why might that be?
 
 **Fixes it without papering over it — 30%**
 
@@ -2156,9 +2299,14 @@ Replace the value rather than editing it, and treat a forced refresh as a smell.
 - **3 (solid):** Assigns a new value so the change is visible, and explains why that is enough.
 - **4 (excellent):** As 3, and says that needing to force a check usually means the real cause is still there.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> How would you fix it?
+
+> Would reaching for a forced refresh be reasonable here?
 
 > **The drafter is unsure about:** **Version-sensitive: Angular change detection, checked against angular.dev on 2026-09-22 — needs an Angular specialist, not a generalist reviewer.** Kept on that condition, and rewritten twice the same day: zoneless is the default from v21, so "it happened outside the zone" is no longer the first thing to reach for, and three critique passes said a diagnosis question with no code invites reciting a blog post. It shows the bug I would expect — a parent pushing into an array a child was given — which behaves the same in zone-based, signal-based and `OnPush` applications. **What a specialist has to settle: the docs disagree about whether `OnPush` is now the default** — the roadmap says it was made so, the zoneless guide still calls it recommended. The snippet sets it explicitly rather than depend on the answer. Right way out, or does it give the game away?
+> Criterion 3 scores two things at 30%, so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2174,7 +2322,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> The Save buttons work on the jobs that were on the page when it loaded. The ones loaded by "Show more" do nothing at all. What is going on, and how would you fix it?
+> The Save buttons work on the jobs that were on the page when it loaded. The ones loaded by "Show more" do nothing at all. What is different about them?
 
 **Setup the candidate is given**
 
@@ -2216,7 +2364,9 @@ One listener on an ancestor that is always present, acting on what was clicked.
 - **3 (solid):** Listens on a container and checks what was clicked before acting.
 - **4 (excellent):** As 3, and says the container must exist for the life of the page for this to hold.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you fix it?
 
 **Says why that works — 25%**
 
@@ -2228,7 +2378,9 @@ That a click travels up through the ancestors, so a parent can hear it.
 - **3 (solid):** Describes the event travelling up from the element that was clicked.
 - **4 (excellent):** As 3, and names a case where it does not help — an event that does not travel that way.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Why does that work?
 
 > **The drafter is unsure about:** Event delegation is the one thing I would want a vanilla-JS candidate to know that a framework would have hidden from them, so it is here rather than in the general set. My worry is the level — is this an interview question at all in 2026, or is it assumed knowledge that only catches people out in practice?
 
@@ -2246,7 +2398,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is going on in those few seconds, how would you build this so that does not happen, and what should that button look like before it can work?
+> On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is going on in those few seconds?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2280,7 +2432,9 @@ The form submits on its own, and the script improves it rather than enabling it.
 - **3 (solid):** Gives the form a real action so a submission works before the script arrives, then enhances it.
 - **4 (excellent):** As 3, and keeps the two paths consistent, so the enhanced version does not behave differently.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you build it so that tapping Submit then still does something?
 
 **Does not show a control that is not ready — 25%**
 
@@ -2292,7 +2446,9 @@ If the button cannot work yet, it does not look as though it can.
 - **3 (solid):** Starts the control disabled and enables it when the code that handles it is present.
 - **4 (excellent):** As 3, and pairs it with getting that code to the browser sooner rather than later.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> In that first second, what is on screen where that button is?
 
 > **The drafter is unsure about:** Written for this audience deliberately: a phone on a weak connection spends real seconds in this state, and a lot of tutorials never mention it. **Untagged 2026-09-22** — it was written as a vanilla-JS question, and two critique passes pointed out that the gap between paint and hydration is exactly this failure on a React or Next.js app, so the candidates who most need it were the ones not being asked. Nothing in the prompt or the rubric is framework-specific. One instruction for the interviewer: **do not use the phrase "progressive enhancement" in a follow-up** — it is a term from a particular strand of Western web writing and is not reliably recognised here. Is the question still on the right side of the line between this and an argument for building without frameworks?
 
@@ -2310,7 +2466,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> You are working with a team five hours behind you. At four in the afternoon your time you hit something you cannot get past, and nobody will be online for another six hours. Tell me what you would write, who you would send it to, and what you would do until they answer.
+> You are working with a team five hours behind you. At four in the afternoon your time you hit something you cannot get past, and nobody will be online for another six hours. Tell me what you would write.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2345,7 +2501,11 @@ One answerable question, and what is blocked and by when.
 - **3 (solid):** Asks one specific question and says what it is blocking.
 - **4 (excellent):** As 3, and says by when the answer matters, so the reader can judge it against their own work.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What exactly are you asking them?
+
+> What is not moving until they answer?
 
 **Does not stop — 30%**
 
@@ -2357,9 +2517,12 @@ What they do with the six hours.
 - **3 (solid):** Picks up something not blocked, and keeps narrowing the problem in the background.
 - **4 (excellent):** As 3, and if they solve it first, says they would post the answer so the thread closes itself.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Six hours is most of an evening — what does the blocker not stop you doing?
 
 > **The drafter is unsure about:** Added after a critique pass pointed out that every question in the bank is answered by talking to an interviewer who is present and can ask a follow-up — which is exactly the condition remote work removes, and remote work is half of what this product is for. Two things I am unsure about. It is a hypothetical, so a candidate who has only worked locally has to imagine the setup rather than recall it — is that fair, or does it reward people who have already worked remotely? And is six hours of waiting the right shape for the Nigerian day, given that most remote work here is with Europe rather than the US?
+> Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2375,7 +2538,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Take me through something you built — anything, at work or on your own. Pick one decision you had to make while building it, tell me what you chose and why, and tell me what you would do differently if you started it again tomorrow.
+> Take me through something you built — anything, at work or on your own.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2409,7 +2572,9 @@ A point where there were at least two options, and why they took the one they di
 - **3 (solid):** A choice with an alternative named, and a reason grounded in what they were building.
 - **4 (excellent):** As 3, and says what the choice cost them — the thing that got harder because of it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where did you have to pick between two ways of doing it?
 
 **What they would change — 30%**
 
@@ -2421,9 +2586,14 @@ Something specific they would do differently, and why they did not know it then.
 - **3 (solid):** Names a specific change and what went wrong that taught them it.
 - **4 (excellent):** As 3, and separates what they could reasonably have known at the time from what only experience gives.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> What would you do differently if you started it again tomorrow?
+
+> What did you not know then that you know now?
 
 > **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
+> Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2439,7 +2609,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> This works until it does not. What breaks first, where is the cart actually being kept, and how would you restructure it?
+> This works today. What breaks first?
 
 **Setup the candidate is given**
 
@@ -2490,7 +2660,9 @@ The cart's contents exist only as list items, and the total is gathered back off
 - **3 (solid):** Says the page is being used as the store, and that reading numbers back out of text is the symptom.
 - **4 (excellent):** As 3, and notes that formatting and arithmetic are now entangled — a currency symbol would break the sum.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Where is the cart actually being kept at the moment?
 
 **Restructures it — 25%**
 
@@ -2502,7 +2674,9 @@ Hold the items, draw the page from them, derive the total.
 - **3 (solid):** Keeps the items in an array, redraws from it, and derives the total from the array.
 - **4 (excellent):** As 3, and redraws only what changed rather than the whole list, without reaching for a framework to do it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you restructure it?
 
 > **The drafter is unsure about:** Written to keep vanilla JS at two questions after `vanilla-form-before-js-loads` was untagged and made general. This is the thing a framework hides from a vanilla candidate — that the DOM is a view, not a database — and it is a bug shape I would expect to see in real code here. The `innerHTML +=` line carries a second problem, injection, if any of that text came from a user: I have deliberately left it out of the answer key so the question stays about state, but a candidate who raises it is telling you something good. Should it be in the key instead?
 

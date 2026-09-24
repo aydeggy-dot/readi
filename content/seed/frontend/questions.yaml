@@ -25,8 +25,7 @@ questions:
     prompt: >-
       A tester says that when they tap Save on their phone the screen goes dead for about two
       seconds — nothing on it changes at all — and then the "Saved" message appears. They expected
-      to see "Saving…" while they waited. Why does that line never show up, what is the browser
-      doing for those two seconds, and what would you change?
+      to see "Saving…" while they waited. Why does that line never show up?
     context: |
       ```js
       saveButton.addEventListener("click", () => {
@@ -46,6 +45,16 @@ questions:
       - Nothing else works during those two seconds either — taps and scrolling wait behind the loop.
       - Let the browser paint before the work starts, or move the work off the main thread.
       - Check it on a mid-range phone or with the CPU throttled, not on the laptop it was written on.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Two seconds is a long time — what is the phone actually busy with?
+      - criterion: 2
+        probe: >-
+          What would you change so the tester sees that message?
+      - criterion: 2
+        probe: >-
+          How would you know the change had worked?
     reviewer_notes: >-
       **The snippet changed on 2026-09-22 and the question is now mid only** (owner's decision).
       It used to be four `console.log`s and a zero-delay `setTimeout` — the snippet in every "top
@@ -57,6 +66,8 @@ questions:
       to say and fiddly to do, so the rubric puts the mechanism at level 3 and the yielding at
       level 4, and a candidate who only says "move it to a worker" still scores 3.
 
+      Criterion 3 scores two things at 30% — the change, and knowing it worked — so it carries two
+      follow-ups, the second only reached if the first has not already drawn it out.
   - slug: js-loop-that-returns-nothing
     roles: [frontend, fullstack]
     levels: [intern-junior]
@@ -66,8 +77,7 @@ questions:
     difficulty: 2
     prompt: >-
       This function is meant to give back the jobs that are still open, and whoever calls it gets
-      `undefined` every time. Talk me through what actually happens when it runs, why the `return`
-      does not do what it looks like it does, and how you would write it instead.
+      `undefined` every time. Where is that `undefined` coming from?
     context: |
       ```js
       function openJobs(jobs) {
@@ -85,6 +95,13 @@ questions:
       - "`forEach` throws away whatever its callback returns; it is there for side effects."
       - "`filter` keeps the items that pass a test and gives back a new array, leaving the original alone."
       - "`find` is the one to reach for if only the first match is wanted — a different question."
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Where does the value from that inner `return` end up?
+      - criterion: 2
+        probe: >-
+          How would you write it instead?
     reviewer_notes: >-
       New on 2026-09-22, because `js-async-ordering` became mid only and `javascript-fundamentals`
       would otherwise have had one general question at intern-junior instead of the floor of two.
@@ -102,9 +119,8 @@ questions:
     subtopic: error handling
     difficulty: 2
     prompt: >-
-      You are building a screen that loads a list of jobs from an API and shows them. Walk me
-      through everything that screen has to handle — not just the case where the jobs come back —
-      and tell me what the code actually has to check to know which of those it is in.
+      You are building a screen that loads a list of jobs from an API and shows them. Besides the
+      jobs arriving, what else does that screen have to be able to show?
     context: null
     rubric: network-failure-handling
     ideal_points:
@@ -113,6 +129,13 @@ questions:
       - "`fetch` resolves for a 404 or a 500: the status has to be checked, e.g. `response.ok`."
       - A request needs a deadline, because a phone that has lost signal hangs rather than failing.
       - The error state should offer the user something to do — retry, or go back.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          The server answers with a 500 — walk me through what happens in your code from there.
+      - criterion: 2
+        probe: >-
+          Their signal drops halfway through and the request never comes back — what then?
     reviewer_notes: >-
       This is deliberately open rather than a puzzle, so a candidate who has built a real screen
       does well and one who has memorised trivia does not. The risk is that it rewards talkers.
@@ -133,8 +156,7 @@ questions:
     difficulty: 3
     prompt: >-
       Two components on the same page need to know which job the user has selected: a list on the
-      left and a detail panel on the right. Where would you keep that selection, why there, and what
-      does that choice cost you?
+      left and a detail panel on the right. Where would you keep that selection, and why there?
     context: null
     rubric: state-placement-reasoning
     ideal_points:
@@ -143,6 +165,14 @@ questions:
       - The job data itself is server state and belongs in a cache that can refetch, not in `useState`.
       - Consider the URL, so the selection survives a reload and can be shared.
       - Name the cost of the choice — prop drilling, or re-rendering the list when the selection changes.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          The detail panel also needs the selected job's title — where does it get that from?
+      - criterion: 2
+        probe: >-
+          Six months from now, what about that decision is most likely to annoy whoever is working
+          on this page?
     reviewer_notes: >-
       **Kept, after a critique pass wanted it cut**, because it is not subsumed by
       `state-that-can-disagree` or `url-as-state`: neither asks where shared state should *live*,
@@ -164,8 +194,7 @@ questions:
     subtopic: effects
     difficulty: 3
     prompt: >-
-      This component works, but a reviewer has asked you to change it. What is wrong with it, what
-      does the user actually see because of it, and how would you write it instead?
+      This component works, but a reviewer has asked you to change it. What is wrong with it?
     context: |
       ```jsx
       function Cart({ items }) {
@@ -185,6 +214,13 @@ questions:
       - It costs an extra render every time `items` changes.
       - It creates a second place for the truth to live, which can disagree with `items`.
       - Effects are for synchronising with things outside React, not for keeping values in step.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What does the user actually see because of that?
+      - criterion: 2
+        probe: >-
+          How would you write it instead?
     reviewer_notes: >-
       This is the clearest "one right answer" question in the bank, which makes it good for
       calibration but weak at separating a solid candidate from an excellent one. The excellence
@@ -209,8 +245,7 @@ questions:
     prompt: >-
       A tester reports that on their phone the page scrolls sideways — there is a strip of empty
       space to the right of everything. It looks fine on your laptop. How do you find what is
-      causing it, what would you expect the culprit to be, and how would you fix it so that it holds
-      at every width?
+      causing it?
     context: null
     rubric: responsive-layout-diagnosis
     ideal_points:
@@ -219,6 +254,13 @@ questions:
       - Usual suspects — a fixed width, a flex or grid child that will not shrink below its content, a wide table or image, a long unbroken string, negative margins.
       - "Fix the cause; `overflow-x: hidden` hides the symptom and usually hides a real bug."
       - Prefer a fix that holds at every width over a media query for one size.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you expect the culprit to turn out to be?
+      - criterion: 2
+        probe: >-
+          How would you fix it?
     reviewer_notes: >-
       Listed at difficulty 2 because the method matters more than the knowledge, but juniors who
       have only built desktop-first sites may never have met it. Are the "usual suspects" the right
@@ -235,9 +277,9 @@ questions:
     subtopic: performance investigation
     difficulty: 3
     prompt: >-
-      A user writes in: "your site takes forever to load on my phone". You cannot reproduce it —
-      on your laptop the page appears instantly. What do you do, in order, and how do you decide
-      what to change?
+      A user writes in: "your site takes forever to load on my phone". You cannot reproduce it — on
+      your laptop the page appears instantly. Before you change anything, how would you see what
+      they are seeing?
     context: null
     rubric: performance-investigation
     ideal_points:
@@ -246,6 +288,16 @@ questions:
       - Record a load and read it — the waterfall for bytes and round trips, the main thread for long tasks.
       - Decide which budget is blown, network or CPU, before choosing a fix.
       - Make the change the measurement points to, then measure again to see whether it helped.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What tells you where the time is actually going?
+      - criterion: 2
+        probe: >-
+          What would you change on the strength of that?
+      - criterion: 2
+        probe: >-
+          How would you know the change had actually helped?
     reviewer_notes: >-
       The intended shape of a strong answer is "reproduce, measure, then act", and the rubric puts
       40% on that. My worry is that a candidate who has never used the Performance panel but says
@@ -255,6 +307,8 @@ questions:
       opened the Performance panel — which would also answer the question above. I have left it at
       both levels; your call.
 
+      Criterion 3 scores two things at 30% — the change following from the measurement, and its
+      effect being checked — so it carries two follow-ups.
   - slug: stuck-and-asked-for-help
     roles: [frontend, backend, qa, fullstack]
     levels: [intern-junior]
@@ -263,8 +317,7 @@ questions:
     subtopic: asking for help
     difficulty: 2
     prompt: >-
-      Tell me about a time you were really stuck on something. What had you already tried before you
-      asked anyone, what did you ask, and what do you do differently now?
+      Tell me about a time you were really stuck on something and ended up asking someone for help.
     context: null
     rubric: help-seeking-judgement
     ideal_points:
@@ -273,6 +326,13 @@ questions:
       - How they asked — what they had tried, what they expected, what happened instead.
       - Whether asking was easy or hard where they were, and what they did about that.
       - What they do differently now, stated concretely.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What had you already tried before you asked?
+      - criterion: 2
+        probe: >-
+          What made that the moment you stopped trying on your own?
     reviewer_notes: >-
       Reworked 2026-09-22. It used to ask "how long did you spend before you asked for help" and be
       scored by the shared behavioural rubric — so the part a candidate would agonise over was worth
@@ -292,8 +352,7 @@ questions:
     difficulty: 2
     prompt: >-
       Tell me about a piece of your work that someone gave you a lot of feedback on — a reviewer, a
-      mentor, a maintainer on a pull request, a tutor. What did they say, what did you do about it,
-      and was there anything you did not agree with or did not understand?
+      mentor, a maintainer on a pull request, a tutor.
     context: null
     rubric: handling-review-feedback
     ideal_points:
@@ -301,6 +360,13 @@ questions:
       - At least one comment they did not at first agree with or understand, and how they got to the bottom of it.
       - What changed in the end — including where the other person turned out to be right.
       - Something they now do earlier, so that comment would not arise again.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What did you actually change as a result?
+      - criterion: 2
+        probe: >-
+          Which of those comments took you longest to accept, and what got you there?
     reviewer_notes: >-
       Reworked 2026-09-22 on two findings. It required an employer with code review — the only
       question in the bank with a hard experience prerequisite — so it now names a mentor, a
@@ -326,7 +392,7 @@ questions:
     prompt: >-
       A colleague says this function is "corrupting their data" — after they call it, the array they
       passed in has changed. They tell you they declared it with `const`, so they do not see how it
-      can have. Walk me through what is happening, and how you would fix it.
+      can have. Walk me through what is actually happening.
     context: |
       ```js
       function withDiscount(items, percent) {
@@ -347,12 +413,24 @@ questions:
       - Build and return new objects instead of writing to the ones passed in.
       - A shallow copy is not enough here — the items inside would still be shared.
       - A function that changes what it was given should say so in its name, or not do it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          So what is `const` actually protecting there?
+      - criterion: 2
+        probe: >-
+          How would you fix it?
+      - criterion: 2
+        probe: >-
+          Would you write it that way everywhere, or only here?
     reviewer_notes: >-
       I have kept this at intern-junior because the bug shape is common in real work rather than
       because the language rule is easy. The risk is that it reads as a trick question about `const`.
       Does the shallow-copy point (criterion 3's level 4) belong at junior at all, or should it be
       the thing that separates junior from mid here?
 
+      Criterion 3 scores two things at 40% — a fix that does not write to what it was given, and why
+      that is the better default — so it carries two follow-ups.
   - slug: state-that-can-disagree
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -363,8 +441,7 @@ questions:
     prompt: >-
       A page shows a list of items, a badge saying how many are selected, and a running total. A
       tester says that after you remove an item, the badge sometimes says three when only two rows
-      are highlighted. What would you expect to find, what would you actually store to stop it
-      happening again, and does recalculating on every render worry you?
+      are highlighted. How do you think the badge ended up saying three?
     context: null
     rubric: derived-state-reasoning
     ideal_points:
@@ -373,12 +450,26 @@ questions:
       - "Every change would otherwise have to update three things: the failure is silent and looks like a display bug."
       - Recalculating on render is cheap here, and it is measured before being optimised.
       - The same reasoning applies to anything filtered or sorted from a list already held.
+    planned_follow_ups:
+      - criterion: 0
+        probe: >-
+          So what would you actually keep in state on that page?
+      - criterion: 2
+        probe: >-
+          What does it cost to work that total out again on every render?
+      - criterion: 2
+        probe: >-
+          What would you look at to settle it?
     reviewer_notes: >-
       This is the general version of `react-state-placement`, written so that a Vue, Angular or
       vanilla candidate meets the idea too — until now every question on this topic was React-tagged.
       Is "derive rather than store" a fair expectation at intern-junior, or is the honest junior
       answer "I would keep a count variable and update it", which I have put at level 2?
 
+      The opening and the first probe were swapped after the critique passes: the rubric runs
+      diagnosis then design, and asking for the design first left the diagnosis being asked about a
+      page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the
+      recalculation matters here, and how they would find out — so it carries two follow-ups.
   - slug: url-as-state
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -388,8 +479,7 @@ questions:
     difficulty: 2
     prompt: >-
       A user filters a list of jobs down to the ones in Lagos, copies the link and sends it to a
-      friend. The friend opens it and sees every job in the country. What has happened, what would
-      you change, and is there anything on that page you would keep out of the link?
+      friend. The friend opens it and sees every job in the country. What has happened?
     context: null
     rubric: url-state-reasoning
     ideal_points:
@@ -398,6 +488,13 @@ questions:
       - The page then reads its initial filter from the URL rather than from a default.
       - It also fixes reload and the back button, which break for the same reason.
       - Not everything belongs there — an open dropdown or a half-typed form does not.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change so the friend sees the same list?
+      - criterion: 2
+        probe: >-
+          What on that page would you leave out of that link?
     reviewer_notes: >-
       `react-state-placement`'s notes asked whether "put it in the URL" was reasonable to expect at
       intern-junior; this question makes it the subject rather than a bonus point, which I think is
@@ -413,8 +510,7 @@ questions:
     subtopic: choosing a layout tool
     difficulty: 2
     prompt: >-
-      This is the CSS for a grid of job cards. It works. What does it cost, what would you write
-      instead, and which screen width would you start from?
+      This is the CSS for a grid of job cards. It works. What is wrong with writing it this way?
     context: |
       ```css
       .cards { display: grid; grid-template-columns: 1fr; }
@@ -430,6 +526,13 @@ questions:
       - The grid can decide for itself from a minimum card width, and then works at sizes nobody listed.
       - Breakpoints are still right where the design genuinely changes shape, not where the count changes.
       - Check it at 360px, which is where most of this audience is, rather than at the sizes in the file.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you write it instead?
+      - criterion: 2
+        probe: >-
+          The design you were given is a desktop mock-up only — where do you start building?
     reviewer_notes: >-
       Rewritten 2026-09-22. It used to ask which layout tool you would use for a header and a card
       grid, and two critique passes wanted it cut: "flex for the row, grid for the cards" is the
@@ -448,7 +551,7 @@ questions:
     difficulty: 3
     prompt: >-
       Here is the data your card layout looks right with, and here is what three of the cards look
-      like in production. What breaks, and how do you build so that it does not?
+      like in production. What breaks?
     context: |
       What you built against:
 
@@ -466,6 +569,13 @@ questions:
       - A missing image leaves a collapsed or jumping box unless the space is reserved.
       - Test with the worst content you can find, not the sample you built against.
       - Prefer limits the content flows inside — truncation with a full value still available — over fixed sizes.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you build it so that it does not?
+      - criterion: 2
+        probe: >-
+          How would you have caught this before anyone else saw it?
     reviewer_notes: >-
       Written from a real failure shape rather than a CSS property list, and the examples are ones
       this market produces — long company names, missing logos on smaller employers. I am unsure
@@ -481,9 +591,8 @@ questions:
     difficulty: 2
     prompt: >-
       Six large photographs have been added to the landing page. Users on mobile data are
-      complaining that it takes forever and eats their data. How would you find out what is
-      actually being sent, what would you change, and is there a conversation to be had with
-      whoever asked for them?
+      complaining that it takes forever and eats their data. How would you find out what is actually
+      being sent?
     context: null
     rubric: image-delivery-judgement
     ideal_points:
@@ -492,6 +601,13 @@ questions:
       - A modern format and sensible compression usually take most of the weight out.
       - Load what is below the fold only when it is needed, and reserve its space so nothing jumps.
       - Some of this is a conversation, not a fix — six photographs may be five too many.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change to bring that down?
+      - criterion: 2
+        probe: >-
+          What would you take back to whoever asked for the six photographs?
     reviewer_notes: >-
       The last ideal point is the one I am least sure about scoring: "push back on the requirement"
       is a real senior answer and can also be an excuse not to do the work. I have made it level 4 of
@@ -507,8 +623,8 @@ questions:
     difficulty: 3
     prompt: >-
       A user taps Pay. The request takes a long time and eventually times out, so they tap again.
-      Later they find they were charged twice. What went wrong, what would you have built
-      differently, and what would you need from the backend to make it safe?
+      Later they find they were charged twice. Why did that first request still charge them, even
+      though it timed out?
     context: null
     rubric: safe-retry-reasoning
     ideal_points:
@@ -517,12 +633,25 @@ questions:
       - Send something that identifies the attempt, so the server can recognise a repeat.
       - After a timeout, ask the server what the state is rather than blindly retrying.
       - Not everything is safe to retry automatically — separate reads from actions that charge money.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What should that screen have been doing while they waited?
+      - criterion: 1
+        probe: >-
+          And once it had timed out — what is on screen then?
+      - criterion: 2
+        probe: >-
+          What would make a second attempt safe?
     reviewer_notes: >-
       This needs the server to cooperate, and I have written the ideal points as "what the front end
       does about it" rather than a full idempotency design, which belongs to the backend bank. Is
       that the right split, or would an interviewer here expect a frontend candidate to describe the
       server side too? The scenario is a payment because that is where candidates have felt it.
 
+      Criterion 2 scores two things at 30% — what the interface does in flight, and what it does
+      after the timeout, which is the half that caused the second tap — so it carries two follow-
+      ups.
   - slug: stale-after-saving
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -532,8 +661,7 @@ questions:
     difficulty: 3
     prompt: >-
       A user updates their name in their profile, the save succeeds, and the page still shows the
-      old name — but only sometimes, and reloading fixes it. Where would you look, in what order,
-      and once you have found it, what would you change?
+      old name — but only sometimes, and reloading fixes it. Where would you look first?
     context: null
     rubric: cache-invalidation-diagnosis
     ideal_points:
@@ -543,12 +671,24 @@ questions:
       - Check what the response headers say about caching that request.
       - '"Only sometimes" is a clue: it points at something with a lifetime rather than a plain bug.'
       - What reloading does and does not clear narrows the list before anything is tested.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Say the server does have the new name — what could still be putting the old one on screen?
+      - criterion: 1
+        probe: >-
+          How would you tell which of them it is?
+      - criterion: 2
+        probe: >-
+          What would you change so that it stops happening?
     reviewer_notes: >-
       I like this as a debugging question because "it works after a hard refresh" is a phrase every
       candidate has heard, but the honest answer depends on the stack — a service worker, an HTTP
       cache and a client data cache are different things and I have written the rubric to accept any
       of them. Is that too generous, or is naming the layer enough at this level?
 
+      Criterion 2 scores two things at 25% — naming more than one place a copy can live, and a way
+      to tell them apart — so it carries two follow-ups.
   - slug: div-that-should-be-a-button
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -557,7 +697,7 @@ questions:
     subtopic: semantics
     difficulty: 2
     prompt: >-
-      This works when you click it. Who cannot use it, and what would you change?
+      This works when you click it. Who cannot use it?
     context: |
       ```html
       <div class="btn" onclick="submitForm()">Send application</div>
@@ -569,6 +709,13 @@ questions:
       - The fix is a real `<button>`, which brings focus, Enter and Space, and the role for free.
       - Rebuilding those by hand is possible and is more code that will drift.
       - The visual styling is not the reason to use a div — a button can be styled to look the same.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change?
+      - criterion: 2
+        probe: >-
+          Is "a real button was too hard to style" a good reason?
     reviewer_notes: >-
       The shortest question in the bank and the one I most expect a strong junior to get right, which
       is deliberate — accessibility had no questions at all until this pass and a first question
@@ -583,9 +730,7 @@ questions:
     subtopic: forms and error feedback
     difficulty: 3
     prompt: >-
-      A user submits a sign-up form and two fields are wrong. Describe everything that should
-      happen next, what each message actually says to them, and how you would make sure it works
-      for someone using a screen reader.
+      A user submits a sign-up form and two fields are wrong. How do they find out which ones?
     context: null
     rubric: accessible-error-feedback
     ideal_points:
@@ -594,12 +739,24 @@ questions:
       - Focus moves somewhere useful — the first bad field, or a summary that links to them.
       - Colour alone is not the signal; there is text as well.
       - The message says how to fix it rather than that something is invalid.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Someone is filling that form in with a screen reader — what do they get?
+      - criterion: 1
+        probe: >-
+          After they hit submit, where does the cursor end up?
+      - criterion: 2
+        probe: >-
+          What do those messages actually say?
     reviewer_notes: >-
       I have deliberately not asked for attribute names, because reciting `aria-describedby` is not
       the skill and a candidate who has built accessible forms in a framework may never have typed
       it. The rubric rewards the behaviour and treats naming the mechanism as level 4. Is that the
       right way round for an interview here, where a lot of people learned from framework docs?
 
+      Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes
+      somewhere useful — so it carries two follow-ups.
   - slug: what-to-test-on-a-login-screen
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -609,9 +766,8 @@ questions:
     difficulty: 2
     prompt: >-
       You have built a login screen — email, password, a submit button, and an error message when
-      the credentials are wrong. If you were starting this screen's tests from nothing, what would
-      you write tests for, what would you deliberately leave untested, and why is that the right
-      call?
+      the credentials are wrong. Starting from nothing, take me through the first test you would
+      write for that screen.
     context: null
     rubric: frontend-test-selection
     ideal_points:
@@ -620,6 +776,13 @@ questions:
       - The network is stubbed, so the test is about this screen and not about the server.
       - Say what is deliberately not tested and why — styling, the framework's own behaviour.
       - One or two tests that would actually catch a regression beat twenty that assert the obvious.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you cover that someone clicking through the screen by hand would never reach?
+      - criterion: 2
+        probe: >-
+          What would you deliberately leave untested, and why is that the right call?
     reviewer_notes: >-
       Asking what they would deliberately leave untested is the part I think separates people. The
       prompt now says "if you were starting this screen's tests from nothing", so a candidate whose
@@ -635,9 +798,8 @@ questions:
     subtopic: brittle tests
     difficulty: 3
     prompt: >-
-      A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the
-      behaviour changed, and eleven tests failed. What does that tell you about those tests, what
-      does having a suite like that cost the team, and what would you do about it?
+      A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour
+      changed, and eleven tests failed. What does that tell you about those tests?
     context: null
     rubric: test-brittleness-diagnosis
     ideal_points:
@@ -646,6 +808,13 @@ questions:
       - Select elements the way a user finds them — by role, label or visible text.
       - Fix the tests rather than reverting the rename; the refactor was not the problem.
       - Some churn is the point — a test should fail when the behaviour really does change.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What does living with a suite like that cost you?
+      - criterion: 2
+        probe: >-
+          What would you do about it?
     reviewer_notes: >-
       This is the strongest testing question in the bank in my view, but it assumes the candidate has
       lived with a test suite long enough to have felt the cost, which many juniors here will not
@@ -661,8 +830,7 @@ questions:
     subtopic: reproducing a report
     difficulty: 2
     prompt: >-
-      Someone has sent this in about the job board. What do you do next, what would you want to
-      know before you touch any code, and how would you go about seeing it for yourself?
+      Someone has sent this in about the job board. What would you go and look at before you reply?
     context: |
       > good day. the app is not working. on my Tecno Spark the job list is just blank, but the
       > menu at the top is there. my sister opened it on her iPhone and hers is fine. please fix
@@ -674,6 +842,13 @@ questions:
       - Check whether anything else says the same thing — error reports, other tickets, a recent release.
       - Try to reproduce under their conditions before changing anything.
       - A report you cannot reproduce is not closed; say what would let you take it further.
+    planned_follow_ups:
+      - criterion: 0
+        probe: >-
+          What would you write back to them?
+      - criterion: 2
+        probe: >-
+          How would you go about seeing it for yourself?
     reviewer_notes: >-
       Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not
       working", with nothing else, and a critique pass called it the lowest-discrimination question
@@ -686,6 +861,8 @@ questions:
       missing the triage half — how often, how many users, what severity — or does that belong to
       `two-bugs-one-slot` in the QA bank?
 
+      Opening and first probe swapped after the critique passes, so the looking comes before the
+      asking.
   - slug: error-only-in-production
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -695,7 +872,7 @@ questions:
     difficulty: 3
     prompt: >-
       This is what the tool that collects errors from real users is showing you. It never happens on
-      your machine. How do you work out what is going on?
+      your machine. What do you do with this?
     context: |
       ```
       TypeError: Cannot read properties of undefined (reading 'name')
@@ -713,6 +890,13 @@ questions:
       - Forty a day out of how many sessions is the question that decides how urgent it is.
       - "Reading a property of `undefined` means data that was assumed to be there was not: usually a failed or empty response."
       - Guard the specific case, then fix why the data was missing — and check the rate afterwards.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you work out how urgent this is?
+      - criterion: 2
+        probe: >-
+          You have found the line — what actually needs fixing?
     reviewer_notes: >-
       The trace is realistic but it is also the most common error message in JavaScript, which may
       make the question feel like a quiz about that one message rather than about method. Would you
@@ -740,7 +924,7 @@ questions:
     subtopic: list identity
     difficulty: 3
     prompt: >-
-      Have a look at what happened to the tester here. What is going on, and how would you fix it?
+      Have a look at what happened to the tester here. What is going on?
     context: |
       The list on screen, before anything is removed:
 
@@ -763,6 +947,16 @@ questions:
       - Use something that identifies the item itself — the application's id — as the key.
       - The state that went wrong is the state React is holding for that row, not the data.
       - An index key is safe only for a list that never reorders, never filters and never removes.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Is the note wrong in the data now too, or only on screen?
+      - criterion: 2
+        probe: >-
+          How would you fix it?
+      - criterion: 2
+        probe: >-
+          You have changed the key — is there a case where the old one would have been fine?
     reviewer_notes: >-
       **Version-sensitive: React list reconciliation, checked against react.dev on 2026-09-22.**
       This is the bug I would most expect to actually happen to a junior on a real project, which is
@@ -770,6 +964,8 @@ questions:
       that a child holds state, which the snippet has to state in prose because the component is not
       shown. Does that prose line give too much away, or is it the minimum the question needs?
 
+      Criterion 3 scores two things at 30% — the fix, and an honest account of when an index is
+      acceptable — so it carries two follow-ups.
   - slug: nextjs-server-or-client
     roles: [frontend, fullstack]
     levels: [intern-junior, mid]
@@ -781,7 +977,7 @@ questions:
     prompt: >-
       You have a page that lists jobs from a database, and one button on it that opens a filter
       panel. A colleague has put "use client" at the top of the page file to make the button work.
-      What does that line actually do, what does it cost, and what would you do instead?
+      What does that line actually do?
     context: null
     rubric: client-boundary-reasoning
     ideal_points:
@@ -791,6 +987,13 @@ questions:
       - Push the boundary as far down the tree as the interaction allows.
       - Data fetching can then stay on the server, close to the database, rather than becoming a request from the browser.
       - A server component passed to a client component as a child or a prop stays on the server — it is rendered output, not an import.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What happens to the rest of the page because of it?
+      - criterion: 2
+        probe: >-
+          What would you do instead?
     reviewer_notes: >-
       **Version-sensitive: Next.js `"use client"` semantics, checked against nextjs.org on
       2026-09-22.** The App Router's server-and-client split is the thing Next.js candidates most often half-know,
@@ -808,8 +1011,7 @@ questions:
     subtopic: secrets and the client boundary
     difficulty: 2
     prompt: >-
-      What is wrong with this component, and how would you find out whether anyone else has already
-      used that key?
+      What is wrong with this component?
     context: |
       ```jsx
       "use client";
@@ -832,6 +1034,13 @@ questions:
       - The call belongs on the server — a server component, a route handler — with the key unprefixed.
       - "A key that has shipped is compromised: rotate it, rather than only removing it."
       - Search the deployed bundle to see whether it is there, and check the provider's usage.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Where should that request be happening instead?
+      - criterion: 2
+        probe: >-
+          That key has been in a deployed build for three weeks — what now?
     reviewer_notes: >-
       **Version-sensitive: Next.js `NEXT_PUBLIC_` inlining, checked against nextjs.org on
       2026-09-22.** This is as much a security question as a framework one, and I have weighted "what do you do
@@ -848,9 +1057,8 @@ questions:
     subtopic: reactivity
     difficulty: 3
     prompt: >-
-      The count on screen never changes, even though clicking the button clearly runs the
-      function. Why, what would you change, and what is the general rule you would take away from
-      it?
+      The count on screen never changes, even though clicking the button clearly runs the function.
+      Why is the screen not seeing the change?
     context: |
       ```vue
       <script setup>
@@ -876,6 +1084,13 @@ questions:
       - A `ref` would have the same problem if its value were copied out in the same way.
       - The rule is that reactivity belongs to the container, not to the value taken out of it.
       - "Props are the exception: since Vue 3.5 the compiler rewrites destructured props, so that one case does keep working."
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change?
+      - criterion: 2
+        probe: >-
+          What would you tell someone else to watch out for?
     reviewer_notes: >-
       **Version-sensitive: Vue reactivity and `<script setup>`, checked against vuejs.org on
       2026-09-22 — needs a reviewer who knows what this audience actually learned Vue on.**
@@ -897,7 +1112,7 @@ questions:
     difficulty: 3
     prompt: >-
       Users say the list sometimes shows jobs that do not match what they typed, and it comes right
-      as soon as they type another letter. What is going on, and how would you write it instead?
+      as soon as they type another letter. What is going on?
     context: |
       ```vue
       <script setup>
@@ -921,6 +1136,13 @@ questions:
       - The filtered list is derived from two things, so it should be computed rather than stored.
       - A computed value recalculates when either of them changes, and there is then only one list.
       - A watcher is still right for something that has to *happen* on a change — sending an analytics event, saving a draft.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you write it instead?
+      - criterion: 2
+        probe: >-
+          Is there anything you would still reach for a watcher for?
     reviewer_notes: >-
       Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a
       computed value and which was a watcher, and two critique passes said the same thing my own
@@ -944,9 +1166,8 @@ questions:
     difficulty: 3
     prompt: >-
       A user moves between the job list and a job's detail page a few dozen times. The app gets
-      slower, and the list starts showing results from a search they ran several pages ago. What
-      is wrong here, what would you change, and what else in a component would you check for the
-      same thing?
+      slower, and the list starts showing results from a search they ran several pages ago. What is
+      wrong here?
     context: |
       ```ts
       ngOnInit() {
@@ -962,6 +1183,13 @@ questions:
       - Let the template subscribe and unsubscribe instead, or tie the subscription to the component's lifetime.
       - The general rule is that anything subscribed in a component is ended when the component is.
       - Credit a candidate who also notices that assigning to a field from inside `subscribe` notifies a zoneless Angular of nothing, so the list may not render at all.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change?
+      - criterion: 2
+        probe: >-
+          What else in a component would you check for the same thing?
     reviewer_notes: >-
       **Version-sensitive: the idiomatic Angular cleanup, checked against angular.dev on
       2026-09-22.** The bug and the reasoning are stable across Angular versions, but **the idiomatic fix is not**:
@@ -984,7 +1212,7 @@ questions:
     difficulty: 3
     prompt: >-
       The new job appears in the console, but the list on screen does not change. Nothing throws.
-      Where would you start, what would you expect to find, and how would you fix it?
+      What would you check first?
     context: |
       ```ts
       @Component({
@@ -1013,6 +1241,16 @@ questions:
       - Assign a new array instead of pushing into the existing one, and the change becomes visible.
       - Forcing a check by hand works, and needing to is a sign the real cause has not been found.
       - The same reasoning holds whether the application uses zones or signals — what changed is what does the notifying, not that something has to.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          The property really has changed and the screen still has not — why might that be?
+      - criterion: 2
+        probe: >-
+          How would you fix it?
+      - criterion: 2
+        probe: >-
+          Would reaching for a forced refresh be reasonable here?
     reviewer_notes: >-
       **Version-sensitive: Angular change detection, checked against angular.dev on 2026-09-22 —
       needs an Angular specialist, not a generalist reviewer.** Kept on that condition, and
@@ -1025,6 +1263,7 @@ questions:
       guide still calls it recommended. The snippet sets it explicitly rather than depend on the
       answer. Right way out, or does it give the game away?
 
+      Criterion 3 scores two things at 30%, so it carries two follow-ups.
   - slug: vanilla-clicks-on-new-items
     roles: [frontend]
     levels: [intern-junior, mid]
@@ -1035,7 +1274,7 @@ questions:
     difficulty: 2
     prompt: >-
       The Save buttons work on the jobs that were on the page when it loaded. The ones loaded by
-      "Show more" do nothing at all. What is going on, and how would you fix it?
+      "Show more" do nothing at all. What is different about them?
     context: |
       ```js
       document.querySelectorAll(".save").forEach((button) => {
@@ -1049,6 +1288,13 @@ questions:
       - Listen on a container that is always there and act on the clicked element inside it.
       - "That works because a click travels up through the ancestors of what was clicked."
       - Re-attaching after every load also works and leaves you managing handlers by hand.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you fix it?
+      - criterion: 2
+        probe: >-
+          Why does that work?
     reviewer_notes: >-
       Event delegation is the one thing I would want a vanilla-JS candidate to know that a framework
       would have hidden from them, so it is here rather than in the general set. My worry is the
@@ -1063,10 +1309,9 @@ questions:
     subtopic: what works before the script arrives
     difficulty: 3
     prompt: >-
-      On a slow connection, users sometimes tap Submit on your form before the page's JavaScript
-      has finished loading, and nothing happens. Some of them tap it repeatedly and then leave.
-      What is going on in those few seconds, how would you build this so that does not happen, and
-      what should that button look like before it can work?
+      On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has
+      finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is
+      going on in those few seconds?
     context: null
     rubric: progressive-enhancement-reasoning
     ideal_points:
@@ -1075,6 +1320,13 @@ questions:
       - Do not show a control as ready before it is — disable it until it works, or make it work first.
       - Keep the script small and load it in a way that does not wait for everything else.
       - The same reasoning covers the user whose script fails to load at all.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you build it so that tapping Submit then still does something?
+      - criterion: 2
+        probe: >-
+          In that first second, what is on screen where that button is?
     reviewer_notes: >-
       Written for this audience deliberately: a phone on a weak connection spends real seconds in
       this state, and a lot of tutorials never mention it. **Untagged 2026-09-22** — it was written
@@ -1103,7 +1355,7 @@ questions:
     prompt: >-
       You are working with a team five hours behind you. At four in the afternoon your time you hit
       something you cannot get past, and nobody will be online for another six hours. Tell me what
-      you would write, who you would send it to, and what you would do until they answer.
+      you would write.
     context: null
     rubric: async-unblocking
     ideal_points:
@@ -1113,6 +1365,16 @@ questions:
       - Says what it blocks and by when, so the reader knows how urgent it is.
       - Carries on with something useful — the parts not blocked, or narrowing the problem further.
       - Sends it where the team will see it, not to one person who may be on leave.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What exactly are you asking them?
+      - criterion: 1
+        probe: >-
+          What is not moving until they answer?
+      - criterion: 2
+        probe: >-
+          Six hours is most of an evening — what does the blocker not stop you doing?
     reviewer_notes: >-
       Added after a critique pass pointed out that every question in the bank is answered by talking
       to an interviewer who is present and can ask a follow-up — which is exactly the condition
@@ -1122,6 +1384,8 @@ questions:
       worked remotely? And is six hours of waiting the right shape for the Nigerian day, given that
       most remote work here is with Europe rather than the US?
 
+      Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it
+      carries two follow-ups.
   - slug: something-you-built
     roles: [frontend, backend, qa, fullstack]
     levels: [intern-junior, mid]
@@ -1130,9 +1394,7 @@ questions:
     subtopic: a decision you made
     difficulty: 3
     prompt: >-
-      Take me through something you built — anything, at work or on your own. Pick one decision you
-      had to make while building it, tell me what you chose and why, and tell me what you would do
-      differently if you started it again tomorrow.
+      Take me through something you built — anything, at work or on your own.
     context: null
     rubric: talking-about-your-own-work
     ideal_points:
@@ -1141,6 +1403,16 @@ questions:
       - Why they chose as they did, in terms of the situation rather than of what is generally better.
       - What it cost them — the thing that got harder because of the choice.
       - Something they would do differently, and why they did not know that at the time.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Where did you have to pick between two ways of doing it?
+      - criterion: 2
+        probe: >-
+          What would you do differently if you started it again tomorrow?
+      - criterion: 2
+        probe: >-
+          What did you not know then that you know now?
     reviewer_notes: >-
       Added after an interviewer said this is the highest-yield question they have and the bank had
       nothing like it: every other question hands the candidate a supplied scenario, so all 31 could
@@ -1152,6 +1424,8 @@ questions:
       three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough
       to make that fair?
 
+      Criterion 3 scores two things at 30% — something specific they would do differently, and why
+      they did not know it then — so it carries two follow-ups.
   - slug: vanilla-dom-as-the-source-of-truth
     roles: [frontend]
     levels: [intern-junior, mid]
@@ -1161,8 +1435,7 @@ questions:
     subtopic: where the data lives
     difficulty: 3
     prompt: >-
-      This works until it does not. What breaks first, where is the cart actually being kept, and
-      how would you restructure it?
+      This works today. What breaks first?
     context: |
       ```js
       function addToCart(name, price) {
@@ -1185,6 +1458,13 @@ questions:
       - Reading numbers back out of text and attributes puts formatting in the middle of arithmetic.
       - Keep the items in an array, and draw the page from it whenever it changes.
       - The total is then derived from the array rather than gathered from the screen.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Where is the cart actually being kept at the moment?
+      - criterion: 2
+        probe: >-
+          How would you restructure it?
     reviewer_notes: >-
       Written to keep vanilla JS at two questions after `vanilla-form-before-js-loads` was untagged
       and made general. This is the thing a framework hides from a vanilla candidate — that the DOM

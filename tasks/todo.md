@@ -1512,3 +1512,50 @@ pilot for the owner's review; frontend, backend and full-stack are the next pass
 
 - [ ] Frontend (70 probes) and backend (68), to the rules the pilot added to `SKILL.md`
 - [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry
+
+## Frontend planned follow-ups — the retrofit (2026-09-24, branch `content/catalogue-banks`)
+
+The shape QA piloted, applied to the frontend bank. **13 prompts rewritten, 81 probes**, four
+critique passes (51 findings, 40 applied, 11 recorded). `content/seed/blueprints/frontend.md`
+Appendix B3 has the detail. Checks green: `check-bank.mjs` (no errors, the same 53 warnings as
+`main`), `check-stress.mjs`, `pnpm db:seed -- --dry-run`, `pnpm format`, 365 API + 120 web + 91
+shared-types tests.
+
+### What the passes changed that the QA pilot had not already taught
+
+- [x] **A prompt cut to its first clause is not a prompt cut to its first criterion.** Six questions
+      had the un-probed criterion mis-aimed; all six openings re-aimed. This is the sharpest thing
+      learned in this pass and it belongs in `SKILL.md` if the backend pass repeats it.
+- [x] Two questions had opening and first probe swapped (`it-works-for-me`,
+      `state-that-can-disagree`) — the order-of-work rule, found again.
+- [x] Ten probes handed over what their criterion scores; reworded.
+- [x] Five criteria that score two separable things gained a second probe (ten in total now).
+
+### Open — for the owner, and none of it a question change
+
+1. **Six frontend descriptors need a fairness clause.** `frontend/rubrics.yaml` carries **two**
+   protective clauses across ninety criteria; `rubrics.shared.yaml` carries eleven. The
+   planned-follow-up field removed the escape route a candidate used to have — answering around
+   the criterion they had no workplace to answer from — so the rubric's silence is now
+   load-bearing. `help-seeking-judgement` criterion 3 is the worst: 40%, and a self-taught
+   candidate with nobody to ask has no route above level 0.
+2. **Three level descriptors have been made unreachable by the format.**
+   `state-placement-reasoning` criterion 2 level 1 is "notices the duplication **only when
+   prompted**" — the probe _is_ the prompting, so every candidate reached by it caps at 1 on 30%.
+   `url-state-reasoning` criterion 3 level 0 and `client-boundary-reasoning` criterion 2 level 0
+   are unreachable for the same reason: the probe supplies what level 0 is defined by not having.
+   **This generalises to every bank**, and is worth checking on QA before the backend pass.
+3. **`check-bank.mjs` cannot see any of this.** It counts asks and probes; it cannot tell which
+   criterion the opening asks. The pilot's own lesson — a rule that must be remembered once per
+   instance needs a check — applies to the rule the pilot itself added. A check that flagged
+   "the un-probed criterion is not the one the opening names" would need the opening matched to a
+   criterion, which is the lexical comparison that failed at 130 warnings before; the cheaper
+   version is to require a `reviewer_notes` line naming the un-probed criterion.
+4. `stuck-and-asked-for-help` now says "and ended up asking someone for help" in the opening. That
+   fixes the ambush the probes were creating, and it is a **shared** rubric used by four banks —
+   the descriptor fix in (1) is what makes it fair rather than merely coherent.
+
+### Next
+
+- [ ] Backend (68 probes), to the rules above — including the mis-aim check the frontend pass added.
+- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.

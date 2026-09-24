@@ -348,3 +348,67 @@ The behavioural share is **4 of 34**, up from 2 of 8. A remote reviewer argued f
 the bank; an interviewer here put the ratio at about one behavioural question in four of an hour.
 Four in thirty-five is below both, and the two additions above would take it to six. Worth your view
 before the backend pass writes them.
+
+## Appendix B3 — the planned-follow-up retrofit (2026-09-24)
+
+The shape the QA bank piloted (`docs/progress/2026-09-23-planned-follow-ups-pilot.md`), applied here:
+**every prompt asks one thing, and the criteria it no longer asks each carry a probe** in
+`planned_follow_ups`. 13 prompts rewritten, **81 probes** — two per question, except ten criteria
+that score two separable things and carry two, listed below. Four fresh critique passes were run on
+the reshape alone, one per subagent, each given the before/after and its own brief and nothing about
+the other three: **51 findings, 40 applied, 11 recorded rather than applied** — every one of those
+eleven a change to a rubric descriptor rather than to a question.
+
+### The defect all four passes found, from different directions
+
+**A prompt cut to its first clause is not the same as a prompt cut to its first criterion.** The
+first pass through this bank narrowed every opening by deleting the trailing clauses, which is
+correct in 22 questions and wrong in six: the criterion left without a probe was then not the one the
+opening asked, and because it has no probe there is no recovery by construction. It is the same
+silent forfeit the field exists to remove, arriving from the other side.
+
+- `fetch-failure-states` — "everything that screen has to handle" is answered by any of the three
+  criteria; the 35% enumeration could be forfeited by a candidate who answered well.
+- `retry-and-the-double-charge` — "What went wrong?" had two probed criteria as equally good answers.
+- `what-to-test-on-a-login-screen` — the opening asked for the _subjects_ of tests (criterion 2);
+  criterion 1, "tests behaviour not internals", was the un-probed one and nothing asked it.
+- `react-state-placement` — the cut dropped "why there", which criterion 1's level 3 requires.
+- `telling-a-user-the-form-failed` — "where do the messages appear" takes a four-word answer.
+- `stuck-and-asked-for-help` — the opening lost the word "asked", so both probes presumed a story the
+  candidate may not have told. The nervous-candidate pass and the senior-interviewer pass made this
+  their single most important finding, from opposite directions.
+
+**Two questions had their opening and first probe swapped** — `it-works-for-me`, whose criterion is
+literally "looks _before_ spending the reporter's time" and whose probe staged the looking as
+happening after the reply had been asked for; and `state-that-can-disagree`, which asked for the
+redesign and then probed the diagnosis. This is the same order-of-work defect the QA pilot found.
+
+**Ten probes handed over the thing their criterion scores.** "What does your code have to do to
+notice?" tells a candidate that `fetch` does not notice on its own, which is the 40%. "Once you have
+reproduced it…" hands over the reproduction that the un-probed 40% criterion scores. "Is an index
+ever a reasonable key?" concedes the answer to the un-probed criterion 1. All reworded to walk the
+candidate to the same place without naming it.
+
+### The ten two-probe criteria
+
+`js-async-ordering` 3 · `slow-page-on-3g` 3 · `js-copy-or-reference` 3 · `react-list-key-mixup` 3 ·
+`the-overnight-blocker` 2 · `retry-and-the-double-charge` 2 · `stale-after-saving` 2 ·
+`telling-a-user-the-form-failed` 2 · `angular-view-did-not-update` 3 · `something-you-built` 3 ·
+`state-that-can-disagree` 3. Each is a criterion whose description joins two separable things with
+"and", where a single probe left the discriminating half scored and never asked. None carries three.
+
+### Recorded rather than applied — all of it rubric work
+
+The fairness pass counted the protective clauses that let a candidate with no workplace, no
+colleagues and no paid tooling score what they know: **eleven in `rubrics.shared.yaml`, two in
+`frontend/rubrics.yaml` across ninety criteria.** That asymmetry was survivable while a prompt asked
+three things at once and a candidate could answer around the one they had no standing to answer.
+**The planned-follow-up field removes exactly that escape route, by design** — so every criterion
+that quietly assumed a workplace is now asked by name, of the candidate who did not volunteer it.
+Six descriptors need one sentence each (`help-seeking-judgement` 3, `test-brittleness-diagnosis` 2,
+`performance-investigation` 2, `semantic-html-diagnosis` 3, `secret-exposure-diagnosis` 3,
+`resilient-layout-reasoning` 3), and three level descriptors have been made unreachable by the
+format itself — `state-placement-reasoning` 2 level 1 ("notices the duplication **only when
+prompted**", when the prompting is now built in), `url-state-reasoning` 3 level 0, and
+`client-boundary-reasoning` 2 level 0. Changing a descriptor moves scoring and invalidates the
+stress answers written against it, so it is the owner's call, not this pass's.
