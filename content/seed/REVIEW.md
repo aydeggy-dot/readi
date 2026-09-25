@@ -21,15 +21,19 @@ what decides whether any of it is worth using.
 
 Please read the generated pages rather than the YAML unless you would rather not:
 
-| Role                                 | Page                                       |
-| ------------------------------------ | ------------------------------------------ |
-| Frontend (the full set — start here) | [`review/frontend.md`](review/frontend.md) |
-| Backend (skeleton)                   | [`review/backend.md`](review/backend.md)   |
-| QA (skeleton)                        | [`review/qa.md`](review/qa.md)             |
+| Role                  | Page                                         |
+| --------------------- | -------------------------------------------- |
+| Frontend (start here) | [`review/frontend.md`](review/frontend.md)   |
+| Backend               | [`review/backend.md`](review/backend.md)     |
+| QA                    | [`review/qa.md`](review/qa.md)               |
+| Full-stack            | [`review/fullstack.md`](review/fullstack.md) |
 
-There is no full-stack page, and that is not an oversight: full-stack has no bank of its own. It is
-made of eleven of the questions on the three pages above, each carrying it as a second role — so you
-review them once, where they are, and question 6 below asks the full-stack half of it.
+**A page is every question that role's candidates are asked, so the pages overlap.** A behavioural
+or communication question is usually asked of all four roles, and it appears on all four pages —
+written once, in one file, which each page names beside it. Review it where you first meet it and
+skip it after that; it is repeated so that nobody signing off a single role is signing off less
+than their candidates will be asked. Full-stack has no bank of its own yet, so its page is entirely
+questions from the other three, and question 6 below asks the full-stack half of it.
 
 Each page puts a question, the answer key and all five level descriptors of its rubric in one
 place, with tick boxes. They print, and they render on GitHub.
@@ -88,7 +92,8 @@ Whichever is least work for you:
 
 - **Mark up the markdown page** — comments, strikethrough, anything. Send it back however you like.
   This is the normal path, and the one we expect for the first round.
-- **Edit the YAML directly** (`content/seed/<role>/questions.yaml`) and open a pull request. If you
+- **Edit the YAML directly** (`content/seed/<role>/questions.yaml` — a question shared with other
+  roles says which file it is in, beside the question) and open a pull request. If you
   do, change `author: ai_draft` to `author: human` in any file you have been through, and clear or
   replace the `reviewer_notes` you have answered.
 - **Edit it in the CMS** at `/admin/content`, if you have a Readi login with the content-expert

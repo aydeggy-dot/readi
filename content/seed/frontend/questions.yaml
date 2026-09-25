@@ -321,7 +321,8 @@ questions:
     subtopic: asking for help
     difficulty: 2
     prompt: >-
-      Tell me about a time you were really stuck on something and ended up asking someone for help.
+      Tell me about a time you were really stuck on something and ended up asking someone for help
+      — whether a colleague, a community or a group chat.
     context: null
     rubric: help-seeking-judgement
     ideal_points:
@@ -347,11 +348,11 @@ questions:
       asking easy or hard **where they had to ask** rather than treating three days as a failure.
       Widened 2026-09-24 (owner's decision): criterion 3 used to score the judgement of a candidate
       who had a colleague to turn to, which most candidates here become only once they are hired.
-      Asking is now defined in the rubric as reaching outward by whatever route was open — a
-      community, a group chat, an issue thread. **The widening is in the rubric, not in the
-      opening**, which still says "asking someone for help". Should it say so aloud too, so a
-      self-taught candidate does not hear a question about a workplace they have not had? And is
-      40% on the timing judgement too much?
+      Asking is now defined as reaching outward by whatever route was open — a community, a group
+      chat, an issue thread — in the rubric **and in the opening** (owner, 2026-09-25): a
+      self-taught candidate should not have to hope the rubric is generous after they have already
+      flinched at the question. Does the clause still sound like something you would say out loud?
+      And is 40% on the timing judgement too much?
 
   - slug: feedback-on-your-code
     roles: [frontend, backend, qa, fullstack]

@@ -119,6 +119,25 @@ generalist reviewer.` The seed contract has no field for this and does not need 
   `client-boundary-reasoning` criterion 2 have level 0s defined by not having been told the thing the
   probe tells them. After writing a probe, read its criterion's level 0 and level 1 and ask whether
   the probe has just made them impossible.
+- **A clause in a description is guidance; a clause in a level descriptor is a score** (owner's
+  decision, 2026-09-25). Both reach the evaluator, but only the descriptor is what it lands on and
+  quotes evidence against, so a fairness clause belongs in the descriptors of the levels it is meant
+  to make reachable — and a `description` clause is the summary of it, not the promise itself. There
+  is a practical reason too: `criterionDescriptionMaxLength` is **300 characters**, and a clause
+  written as a paragraph does not fit beside the sentence explaining the criterion. Four of the six
+  clauses written on 2026-09-24 were refused by `check-bank.mjs` for exactly that, and two of them
+  were better for being moved down. Write the route into level 3 — "doing it, or saying who has to"
+  — and let the description say in one line what the criterion is not scored on.
+- **When a rubric changes to include a case, the stress set needs an answer from that case**
+  (owner's decision, 2026-09-25) — otherwise the change is untested and the green run is telling you
+  nothing. `help-seeking-judgement` was widened so that asking a community counts, and all five of
+  its stress answers had a colleague to ask: every separation still passed, and not one of them went
+  near the new clause. The repair is not a sixth answer — `check-stress.mjs` scores the five kinds
+  and ignores anything else — but rewriting the kind that fits. There, the
+  `correct-poorly-explained` candidate became self-taught and asked in their cohort's WhatsApp
+  group, with the same substance said just as badly, and still scored 3 / 3 / 3. Ask, after every
+  descriptor change: which of the five answers now lands somewhere it did not before? If the answer
+  is none, the set does not test the change.
 
 ## House style
 

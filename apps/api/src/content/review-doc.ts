@@ -7,6 +7,14 @@ import type { LoadedSeedFile } from "./seed-loader";
  * job. The document puts each question, its answer key and its five level descriptors together,
  * with a tick-box list of the five things a reviewer is being asked, and the drafter's own
  * uncertainties spelled out.
+ *
+ * **A role's page is the questions that role is offered, not the questions in its directory**
+ * (owner's decision, 2026-09-25). It selected by file path until then, which quietly shrank every
+ * page: the four role-general behavioural questions live in `content/seed/frontend/` and carry
+ * `roles: [frontend, backend, qa, fullstack]`, so a QA reviewer was asked to sign off 35 questions
+ * while QA candidates were offered 45, and the ten they never saw would have reached candidates
+ * unreviewed. A directory is where a question is written; `roles` is who is asked it, and only the
+ * second is a fact about the candidate. `review-doc.spec.ts` holds the real corpus to it.
  */
 
 export interface ReviewDoc {
@@ -25,21 +33,38 @@ export function buildReviewDoc(
   const topics = new Map<string, SeedTopic>();
   /** Role names come from `roles.yaml` now, not a map in this file (ADR-0015). */
   const roleNames = new Map<string, string>();
-  const questions: SeedQuestion[] = [];
   let track: SeedTrack | undefined;
-  let author = "ai_draft";
+  const authors = new Set<string>();
 
   for (const { data } of files) {
     for (const rubric of data.rubrics ?? []) rubrics.set(rubric.slug, rubric);
     for (const topic of data.topics ?? []) topics.set(topic.slug, topic);
     for (const role of data.career_roles ?? []) roleNames.set(role.slug, role.name);
+    // The track's own `role` field, not the directory it was found in — the same reason the
+    // questions below are selected by `roles`.
+    if (data.track?.role === role) {
+      track = data.track;
+      authors.add(data.author);
+    }
   }
-  for (const { file, data } of files) {
-    if (!inRole(file, role)) continue;
-    questions.push(...(data.questions ?? []));
-    if (data.track) track = data.track;
-    author = data.author;
-  }
+
+  /*
+   * Written for this role first, then the ones it shares with other banks, each group in the order
+   * its file lists them. A reviewer opening their own bank should not have to page past four
+   * behavioural questions to reach it, and a shared question says where it lives so they can edit
+   * the right file.
+   */
+  const offered: { file: string; question: SeedQuestion }[] = [];
+  for (const { file, data } of files)
+    for (const question of data.questions ?? [])
+      if (question.roles.includes(role)) {
+        offered.push({ file, question });
+        authors.add(data.author);
+      }
+  const own = offered.filter((entry) => inRole(entry.file, role));
+  const shared = offered.filter((entry) => !inRole(entry.file, role));
+  const entries = [...own, ...shared];
+  const questions = entries.map((entry) => entry.question);
 
   const lessons = (track?.modules ?? []).flatMap((module) => module.lessons);
   const out: string[] = [];
@@ -47,13 +72,15 @@ export function buildReviewDoc(
   out.push(`# ${roleNames.get(role) ?? role} — drafted content for expert review`);
   out.push("");
   out.push(
-    `**${questions.length} questions**, ${rubricsUsedBy(questions, rubrics).size} rubrics, ` +
-      `${track ? `1 track (${track.modules.length} modules, ${lessons.length} lessons)` : "no track"}.`,
+    `**${questions.length} questions**${sharedNote(own.length, shared.length)}` +
+      `, ${rubricsUsedBy(questions, rubrics).size} rubrics, ` +
+      `${track ? `1 track (${plural(track.modules.length, "module")}, ${plural(lessons.length, "lesson")})` : "no track"}.`,
   );
   out.push("");
   out.push(
-    `Everything here is a **draft written by \`${author}\`** and is invisible to candidates until ` +
-      "a human publishes it. Your review is what decides whether it ever is.",
+    `Everything here is a **draft written by \`${[...authors].sort().join("` and `") || "ai_draft"}\`** ` +
+      "and is invisible to candidates until a human publishes it. Your review is what decides " +
+      "whether it ever is.",
   );
   out.push("");
   out.push("## What we are asking you");
@@ -85,10 +112,11 @@ export function buildReviewDoc(
   out.push("5. **Is anything factually wrong or out of date?** Tools and versions move.");
   out.push("");
   out.push(
-    "Mark up this page, or edit the YAML directly — `content/seed/" +
+    "Mark up this page, or edit the YAML directly and tell us which. A question written for this " +
+      "role is in `content/seed/" +
       role +
-      "/` — and tell us " +
-      "which. Anything you are unsure about is worth writing down; so is anything you would cut.",
+      "/`; a question shared with other roles names its own file beside it. Anything you are " +
+      "unsure about is worth writing down; so is anything you would cut.",
   );
   out.push("");
   out.push(
@@ -97,8 +125,12 @@ export function buildReviewDoc(
   );
 
   out.push("", "---", "", "## Questions", "");
-  questions.forEach((question, index) => {
-    out.push(...renderQuestion(question, index + 1, rubrics, topics));
+  entries.forEach(({ file, question }, index) => {
+    out.push(
+      ...renderQuestion(question, index + 1, rubrics, topics, {
+        sharedFrom: inRole(file, role) ? undefined : file,
+      }),
+    );
   });
 
   if (track) out.push(...renderTrack(track, topics));
@@ -111,6 +143,7 @@ function renderQuestion(
   number: number,
   rubrics: Map<string, SeedRubric>,
   topics: Map<string, SeedTopic>,
+  options: { sharedFrom?: string } = {},
 ): string[] {
   const out: string[] = [];
   const topic = topics.get(question.topic);
@@ -126,7 +159,10 @@ function renderQuestion(
       (question.subtopic ? ` (${question.subtopic})` : "") +
       // Named only when there are any: "stacks: —" on twelve of fourteen questions would be
       // noise, and the absence is the ordinary case (ADR-0015).
-      (question.stacks.length > 0 ? ` · stacks: ${question.stacks.join(", ")}` : ""),
+      (question.stacks.length > 0 ? ` · stacks: ${question.stacks.join(", ")}` : "") +
+      // Where to edit it. Only for a question this role shares with another bank: a question
+      // written for this role is where the header already said it would be.
+      (options.sharedFrom ? ` · shared, from \`${options.sharedFrom}\`` : ""),
   );
   out.push("");
   out.push("**The interviewer asks**");
@@ -240,6 +276,19 @@ function renderTrack(track: SeedTrack, topics: Map<string, SeedTopic>): string[]
 }
 
 const inRole = (file: string, role: string) => file.split(/[\\/]/).includes(role);
+
+const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+/**
+ * A role with no bank of its own is not an error — `fullstack` is offered 62 questions out of the
+ * other three banks and has written none itself — so the page says so in words rather than opening
+ * with "0 written for this role".
+ */
+function sharedNote(own: number, shared: number): string {
+  if (shared === 0) return "";
+  if (own === 0) return ", all of them shared with other roles";
+  return ` (${own} written for this role, ${shared} shared with other roles)`;
+}
 
 const quote = (text: string) =>
   text

@@ -1,7 +1,8 @@
+import { join, resolve } from "node:path";
 import { SeedFile, type SeedQuestion, type SeedRubric } from "@readi/shared-types";
 import { describe, expect, it } from "vitest";
 import { buildReviewDoc } from "./review-doc";
-import type { LoadedSeedFile } from "./seed-loader";
+import { loadSeedDirectory, type LoadedSeedFile } from "./seed-loader";
 
 /*
  * The review pages are the only thing most content experts read (CLAUDE.md §7.7), so what a
@@ -48,23 +49,60 @@ const question = (over: Partial<SeedQuestion> = {}): SeedQuestion => ({
 
 // Parsed rather than cast: the fixture is then the shape the loader would really have produced,
 // and a contract change breaks this file instead of hiding behind a double assertion.
+const file = (path: string, questions: readonly SeedQuestion[]): LoadedSeedFile => ({
+  file: path,
+  data: SeedFile.parse({
+    version: 1,
+    author: "ai_draft",
+    status: "draft",
+    questions: [...questions],
+    rubrics: [rubric],
+  }),
+});
+
 const files = (questions: readonly SeedQuestion[]): LoadedSeedFile[] => [
-  {
-    file: "content/seed/frontend/questions.yaml",
-    data: SeedFile.parse({
-      version: 1,
-      author: "ai_draft",
-      status: "draft",
-      questions: [...questions],
-      rubrics: [rubric],
-    }),
-  },
+  file("content/seed/frontend/questions.yaml", questions),
 ];
 
 const build = (questions: readonly SeedQuestion[]) =>
   buildReviewDoc("frontend", files(questions), { generatedBy: "a test" }).markdown;
 
 describe("buildReviewDoc", () => {
+  /*
+   * The page is the questions the role is offered, not the questions in its directory (owner's
+   * decision, 2026-09-25). Selecting by path shrank every page by whatever another bank happened
+   * to own: a QA reviewer signed off 35 questions while QA candidates were offered 45.
+   */
+  describe("which questions belong on a role's page", () => {
+    const shared = question({ slug: "shared-one", roles: ["frontend", "qa"] });
+    const frontendOnly = question({ slug: "frontend-one", roles: ["frontend"] });
+    const corpus = [
+      file("content/seed/frontend/questions.yaml", [frontendOnly, shared]),
+      file("content/seed/qa/questions.yaml", [question({ slug: "qa-one", roles: ["qa"] })]),
+    ];
+    const page = (role: string) => buildReviewDoc(role, corpus, { generatedBy: "a test" }).markdown;
+
+    it("includes a question another bank owns when this role is asked it", () => {
+      expect(page("qa")).toContain("shared-one");
+    });
+
+    it("leaves out a question this role is not asked", () => {
+      expect(page("qa")).not.toContain("frontend-one");
+    });
+
+    it("says where a shared question lives, so the reviewer edits the right file", () => {
+      expect(page("qa")).toContain("shared, from `content/seed/frontend/questions.yaml`");
+      // Its own bank's questions are where the page already said they would be.
+      expect(page("frontend")).not.toContain("shared, from");
+    });
+
+    it("puts the role's own questions first and counts both groups", () => {
+      const qa = page("qa");
+      expect(qa).toContain("**2 questions** (1 written for this role, 1 shared with other roles)");
+      expect(qa.indexOf("qa-one")).toBeLessThan(qa.indexOf("shared-one"));
+    });
+  });
+
   it("names every role a question is for, so a reviewer can say whether they are right", () => {
     expect(build([question({ roles: ["frontend", "fullstack"] })])).toContain(
       "roles: frontend, fullstack",
@@ -104,5 +142,32 @@ describe("buildReviewDoc", () => {
       expect(page).toContain("> And the second?");
       expect(page).toContain("the second only if the first did not draw it out");
     });
+  });
+});
+
+/*
+ * The corpus, not a fixture: the defect this guards against is not a bug in the renderer but a
+ * mismatch between two sources of truth — which directory a question was written in, and which
+ * roles it carries. Only the real files can show it, and the number that matters is the one a
+ * reviewer signs off against the number a candidate is offered.
+ */
+describe("every question a role is offered is on that role's page", () => {
+  const root = resolve(__dirname, "../../../..");
+  const { files: corpus, problems } = loadSeedDirectory(join(root, "content/seed"), root);
+  const roles = corpus.flatMap(({ data }) => data.career_roles ?? []).map((role) => role.slug);
+
+  it("loads the seed corpus", () => {
+    expect(problems).toEqual([]);
+    expect(roles.length).toBeGreaterThan(0);
+  });
+
+  it.each(roles)("%s", (role) => {
+    const offered = corpus
+      .flatMap(({ data }) => data.questions ?? [])
+      .filter((question) => question.roles.includes(role));
+    const page = buildReviewDoc(role, corpus, { generatedBy: "a test" }).markdown;
+    const missing = offered.filter((question) => !page.includes(`. ${question.slug}\n`));
+    expect(missing.map((question) => question.slug)).toEqual([]);
+    expect(page).toContain(`**${offered.length} questions**`);
   });
 });

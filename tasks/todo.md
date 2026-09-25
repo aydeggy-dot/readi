@@ -1619,3 +1619,30 @@ review. **Nine descriptor changes, no question changed.** Handover:
 4. **Fairness clauses do not fit in a criterion description.** `criterionDescriptionMaxLength` is
    300 characters; two of the six clauses moved down into the level descriptors, which is the
    better place anyway — a clause in the description is guidance, a clause in level 3 is a score.
+
+### The owner's answers, and what they left — all done 2026-09-25
+
+- [x] **1. Say the widening in the opening too.** `stuck-and-asked-for-help` now asks "…ended up
+      asking someone for help — whether a colleague, a community or a group chat". A clause in a
+      descriptor fixes the score; only a clause in the prompt reaches the candidate before they
+      flinch. `reviewer_notes` now asks whether it sounds like something you would say out loud.
+- [x] **2. `review-doc.ts` builds pages per role, by the roles a question carries.** frontend
+      35 → 40, backend 34 → 38, **QA 35 → 45** (the ten unreviewed ones). A shared question names
+      its own file beside it; the role's own questions print first; the track is selected by
+      `track.role` rather than by path. **`fullstack` now gets a page — 62 questions, all shared**,
+      because the CLI listed roles by "has a directory" and so the role with the most unreviewed
+      content reaching candidates was the one getting no page at all. The test the owner asked for
+      loads the real corpus and asserts, per role in `roles.yaml`, that every question carrying
+      that role is on that role's page and the page's count matches. Nine new tests, API suite 374.
+      `content/seed/REVIEW.md` corrected with it: it claimed there was no full-stack page and that
+      full-stack was "eleven of the questions" on the other pages, when 62 carry it.
+- [x] **3. Skill rule** — a clause in a criterion description is guidance, a clause in a level
+      descriptor is a score; fairness clauses belong in the descriptors.
+- [x] **4. Skill rule** — when a rubric changes to include a case, the stress set needs an answer
+      from that case, or the change is untested. Rewrite the kind that fits; a sixth answer is
+      ignored by `check-stress.mjs`.
+
+**One thing left for the owner**: if a 288 KB full-stack page of questions a reviewer has already
+seen on the other three is not wanted, `hasContent` in `apps/api/src/cli/content-review-doc.ts` is
+the line, and the corpus test would then skip roles with no page rather than asserting one for
+every catalogue role.

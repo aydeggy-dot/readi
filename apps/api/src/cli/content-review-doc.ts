@@ -1,7 +1,7 @@
 // Generates the printable review pages an expert reads instead of the YAML (CLAUDE.md §7.7):
 //   pnpm --filter @readi/api content:review-doc [-- --role frontend]
 // Reads the seed files only; no database, no network. Commit the output.
-import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { buildReviewDoc } from "../content/review-doc";
@@ -28,15 +28,23 @@ function main(): number {
 
   /*
    * Which roles exist is `roles.yaml`, not the directory listing (ADR-0015): a role is content,
-   * and `content/seed` holds directories that are not roles. A role with no directory of its own
-   * yet would produce an empty page, so only roles that some file actually writes content for are
-   * listed — the intersection of the catalogue and the directories.
+   * and `content/seed` holds directories that are not roles. A role with nothing to review would
+   * produce an empty page, so a role is listed when some question is offered to it or some track
+   * is written for it.
+   *
+   * That used to be "has a directory of its own", which is the same defect `review-doc.ts` was
+   * fixed for on 2026-09-25: `fullstack` has no directory and is offered 62 questions out of the
+   * other three banks, so the role with the most unreviewed content reaching candidates was the
+   * one role getting no page at all.
    */
   const catalogue = files.flatMap(({ data }) => data.career_roles ?? []).map((role) => role.slug);
-  const directories = new Set(
-    readdirSync(directory).filter((entry) => statSync(join(directory, entry)).isDirectory()),
-  );
-  const roles = values.role ? [values.role] : catalogue.filter((slug) => directories.has(slug));
+  const hasContent = (slug: string) =>
+    files.some(
+      ({ data }) =>
+        data.track?.role === slug ||
+        (data.questions ?? []).some((question) => question.roles.includes(slug)),
+    );
+  const roles = values.role ? [values.role] : catalogue.filter(hasContent);
 
   mkdirSync(outDirectory, { recursive: true });
   for (const role of roles) {

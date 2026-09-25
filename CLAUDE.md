@@ -208,6 +208,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - `EMBEDDING_PROVIDER=fake` (the default) derives a vector from the text, so only identical questions
   ever match. Duplicate detection means something only on the real provider —
   `docs/runbooks/embeddings-switchover.md` is the path from one to the other.
+- **A role's review page is the questions that role is offered, not the questions in its directory.**
+  `buildReviewDoc` selects by the question's `roles` (ADR-0015), so a behavioural question written in
+  `content/seed/frontend/` appears on all four pages and names its file beside it; `content:review-doc`
+  writes a page for every catalogue role any question carries, including `fullstack`, which has no
+  directory. Selecting by path meant a QA reviewer signed off 35 questions while QA candidates were
+  offered 45. `review-doc.spec.ts` holds the real corpus to it, per role.
 - Seed files in `/content/seed` refer to each other by **slug**, may declare only `status: draft`
   (publishing is an admin's decision in the CMS, never a line in a file), and carry `author` and a
   required `reviewer_notes` per question for the experts who review them. The importer writes through
