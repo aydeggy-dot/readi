@@ -612,7 +612,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 The defect is not closed by not being chosen.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Nothing happens to it — it stops being their problem once it is not the one chosen, or the answer is a second go at which of the two is worse.
 - **1 (weak):** Treats the deferral as the end of it — the fix is scheduled for "the next release" with nothing recorded, no workaround and nobody told.
 - **2 (partial):** Says it will be fixed later, with nothing about the meantime.
 - **3 (solid):** Names what happens now — a note in the release, a workaround if there is one, a ticket that will not be lost.
@@ -864,7 +864,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Who else reads the field, and what agreement is missing.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Nothing changes — this one gets fixed and the next one is found the same way, or the whole answer is that the app should have been tested before release.
 - **1 (weak):** Puts the remedy anywhere but the contract — on communication alone, or on the caller, asking for defensive parsing and a device pass before release — with nothing that would fail automatically on the API's side.
 - **2 (partial):** Asks for the release notes to say more.
 - **3 (solid):** Asks for a contract checked in the pipeline, and for additive changes or a version rather than a changed field.
@@ -1086,7 +1086,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 What the habit costs, and what would stop it returning.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Nothing about what was lost — the answer goes back to the fifteen tests and how to make them pass reliably.
 - **1 (weak):** Denies anything was lost — a pass on the rerun is taken as proof the application was fine, so the only costs named are time and morale and the coverage is called intact — or treats it as a discipline problem the team needs a rule about.
 - **2 (partial):** Says people ignore failures, without saying what follows from that.
 - **3 (solid):** Says a suite that fails for no reason teaches people to ignore it, so the cost is the real failures they will also ignore — and names something that would keep it honest, such as a watched rate, or quarantining a new unreliable test the day it appears.
@@ -1210,7 +1210,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 Cheap, high-yield, and the paths everything else depends on.
 
-- **0 (absent):** Not specified.
+- **0 (absent):** Names nothing that would stay — the split is left to the developers to decide, or the whole suite stays and the answer is to make it faster.
 - **1 (weak):** Chooses the fast set by test type alone — all the unit tests in, every browser test out — so nothing at all covers signing in before a merge.
 - **2 (partial):** Names a category to keep, with no reason.
 - **3 (solid):** Keeps the cheap tests and a thin path through what matters most, so a merge that breaks sign-in fails before it lands.
@@ -1224,7 +1224,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 The slow run's failures become somebody's job, or the problem has only moved.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Nothing happens to it — a failure after the merge is the developers' problem now, or there is nothing to say because the fast check should have caught it.
 - **1 (weak):** Relies on the failure being noticed — a channel, a dashboard, an email — with nobody owning it; or presumes the slow run's reds are flake, rerunning first and investigating only a second red.
 - **2 (partial):** Says someone should look at it.
 - **3 (solid):** Names who owns a failure in the slow run and what happens on the branch while it is failing.
@@ -1590,7 +1590,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Emptying the database before each run works, and takes something away.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** No view on it either way — it is the team's call, or the answer goes back to the first line of the test without saying what clearing the database would do.
 - **1 (weak):** Recommends clearing the database before every run as the fix, with no cost named at all.
 - **2 (partial):** Recommends it and names a cost they are content to pay — it takes time, or data somebody wanted is gone — without weighing that against making the test own its data.
 - **3 (solid):** Says what clearing the database costs — everything else running at the same time, and any data somebody else was relying on — and why making the test own its data is cheaper.
@@ -1672,7 +1672,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Running one test at a time makes it pass, and takes something away.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** No view on it either way — it is the team's call, or the answer goes back to the assertion without saying what running one at a time would do.
 - **1 (weak):** Recommends running the suite one test at a time, or retrying until it passes, with no cost named at all.
 - **2 (partial):** Recommends it and names a cost they are content to pay — it is slower — without weighing that against fixing the assertion.
 - **3 (solid):** Says what running serially costs — the parallelism the suite was built for — and why fixing the assertion is cheaper than paying that on every run.
@@ -2116,7 +2116,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 What to ask the developers for, and what is not their fault.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Nothing outside the tests — the whole answer is rewriting the selectors, and the application is never mentioned as having a part in it.
 - **1 (weak):** Puts the problem on the developer's change — asks for renames to be announced, or for the structure to be frozen — rather than asking for something to select on.
 - **2 (partial):** Says they would "talk to the developers", with nothing specific.
 - **3 (solid):** Asks for something to select on that survives a refactor — a test attribute treated as part of the code and not removed, or accessible names — and says the rename was not the defect.
@@ -2364,7 +2364,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Genuinely global state, and containing it rather than serialising everything.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Names nothing either way — the answer repeats the isolation fix rather than saying what would still collide after it.
 - **1 (weak):** Declares nothing has to be serial once the data is isolated — including tests that change a setting the whole application reads — and treats full parallelism as the goal.
 - **2 (partial):** Says some tests cannot run in parallel, with no example.
 - **3 (solid):** Names what is genuinely shared — one sandbox account at a payment provider, a global setting, a licence — and keeps that group serial rather than the suite.
@@ -2447,7 +2447,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Exploring a new endpoint by hand, and a failure report somebody will act on.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Neither — nothing is named that stays with a person, and nothing about what a failing run would have to say to whoever finds it.
 - **1 (weak):** Treats the unattended run as replacing the manual work entirely — everything the tester did by hand is now scheduled — with no account of who reads a failure or what it tells them.
 - **2 (partial):** Says a person is still needed and gives a reason, with nothing about what a failing run has to report.
 - **3 (solid):** Keeps exploring a new or changed endpoint with a person, and makes a failure say which request failed and what came back.

@@ -729,7 +729,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 That it fixes the binding, not the contents — the single most common misreading here.
 
-- **0 (absent):** Not addressed.
+- **0 (absent):** Says nothing about what `const` does — answers about the function or about the array instead, or treats how the colleague declared it as beside the point.
 - **1 (weak):** Gets `const` wrong — that it should have prevented the change, or that it is a live binding into the caller's memory.
 - **2 (partial):** Says `const` is "about reassignment" without applying it to this code.
 - **3 (solid):** States that `const` stops `cart` being pointed elsewhere and nothing else.

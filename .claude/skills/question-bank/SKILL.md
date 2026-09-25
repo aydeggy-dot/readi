@@ -288,6 +288,20 @@ listening. Name the wrong belief this question actually attracts, and put it at 
 beside the vague one — "Relies on the request rejecting: a try/catch only, or the claim that `fetch`
 throws on a 404 or a 500."
 
+**And a level 0 that reads only "Not addressed." is silence, not a wrong answer.** It described a
+real situation while a prompt asked three things at once and the candidate answered two of them —
+the criterion never came up. **A planned follow-up removes that situation**: the criterion is now
+asked by name, of the candidate who did not volunteer it, so the only way to reach that band is to
+be asked and still say nothing. Write what that actually sounds like — "Nothing happens to it: it
+stops being their problem once it is not the one chosen", "Nothing about what was lost: the answer
+goes back to the fifteen tests and how to make them pass" — or the evaluator uses the band as a
+dustbin for answers it cannot place, and the evidence quote contradicts the descriptor again.
+`check-bank.mjs` enforces it: a bare non-answer at level 0 is an **error** on a criterion some
+question probes, and a **warning** everywhere else, because every bank is getting probes. Found on
+2026-09-25 by the fairness sweep — eleven errors and eight warnings across three banks, in a file
+where 149 of the level 0s are under forty characters and nearly all of the rest are the house style
+working ("Sees nothing wrong", "Everything odd is a defect", "No fix, or a longer wait").
+
 **Name the belief, never the manner.** The first version of this rule said "a _confident_, specific,
 wrong answer", and writing it that way put the word _confident_ into thirty-four descriptors across
 two banks before two critique passes independently caught it. Every word in a descriptor is a

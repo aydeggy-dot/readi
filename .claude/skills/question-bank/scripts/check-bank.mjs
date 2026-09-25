@@ -255,6 +255,33 @@ const MANNER_SUSPECT =
 // ------------------------------------------------------------------------------------------- //
 // Rubrics: house style, and descriptors two readers could agree on.
 
+/*
+ * Which criteria a probe asks by name — rubric slug to the criterion positions some question probes.
+ *
+ * A level 0 reading only "Not addressed." described a real situation while a prompt asked three
+ * things at once and the candidate answered two of them: the criterion never came up. A
+ * `planned_follow_ups` probe removes that situation. The criterion is now asked by name, of the
+ * candidate who did not volunteer it, so "not addressed" stops being a wrong answer and becomes the
+ * band an evaluator falls back on when the descriptor gives it nothing to land on — which is the
+ * house rule "every criterion needs a descriptor that fits a specific, wrong answer" failing at the
+ * bottom of the scale. Counted on 2026-09-25 by the fairness sweep: ten of them behind QA probes.
+ */
+const probedCriteria = new Map();
+for (const question of questions)
+  for (const plan of question.planned_follow_ups ?? []) {
+    if (!probedCriteria.has(question.rubric)) probedCriteria.set(question.rubric, new Set());
+    probedCriteria.get(question.rubric).add(plan.criterion);
+  }
+
+/*
+ * Silence, not a shape. Deliberately a short closed list of whole-descriptor matches rather than a
+ * length threshold: 149 level 0s across the banks are under forty characters and almost all of them
+ * are the house style working ("Sees nothing wrong", "Everything odd is a defect", "No fix, or a
+ * longer wait") — they name what the wrong answer looks like in one breath. These do not.
+ */
+const SILENT_LEVEL_ZERO =
+  /^(not addressed|not specified|not answered|no answer|does not address it|not considered)\.?$/i;
+
 const normalise = (text) =>
   String(text ?? "")
     .trim()
@@ -274,7 +301,7 @@ for (const rubric of rubrics.values()) {
   if (total !== WEIGHT_TOTAL)
     error(rubric.file, rubric.slug, `weights total ${total}, not ${WEIGHT_TOTAL}`);
 
-  for (const criterion of criteria) {
+  for (const [position, criterion] of criteria.entries()) {
     const where = `${rubric.slug} / ${criterion.dimension ?? "(no dimension)"}`;
     if ((criterion.dimension ?? "").length > LIMITS.dimensionMaxLength)
       error(rubric.file, where, `dimension is over ${LIMITS.dimensionMaxLength} characters`);
@@ -284,6 +311,20 @@ for (const rubric of rubrics.values()) {
         where,
         `description is over ${LIMITS.criterionDescriptionMaxLength} characters`,
       );
+
+    const levelZero = String(criterion.levels?.["0"] ?? "").trim();
+    if (SILENT_LEVEL_ZERO.test(levelZero)) {
+      const probed = probedCriteria.get(rubric.slug)?.has(position) ?? false;
+      const message =
+        `level 0 is "${levelZero}" and nothing else, which describes silence rather than a wrong ` +
+        `answer — write what a candidate who gets this wrong actually says` +
+        (probed
+          ? ", and note that a planned follow-up asks this criterion by name, so the situation " +
+            '"it never came up" no longer arises'
+          : " (an error once this bank carries planned follow-ups)");
+      if (probed) error(rubric.file, where, message);
+      else warn(rubric.file, where, message);
+    }
 
     const keys = Object.keys(criterion.levels ?? {})
       .map(String)
