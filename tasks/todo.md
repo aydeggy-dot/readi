@@ -1908,6 +1908,8 @@ of the plan that quoted the corpus are now wrong — always in the direction of 
 
 ### Phase 1 — contracts, schema, sessions and selection (API only, no LLM) · **done 2026-09-25**
 
+Handover: `docs/progress/2026-09-25-m3-phase-1.md`.
+
 - [x] `packages/shared-types/src/contracts/interviews.ts` + `constants.ts` (states, lengths, budgets,
       `MAX_FOLLOW_UPS`); `InterviewSessionBundle` registered; `pnpm gen:contracts` committed
 - [x] Prisma: `InterviewSession`, `InterviewSessionQuestion`, `SessionTurn`; one migration —
