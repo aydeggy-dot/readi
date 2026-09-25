@@ -575,7 +575,7 @@ rubrics:
         weight: 50
         levels:
           "0": No alternative.
-          "1": Proposes a copy with a step in front of it — the same export with names removed by the tester, or a subset taken by hand — and treats that as no longer personal data.
+          "1": Proposes a copy with a step in front of it — the same export with names removed by them, or a subset taken by hand — and treats that as no longer personal data.
           "2": Says "generate test data", with nothing about what it has to contain.
           "3": Generates records that look real and belong to nobody, and builds the cases deliberately — no transactions, one, thousands, a negative balance.
           "4": As 3, and says when the shape of real data genuinely matters, and that the extract is then taken and masked by whoever is allowed to take it, not by them.

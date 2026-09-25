@@ -165,7 +165,7 @@ questions:
   # tester from someone executing a script, and it is asked at every level.
 
   - slug: what-to-test-when-there-is-no-time
-    roles: [qa]
+    roles: [qa, fullstack]
     levels: [intern-junior, mid]
     type: scenario
     topic: risk-based-testing
@@ -198,7 +198,11 @@ questions:
       is in a position where that is heard? And should the prompt say what changed in this release, or
       is asking for it the point? The opening asks how they would choose rather than which twelve,
       because "which twelve" alone is close to unanswerable with no product on screen, and because it
-      put the lightest criterion in the only place guaranteed to be asked.
+      put the lightest criterion in the only place guaranteed to be asked. **Carries `fullstack` from
+      2026-09-25**: deciding what to check when there is no time to check everything is the testing
+      judgement a developer who owns a feature end to end most needs. Does "forty test cases you would
+      normally run" read as a QA role-play to a full-stack candidate who has never had a written
+      suite?
 
   - slug: where-the-bugs-have-been
     roles: [qa]
@@ -862,7 +866,7 @@ questions:
   # the backend bank, 2026-09-23).
 
   - slug: where-your-test-data-comes-from
-    roles: [qa]
+    roles: [qa, fullstack]
     levels: [intern-junior, mid]
     type: scenario
     topic: test-data
@@ -896,7 +900,9 @@ questions:
       the right balance? **Three of the four critique passes caught the same thing in the follow-up**:
       it said "without quoting a regulation at them", which is a scoring instruction read out to the
       candidate, and it told the one candidate whose data-protection training is their strongest asset
-      not to use it. That constraint belongs in the descriptor, where it already is.
+      not to use it. That constraint belongs in the descriptor, where it already is. **Carries
+      `fullstack` from 2026-09-25**: in a small team the person offered the production copy is the
+      developer setting up their own environment, and no other question in any bank asks about it.
 
   - slug: the-test-that-cannot-run-twice
     roles: [qa]

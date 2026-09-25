@@ -1710,8 +1710,13 @@ full-stack page's asks, `7ea284f` the silent level 0s and the check, and the swe
       The mis-aim check ran first and changed **eight** openings a mechanical cut would have got
       wrong. The eight silent level 0s became errors the moment their criteria were probed, exactly
       as the check predicted, and were cleared as part of the pass.
-- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry, and
-      which is to consider whether one or two testing-mindset questions should cross over from QA.
+- [x] **Full-stack tagging — done 2026-09-25**,
+      `docs/progress/2026-09-25-fullstack-tagging.md`. An audit, not a rework: every general frontend
+      and backend question already carried `fullstack`, and all thirteen stack-tagged ones already
+      reach one of the role's six variants. **Two QA questions crossed over** —
+      `what-to-test-when-there-is-no-time` and `where-your-test-data-comes-from` — taking the role
+      from 62 to 64 available. One re-tag declined (`python-blocking-call-in-async` is a FastAPI
+      snippet and `django-react` means Django), one word fixed in `test-data-judgement`.
 
 ## The backend retrofit (2026-09-25, branch `content/catalogue-banks`)
 
@@ -1739,11 +1744,15 @@ rewritten over the two days.
    questions — **is M4's to answer, not the banks'**: if a prompted answer scores slightly below a
    volunteered one, it largely dissolves across all three banks with no prompt rewritten. Recorded
    against the M4 item above so M4 knows this is waiting on it. Rule in `SKILL.md`.
-2. - [ ] **Depth cue on diagnosis openings, as house style.** "Take me through it" or equivalent —
-         one clause that asks for nothing new, because a one-clause opening says _what_ is wanted and
-         nothing about _how much_, and nervous candidates under-answer. Rule is in `SKILL.md`; **applying
-         it across the three banks is a pass of its own** and has not been done. Do it with the
-         stress-set rewrite, since both touch every question.
+2. - [x] **Depth cue on diagnosis openings — done 2026-09-25**,
+         `docs/progress/2026-09-25-depth-cues.md`. **54 of 104 prompts** gained one; no opening was
+         rewritten and no criterion moved. Three cues, assigned by whether there is something on screen
+         and whether the prompt already points at it. Frontend 26, backend 15, QA 13 — QA fewest
+         because twenty-two of its openings already invite a list, backend fewest relative to size
+         because eight already say "explain" or "walk me through". `check-bank.mjs` no longer counts a
+         cue towards the asks, or every diagnosis question would have had a free one; its output is
+         byte-identical to HEAD's. Done ahead of the stress-set rewrite rather than with it, because a
+         cue changes no descriptor and adds nothing to that rewrite's scope.
 3. **The fourteen "what would you change?" probes stay**, flagged for the reviewers in
    `content/seed/REVIEW.md` rather than changed.
 4. - [x] **`the-ticket-nobody-can-explain` opens with "Write me the message you would send them."**
@@ -1757,3 +1766,36 @@ rewritten over the two days.
 5. **A probe that names what its criterion scores converts a miss into a gift**, given only to the
    candidate who had not earned it — worse than the clause it replaced, not merely as bad. Already
    first-class in `SKILL.md` under the probe rules.
+
+## The depth cues and the full-stack tagging (2026-09-25, branch `content/catalogue-banks`)
+
+Two passes, handovers `docs/progress/2026-09-25-depth-cues.md` and
+`docs/progress/2026-09-25-fullstack-tagging.md`. Decision 4 from the backend retrofit was verified
+as already applied (`bd76be6`), not re-done.
+
+### What is now left on the banks, in order
+
+- [ ] **Sweep every `reviewer_notes` for flags that are known defects rather than questions for an
+      expert**, and fix or escalate each one. Unchanged from 2026-09-25; the two passes above added
+      four notes and none of them is of that kind.
+- [ ] **The stress sets against the probes** — every set, every answer written against the whole
+      exchange. Now unblocked: all four banks are retrofitted and the full-stack pass has landed. The
+      depth cues add nothing to its scope, because a cue changes no descriptor.
+- [ ] **The full-stack role's own content** — a skeleton track at `intern-junior`, and the ~8
+      boundary questions (`fullstack-boundary` 0 of 5, `deployment-basics` 0 of 4). Writing, not
+      tagging; `content/seed/blueprints/fullstack.md` has the shape of both.
+- [ ] Three variant shortfalls that only new questions can close: `django-react` 1 of 2,
+      `ruby-rails` 0 of 2, `dotnet-react` 0 of 1.
+
+### Open for the owner
+
+1. **`the-field-that-changed-shape` → full-stack?** On merit it is the strongest transfer in the QA
+   bank and it is the boundary question the role is short of; it was left because the brief said
+   testing mindset. If the ~8 boundary questions are not imminent, tag it.
+2. **`fullstack` does not support `test_design`**, so QA's three "What would you test?" questions
+   cannot carry the role at all. A one-line `roles.yaml` change if they should — a catalogue
+   decision, not a tagging one.
+3. **Every general frontend and backend question transfers**, against the blueprint's estimate of two
+   thirds. `content/seed/REVIEW.md` §7 now asks the expert whether that is over-tagging.
+4. **The diagnosis/decision line has no check behind it**, so the next bank needs the depth cue
+   applied by hand — the same gap the mis-aim check has, and for the same reason.

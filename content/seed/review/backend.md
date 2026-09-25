@@ -150,7 +150,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > How did anyone find out?
 
-> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing *somebody else's* outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
+> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing _somebody else's_ outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -227,7 +227,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > What else, between you and that phone, ever looks at that response?
 
-> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on *which* 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
+> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on _which_ 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -325,8 +325,9 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > ```
 >
 > ```js
-> const paid = await sumPayments(invoiceId);   // 45200.100000000006
-> if (paid === invoice.total) {                // invoice.total is 45200.10
+> const paid = await sumPayments(invoiceId); // 45200.100000000006
+> if (paid === invoice.total) {
+>   // invoice.total is 45200.10
 >   await markPaid(invoiceId);
 > }
 > ```
@@ -406,7 +407,10 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > ```js
 > async function transfer(fromId, toId, amountKobo) {
->   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [amountKobo, fromId]);
+>   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [
+>     amountKobo,
+>     fromId,
+>   ]);
 >   await notify(fromId, "Transfer sent");
 >   await db.query("UPDATE accounts SET balance = balance + $1 WHERE id = $2", [amountKobo, toId]);
 > }
@@ -489,7 +493,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 >   if (cached) return res.json(JSON.parse(cached));
 >
 >   const data = await buildDashboard(req.user.id);
->   await redis.set("dashboard", JSON.stringify(data), "EX", 300);   // kept for 5 minutes
+>   await redis.set("dashboard", JSON.stringify(data), "EX", 300); // kept for 5 minutes
 >   res.json(data);
 > });
 > ```
@@ -636,7 +640,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > ```js
 > app.post("/api/signup", async (req, res) => {
 >   const user = await createUser(req.body);
->   await sendWelcomeEmail(user.email);   // calls the provider's API
+>   await sendWelcomeEmail(user.email); // calls the provider's API
 >   res.status(201).json({ id: user.id });
 > });
 > ```
@@ -788,7 +792,10 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 >
 > // on sign-in
 > const hash = crypto.createHash("md5").update(password).digest("hex");
-> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [email, hash]);
+> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [
+>   email,
+>   hash,
+> ]);
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -874,7 +881,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 - The check proves who the user is; nothing checks whether this invoice is theirs.
 - Knowing someone is signed in says nothing about what they may see.
-- Ask for the invoice by id *and* owner, so a mismatch cannot return a row at all.
+- Ask for the invoice by id _and_ owner, so a mismatch cannot return a row at all.
 - Doing it in the query rather than after the fetch means there is no gap to forget.
 - It belongs somewhere every route inherits, not copied into each handler where one will be missed.
 - Returning 404 rather than 403 avoids confirming that the other invoice exists.
@@ -1287,7 +1294,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Two days went by before anyone knew — what would have shortened that?
 
-> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place *instead of* a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
+> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place _instead of_ a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1364,7 +1371,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Who reads those lines besides you?
 
-> **The drafter is unsure about:** The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It carries 25%. Two things to check: is asking a junior what they would keep *out* of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
+> **The drafter is unsure about:** The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It carries 25%. Two things to check: is asking a junior what they would keep _out_ of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1675,7 +1682,7 @@ Running it, following one path through, changing something to see what moves —
 - **1 (weak):** A method that is not a way in — reading it top to bottom with nothing tried, asking someone to explain the whole thing before touching it.
 - **2 (partial):** Names the code and one thing they did, without saying what it told them.
 - **3 (solid):** A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
-- **4 (excellent):** As 3, and worked out what the code was *for* before deciding what it was doing wrong.
+- **4 (excellent):** As 3, and worked out what the code was _for_ before deciding what it was doing wrong.
 
 _Asked for by the opening prompt; no planned follow-up._
 
@@ -1729,7 +1736,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > ```js
 > app.get("/api/export", async (req, res) => {
->   const rows = await db.orders.findAll();          // ~80,000 rows
+>   const rows = await db.orders.findAll(); // ~80,000 rows
 >   const csv = rows.map(toCsvLine).join("\n");
 >   res.type("text/csv").send(csv);
 > });
@@ -2781,7 +2788,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > Six hours is most of an evening — what does the blocker not stop you doing?
 
 > **The drafter is unsure about:** Added after a critique pass pointed out that every question in the bank is answered by talking to an interviewer who is present and can ask a follow-up — which is exactly the condition remote work removes, and remote work is half of what this product is for. Two things I am unsure about. It is a hypothetical, so a candidate who has only worked locally has to imagine the setup rather than recall it — is that fair, or does it reward people who have already worked remotely? And is six hours of waiting the right shape for the Nigerian day, given that most remote work here is with Europe rather than the US?
-Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
+> Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2851,8 +2858,8 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > What did you not know then that you know now?
 
-> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the *shape* of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
-Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
+> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
+> Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

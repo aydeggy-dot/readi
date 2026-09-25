@@ -1,7 +1,9 @@
 # Full-stack engineer — question bank blueprint
 
-**Wave 1. Status: blueprint drafted 2026-09-22; 11 borrowed questions, no track, no boundary
-questions yet.** Derived from `docs/role-catalogue.md` § Full-stack Engineer — _added 2026-09-22_.
+**Wave 1. Status: blueprint drafted 2026-09-22; tagging pass done 2026-09-25 — 64 borrowed
+questions, still no track and no boundary questions.** Derived from `docs/role-catalogue.md`
+§ Full-stack Engineer — _added 2026-09-22_. Appendix C has the tagging audit;
+`docs/progress/2026-09-25-fullstack-tagging.md` is the handover.
 
 ## What the role is
 
@@ -95,7 +97,9 @@ questions the plan named, which is the whole of this role's own bank.
 
 The rest of the work is **tagging, not writing**: as the frontend and backend banks grow, each new
 question is asked "would a full-stack interview ask this?" and carries the second role when the
-answer is yes. Expect roughly two thirds of them to. Eleven do today.
+answer is yes. **64 do today** (Appendix C). The drafting estimate here was "roughly two thirds";
+in the event every general frontend and backend question transferred and the only reason to say no
+was a stack this role does not offer.
 
 ```yaml
 # targets (read by check-bank.mjs)
@@ -115,9 +119,9 @@ by_stack:
 complete: false
 ```
 
-|            | Own new questions | Borrowed                    | Available | Today |
-| ---------- | ----------------- | --------------------------- | --------- | ----- |
-| Full-stack | ~8                | ~35 as the other banks grow | **~43**   | 11    |
+|            | Own new questions | Borrowed                  | Available | Today |
+| ---------- | ----------------- | ------------------------- | --------- | ----- |
+| Full-stack | ~8                | 64 across the three banks | **~72**   | 64    |
 
 About 7 new rubrics — the boundary questions, less the behavioural one.
 
@@ -147,7 +151,87 @@ _Filled as the boundary questions are drafted._
 | Nervous junior               |          |         |                     |
 | Fairness                     |          |         |                     |
 
-## Appendix C — coverage after drafting
+## Appendix C — the tagging pass (2026-09-25)
 
-_Filled at the end of the role's pass, including the re-tagging decision for every frontend and
-backend question._
+Held since 2026-09-22 so that it would inherit whatever the three banks ended up carrying, and run
+once at the end rather than three times. **64 of the 104 questions in the three banks are offered to
+a full-stack candidate** — 31 of frontend's 35, 31 of backend's 34, 2 of QA's 35 — against 11 when
+this blueprint was written.
+
+### The frontend and backend banks: nothing to re-tag
+
+Both banks were drafted with the second role applied question by question, so this pass was an audit
+rather than a change. **Every question that is general to its role already carries `fullstack`.** The
+seven that do not are stack-tagged for a variant this role does not offer, so no full-stack candidate
+could ever be asked them whatever we decided:
+
+| Question                                                            | Stack            | Full-stack counterpart                   |
+| ------------------------------------------------------------------- | ---------------- | ---------------------------------------- |
+| `angular-subscription-leak`, `angular-view-did-not-update`          | `angular`        | none                                     |
+| `vanilla-clicks-on-new-items`, `vanilla-dom-as-the-source-of-truth` | `vanilla-js`     | none                                     |
+| `spring-transaction-did-not-roll-back`, `spring-default-error-body` | `java-spring`    | none                                     |
+| `python-blocking-call-in-async`                                     | `python-backend` | `django-react` — **declined**, see below |
+
+**The blueprint's own estimate was wrong, and it is worth saying which way.** It expected "roughly
+two thirds" to transfer; in the event the only reason to say no turned out to be the stack, not the
+subject. That is not over-tagging so much as a fact about this role: it is the broadest of the four,
+and a general frontend or backend question that a full-stack interview would _not_ ask is hard to
+construct. `content/seed/REVIEW.md` §7 now puts that to the expert as the question it is.
+
+**The stack-variant rule is fully applied.** All thirteen stack-tagged questions carrying `fullstack`
+reach at least one of this role's six variants, which is the trap this blueprint was written to
+avoid. Reach per variant: `nextjs` 8, `react-node` 6, `laravel-vue` 4, `django-react` 1,
+`ruby-rails` 0, `dotnet-react` 0.
+
+**`python-blocking-call-in-async` was the one candidate for a re-tag, and it was declined.** Adding
+`django-react` would take that variant from 1 of 2 to 2 of 2 and close a target by tagging — but the
+snippet is `@app.get`, FastAPI-shaped, and the drafter had already flagged in `reviewer_notes`
+whether `python-backend` covering Django and FastAPI at once is a stretch. Putting a FastAPI snippet
+in front of a candidate preparing for Django + React is exactly the unfairness the stack rule
+exists to prevent. The three variant shortfalls — `django-react` 1 of 2, `ruby-rails` 0 of 2,
+`dotnet-react` 0 of 1 — are a **writing** gap, and `check-bank.mjs` reports all three every run.
+
+### The QA bank: two crossed over, and why only two
+
+No QA question carried `fullstack` before this pass. The owner's brief was to consider whether one or
+two testing-mindset questions should. Two did:
+
+- **`what-to-test-when-there-is-no-time`** (scenario, `risk-based-testing`, both levels) — deciding
+  what to check when there is no time to check everything. It is the only risk-prioritisation
+  question in any bank, and it is the testing judgement a developer who ships their own feature most
+  needs. Its rubric is role-neutral: impact against likelihood, a list with a cut line, and saying
+  plainly what was not covered.
+- **`where-your-test-data-comes-from`** (scenario, `test-data`, both levels) — in a small team the
+  person offered a copy of the production database is the developer setting up their own
+  environment, not a tester. Nothing in either bank asks about personal data in a test environment,
+  and the NDPA makes it a question this product should be asking. One word in
+  `test-data-judgement` moved with it: level 1 of criterion 3 said "names removed by **the tester**",
+  which named a role the candidate may not hold.
+
+**What was deliberately left in QA.** Everything else in that bank is testing as a discipline —
+automation suites, defect workflow, CI pipelines, test-case design, selector strategy. A full-stack
+engineer meets those as a consumer, not as the person who owns them, and the frontend bank already
+gives them `what-to-test-on-a-login-screen` and `the-test-that-broke-for-nothing`.
+
+**A constraint found on the way, which the owner should know about.** `fullstack`'s
+`supported_question_types` is `technical, scenario, behavioral` — it does **not** include
+`test_design`. So QA's three archetypal "what would you test?" questions (`test-design-signup-form`,
+`test-design-otp-screen`, `test-design-money-transfer`) cannot carry this role at all;
+`check-bank.mjs` would reject them. If the testing mindset should reach full-stack through those,
+it is a one-line content change to `roles.yaml`, not a re-tag.
+
+### The near miss
+
+**`the-field-that-changed-shape`** (technical, `testing-apis`, mid) — an endpoint's `salary` goes
+from a number to an object overnight and the Android app shows nothing. On merit it is the strongest
+transfer in the QA bank, because "what is the client entitled to assume" is the whole of
+`fullstack-boundary`, this role's defining topic. It was left because it is a contract question
+rather than a testing-mindset one, which was the brief, and because its answer key leans on contract
+checks running in the API's own pipeline — QA craft. If the boundary questions below are slow to
+arrive, this is the one to tag in the meantime.
+
+### What this pass did not do
+
+The role still has **no track** (both levels give `track_not_found`) and **no questions of its own**:
+`fullstack-boundary` 0 of 5 and `deployment-basics` 0 of 4, the ~8 questions in "Target counts"
+above. Those are writing, not tagging, and they are what is left of this role's work.

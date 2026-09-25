@@ -80,13 +80,27 @@ developer a React snippet — so say which you think each one is.
 **7. Does this question belong to full-stack as well?**
 Full-stack is one of our four launch roles and has **no bank of its own** — it is made of the
 frontend and backend questions that genuinely transfer, each carrying `fullstack` as a second role.
-Eleven of the fourteen do today; the three QA questions do not. The heading on each question says
-which roles it is for. So, per question: would a full-stack interview ask this, or is it specialist
-enough that only a frontend or only a backend candidate should meet it? A wrong "yes" wastes a
-full-stack candidate's practice on something they will never be asked; a wrong "no" leaves the
-role thinner than it should be. The same question applies to the six full-stack variants
-(React + Node, Next.js, Django + React, Laravel + Vue, Ruby on Rails, .NET + React) wherever a
-question is stack-tagged.
+**Sixty-four of the hundred and four do today** — 31 of frontend's 35, 31 of backend's 34 and 2 of
+QA's 35. The heading on each question says which roles it is for. So, per question: would a
+full-stack interview ask this, or is it specialist enough that only a frontend or only a backend
+candidate should meet it? A wrong "yes" wastes a full-stack candidate's practice on something they
+will never be asked; a wrong "no" leaves the role thinner than it should be. The same question
+applies to the six full-stack variants (React + Node, Next.js, Django + React, Laravel + Vue,
+Ruby on Rails, .NET + React) wherever a question is stack-tagged.
+
+Two parts of that are worth knowing before you start, because they are where we are least sure:
+
+- **Every frontend and backend question that is general to its role carries `fullstack`.** The seven
+  that do not are stack-tagged for a variant full-stack does not offer — Angular, vanilla JavaScript,
+  Java + Spring — so no full-stack candidate could be asked them whatever we decide. The drafting
+  estimate was that about two thirds would transfer; in the event the only reason to say no turned
+  out to be the stack. If that is too generous — if there are questions here a full-stack interview
+  would genuinely never reach — those are the ones to mark.
+- **Only two QA questions cross over**, chosen for the testing judgement a developer who owns a
+  feature end to end needs rather than for QA craft: `what-to-test-when-there-is-no-time` and
+  `where-your-test-data-comes-from`. Everything else in that bank is about testing as a discipline —
+  automation suites, defect workflow, pipelines, test-case design — which is a specialist's round.
+  Tell us if one or two more belong, and if so which.
 
 ## How to send it back
 
