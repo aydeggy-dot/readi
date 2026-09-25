@@ -79,16 +79,15 @@ questions:
         probe: >-
           What is still different because of it?
     reviewer_notes: >-
-      **Two passes say this needs its own rubric, and they are right.** It is scored with the
-      generic `behavioural-answer-quality`, whose criteria are situation, actions and outcome — so
-      its best `ideal_points` (owning a share of the fault, whether they told anyone early, a
-      change that outlived the incident) have nowhere to be scored, and the question rewards story
-      shape, which is coachable in an afternoon. That is the same defect `rubrics.shared.yaml`'s
-      own header says was fixed for `stuck-and-asked-for-help` and `feedback-on-your-code`. It
-      needs the same treatment: first two criteria in common, third being the gap between knowing
-      and telling. Not done here because it changes a shared rubric's users. The prompt no longer
-      requires production, so a candidate whose only deployment is a personal project can answer.
-      Do you want the new rubric, or is one behavioural question in four already enough?
+      **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It
+      used to say the question needed its own rubric instead of the generic
+      `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the
+      generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished
+      story about diagnosing *somebody else's* outage scored 3.70 against the candidate's own break
+      at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require
+      production, so a candidate whose only deployment is a personal project can answer. What to
+      check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it
+      carries two probes because it asks two things — is that one criterion or two?
 
   # ---------------------------------------------------------------------------------------------
   # Added 2026-09-22, the backend pass. Built to `content/seed/blueprints/backend.md`, which says
@@ -264,9 +263,10 @@ questions:
           And the accounts that are already in that state?
     reviewer_notes: >-
       The snippet is deliberately readable without knowing the library — it is two SQL statements
-      and an await. My worry is the third clause: asking what to do about the rows that are already
-      wrong is the part that separates someone who has been on call from someone who has not, and
-      it carries 25%. The rubric's level 1 there is "would fix the code and move on", which is an
+      and an await. My worry is the third criterion: asking what to do about the rows that are
+      already wrong is the part that separates someone who has been on call from someone who has
+      not, and it carries 25%. Since 2026-09-25 a probe asks it, which means it is put to exactly
+      the candidate who did not volunteer it. The rubric's level 1 there is "would fix the code and move on", which is an
       honest junior answer — is 1 too harsh for it, or right? Also: is it fair to expect a candidate
       to say the notification should move out, or is that a mid-only point?
 
@@ -424,7 +424,8 @@ questions:
       deliberately different questions — that one is about what the interface does while a request
       is in flight, this one is about a worker that has already died. A reviewer should confirm they
       do not feel like the same question to a full-stack candidate, who is offered both. The third
-      clause ("what would you say to the vendor") is 25% and is not a technical point: it is there
+      criterion — the probe about the payment that has already gone out twice — is 25% and is not a
+      technical point: it is there
       because the honest answer to a double payment is not only a code change. Is scoring that fair, or
       is it a test of confidence rather than of engineering?
 
@@ -740,9 +741,10 @@ questions:
         probe: >-
           Is there anything you would deliberately keep out of it?
     reviewer_notes: >-
-      The last clause is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs,
-      emails or phone numbers) and it is the one a candidate is least likely to volunteer, so the
-      prompt asks for it directly rather than charging for it silently. It carries 25%. Two things
+      The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts,
+      CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so
+      it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It
+      carries 25%. Two things
       to check: is asking a junior what they would keep *out* of a log fair, and is the Nigerian
       framing right — I have made the phone number the thing most worth keeping out, because it is the
       account identifier for much of this market — is that the right emphasis?
@@ -877,10 +879,10 @@ questions:
           Has there been a time you had to do that for real — or a time you did not?
     reviewer_notes: >-
       The second question the frontend blueprint said belonged in this pass, and the second
-      `written-communication` question for every wave-1 role. The prompt asks for the message first
-      and the story second, deliberately: a candidate who has never had a deadline slip in a job can
-      still answer the first half completely, and the rubric splits 60/40 that way so nobody is
-      capped by not having had the experience. Is 40% still too much to hang on having had it?
+      `written-communication` question for every wave-1 role. The message is asked first and the
+      story last, deliberately — the opening asks what they would write, and the story is the final
+      probe: a candidate who has never had a deadline slip in a job can still answer the first half
+      completely, and the rubric splits 70/30 that way so nobody is capped by not having had it. Is 40% still too much to hang on having had it?
 
   - slug: the-part-you-did-not-write
     roles: [backend, frontend, qa, fullstack]
