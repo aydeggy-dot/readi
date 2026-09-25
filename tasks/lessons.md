@@ -364,3 +364,59 @@ off an error body, and the failure surfaced three tests later as a request to
 helpers throw on an unexpected status rather than returning a body to be indexed into. `startOk`
 now says `starting an interview failed: 429 …`, which is the sentence that would have saved the
 detour.
+
+## The sixth `DROP INDEX` was in a one-line enum migration, so the guard is a test now (M3 phase 2, 2026-09-25)
+
+`prisma migrate dev --create-only` for `ALTER TYPE "ai_call_purpose" ADD VALUE 'coverage'` — a
+migration that touches no table at all — generated this:
+
+```sql
+ALTER TYPE "ai_call_purpose" ADD VALUE 'coverage';
+DROP INDEX "questions_embedding_hnsw";
+```
+
+That is the **sixth** time. CLAUDE.md has warned about it since M2, `tasks/lessons.md` has warned
+about it since M2.5, and it keeps arriving because the warning asks a person to notice something in a
+file they are about to apply without reading, in a migration that has nothing to do with `questions`.
+
+`apps/api/src/prisma/migration-sql.spec.ts` now reads every committed `migration.sql` — no database,
+no fixtures — and fails on a migration that drops a hand-written index, or a column such an index is
+built over, without recreating it in the same file. `content-schema.int.spec.ts` stays as the backstop
+in a migrated database; this one catches it a step earlier and says which file and what to delete.
+
+**The rule:** a mistake that has been made more than twice is not a thing to remember, it is a thing
+to fail the build. And a guard for a silent loss earns its place by being watched fail: both halves
+were — the `DROP INDEX` line re-added, and an `ALTER TABLE "tracks" DROP COLUMN "role_id"`, which is
+the M2.5 shape that Prisma proposes nothing for.
+
+## A nullable constrained field generates a Pydantic class named after the field (M3 phase 2, 2026-09-25)
+
+`InterviewAdvanceRequest.text` was a bare `z.string().min(1).max(8_000).nullable()`. Because a
+_nullable_ constrained string cannot be an annotated `str`, datamodel-codegen hoists it into a
+RootModel — and names it from the field, so it emitted `class Text(RootModel[str])`. `EmbedRequest.texts`
+already generates a class called `Text`, with the same limits today by coincidence.
+
+So two unrelated contracts shared one generated class, and would have quietly split into `Text` and
+`Text1` the day `EMBEDDING_LIMITS.textMaxLength` or `INTERVIEW_LIMITS.answerMaxLength` moved — breaking
+whichever module had imported the one that got renamed. Neither the registry's id check nor the
+generator's `addDef` conflict check sees this: both only look at **named** `$defs`.
+
+**The rule:** give a nullable constrained field its own `.meta({ id })` (it became `CandidateText`).
+More generally, after `pnpm gen:contracts`, read the generated Python for class names the schema did
+not ask for — a name invented from a field is a name two schemas can collide on.
+
+## One field, two meanings, and the engine answered the candidate's answer (M3 phase 2, 2026-09-25)
+
+`EngineState.pending_text` held "the thing the candidate just said". It is read in exactly one place:
+`CANDIDATE_QUESTIONS`, where the engine has to hold on to their question in order to answer it. But
+`take_answer` set it for every answer, so the moment a question's follow-ups were done and the engine
+moved into `CANDIDATE_QUESTIONS`, it found a pending utterance — the candidate's _interview answer_ —
+and answered it as though it had been a question put to the interviewer.
+
+The transition-table tests caught it on the first run, which is the argument for writing the machine
+as `(state, event, now) -> state` with no I/O in it: the failure was three lines of expected steps
+rather than a strange turn in a session somebody had to read.
+
+**The rule:** name a field for the one thing it is read as, and set it only where that thing is true.
+"The last utterance" and "a question the candidate asked" are different claims, and a field that
+answers both answers neither.

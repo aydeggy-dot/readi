@@ -129,6 +129,33 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   `session_turns.criteria_covered` hold one entry per criterion while the criteria themselves stay
   behind the wall. Its verdict is `covered | not_covered | not_judged`; `not_judged` is the ordinary
   state of the one criterion the opening prompt asks for, because nothing probes it.
+- **The engine is `apps/ai-worker/readi_worker/interview/`, and the split inside it is the rule.**
+  `machine.py` decides what happens — pure, `now` passed in, no I/O; `service.py` performs it and is
+  the only part that talks to a model. Probe selection and the coverage log are `probes.py`, decided
+  **per probe, never per criterion**: a criterion may carry two probes asking separable things, and
+  anything keyed by criterion drops the second (`review-doc.ts` really did). Per criterion is how
+  the stored log reads, because that is what a rubric is.
+- **An exchange is all-or-nothing, and the snapshot in the request is the authority.** Nothing is
+  stored until an exchange completes, so a retry replays it and the seqs the engine allocates make
+  that idempotent. The worker prefers `engine_snapshot` from the request over its own Redis copy:
+  the API's copy is what has actually been persisted, so replaying a response that reached Redis but
+  not the database is right and skipping ahead would leave a hole in the transcript. Redis caches
+  the **bundle** so the API need not resend the pinned questions each turn; when it has lost it the
+  worker answers `bundle_required`, which is the Redis-miss signal the API cannot otherwise see.
+- **A model that will not answer does not stop the interview.** A question falls back to its own
+  pinned prompt, a follow-up to its own probe, the close to a fixed line — the candidate gets a
+  plainer interview rather than a broken one, and the failure is in `ai_calls`. The one exception is
+  answering a question the *candidate* asked, where there is nothing honest to fall back to.
+- **Two model calls per answer, and both are skipped when their verdict could not change anything.**
+  `coverage` judges which probes are still worth asking and `follow_up` phrases the one the engine
+  chose (separate `AiCallPurpose` values, so `ai_call_log` keeps them apart). The coverage call is
+  not made when the follow-up budget is spent, when no probe remains in play, or when the deadline
+  leaves no room for a follow-up — `machine.probes_to_judge` is the one place that rule lives. The
+  turn is still logged, as `not_judged` for every criterion, which is exactly what happened.
+- **The intro is rendered, not generated** (`prompts/interview_intro.v1.md`). It states the session
+  length, the question count and that skipping and ending early are allowed; a model paraphrasing
+  those gets them wrong eventually, and it is the one turn where the candidate is waiting on an
+  empty screen. It is versioned and recorded in `prompt_versions` like every other prompt.
 - **A session pins everything it was run against** — question and rubric by version *and* snapshot,
   and the catalogue's slugs and **names** in `interview_sessions.catalogue`. A version pins what the
   content said; it does not pin what the row was called, and renaming a role must not rewrite a
@@ -161,6 +188,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   recreate any hand-written index over it (M2.5 phase 3 did this for
   `tracks_one_published_per_role_level`, moving it to `role_id, level_id`). Grep the migration for
   every `DROP COLUMN` and ask what was indexed on it.
+- **`apps/api/src/prisma/migration-sql.spec.ts` now fails the build rather than relying on eyes.**
+  It reads every committed `migration.sql` — no database needed — and fails on one that drops a
+  hand-written index, or a column such an index is built over, without recreating it in the same
+  file. `content-schema.int.spec.ts` remains the backstop in a migrated database. **Adding a
+  hand-written index, constraint or trigger means adding it to `HAND_WRITTEN_SQL`**, with the
+  columns it depends on and what its loss would silently cost.
 - **A migration that converts data verifies the conversion before it drops anything.** Prisma
   generates "drop the old column, add the new one `NOT NULL`", which refuses to run against rows and
   would lose them if it did. Backfill, then `RAISE EXCEPTION` naming any row that did not map, then

@@ -166,13 +166,21 @@ New:
   planned follow-ups), `interview-sse.ts`,
   `interview-sessions.repository.ts`, `stale-sessions.queue.ts`.
 - `apps/ai-worker/readi_worker/interview/` — `machine.py` (pure), `budgets.py`, `service.py`,
-  `state_store.py` (Redis), `router.py`, `fake_script.py` (the interview-aware fake LLM).
+  `state_store.py` (Redis), `router.py`, `fake_script.py` (the interview-aware fake LLM). Phase 2
+  added `probes.py` (probe selection and the coverage log) and `calls.py` (the two model shapes,
+  their retries and their fallbacks) rather than folding either into `machine.py` or `service.py`.
 - `apps/ai-worker/readi_worker/prompts/interview_*.v1.md` — system, question phrasing, follow-up,
   candidate questions, wrap-up. **`interview_followup.v1.md` is written against planned follow-ups
   from the start**: it receives the chosen probe and phrases it in the conversation's voice, and it
   receives no rubric. Getting this right before `v1` ships is the whole reason the field lands before
   M3 — a released prompt version is never edited in place, so discovering it later would mean a `v2`
   plus a session-bundle change, with every earlier session and eval run still naming `v1`.
+  Phase 2 shipped **eight** rather than five, and the three extra are deliberate: the coverage call
+  needs its own system and input prompts (it postdates this list — the decision was taken at the
+  start of this branch), and `interview_intro.v1.md` is **rendered and spoken, never sent to a
+  model**. The intro states the session length, the question count and that skipping and ending
+  early are allowed; those are facts about the session, a model paraphrasing them gets them wrong
+  eventually, and it is the one turn where the candidate is watching an empty screen.
 - `apps/ai-worker/readi_worker/tracing/` — Langfuse client, masking hook, retention and delete-by-user.
 - `apps/web/src/app/(app)/practice/` — list and `new` (setup); `apps/web/src/app/(session)/interview/[id]/`
   — the chat screen and `complete`; `apps/web/src/components/interview/*`.
@@ -284,7 +292,7 @@ still reading its route list from the OpenAPI document.
 | `GET /api/interviews/:id` | Session + transcript, candidate shape |
 | `POST /api/interviews/:id/advance` | `{action: start \| answer \| skip \| end, text?}` → `text/event-stream` |
 | `GET /api/interviews/:id/status` | Polled by the completion screen; `status` + nullable error + nullable payload, the `CvResponse` shape |
-| worker `POST /interview/advance` | Bundle (first call or after a Redis miss) + engine state + event → turns, state, snapshot, `ai_calls` |
+| worker `POST /interview/advance` | Bundle (first call or after a Redis miss) + engine state + event → turns, state, snapshot, `prompt_versions`, `ai_calls`. Built in phase 2: **the snapshot in the request is the authority** and Redis caches the bundle, so a miss answers `bundle_required` — which is how the API learns of a miss it cannot see. An exchange is all-or-nothing: on an error the response carries no turns and a null snapshot, and a retry replays it |
 | worker `POST /traces/delete` | By `user_id`, and by age for the retention sweep |
 
 ## Question selection
