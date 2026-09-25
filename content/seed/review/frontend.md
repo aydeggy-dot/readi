@@ -2695,7 +2695,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Tell me about something you shipped that broke for real users — in production, or in a project of your own. What happened, what did you do at the time, and what changed afterwards?
+> Tell me about something you shipped that broke for real users — in production, or in a project of your own.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2729,7 +2729,9 @@ What the candidate personally did, in what order, in enough detail to judge.
 - **3 (solid):** What they did and in what order is recoverable — including stopping it before understanding it, where that was the cheaper move.
 - **4 (excellent):** As 3, including a decision they weighed under time pressure and what they gave up by taking it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What did you do once you knew?
 
 **Who knew, and what outlived it — 35%**
 
@@ -2741,7 +2743,11 @@ How it was found, how long it ran before anyone knew, and one change that is sti
 - **3 (solid):** Says how it was found and names a durable change; a candidate with no colleagues says who they would have told and why.
 - **4 (excellent):** As 3, and says plainly how long it ran before anyone knew, and what would shorten that next time.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
+
+> How was it found, and how long had it been going before anyone knew?
+
+> What is still different because of it?
 
 > **The drafter is unsure about:** **Two passes say this needs its own rubric, and they are right.** It is scored with the generic `behavioural-answer-quality`, whose criteria are situation, actions and outcome — so its best `ideal_points` (owning a share of the fault, whether they told anyone early, a change that outlived the incident) have nowhere to be scored, and the question rewards story shape, which is coachable in an afternoon. That is the same defect `rubrics.shared.yaml`'s own header says was fixed for `stuck-and-asked-for-help` and `feedback-on-your-code`. It needs the same treatment: first two criteria in common, third being the gap between knowing and telling. Not done here because it changes a shared rubric's users. The prompt no longer requires production, so a candidate whose only deployment is a personal project can answer. Do you want the new rubric, or is one behavioural question in four already enough?
 
@@ -2759,7 +2765,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> You said a piece of work would be done by Friday. It is Wednesday morning and you are now sure it will not be. Tell me what you write, who you write it to, and when — and tell me about a time you had to do something like that, or did not.
+> You said a piece of work would be done by Friday. It is Wednesday morning and you are now sure it will not be. Tell me what you write.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2793,7 +2799,9 @@ Wednesday, not Friday, and to whoever depends on the date. Scored on what the no
 - **3 (solid):** Sends it as soon as they are sure, to the people whose own work depends on the date, and says why the notice is the point.
 - **4 (excellent):** As 3, and offers something to decide — cut this part, take help, move the date — so the reader has a choice rather than an announcement.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> When does that go, and who to?
 
 **A time they did it, or did not — 30%**
 
@@ -2805,7 +2813,9 @@ One occasion — a job, a client, a school project, an issue they said they woul
 - **3 (solid):** One occasion, what they said and when, and how it landed — including plainly saying they left it too long. A candidate with no such occasion reaches 3 by saying so and reasoning it through.
 - **4 (excellent):** As 3, and something specific they changed afterwards about how they estimate or when they raise it.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Has there been a time you had to do that for real — or a time you did not?
 
 > **The drafter is unsure about:** The second question the frontend blueprint said belonged in this pass, and the second `written-communication` question for every wave-1 role. The prompt asks for the message first and the story second, deliberately: a candidate who has never had a deadline slip in a job can still answer the first half completely, and the rubric splits 60/40 that way so nobody is capped by not having had the experience. Is 40% still too much to hang on having had it?
 
@@ -2823,7 +2833,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> Tell me about a time you had to work on code you did not write and did not understand — a tutorial project, a library, something at work, anything. How did you get your bearings, how did you decide it was safe to change, and what did you end up changing?
+> Tell me about a time you had to work on code you did not write and did not understand — a tutorial project, a library, something at work, anything. How did you get your bearings?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2857,7 +2867,9 @@ Something told them — a test, a small experiment, a person, a way to undo it �
 - **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
 - **4 (excellent):** As 3, and says what it did not cover, so they knew what they were still taking a chance on.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How did you decide it was safe to change?
 
 **The change they made — 30%**
 
@@ -2869,7 +2881,9 @@ Smaller than it was tempting to make, and they can say why.
 - **3 (solid):** A change narrow enough to reason about, and they can say what they deliberately did not touch.
 - **4 (excellent):** As 3, and says what they wrote down for whoever reads it next, themselves in six months included — what they were still unsure of, and what they left alone because they did not understand it yet.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What did you end up changing?
 
 > **The drafter is unsure about:** The second `own-work` question, and the bank's answer to the gap a remote hiring manager named as the thing that actually predicts month six — every other question hands the candidate a small, complete snippet they own. The prompt says "a tutorial project, a library, something at work, anything" so it cannot require an employer. What a reviewer should check is whether the question survives being asked of a candidate whose honest answer is "I have only ever worked on my own code" — my view is that anyone who has used a library they had to read has an answer — am I assuming too much?
 
@@ -2887,7 +2901,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do first, what do you write to them, and what would you build before you hear back?
+> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do first?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2922,7 +2936,9 @@ One message, the specific decisions needed, what will be assumed without a reply
 - **3 (solid):** Names the specific decisions, and says what they will assume if there is no answer.
 - **4 (excellent):** As 3, and says when the answer stops being useful, so the reader can judge it against their own morning.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What do you write to them?
 
 **Does not lose the eight hours — 35%**
 
@@ -2934,7 +2950,9 @@ Builds the part that is not in doubt, and does not build the part that is.
 - **3 (solid):** Builds what is not in doubt — the shape of the page, the query, the tests — and leaves the ambiguous half until the answer comes.
 - **4 (excellent):** As 3, and builds it so the answer is cheap to apply either way, rather than betting on one reading.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> And what would you build before you hear back?
 
 > **The drafter is unsure about:** A remote hiring manager named this as the single biggest remote failure mode — a week spent building the wrong thing because nobody asked — and nothing in either bank went near it. It needs no employer: a ticket, a person who is not there, and a date is a situation a candidate can reason about without ever having had one. What I am least sure of is the eight hours. It is there to force the candidate to choose between waiting and guessing, but a candidate whose whole experience is same-room work may read it as an odd detail rather than the constraint. Does it land, or should it just say "you will not hear back today"?
 
@@ -2952,7 +2970,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **The interviewer asks**
 
-> A teammate opens a change adding a new endpoint that lists every order for a customer. You think it will be slow once there is real data in that table, and you are not certain — you have not measured it. What do you write on the change, how do you word it, and what would make you approve it anyway?
+> A teammate opens a change adding a new endpoint that lists every order for a customer. You think it will be slow once there is real data in that table, and you are not certain — you have not measured it. What do you say about the part you are not sure of?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2987,7 +3005,9 @@ Specific, on the change, and with what would settle it.
 - **3 (solid):** Names what would settle it — the row count it starts to hurt at, or a plan against realistic data.
 - **4 (excellent):** As 3, and says plainly whether it blocks the change or is a note for later.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you word the comment itself, so the author can act on it?
 
 **Knows what would change their mind — 30%**
 
@@ -2999,7 +3019,9 @@ Approving is a real outcome. A review that can only be satisfied one way is a bl
 - **3 (solid):** Names the conditions — a small table today, a ticket filed — under which they would approve it now.
 - **4 (excellent):** As 3, and pairs approving with something that would tell us when it starts to matter, so the concern is not simply dropped.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What would make you approve it anyway?
 
 > **The drafter is unsure about:** The bank covers having your own work reviewed (`feedback-on-your-code`) and had nothing on giving a review, which for a remote hire is the main written trace they leave. Mid only, because a junior is rarely the reviewer of record — though they do comment, so a reviewer may think it belongs at both. The clause I am least sure of is "what would make you approve it anyway": it is there because a review that can only be satisfied one way is a blocker wearing a question mark, and it is the part of the answer I would most want to hear. Is it too leading — does it tell the candidate that approving is the expected answer?
 

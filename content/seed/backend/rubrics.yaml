@@ -252,7 +252,7 @@ rubrics:
         description: The person signing up has to know the email is coming and have a way to get it again.
         weight: 25
         levels:
-          "0": Not addressed.
+          "0": Nothing is said to them — the account exists, so the screen moves on, and whether the email turns up is between them and their inbox.
           "1": Would show a spinner or a generic success, and treats the question as answered.
           "2": Says they would "tell the user", without saying what.
           "3": Tells them the account exists and the email is on its way, and offers a resend.
@@ -314,7 +314,7 @@ rubrics:
         description: The old hashes cannot be converted, because the password is not recoverable from them.
         weight: 25
         levels:
-          "0": Not addressed.
+          "0": Nothing has to happen to them — the new hashing applies from the next sign-up and the rows already there are left alone.
           "1": Would re-hash the stored hashes, or run a migration over the table — treating the old hash as something the new one can be computed from.
           "2": Says the users will "have to reset", with no plan for getting there.
           "3": Re-hash each password at the next successful sign-in, keeping which scheme each row uses — or force a reset and say why losing some users is worth it here.
@@ -433,7 +433,7 @@ rubrics:
           again.
         weight: 30
         levels:
-          "0": Not addressed.
+          "0": Whose fault it looks like is not treated as part of the message — the code did not arrive, and where the failure sits is our business rather than theirs.
           "1": Leaves them to assume it was something they did — a validation-shaped message, or nothing.
           "2": Apologises without saying what failed, so the cause is still ambiguous to the reader.
           "3": Says plainly that the problem is on our side and not with their number.
@@ -717,7 +717,7 @@ rubrics:
         description: One request at a time never overlaps, so the variable is always the right one.
         weight: 25
         levels:
-          "0": Does not address it.
+          "0": Says it would show up by hand — they were simply unlucky, or nobody thought to check the name on the email.
           "1": Explains it with something else — development having fewer users so less data, a different configuration, the email provider batching.
           "2": Says it is "a load issue" without saying what load changes.
           "3": Says nothing overlaps when requests arrive one at a time, so the bug needs two in flight and never appears by hand.
@@ -757,7 +757,7 @@ rubrics:
         description: What must succeed or fail together, and what must not be inside it.
         weight: 30
         levels:
-          "0": Not addressed.
+          "0": Draws no line — the transaction is wherever the annotation happens to be, and what ought to be inside or outside it is not treated as a decision.
           "1": Would widen it to the whole request, or annotate every method, as a way of being safe.
           "2": Says both saves belong together without saying what else does not.
           "3": Says the two writes are one unit, and that anything a database cannot undo does not belong inside it.
@@ -819,7 +819,7 @@ rubrics:
         description: A plain `def` endpoint is run in a threadpool; the `async def` is what put it on the loop.
         weight: 25
         levels:
-          "0": Not addressed.
+          "0": Says it would have made no difference, or that the framework would not have taken the endpoint without it.
           "1": Gets the two the wrong way round — `async def` believed to be always the faster or more correct choice, or believed to be the one the framework runs in a thread.
           "2": Mentions that `def` and `async def` differ without saying how.
           "3": Says a plain `def` path operation is run in a threadpool, so the same code in a `def` would not have blocked the loop.
@@ -841,7 +841,7 @@ rubrics:
         description: A slow external call between the read and the write is what turns a millisecond into a minute.
         weight: 20
         levels:
-          "0": Does not address it.
+          "0": Takes the minute as incidental — it could as easily have been a millisecond, and how long the gap was is no part of the explanation.
           "1": Attributes the minute to something else — a queue, a transaction held open, the database being slow.
           "2": Notes the call is in the middle without saying what that changes.
           "3": Says the instance is held across the provider call, so the gap between reading and writing is as long as that call takes.
@@ -912,7 +912,7 @@ rubrics:
         description: Something should say which version each worker is running.
         weight: 25
         levels:
-          "0": Not addressed.
+          "0": Nobody would, and that is accepted — it would surface as wrong results again, the same way it did this time.
           "1": Would add a comment, a runbook note, or remember next time.
           "2": Says it should be "monitored" without saying what would be visible.
           "3": Logs or reports the version each worker is running, so a mismatch is a thing that can be seen rather than deduced.
