@@ -1,8 +1,10 @@
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
 import { createOpenApiDocument } from "../src/openapi";
 import { answerKeyLeaks } from "./answer-key";
+import { FakeAiWorker } from "./fake-ai-worker";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
 import {
@@ -12,6 +14,7 @@ import {
   type ContentFixture,
 } from "./content-fixtures";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
+import { framesOf } from "./sse";
 
 /**
  * **The leak test.** Candidate-facing responses never carry the answer key — no rubric, no
@@ -47,11 +50,23 @@ describe("candidate content never carries the answer key", () => {
   let candidateUserId: string;
   /** A session with one question reached, so the interview routes have something to leak. */
   let sessionId: string;
+  /**
+   * A second candidate, for the routes that advance a session.
+   *
+   * `POST /api/interviews` is one of the exercisers, and starting an interview abandons whatever
+   * that candidate had running (one live interview each). The advance route would then be exercised
+   * against a session that had been ended out from under it — a 409, and a test passing because it
+   * found no answer key in an error body.
+   */
+  let liveCookie: string;
+  let liveUserId: string;
+  let liveSessionId: string;
+  const worker = new FakeAiWorker();
 
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
-    app = await createTestApp();
+    app = await createTestApp({ overrides: [[AiWorkerClient, worker]] });
     prisma = app.get(PrismaService);
     fixture = await seedPublishedContent(prisma);
 
@@ -71,14 +86,28 @@ describe("candidate content never carries the answer key", () => {
       .send({ minutes: 15 });
     if (started.status !== 201) throw new Error(`could not start an interview: ${started.text}`);
     sessionId = (started.body as { id: string }).id;
-    const first = await prisma.interviewSessionQuestion.findFirstOrThrow({
-      where: { sessionId },
-      orderBy: { position: "asc" },
-    });
-    await prisma.interviewSessionQuestion.update({
-      where: { id: first.id },
-      data: { askedAt: new Date() },
-    });
+    // Advanced for real rather than by setting `asked_at` behind the API's back: the stream is one
+    // of the surfaces under test, and it only carries anything once the engine has spoken.
+    const opening = await http()
+      .post(`/api/interviews/${sessionId}/advance`)
+      .set("cookie", candidateCookie)
+      .send({ action: "start" });
+    if (opening.status !== 200) throw new Error(`could not open the interview: ${opening.text}`);
+
+    const live = await signUpWithEmail(app, uniqueEmail());
+    liveCookie = live.cookie;
+    liveUserId = await giveProfile(prisma, live.email, fixture.role, fixture.level);
+    const second = await http()
+      .post("/api/interviews")
+      .set("cookie", liveCookie)
+      .send({ minutes: 15 });
+    if (second.status !== 201) throw new Error(`could not start an interview: ${second.text}`);
+    liveSessionId = (second.body as { id: string }).id;
+    const opened = await http()
+      .post(`/api/interviews/${liveSessionId}/advance`)
+      .set("cookie", liveCookie)
+      .send({ action: "start" });
+    if (opened.status !== 200) throw new Error(`could not open the interview: ${opened.text}`);
 
     const admin = await signUpWithEmail(app, uniqueEmail());
     adminCookie = admin.cookie;
@@ -86,7 +115,9 @@ describe("candidate content never carries the answer key", () => {
   });
 
   afterAll(async () => {
-    await prisma.interviewSession.deleteMany({ where: { userId: candidateUserId } });
+    await prisma.interviewSession.deleteMany({
+      where: { userId: { in: [candidateUserId, liveUserId] } },
+    });
     await removeContent(prisma, fixture);
     await app.close();
   });
@@ -114,10 +145,31 @@ describe("candidate content never carries the answer key", () => {
     "/api/interviews/{id}": [
       () => http().get(`/api/interviews/${sessionId}`).set("cookie", candidateCookie),
     ],
+    "/api/interviews/{id}/advance": [
+      () =>
+        http()
+          .post(`/api/interviews/${liveSessionId}/advance`)
+          .set("cookie", liveCookie)
+          .send({ action: "answer", text: "I would start by reproducing it." }),
+    ],
+    "/api/interviews/{id}/status": [
+      () => http().get(`/api/interviews/${liveSessionId}/status`).set("cookie", liveCookie),
+    ],
   });
+
+  /**
+   * What to run the detector over. An event stream is not JSON, so `response.body` is `{}` for it —
+   * which would pass this test for the worst possible reason. The frames are parsed out instead, and
+   * the control below proves that parsing can still catch a leak.
+   */
+  const payloadOf = (response: request.Response): unknown =>
+    String(response.headers["content-type"] ?? "").includes("text/event-stream")
+      ? framesOf(response.text)
+      : response.body;
 
   it("has an answer key to leak in the first place", async () => {
     expect(fixture.answerKeyMarkers.length).toBeGreaterThanOrEqual(12);
+    expect(fixture.plannedFollowUpMarkers.length).toBeGreaterThan(0);
 
     // The admin API returns it, so the markers are real, stored, and reachable over HTTP.
     const response = await http()
@@ -135,6 +187,7 @@ describe("candidate content never carries the answer key", () => {
     const pinned = await prisma.interviewSessionQuestion.findMany({ where: { sessionId } });
     const raw = JSON.stringify(pinned.map((row) => row.snapshot));
     for (const marker of fixture.answerKeyMarkers) expect(raw).toContain(marker);
+    for (const marker of fixture.plannedFollowUpMarkers) expect(raw).toContain(marker);
   });
 
   it("covers every candidate route the API publishes, by any method", () => {
@@ -176,7 +229,43 @@ describe("candidate content never carries the answer key", () => {
   )("%s returns content and no answer key", async (_path, call) => {
     const response = await call();
     expect([200, 201]).toContain(response.status);
-    expect(answerKeyLeaks(response.body, fixture.answerKeyMarkers)).toEqual([]);
+    expect(answerKeyLeaks(payloadOf(response), fixture.answerKeyMarkers)).toEqual([]);
+  });
+
+  /**
+   * **The one part of the answer key with a moment when it is allowed out.**
+   *
+   * A planned follow-up tells a candidate what they are about to be asked — right up until the
+   * interviewer asks it, at which point they hear it by definition. M3 phase 3 is where a route
+   * first speaks one, so the rule cannot stay "never, anywhere" without being false.
+   *
+   * It is narrowed rather than dropped: a probe may appear inside the `text` of a turn the
+   * interviewer has spoken, and nowhere else in any payload. That is a **stronger** claim than the
+   * old one over the surfaces that never speak — a probe in a question's setup, in an unreached
+   * question or in a state frame still fails here, and only the one place it belongs does not.
+   */
+  it.each(
+    Object.entries(exercisers()).flatMap(([path, calls]) =>
+      calls.map((call, index) => [`${path} [${index}]`, call] as const),
+    ),
+  )("%s carries a planned follow-up only where an interviewer spoke it", async (_path, call) => {
+    const response = await call();
+    const payload = payloadOf(response);
+    for (const marker of fixture.plannedFollowUpMarkers) {
+      const everywhere = countOf(JSON.stringify(payload) ?? "", marker);
+      const spoken = spokenTexts(payload).reduce((total, text) => total + countOf(text, marker), 0);
+      expect(everywhere, `${marker} appears outside a spoken turn`).toBe(spoken);
+    }
+  });
+
+  it("would catch an answer key hidden in a stream, not only in a JSON body", () => {
+    // The negative control for the new surface. Without it, "no leak found in the stream" could
+    // just mean "nobody looked inside an event stream".
+    const leaking = [
+      `data: ${JSON.stringify({ type: "turn", turn: { text: fixture.answerKeyMarkers[0] } })}`,
+      "",
+    ].join("\n\n");
+    expect(answerKeyLeaks(framesOf(leaking), fixture.answerKeyMarkers)).not.toEqual([]);
   });
 
   it("returns the content a candidate is supposed to see", async () => {
@@ -241,3 +330,30 @@ describe("candidate content never carries the answer key", () => {
     });
   });
 });
+
+/** How many times `marker` appears in `text`. */
+function countOf(text: string, marker: string): number {
+  return text.split(marker).length - 1;
+}
+
+/**
+ * Every string an interviewer is recorded as having said in a payload — the `text` of a transcript
+ * turn, whether it arrived as `turns[]` on a session or as a `turn` frame on the stream.
+ *
+ * Deliberately narrow: it reads only `text` on an object that also has a `speaker`, so a probe
+ * smuggled into a question's `context`, an unreached question's `prompt` or anywhere else is not
+ * excused by this.
+ */
+function spokenTexts(payload: unknown): string[] {
+  const found: string[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) return value.forEach(walk);
+    if (value === null || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    if (record.speaker === "interviewer" && typeof record.text === "string")
+      found.push(record.text);
+    Object.values(record).forEach(walk);
+  };
+  walk(payload);
+  return found;
+}

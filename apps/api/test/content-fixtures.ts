@@ -112,7 +112,10 @@ export interface ContentFixture {
   role: string;
   level: string;
   /** Strings that must never appear in a candidate-facing response. */
+  /** Never in any candidate response, anywhere, at any time. */
   answerKeyMarkers: string[];
+  /** Only ever inside a turn the interviewer has spoken — see the note where they are planted. */
+  plannedFollowUpMarkers: string[];
   /** Strings a candidate is supposed to see, so an empty response cannot pass for a clean one. */
   visibleMarkers: { prompt: string; lessonBody: string; trackTitle: string };
 }
@@ -136,10 +139,17 @@ export async function seedPublishedContent(
   const catalogue = await seedCataloguePair(prisma);
 
   const idealPoints = [marker("ideal-1"), marker("ideal-2")];
-  // The planned follow-ups are answer key too — they tell a candidate what they are about to be
-  // asked next — so the fixture plants one and `answerKeyMarkers` carries it (owner's decision,
-  // 2026-09-23). One marker is all a new answer-key field costs, which is why the detector is
-  // marker-based rather than a list of assertions.
+  /*
+   * The planned follow-ups are answer key, but they are the **one part of it with a moment when it
+   * is allowed out**: they tell a candidate what they are about to be asked next, right up until
+   * the interviewer asks it, at which point they hear it by definition (owner's decision,
+   * 2026-09-23; M3 phase 3 is where a route first speaks one).
+   *
+   * So they are marked separately from the rest. `answerKeyMarkers` is the unconditional rule —
+   * ideal points, criteria, weights and level descriptors, which no candidate response may ever
+   * carry. `plannedFollowUpMarkers` is the conditional one: never in a content response, never in a
+   * question the session has not reached, and only ever inside a turn the interviewer has spoken.
+   */
   const plannedFollowUps = [{ criterion: 1, probe: marker("follow-up-1") }];
   const criteria = [60, 40].map((weight, index) => ({
     dimension: marker(`dimension-${index}`),
@@ -241,13 +251,13 @@ export async function seedPublishedContent(
     level: catalogue.levelSlug,
     answerKeyMarkers: [
       ...idealPoints,
-      ...plannedFollowUps.map((plan) => plan.probe),
       ...criteria.flatMap((criterion) => [
         criterion.dimension,
         criterion.description,
         ...Object.values(criterion.levels),
       ]),
     ],
+    plannedFollowUpMarkers: plannedFollowUps.map((plan) => plan.probe),
     visibleMarkers: { prompt, lessonBody, trackTitle },
   };
 }
