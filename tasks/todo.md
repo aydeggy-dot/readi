@@ -2046,6 +2046,10 @@ Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm check:co
 
 ### Phase 4 — the web
 
+**Start here: `docs/progress/2026-09-25-m3-phase-4-primer.md`** — the frame contract, the client
+module, the status and candidate shapes, and the Margin rules for the interview screen, gathered so a
+fresh session does not have to reconstruct them.
+
 - [ ] Practice list + setup (published catalogue, defaults from the profile, types from the role's
       `supported_question_types`); the variant picker's "not listed" path (**owner decision 3**)
 - [ ] The interview screen at 360px — serif interviewer, ruled candidate rail, wall-clock timer,
