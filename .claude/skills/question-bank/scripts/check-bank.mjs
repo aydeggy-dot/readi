@@ -218,13 +218,27 @@ const ASK =
 const YES_NO =
   /(?<!\b(?:what|why|how|where|when|which|who|whether)\s)\b(would|should|could|do|does|did|is|are|can|will)\s+(you|it|that|they|there)\b/gi;
 
+// A house-style **depth cue** asks for nothing new (owner's decision, 2026-09-25): it restores the
+// shape of the answer that a triple-barrelled prompt used to carry as a side effect of carrying its
+// content. So it must not be counted, or every diagnosis opening would hand its question a free ask
+// and a criterion could go unasked behind it — which is the one thing this count exists to catch.
+// A closed list, because that is what makes it a cue rather than a second ask: anything else with a
+// noun in it ("walk me through how that state comes about") *is* the ask and is counted.
+const DEPTH_CUE = /\b(take|walk|talk)\s+me\s+through\s+(it|what\s+you\s+see)\b/gi;
+
 function countAsks(prompt) {
   // "tell me what X" is one ask, not two: drop the interrogative that belongs to a directive.
-  const text = String(prompt ?? "").replace(
-    /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|why|how|where|when|which|who|whether)\b/gi,
-    " $1 me ",
-  );
-  return (text.match(ASK) ?? []).length + (text.match(YES_NO) ?? []).length;
+  const normalise = (t) =>
+    t.replace(
+      /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|why|how|where|when|which|who|whether)\b/gi,
+      " $1 me ",
+    );
+  const count = (t) => (t.match(ASK) ?? []).length + (t.match(YES_NO) ?? []).length;
+  const raw = String(prompt ?? "");
+  // The cue comes off the raw prompt, before the directive normalisation rewrites "through what".
+  // Only as a cue — a prompt that is *nothing but* "Walk me through it." is still one ask.
+  const withoutCue = count(normalise(raw.replace(DEPTH_CUE, " ")));
+  return withoutCue > 0 ? withoutCue : count(normalise(raw));
 }
 
 // ------------------------------------------------------------------------------------------- //

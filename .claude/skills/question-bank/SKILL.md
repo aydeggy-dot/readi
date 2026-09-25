@@ -253,6 +253,15 @@ rubric charges for three, so the under-confident candidate gives two sentences a
 triple-barrelled prompts carried the shape of the answer as a side effect of carrying its content;
 cutting them to one clause took the shape away with it. A cue restores it for nothing.
 
+Two things follow from "asks for nothing new". **The cue is a closed list** — "Take me through it",
+"Walk me through it", "Walk me through what you see" — because anything with a noun in it ("walk me
+through how that state comes about") _is_ the ask, and is counted as one. And **`check-bank.mjs` does
+not count a cue towards the asks**: if it did, every diagnosis opening would hand its question a free
+ask and a criterion could go unasked behind it, which is the one thing that count exists to catch.
+What the checker cannot do is notice a diagnosis opening that has no cue — that needs the opening
+read as a diagnosis or a decision, the same judgement the mis-aim check needs and for the same
+reason. It is a rule to remember once per question, with no check behind it; say so in the pass.
+
 **Ask the criterion in the order the work happens.** A probe about what the candidate would decide
 _before starting_ cannot follow an answer describing what they did. Two QA questions had the plan
 criterion as a probe under an opening that asked how the hour or the work was spent, and three passes

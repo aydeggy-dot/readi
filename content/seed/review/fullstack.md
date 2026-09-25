@@ -31,7 +31,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 **The interviewer asks**
 
-> An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your machine. Nothing in the code looks expensive. How do you find out what is happening?
+> An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your machine. Nothing in the code looks expensive. How do you find out what is happening? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -153,7 +153,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > How did anyone find out?
 
-> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing _somebody else's_ outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
+> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing *somebody else's* outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -169,7 +169,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 **The interviewer asks**
 
-> A mobile app team says their error handling does not work against your API. This is what your create-account endpoint sends back when the email is already taken. Tell me what the app has to do to detect that failure.
+> A mobile app team says their error handling does not work against your API. This is what your create-account endpoint sends back when the email is already taken. Tell me what the app has to do to detect that failure. Walk me through it.
 
 **Setup the candidate is given**
 
@@ -230,7 +230,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > What else, between you and that phone, ever looks at that response?
 
-> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on _which_ 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
+> **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on *which* 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -246,7 +246,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Your `GET /jobs` endpoint returns every job as one array — it is called by your website and by an Android app that is on twenty thousand phones. It was fine at two hundred jobs and there are now forty thousand. What is going wrong, and for whom?
+> Your `GET /jobs` endpoint returns every job as one array — it is called by your website and by an Android app that is on twenty thousand phones. It was fine at two hundred jobs and there are now forty thousand. What is going wrong, and for whom? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -315,7 +315,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A handful of invoices stay marked unpaid although the customer has paid in full. This is the column and this is the check — it is in JavaScript, but the idea is the same wherever you work. Finance can see the two figures match and the check says they do not. Which of them is wrong?
+> A handful of invoices stay marked unpaid although the customer has paid in full. This is the column and this is the check — it is in JavaScript, but the idea is the same wherever you work. Finance can see the two figures match and the check says they do not. Which of them is wrong? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -328,9 +328,8 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > ```
 >
 > ```js
-> const paid = await sumPayments(invoiceId); // 45200.100000000006
-> if (paid === invoice.total) {
->   // invoice.total is 45200.10
+> const paid = await sumPayments(invoiceId);   // 45200.100000000006
+> if (paid === invoice.total) {                // invoice.total is 45200.10
 >   await markPaid(invoiceId);
 > }
 > ```
@@ -410,10 +409,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > ```js
 > async function transfer(fromId, toId, amountKobo) {
->   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [
->     amountKobo,
->     fromId,
->   ]);
+>   await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [amountKobo, fromId]);
 >   await notify(fromId, "Transfer sent");
 >   await db.query("UPDATE accounts SET balance = balance + $1 WHERE id = $2", [amountKobo, toId]);
 > }
@@ -486,7 +482,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Users are reporting that they sometimes see someone else's dashboard — the wrong name, the wrong figures — and refreshing fixes it. This is the caching that was added last week, in JavaScript — the idea is the same wherever you work. Tell me what is happening.
+> Users are reporting that they sometimes see someone else's dashboard — the wrong name, the wrong figures — and refreshing fixes it. This is the caching that was added last week, in JavaScript — the idea is the same wherever you work. Tell me what is happening. Walk me through it.
 
 **Setup the candidate is given**
 
@@ -496,7 +492,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 >   if (cached) return res.json(JSON.parse(cached));
 >
 >   const data = await buildDashboard(req.user.id);
->   await redis.set("dashboard", JSON.stringify(data), "EX", 300); // kept for 5 minutes
+>   await redis.set("dashboard", JSON.stringify(data), "EX", 300);   // kept for 5 minutes
 >   res.json(data);
 > });
 > ```
@@ -636,14 +632,14 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user gets an error and no account. This is the handler, in JavaScript — the idea is the same wherever you work. What is the person signing up waiting four seconds for?
+> Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user gets an error and no account. This is the handler, in JavaScript — the idea is the same wherever you work. What is the person signing up waiting four seconds for? Walk me through it.
 
 **Setup the candidate is given**
 
 > ```js
 > app.post("/api/signup", async (req, res) => {
 >   const user = await createUser(req.body);
->   await sendWelcomeEmail(user.email); // calls the provider's API
+>   await sendWelcomeEmail(user.email);   // calls the provider's API
 >   res.status(201).json({ id: user.id });
 > });
 > ```
@@ -715,7 +711,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A background job that pays out to a vendor ran twice for the same payout, and the vendor was paid twice. The logs show the worker was restarted in the middle of the first run. Why does a queue do that?
+> A background job that pays out to a vendor ran twice for the same payout, and the vendor was paid twice. The logs show the worker was restarted in the middle of the first run. Why does a queue do that? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -784,7 +780,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> You have joined a team and this is how sign-in works. It is in JavaScript; the idea is the same wherever you work. Tell me what is wrong with the way that password is stored.
+> You have joined a team and this is how sign-in works. It is in JavaScript; the idea is the same wherever you work. Tell me what is wrong with the way that password is stored. Walk me through it.
 
 **Setup the candidate is given**
 
@@ -795,10 +791,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 >
 > // on sign-in
 > const hash = crypto.createHash("md5").update(password).digest("hex");
-> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [
->   email,
->   hash,
-> ]);
+> const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [email, hash]);
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -884,7 +877,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 - The check proves who the user is; nothing checks whether this invoice is theirs.
 - Knowing someone is signed in says nothing about what they may see.
-- Ask for the invoice by id _and_ owner, so a mismatch cannot return a row at all.
+- Ask for the invoice by id *and* owner, so a mismatch cannot return a row at all.
 - Doing it in the query rather than after the fetch means there is no gap to forget.
 - It belongs somewhere every route inherits, not copied into each handler where one will be missed.
 - Returning 404 rather than 403 avoids confirming that the other invoice exists.
@@ -1165,7 +1158,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> The backend test suite passes when you run one file and fails when you run all of them, and the failures move around. It fails on CI more often than locally. The test is in JavaScript; the idea is the same wherever you work. Tell me what you think is going on.
+> The backend test suite passes when you run one file and fails when you run all of them, and the failures move around. It fails on CI more often than locally. The test is in JavaScript; the idea is the same wherever you work. Tell me what you think is going on. Walk me through it.
 
 **Setup the candidate is given**
 
@@ -1244,7 +1237,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Every test of your payment code passes, and a live payment has been failing for two days. The tests stand in for the provider with a fake that returns a successful response. What did those passing tests prove?
+> Every test of your payment code passes, and a live payment has been failing for two days. The tests stand in for the provider with a fake that returns a successful response. What did those passing tests prove? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1297,7 +1290,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Two days went by before anyone knew — what would have shortened that?
 
-> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place _instead of_ a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
+> **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place *instead of* a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1374,7 +1367,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Who reads those lines besides you?
 
-> **The drafter is unsure about:** The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It carries 25%. Two things to check: is asking a junior what they would keep _out_ of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
+> **The drafter is unsure about:** The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It carries 25%. Two things to check: is asking a junior what they would keep *out* of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1685,7 +1678,7 @@ Running it, following one path through, changing something to see what moves —
 - **1 (weak):** A method that is not a way in — reading it top to bottom with nothing tried, asking someone to explain the whole thing before touching it.
 - **2 (partial):** Names the code and one thing they did, without saying what it told them.
 - **3 (solid):** A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
-- **4 (excellent):** As 3, and worked out what the code was _for_ before deciding what it was doing wrong.
+- **4 (excellent):** As 3, and worked out what the code was *for* before deciding what it was doing wrong.
 
 _Asked for by the opening prompt; no planned follow-up._
 
@@ -1739,7 +1732,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > ```js
 > app.get("/api/export", async (req, res) => {
->   const rows = await db.orders.findAll(); // ~80,000 rows
+>   const rows = await db.orders.findAll();          // ~80,000 rows
 >   const csv = rows.map(toCsvLine).join("\n");
 >   res.type("text/csv").send(csv);
 > });
@@ -1894,7 +1887,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This works perfectly in development and, in production, users occasionally get an email addressed to somebody else. Tell me how that happens.
+> This works perfectly in development and, in production, users occasionally get an email addressed to somebody else. Tell me how that happens. Walk me through it.
 
 **Setup the candidate is given**
 
@@ -2059,7 +2052,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A user has given themselves an administrator account through the public sign-up form, and the form on the website has only three fields. Tell me how that was possible.
+> A user has given themselves an administrator account through the public sign-up form, and the form on the website has only three fields. Tell me how that was possible. Walk me through what you see.
 
 **Setup the candidate is given**
 
@@ -2144,7 +2137,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong result for hours. The web side of the same deploy was correct immediately. Tell me what was happening.
+> You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong result for hours. The web side of the same deploy was correct immediately. Tell me what was happening. Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2351,7 +2344,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A tester says that when they tap Save on their phone the screen goes dead for about two seconds — nothing on it changes at all — and then the "Saved" message appears. They expected to see "Saving…" while they waited. Why does that line never show up?
+> A tester says that when they tap Save on their phone the screen goes dead for about two seconds — nothing on it changes at all — and then the "Saved" message appears. They expected to see "Saving…" while they waited. Why does that line never show up? Walk me through what you see.
 
 **Setup the candidate is given**
 
@@ -2420,7 +2413,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > How would you know the change had worked?
 
 > **The drafter is unsure about:** **The snippet changed on 2026-09-22 and the question is now mid only** (owner's decision). It used to be four `console.log`s and a zero-delay `setTimeout` — the snippet in every "top ten JavaScript interview questions" video, which sorted candidates by how much interview prep they had watched rather than by what they understood, and three of the four critique passes wanted it changed or cut. It asks the same thing about the main thread from a symptom nobody can have memorised, and the follow-up ("so where does the work go?") is a real one. What I would like checked is whether the fix is still reachable at mid: "let it paint first" is easy to say and fiddly to do, so the rubric puts the mechanism at level 3 and the yielding at level 4, and a candidate who only says "move it to a worker" still scores 3.
-> Criterion 3 scores two things at 30% — the change, and knowing it worked — so it carries two follow-ups, the second only reached if the first has not already drawn it out.
+Criterion 3 scores two things at 30% — the change, and knowing it worked — so it carries two follow-ups, the second only reached if the first has not already drawn it out.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2436,7 +2429,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 **The interviewer asks**
 
-> This function is meant to give back the jobs that are still open, and whoever calls it gets `undefined` every time. Where is that `undefined` coming from?
+> This function is meant to give back the jobs that are still open, and whoever calls it gets `undefined` every time. Where is that `undefined` coming from? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -2636,7 +2629,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Six months from now, what about that decision is most likely to annoy whoever is working on this page?
 
-> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should _live_, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three. The cost probe is the drafter’s least certain in this bank: does "annoy" invite analysis or complaint?
+> **The drafter is unsure about:** **Kept, after a critique pass wanted it cut**, because it is not subsumed by `state-that-can-disagree` or `url-as-state`: neither asks where shared state should *live*, which is the reflex here — lifting to the nearest component that contains both rather than to a global store, and knowing the job data itself is server state belonging in a cache. What the critique pass got right stands: this is the only question of the four with nothing concrete to reason from, so a weak candidate can stay in "it depends" throughout. Two questions for you. Is asking for the cost fair on someone who has only built small apps? And **is the React tag right when the prompt reads framework-neutral** — untagging it would give Vue, Angular and vanilla candidates a question on state ownership they never see now, at the price of taking `react-typescript` below its blueprint target of three. The cost probe is the drafter’s least certain in this bank: does "annoy" invite analysis or complaint?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2652,7 +2645,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This component works, but a reviewer has asked you to change it. What is wrong with it?
+> This component works, but a reviewer has asked you to change it. What is wrong with it? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -2734,7 +2727,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A tester reports that on their phone the page scrolls sideways — there is a strip of empty space to the right of everything. It looks fine on your laptop. How do you find what is causing it?
+> A tester reports that on their phone the page scrolls sideways — there is a strip of empty space to the right of everything. It looks fine on your laptop. How do you find what is causing it? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2802,7 +2795,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A user writes in: "your site takes forever to load on my phone". You cannot reproduce it — on your laptop the page appears instantly. Before you change anything, how would you see what they are seeing?
+> A user writes in: "your site takes forever to load on my phone". You cannot reproduce it — on your laptop the page appears instantly. Before you change anything, how would you see what they are seeing? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2857,7 +2850,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > How would you know the change had actually helped?
 
 > **The drafter is unsure about:** The intended shape of a strong answer is "reproduce, measure, then act", and the rubric puts 40% on that. My worry is that a candidate who has never used the Performance panel but says sensible things scores 3s across the board. Is there a follow-up you would always ask here to tell those two apart? A reviewer argued this should be mid only, because telling a network budget from a CPU budget by reading a recorded load is a mid skill and few juniors here have opened the Performance panel — which would also answer the question above. I have left it at both levels; your call.
-> Criterion 3 scores two things at 30% — the change following from the measurement, and its effect being checked — so it carries two follow-ups.
+Criterion 3 scores two things at 30% — the change following from the measurement, and its effect being checked — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3079,7 +3072,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > Would you write it that way everywhere, or only here?
 
 > **The drafter is unsure about:** I have kept this at intern-junior because the bug shape is common in real work rather than because the language rule is easy. The risk is that it reads as a trick question about `const`. Does the shallow-copy point (criterion 3's level 4) belong at junior at all, or should it be the thing that separates junior from mid here?
-> Criterion 3 scores two things at 40% — a fix that does not write to what it was given, and why that is the better default — so it carries two follow-ups.
+Criterion 3 scores two things at 40% — a fix that does not write to what it was given, and why that is the better default — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3095,7 +3088,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 **The interviewer asks**
 
-> A page shows a list of items, a badge saying how many are selected, and a running total. A tester says that after you remove an item, the badge sometimes says three when only two rows are highlighted. How do you think the badge ended up saying three?
+> A page shows a list of items, a badge saying how many are selected, and a running total. A tester says that after you remove an item, the badge sometimes says three when only two rows are highlighted. How do you think the badge ended up saying three? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -3150,7 +3143,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > What would you look at to settle it?
 
 > **The drafter is unsure about:** This is the general version of `react-state-placement`, written so that a Vue, Angular or vanilla candidate meets the idea too — until now every question on this topic was React-tagged. Is "derive rather than store" a fair expectation at intern-junior, or is the honest junior answer "I would keep a count variable and update it", which I have put at level 2?
-> The opening and the first probe were swapped after the critique passes: the rubric runs diagnosis then design, and asking for the design first left the diagnosis being asked about a page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the recalculation matters here, and how they would find out — so it carries two follow-ups. The swap of opening and first probe is the drafter’s call, not a reviewer’s — is the diagnosis the right opening here?
+The opening and the first probe were swapped after the critique passes: the rubric runs diagnosis then design, and asking for the design first left the diagnosis being asked about a page the candidate had already redesigned. Criterion 3 scores two things at 25% — whether the recalculation matters here, and how they would find out — so it carries two follow-ups. The swap of opening and first probe is the drafter’s call, not a reviewer’s — is the diagnosis the right opening here?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3166,7 +3159,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 **The interviewer asks**
 
-> A user filters a list of jobs down to the ones in Lagos, copies the link and sends it to a friend. The friend opens it and sees every job in the country. What has happened?
+> A user filters a list of jobs down to the ones in Lagos, copies the link and sends it to a friend. The friend opens it and sees every job in the country. What has happened? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -3234,31 +3227,16 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This is the CSS for a grid of job cards. It works. What is wrong with writing it this way?
+> This is the CSS for a grid of job cards. It works. What is wrong with writing it this way? Walk me through it.
 
 **Setup the candidate is given**
 
 > ```css
-> .cards {
->   display: grid;
->   grid-template-columns: 1fr;
-> }
+> .cards { display: grid; grid-template-columns: 1fr; }
 >
-> @media (min-width: 480px) {
->   .cards {
->     grid-template-columns: 1fr 1fr;
->   }
-> }
-> @media (min-width: 768px) {
->   .cards {
->     grid-template-columns: 1fr 1fr 1fr;
->   }
-> }
-> @media (min-width: 1024px) {
->   .cards {
->     grid-template-columns: 1fr 1fr 1fr 1fr;
->   }
-> }
+> @media (min-width: 480px) { .cards { grid-template-columns: 1fr 1fr; } }
+> @media (min-width: 768px) { .cards { grid-template-columns: 1fr 1fr 1fr; } }
+> @media (min-width: 1024px) { .cards { grid-template-columns: 1fr 1fr 1fr 1fr; } }
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -3327,7 +3305,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Here is the data your card layout looks right with, and here is what three of the cards look like in production. What breaks?
+> Here is the data your card layout looks right with, and here is what three of the cards look like in production. What breaks? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -3407,7 +3385,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Six large photographs have been added to the landing page. Users on mobile data are complaining that it takes forever and eats their data. How would you find out what is actually being sent?
+> Six large photographs have been added to the landing page. Users on mobile data are complaining that it takes forever and eats their data. How would you find out what is actually being sent? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -3475,7 +3453,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A user taps Pay. The request takes a long time and eventually times out, so they tap again. Later they find they were charged twice. Why did that first request still charge them, even though it timed out?
+> A user taps Pay. The request takes a long time and eventually times out, so they tap again. Later they find they were charged twice. Why did that first request still charge them, even though it timed out? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -3530,7 +3508,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > What would make a second attempt safe?
 
 > **The drafter is unsure about:** This needs the server to cooperate, and I have written the ideal points as "what the front end does about it" rather than a full idempotency design, which belongs to the backend bank. Is that the right split, or would an interviewer here expect a frontend candidate to describe the server side too? The scenario is a payment because that is where candidates have felt it.
-> Criterion 2 scores two things at 30% — what the interface does in flight, and what it does after the timeout, which is the half that caused the second tap — so it carries two follow- ups.
+Criterion 2 scores two things at 30% — what the interface does in flight, and what it does after the timeout, which is the half that caused the second tap — so it carries two follow- ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3546,7 +3524,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A user updates their name in their profile, the save succeeds, and the page still shows the old name — but only sometimes, and reloading fixes it. Where would you look first?
+> A user updates their name in their profile, the save succeeds, and the page still shows the old name — but only sometimes, and reloading fixes it. Where would you look first? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -3602,7 +3580,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > What would you change so that it stops happening?
 
 > **The drafter is unsure about:** I like this as a debugging question because "it works after a hard refresh" is a phrase every candidate has heard, but the honest answer depends on the stack — a service worker, an HTTP cache and a client data cache are different things and I have written the rubric to accept any of them. Is that too generous, or is naming the layer enough at this level?
-> Criterion 2 scores two things at 25% — naming more than one place a copy can live, and a way to tell them apart — so it carries two follow-ups.
+Criterion 2 scores two things at 25% — naming more than one place a copy can live, and a way to tell them apart — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3618,7 +3596,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This works when you click it. Who cannot use it?
+> This works when you click it. Who cannot use it? Walk me through what you see.
 
 **Setup the candidate is given**
 
@@ -3747,7 +3725,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > What do those messages actually say?
 
 > **The drafter is unsure about:** I have deliberately not asked for attribute names, because reciting `aria-describedby` is not the skill and a candidate who has built accessible forms in a framework may never have typed it. The rubric rewards the behaviour and treats naming the mechanism as level 4. Is that the right way round for an interview here, where a lot of people learned from framework docs?
-> Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes somewhere useful — so it carries two follow-ups. Is "how do they find out which ones?" enough of an opening at difficulty 3, or still too thin?
+Criterion 2 scores two things at 35% — that colour is not the signal, and that focus goes somewhere useful — so it carries two follow-ups. Is "how do they find out which ones?" enough of an opening at difficulty 3, or still too thin?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3831,7 +3809,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour changed, and eleven tests failed. What does that tell you about those tests?
+> A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour changed, and eleven tests failed. What does that tell you about those tests? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -3877,7 +3855,7 @@ Rewriting the selectors rather than reverting a change that was an improvement.
 - **1 (weak):** Updates the class names in all eleven tests and moves on.
 - **2 (partial):** Rewrites some selectors without a rule for the rest.
 - **3 (solid):** Selects by role, label or visible text, so the next refactor does not break them.
-- **4 (excellent):** As 3, and names a change to this screen that _should_ break a test, so the fix is not "make the tests never fail".
+- **4 (excellent):** As 3, and names a change to this screen that *should* break a test, so the fix is not "make the tests never fail".
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
@@ -3899,7 +3877,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Someone has sent this in about the job board. What would you go and look at before you reply?
+> Someone has sent this in about the job board. What would you go and look at before you reply? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -3958,7 +3936,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > How would you go about seeing it for yourself?
 
 > **The drafter is unsure about:** Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not working", with nothing else, and a critique pass called it the lowest-discrimination question in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a real report, so the answer has to contain a hypothesis and not only a list of questions. Is one device working and another not too strong a hint? **It now carries `qa` as well** (2026-09-23): its own note asked whether one question should serve all three roles, and the answer was yes — nothing in it is about the browser, and a QA copy would have been the same question with a second slug to keep in step. Its rubric moved to `rubrics.shared.yaml`. Is the answer key missing the triage half — how often, how many users, what severity — or does that belong to `two-bugs-one-slot` in the QA bank?
-> Opening and first probe swapped after the critique passes; nobody has reviewed the swap.
+Opening and first probe swapped after the critique passes; nobody has reviewed the swap.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3974,7 +3952,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This is what the tool that collects errors from real users is showing you. It never happens on your machine. What do you do with that stack trace?
+> This is what the tool that collects errors from real users is showing you. It never happens on your machine. What do you do with that stack trace? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -4054,7 +4032,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Have a look at what happened to the tester here. What is going on?
+> Have a look at what happened to the tester here. What is going on? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -4065,11 +4043,9 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > 3. Ada Nwosu
 >
 > ```jsx
-> {
->   applications.map((application, index) => (
->     <ApplicationRow key={index} application={application} />
->   ));
-> }
+> {applications.map((application, index) => (
+>   <ApplicationRow key={index} application={application} />
+> ))}
 > ```
 >
 > `ApplicationRow` keeps the note the user is typing in its own `useState`. The tester then
@@ -4128,7 +4104,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 > You have changed the key — is there a case where the old one would have been fine?
 
 > **The drafter is unsure about:** **Version-sensitive: React list reconciliation, checked against react.dev on 2026-09-22.** This is the bug I would most expect to actually happen to a junior on a real project, which is why it is here rather than a rendering-performance question. It needs the candidate to know that a child holds state, which the snippet has to state in prose because the component is not shown. Does that prose line give too much away, or is it the minimum the question needs?
-> Criterion 3 scores two things at 30% — the fix, and an honest account of when an index is acceptable — so it carries two follow-ups.
+Criterion 3 scores two things at 30% — the fix, and an honest account of when an index is acceptable — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -4144,7 +4120,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 **The interviewer asks**
 
-> You have a page that lists jobs from a database, and one button on it that opens a filter panel. A colleague has put "use client" at the top of the page file to make the button work. What does that line actually do?
+> You have a page that lists jobs from a database, and one button on it that opens a filter panel. A colleague has put "use client" at the top of the page file to make the button work. What does that line actually do? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -4213,7 +4189,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> What is wrong with this component?
+> What is wrong with this component? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -4298,7 +4274,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> The count on screen never changes, even though clicking the button clearly runs the function. Why is the screen not seeing the change?
+> The count on screen never changes, even though clicking the button clearly runs the function. Why is the screen not seeing the change? Walk me through what you see.
 
 **Setup the candidate is given**
 
@@ -4386,7 +4362,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Users say the list sometimes shows jobs that do not match what they typed, and it comes right as soon as they type another letter. What is going on?
+> Users say the list sometimes shows jobs that do not match what they typed, and it comes right as soon as they type another letter. What is going on? Walk me through what you see.
 
 **Setup the candidate is given**
 
@@ -4412,7 +4388,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 - Reloading the jobs leaves the old filtered list on screen until the next keystroke.
 - The filtered list is derived from two things, so it should be computed rather than stored.
 - A computed value recalculates when either of them changes, and there is then only one list.
-- A watcher is still right for something that has to _happen_ on a change — sending an analytics event, saving a draft.
+- A watcher is still right for something that has to *happen* on a change — sending an analytics event, saving a draft.
 
 **Rubric: Diagnosing a stored list that drifts from its source** (`derived-list-diagnosis`)
 
@@ -4456,7 +4432,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Is there anything you would still reach for a watcher for?
 
-> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when _is_ a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
+> **The drafter is unsure about:** Replaced `vue-computed-or-watch` on 2026-09-22. That question asked which of two things was a computed value and which was a watcher, and two critique passes said the same thing my own notes had: it was a definitions question in Vue vocabulary, answerable in thirty seconds by anyone who has read the docs, and the general set already covers the idea for every candidate. This version has the bug in it, so the candidate has to find the drift rather than recite the distinction — and the follow-up ("when *is* a watcher right?") gets the rest for free. Is the symptom — right after another keystroke — too strong a hint at the watcher? **Both Vue questions are written in the Composition API with `<script setup>`**, which the owner has kept for now on the condition that a reviewer confirms it: someone who learned on the Options API would meet the same bug in unfamiliar syntax, and you will know which of the two this audience actually learned on better than we do.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -4472,7 +4448,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is going on in those few seconds?
+> On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is going on in those few seconds? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -4596,7 +4572,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > Six hours is most of an evening — what does the blocker not stop you doing?
 
 > **The drafter is unsure about:** Added after a critique pass pointed out that every question in the bank is answered by talking to an interviewer who is present and can ask a follow-up — which is exactly the condition remote work removes, and remote work is half of what this product is for. Two things I am unsure about. It is a hypothetical, so a candidate who has only worked locally has to imagine the setup rather than recall it — is that fair, or does it reward people who have already worked remotely? And is six hours of waiting the right shape for the Nigerian day, given that most remote work here is with Europe rather than the US?
-> Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
+Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -4666,8 +4642,8 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > What did you not know then that you know now?
 
-> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
-> Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
+> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the *shape* of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
+Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

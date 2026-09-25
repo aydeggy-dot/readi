@@ -466,7 +466,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a defect report that came back closed as "cannot reproduce". The developer could not get to the same screen from it. Why not?
+> On your screen is a defect report that came back closed as "cannot reproduce". The developer could not get to the same screen from it. Why not? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -622,7 +622,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > What happens to the one that is left?
 
-> **The drafter is unsure about:** **Changed on 2026-09-23 so the money actually moves.** It used to say the total _shown_ was ₦50 lower, which one pass pointed out reads as a display rounding bug — the exact objection that undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it, so there is nothing on screen to catch it. The rubric credits either ranking as long as the comparison between a quiet failure and a visible one is made; a crash on a slow connection is this market's normal condition and ranking B higher with that reason reaches 4. Is that the right call, or should the question have a right answer? And is ₦50 too small to be taken seriously?
+> **The drafter is unsure about:** **Changed on 2026-09-23 so the money actually moves.** It used to say the total *shown* was ₦50 lower, which one pass pointed out reads as a display rounding bug — the exact objection that undercuts the intended answer. The amount charged is now wrong and the receipt agrees with it, so there is nothing on screen to catch it. The rubric credits either ranking as long as the comparison between a quiet failure and a visible one is made; a crash on a slow connection is this market's normal condition and ranking B higher with that reason reaches 4. Is that the right call, or should the question have a right answer? And is ₦50 too small to be taken seriously?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -722,7 +722,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a request you sent while testing and the response that came back. What does the response tell you about what went wrong?
+> On your screen is a request you sent while testing and the response that came back. What does the response tell you about what went wrong? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -959,7 +959,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is an automated test. Sign-in has been broken since yesterday morning and this test passed on every run — you do not need to know the tool to see why. What is it actually checking?
+> On your screen is an automated test. Sign-in has been broken since yesterday morning and this test passed on every run — you do not need to know the tool to see why. What is it actually checking? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -1449,7 +1449,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Who would you raise it with, and what would you say?
 
-> **The drafter is unsure about:** **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question into a conflict question), a concrete case went into the context, and it is now offered at intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one correction to my own note, found by the stress test:** I had written that the two dates "cannot both be right". They can — `03/11/2026` _is_ `11 March 2026` if the list puts the month first, and a blind answer took that wrong turn in the other direction, calling them four months apart and filing a backend defect. The data does not settle this. What the question tests is which convention the product means, which is the better question here, because dd/mm is the local convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
+> **The drafter is unsure about:** **Reworked 2026-09-23.** The developer is out of the framing (it turned an unblocking question into a conflict question), a concrete case went into the context, and it is now offered at intern-junior too — "no spec and nobody reachable" is week one for a junior here. **And one correction to my own note, found by the stress test:** I had written that the two dates "cannot both be right". They can — `03/11/2026` *is* `11 March 2026` if the list puts the month first, and a blind answer took that wrong turn in the other direction, calling them four months apart and filing a backend defect. The data does not settle this. What the question tests is which convention the product means, which is the better question here, because dd/mm is the local convention and mm/dd the imported one. Does it still hold at intern-junior on that reading?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1534,7 +1534,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is an automated test. It passed the first time it was run and failed the second time, on its very first line. What is happening?
+> On your screen is an automated test. It passed the first time it was run and failed the second time, on its very first line. What is happening? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -1616,7 +1616,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is an automated test that passes on its own and fails when the whole suite runs, never at the same point twice. What is wrong with the way it decides whether it worked?
+> On your screen is an automated test that passes on its own and fails when the whole suite runs, never at the same point twice. What is wrong with the way it decides whether it worked? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -1662,7 +1662,7 @@ An assertion about something the test made, rather than a count across everythin
 - **1 (weak):** Keeps the count and bends the shared data to fit it — locking the job, or deleting every other application for it in setup so the number comes out at one — which makes this test pass by breaking the tests it deletes under.
 - **2 (partial):** Says the test needs its own data, without saying what changes about the assertion.
 - **3 (solid):** Asserts on the application this test just created rather than on a count across everything.
-- **4 (excellent):** As 3, and says when a count _is_ the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
+- **4 (excellent):** As 3, and says when a count *is* the right assertion — when the test owns the job it is counting over — so the rule is about ownership rather than about avoiding counts.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
@@ -1908,14 +1908,14 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way?
+> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way? Walk me through it.
 
 **Setup the candidate is given**
 
 > ```js
-> cy.get('[data-testid="apply"]').click();
-> cy.wait(3000);
-> cy.get('[data-testid="confirmation"]').should("contain", "Application sent");
+> cy.get('[data-testid="apply"]').click()
+> cy.wait(3000)
+> cy.get('[data-testid="confirmation"]').should('contain', 'Application sent')
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -1985,14 +1985,14 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way?
+> On your screen is a test that passes on a fast machine and fails on the shared runner about one time in five. Why does a fixed wait behave that way? Walk me through it.
 
 **Setup the candidate is given**
 
 > ```ts
-> await page.getByTestId("apply").click();
-> await page.waitForTimeout(3000);
-> await expect(page.getByTestId("confirmation")).toContainText("Application sent");
+> await page.getByTestId('apply').click()
+> await page.waitForTimeout(3000)
+> await expect(page.getByTestId('confirmation')).toContainText('Application sent')
 > ```
 
 **What a strong answer covers** — the answer key; never shown to a candidate
@@ -2062,7 +2062,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour changed and a lot of tests failed. On your screen are three of the selectors from that suite. What do those three have in common?
+> A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour changed and a lot of tests failed. On your screen are three of the selectors from that suite. What do those three have in common? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -2223,18 +2223,18 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is the block that runs before every test in a suite. What is signing in through the screen every time costing, beyond the minutes?
+> On your screen is the block that runs before every test in a suite. What is signing in through the screen every time costing, beyond the minutes? Walk me through it.
 
 **Setup the candidate is given**
 
 > ```js
 > beforeEach(() => {
->   cy.visit("/login");
->   cy.get('[data-testid="email"]').type("tester@example.com");
->   cy.get('[data-testid="password"]').type(Cypress.env("PASSWORD"));
->   cy.get('[data-testid="submit"]').click();
->   cy.url().should("include", "/dashboard");
-> });
+>   cy.visit('/login')
+>   cy.get('[data-testid="email"]').type('tester@example.com')
+>   cy.get('[data-testid="password"]').type(Cypress.env('PASSWORD'))
+>   cy.get('[data-testid="submit"]').click()
+>   cy.url().should('include', '/dashboard')
+> })
 > ```
 >
 > The suite has 140 tests across 30 spec files and takes 22 minutes. Signing in takes about six
@@ -2307,18 +2307,18 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Run one at a time and everything passes. Run with four workers and two or three tests fail, never the same ones. Why does running in parallel change the result?
+> Run one at a time and everything passes. Run with four workers and two or three tests fail, never the same ones. Why does running in parallel change the result? Walk me through what you see.
 
 **Setup the candidate is given**
 
 > ```ts
 > // playwright.config.ts
-> export default defineConfig({ workers: 4 });
+> export default defineConfig({ workers: 4 })
 > ```
 >
 > ```ts
 > // every spec file
-> test.use({ storageState: "playwright/.auth/user.json" }); // one saved session, one account
+> test.use({ storageState: 'playwright/.auth/user.json' })   // one saved session, one account
 > ```
 >
 > Three of the specs change the same saved profile — the name, the phone number, the CV.
@@ -2390,7 +2390,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a set of requests a team keeps and runs top to bottom, however they keep them. It works when a person runs it and fails when anything else does. What stops it running without you?
+> On your screen is a set of requests a team keeps and runs top to bottom, however they keep them. It works when a person runs it and fails when anything else does. What stops it running without you? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -2538,7 +2538,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > What would have to be true before these could safely run against production?
 
-> **The drafter is unsure about:** **Version-sensitive: that a host can be held in an environment variable, that a value can be marked so it is stored locally and not shared, and that a secret can be injected into a command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) — the vocabulary has moved: there is no longer a "secret" variable _type_, it is a **secure variable**, and vault secrets are now the recommended home for credentials. The docs frame the hazard as syncing and team sharing rather than as committing to git, which is the framing this question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the secret, and production) and two passes said the production clause taught a habit we would rather not teach. It is now a question about hosts and the secret, with production as something to push back on. Is that the right call, or should a read-only check against production be credited more warmly than the fifth answer-key point allows?
+> **The drafter is unsure about:** **Version-sensitive: that a host can be held in an environment variable, that a value can be marked so it is stored locally and not shared, and that a secret can be injected into a command-line run per invocation. Checked against learning.postman.com on 2026-09-23 (v12) — the vocabulary has moved: there is no longer a "secret" variable *type*, it is a **secure variable**, and vault secrets are now the recommended home for credentials. The docs frame the hazard as syncing and team sharing rather than as committing to git, which is the framing this question uses.** Narrowed on 2026-09-23 — it was three subjects in one question (hosts, the secret, and production) and two passes said the production clause taught a habit we would rather not teach. It is now a question about hosts and the secret, with production as something to push back on. Is that the right call, or should a read-only check against production be credited more warmly than the fifth answer-key point allows?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2554,7 +2554,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A mobile suite passes on the emulator on your machine and fails on a real mid-range Android phone, mostly on the screens that load data. What differs between the two that would explain that?
+> A mobile suite passes on the emulator on your machine and fails on a real mid-range Android phone, mostly on the screens that load data. What differs between the two that would explain that? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2623,7 +2623,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a load test run and the conclusion somebody drew from it. What in the run makes that conclusion unsafe?
+> On your screen is a load test run and the conclusion somebody drew from it. What in the run makes that conclusion unsafe? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -2760,7 +2760,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > How did anyone find out?
 
-> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing _somebody else's_ outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
+> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing *somebody else's* outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2864,7 +2864,7 @@ Running it, following one path through, changing something to see what moves —
 - **1 (weak):** A method that is not a way in — reading it top to bottom with nothing tried, asking someone to explain the whole thing before touching it.
 - **2 (partial):** Names the code and one thing they did, without saying what it told them.
 - **3 (solid):** A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
-- **4 (excellent):** As 3, and worked out what the code was _for_ before deciding what it was doing wrong.
+- **4 (excellent):** As 3, and worked out what the code was *for* before deciding what it was doing wrong.
 
 _Asked for by the opening prompt; no planned follow-up._
 
@@ -3186,7 +3186,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Someone has sent this in about the job board. What would you go and look at before you reply?
+> Someone has sent this in about the job board. What would you go and look at before you reply? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -3245,7 +3245,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > How would you go about seeing it for yourself?
 
 > **The drafter is unsure about:** Rewritten 2026-09-22: it used to be "support forwards you a message saying the app is not working", with nothing else, and a critique pass called it the lowest-discrimination question in the bank — the answer is a script anybody can recite and nobody can be wrong. It now gives a real report, so the answer has to contain a hypothesis and not only a list of questions. Is one device working and another not too strong a hint? **It now carries `qa` as well** (2026-09-23): its own note asked whether one question should serve all three roles, and the answer was yes — nothing in it is about the browser, and a QA copy would have been the same question with a second slug to keep in step. Its rubric moved to `rubrics.shared.yaml`. Is the answer key missing the triage half — how often, how many users, what severity — or does that belong to `two-bugs-one-slot` in the QA bank?
-> Opening and first probe swapped after the critique passes; nobody has reviewed the swap.
+Opening and first probe swapped after the critique passes; nobody has reviewed the swap.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3317,7 +3317,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 > Six hours is most of an evening — what does the blocker not stop you doing?
 
 > **The drafter is unsure about:** Added after a critique pass pointed out that every question in the bank is answered by talking to an interviewer who is present and can ask a follow-up — which is exactly the condition remote work removes, and remote work is half of what this product is for. Two things I am unsure about. It is a hypothetical, so a candidate who has only worked locally has to imagine the setup rather than recall it — is that fair, or does it reward people who have already worked remotely? And is six hours of waiting the right shape for the Nigerian day, given that most remote work here is with Europe rather than the US?
-> Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
+Criterion 2 scores two things at 30% — one answerable question, and what it holds up — so it carries two follow-ups.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -3387,8 +3387,8 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > What did you not know then that you know now?
 
-> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the _shape_ of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
-> Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
+> **The drafter is unsure about:** Added after an interviewer said this is the highest-yield question they have and the bank had nothing like it: every other question hands the candidate a supplied scenario, so all 31 could be prepared for without the candidate ever describing their own code. It matters more here than elsewhere, because junior CVs in this market routinely claim more than the person wrote. Two worries. It is the only question whose answer we cannot anticipate at all, so the rubric has to score the *shape* of the answer rather than its content — does that hold up? And it rewards having built something substantial, which a candidate straight out of a bootcamp with three tutorial projects may not have. Is the prompt's "anything, at work or on your own" enough to make that fair?
+Criterion 3 scores two things at 30% — something specific they would do differently, and why they did not know it then — so it carries two follow-ups. Does the second follow-up just re-ask the first?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

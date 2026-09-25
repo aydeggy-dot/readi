@@ -298,7 +298,7 @@ questions:
     difficulty: 2
     prompt: >-
       On your screen is a defect report that came back closed as "cannot reproduce". The developer
-      could not get to the same screen from it. Why not?
+      could not get to the same screen from it. Why not? Walk me through it.
     context: |
       ```
       Title       Application fails
@@ -450,7 +450,7 @@ questions:
     difficulty: 2
     prompt: >-
       On your screen is a request you sent while testing and the response that came back. What does
-      the response tell you about what went wrong?
+      the response tell you about what went wrong? Walk me through it.
     context: |
       ```
       POST /applications HTTP/1.1
@@ -584,7 +584,7 @@ questions:
     prompt: >-
       On your screen is an automated test. Sign-in has been broken since yesterday morning and this
       test passed on every run — you do not need to know the tool to see why. What is it actually
-      checking?
+      checking? Walk me through it.
     context: |
       An automated browser test, written as pseudocode — the idea is the same in any tool.
 
@@ -907,7 +907,7 @@ questions:
     difficulty: 2
     prompt: >-
       On your screen is an automated test. It passed the first time it was run and failed the second
-      time, on its very first line. What is happening?
+      time, on its very first line. What is happening? Walk me through it.
     context: |
       An automated test, as pseudocode — the idea is the same in any tool.
 
@@ -952,6 +952,7 @@ questions:
     prompt: >-
       On your screen is an automated test that passes on its own and fails when the whole suite
       runs, never at the same point twice. What is wrong with the way it decides whether it worked?
+      Walk me through it.
     context: |
       An automated test, as pseudocode. Every test in this suite creates its own user, so the sign-up
       line is not the problem.
@@ -1144,7 +1145,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen is a test that passes on a fast machine and fails on the shared runner about
-      one time in five. Why does a fixed wait behave that way?
+      one time in five. Why does a fixed wait behave that way? Walk me through it.
     context: |
       ```js
       cy.get('[data-testid="apply"]').click()
@@ -1188,7 +1189,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen is a test that passes on a fast machine and fails on the shared runner about
-      one time in five. Why does a fixed wait behave that way?
+      one time in five. Why does a fixed wait behave that way? Walk me through it.
     context: |
       ```ts
       await page.getByTestId('apply').click()
@@ -1230,7 +1231,7 @@ questions:
     prompt: >-
       A developer moved a button inside a wrapper and renamed a class. Nothing about the behaviour
       changed and a lot of tests failed. On your screen are three of the selectors from that suite.
-      What do those three have in common?
+      What do those three have in common? Walk me through it.
     context: |
       Three selectors from the suite, described rather than written out — the idea is the same in
       any tool.
@@ -1328,7 +1329,7 @@ questions:
     difficulty: 3
     prompt: >-
       On your screen is the block that runs before every test in a suite. What is signing in through
-      the screen every time costing, beyond the minutes?
+      the screen every time costing, beyond the minutes? Walk me through it.
     context: |
       ```js
       beforeEach(() => {
@@ -1378,7 +1379,8 @@ questions:
     difficulty: 4
     prompt: >-
       Run one at a time and everything passes. Run with four workers and two or three tests fail,
-      never the same ones. Why does running in parallel change the result?
+      never the same ones. Why does running in parallel change the result? Walk me through what you
+      see.
     context: |
       ```ts
       // playwright.config.ts
@@ -1428,7 +1430,7 @@ questions:
     prompt: >-
       On your screen is a set of requests a team keeps and runs top to bottom, however they keep
       them. It works when a person runs it and fails when anything else does. What stops it running
-      without you?
+      without you? Walk me through it.
     context: |
       ```
       1  POST /auth/login       the tester copies `token` out of the response and pastes it into the
@@ -1531,7 +1533,7 @@ questions:
     prompt: >-
       A mobile suite passes on the emulator on your machine and fails on a real mid-range Android
       phone, mostly on the screens that load data. What differs between the two that would explain
-      that?
+      that? Take me through it.
     context: null
     rubric: real-device-difference-reasoning
     ideal_points:
@@ -1571,7 +1573,7 @@ questions:
     difficulty: 4
     prompt: >-
       On your screen is a load test run and the conclusion somebody drew from it. What in the run
-      makes that conclusion unsafe?
+      makes that conclusion unsafe? Walk me through it.
     context: |
       ```
       virtual users      1,000, all started at once

@@ -25,7 +25,8 @@ questions:
     prompt: >-
       A tester says that when they tap Save on their phone the screen goes dead for about two
       seconds — nothing on it changes at all — and then the "Saved" message appears. They expected
-      to see "Saving…" while they waited. Why does that line never show up?
+      to see "Saving…" while they waited. Why does that line never show up? Walk me through what you
+      see.
     context: |
       ```js
       saveButton.addEventListener("click", () => {
@@ -77,7 +78,7 @@ questions:
     difficulty: 2
     prompt: >-
       This function is meant to give back the jobs that are still open, and whoever calls it gets
-      `undefined` every time. Where is that `undefined` coming from?
+      `undefined` every time. Where is that `undefined` coming from? Walk me through it.
     context: |
       ```js
       function openJobs(jobs) {
@@ -198,7 +199,8 @@ questions:
     subtopic: effects
     difficulty: 3
     prompt: >-
-      This component works, but a reviewer has asked you to change it. What is wrong with it?
+      This component works, but a reviewer has asked you to change it. What is wrong with it? Walk
+      me through it.
     context: |
       ```jsx
       function Cart({ items }) {
@@ -249,7 +251,7 @@ questions:
     prompt: >-
       A tester reports that on their phone the page scrolls sideways — there is a strip of empty
       space to the right of everything. It looks fine on your laptop. How do you find what is
-      causing it?
+      causing it? Take me through it.
     context: null
     rubric: responsive-layout-diagnosis
     ideal_points:
@@ -283,7 +285,7 @@ questions:
     prompt: >-
       A user writes in: "your site takes forever to load on my phone". You cannot reproduce it — on
       your laptop the page appears instantly. Before you change anything, how would you see what
-      they are seeing?
+      they are seeing? Take me through it.
     context: null
     rubric: performance-investigation
     ideal_points:
@@ -452,7 +454,7 @@ questions:
     prompt: >-
       A page shows a list of items, a badge saying how many are selected, and a running total. A
       tester says that after you remove an item, the badge sometimes says three when only two rows
-      are highlighted. How do you think the badge ended up saying three?
+      are highlighted. How do you think the badge ended up saying three? Take me through it.
     context: null
     rubric: derived-state-reasoning
     ideal_points:
@@ -492,7 +494,8 @@ questions:
     difficulty: 2
     prompt: >-
       A user filters a list of jobs down to the ones in Lagos, copies the link and sends it to a
-      friend. The friend opens it and sees every job in the country. What has happened?
+      friend. The friend opens it and sees every job in the country. What has happened? Take me
+      through it.
     context: null
     rubric: url-state-reasoning
     ideal_points:
@@ -524,6 +527,7 @@ questions:
     difficulty: 2
     prompt: >-
       This is the CSS for a grid of job cards. It works. What is wrong with writing it this way?
+      Walk me through it.
     context: |
       ```css
       .cards { display: grid; grid-template-columns: 1fr; }
@@ -564,7 +568,7 @@ questions:
     difficulty: 3
     prompt: >-
       Here is the data your card layout looks right with, and here is what three of the cards look
-      like in production. What breaks?
+      like in production. What breaks? Walk me through it.
     context: |
       What you built against:
 
@@ -605,7 +609,7 @@ questions:
     prompt: >-
       Six large photographs have been added to the landing page. Users on mobile data are
       complaining that it takes forever and eats their data. How would you find out what is actually
-      being sent?
+      being sent? Take me through it.
     context: null
     rubric: image-delivery-judgement
     ideal_points:
@@ -637,7 +641,7 @@ questions:
     prompt: >-
       A user taps Pay. The request takes a long time and eventually times out, so they tap again.
       Later they find they were charged twice. Why did that first request still charge them, even
-      though it timed out?
+      though it timed out? Take me through it.
     context: null
     rubric: safe-retry-reasoning
     ideal_points:
@@ -674,7 +678,8 @@ questions:
     difficulty: 3
     prompt: >-
       A user updates their name in their profile, the save succeeds, and the page still shows the
-      old name — but only sometimes, and reloading fixes it. Where would you look first?
+      old name — but only sometimes, and reloading fixes it. Where would you look first? Take me
+      through it.
     context: null
     rubric: cache-invalidation-diagnosis
     ideal_points:
@@ -710,7 +715,7 @@ questions:
     subtopic: semantics
     difficulty: 2
     prompt: >-
-      This works when you click it. Who cannot use it?
+      This works when you click it. Who cannot use it? Walk me through what you see.
     context: |
       ```html
       <div class="btn" onclick="submitForm()">Send application</div>
@@ -813,7 +818,8 @@ questions:
     difficulty: 3
     prompt: >-
       A colleague renamed a CSS class and moved a button into a wrapper. Nothing about the behaviour
-      changed, and eleven tests failed. What does that tell you about those tests?
+      changed, and eleven tests failed. What does that tell you about those tests? Take me through
+      it.
     context: null
     rubric: test-brittleness-diagnosis
     ideal_points:
@@ -845,6 +851,7 @@ questions:
     difficulty: 2
     prompt: >-
       Someone has sent this in about the job board. What would you go and look at before you reply?
+      Walk me through it.
     context: |
       > good day. the app is not working. on my Tecno Spark the job list is just blank, but the
       > menu at the top is there. my sister opened it on her iPhone and hers is fine. please fix
@@ -885,7 +892,7 @@ questions:
     difficulty: 3
     prompt: >-
       This is what the tool that collects errors from real users is showing you. It never happens on
-      your machine. What do you do with that stack trace?
+      your machine. What do you do with that stack trace? Walk me through it.
     context: |
       ```
       TypeError: Cannot read properties of undefined (reading 'name')
@@ -939,7 +946,7 @@ questions:
     subtopic: list identity
     difficulty: 3
     prompt: >-
-      Have a look at what happened to the tester here. What is going on?
+      Have a look at what happened to the tester here. What is going on? Walk me through it.
     context: |
       The list on screen, before anything is removed:
 
@@ -992,7 +999,7 @@ questions:
     prompt: >-
       You have a page that lists jobs from a database, and one button on it that opens a filter
       panel. A colleague has put "use client" at the top of the page file to make the button work.
-      What does that line actually do?
+      What does that line actually do? Take me through it.
     context: null
     rubric: client-boundary-reasoning
     ideal_points:
@@ -1026,7 +1033,7 @@ questions:
     subtopic: secrets and the client boundary
     difficulty: 2
     prompt: >-
-      What is wrong with this component?
+      What is wrong with this component? Walk me through it.
     context: |
       ```jsx
       "use client";
@@ -1073,7 +1080,7 @@ questions:
     difficulty: 3
     prompt: >-
       The count on screen never changes, even though clicking the button clearly runs the function.
-      Why is the screen not seeing the change?
+      Why is the screen not seeing the change? Walk me through what you see.
     context: |
       ```vue
       <script setup>
@@ -1127,7 +1134,7 @@ questions:
     difficulty: 3
     prompt: >-
       Users say the list sometimes shows jobs that do not match what they typed, and it comes right
-      as soon as they type another letter. What is going on?
+      as soon as they type another letter. What is going on? Walk me through what you see.
     context: |
       ```vue
       <script setup>
@@ -1182,7 +1189,7 @@ questions:
     prompt: >-
       A user moves between the job list and a job's detail page a few dozen times. The app gets
       slower, and the list starts showing results from a search they ran several pages ago. What is
-      wrong here?
+      wrong here? Walk me through what you see.
     context: |
       ```ts
       ngOnInit() {
@@ -1227,7 +1234,7 @@ questions:
     difficulty: 3
     prompt: >-
       The new job appears in the console, but the list on screen does not change. Nothing throws.
-      What would you check first?
+      What would you check first? Walk me through what you see.
     context: |
       ```ts
       @Component({
@@ -1289,7 +1296,7 @@ questions:
     difficulty: 2
     prompt: >-
       The Save buttons work on the jobs that were on the page when it loaded. The ones loaded by
-      "Show more" do nothing at all. What is different about them?
+      "Show more" do nothing at all. What is different about them? Walk me through what you see.
     context: |
       ```js
       document.querySelectorAll(".save").forEach((button) => {
@@ -1326,7 +1333,7 @@ questions:
     prompt: >-
       On a slow connection, users sometimes tap Submit on your form before the page's JavaScript has
       finished loading, and nothing happens. Some of them tap it repeatedly and then leave. What is
-      going on in those few seconds?
+      going on in those few seconds? Take me through it.
     context: null
     rubric: progressive-enhancement-reasoning
     ideal_points:
@@ -1451,7 +1458,7 @@ questions:
     subtopic: where the data lives
     difficulty: 3
     prompt: >-
-      This works today. What breaks first?
+      This works today. What breaks first? Walk me through it.
     context: |
       ```js
       function addToCart(name, price) {

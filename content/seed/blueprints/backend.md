@@ -449,3 +449,32 @@ the direction it was written for.
 - **`the-estimate-that-slipped`**: the junior pass says being asked "have you ever done this for
   real" only at the end is an ambush; the senior pass calls the same question the best-converted in
   the bank. Left as it is, with the probe widened so a candidate who has not is not capped.
+
+## Appendix E — the depth cue on diagnosis openings (2026-09-25)
+
+The owner's decision 2 on this bank's retrofit, applied across all three banks in one pass.
+**15 of backend's 34 prompts gained a closing cue**, on top of `incident-you-contributed-to`, which
+regained "Take me through it." during the retrofit itself. No opening was rewritten and no criterion
+moved. The rule, the three cues and where the line was drawn are in `frontend.md` Appendix B5;
+handover: `docs/progress/2026-09-25-depth-cues.md`.
+
+Backend took the fewest cues of the three banks relative to its size, for a reason worth recording:
+**eight of its eighteen uncued openings already walk.** "Explain how one slow dependency took the
+whole service with it", "Explain what the `async` there is and is not doing for you", "Walk me
+through how that state comes about", "Talk me through how both requests got past that check" — an
+`explain` or a `walk/talk me through <noun>` opening is a directive that carries depth in its own
+grammar, and appending a cue would be the second ask the rule forbids. `Tell me what X` is **not**
+in that set: it is a politer interrogative, and every one of those got a cue.
+
+The other ten, and why each was left:
+
+- **decision and design** — `what-to-cache-and-for-how-long`, `how-would-you-know-it-broke`,
+  `the-feature-that-needs-a-queue`.
+- **enumeration** — `one-server-to-two`. "Tell me what breaks the moment you do that" already
+  invites a list, which is the shape the cue exists to supply.
+- **artefact** — `what-happens-when-it-is-down` ("Give me the words" is its own shape cue),
+  `the-estimate-that-slipped`, `the-ticket-nobody-can-explain`, `a-change-you-are-not-sure-about`.
+  Each names the thing to produce.
+- **behavioural** — `the-part-you-did-not-write`. "Tell me about a time…" is a narrative directive.
+- **already two-part** — `it-failed-and-we-do-not-know-why`: "what you can **and cannot** find out"
+  says how much on its own. This is the closest call in the bank and the one to look at again.

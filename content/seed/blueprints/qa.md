@@ -564,3 +564,23 @@ gap lists converged on these, and none is a defect in what was drafted:
 - **Somebody else's definition of done**, **estimation**, and **the first week with no documentation**.
 - **A `mid` track.** QA offers `mid` and has no track, so a mid candidate gets `track_not_found`.
   Lessons work, not question-bank work, and `check-bank.mjs` reports it every run.
+
+## Appendix B4 — the depth cue on diagnosis openings (2026-09-25)
+
+The owner's decision 2 on the backend retrofit
+(`docs/progress/2026-09-25-backend-probes.md`), applied across all three banks in one pass. **13 of
+QA's 35 prompts gained a closing cue**; no opening was rewritten and no criterion moved. The rule,
+the three cues and where the line was drawn are in `frontend.md` Appendix B5; handover:
+`docs/progress/2026-09-25-depth-cues.md`.
+
+**QA took the fewest cues of the three banks, and that is the rule working rather than the bank
+being skipped.** Twenty-two of its thirty-five openings are "What would you test?", "How would you
+choose?", "Which thirty, and what puts a case in that group?" — design, prioritisation and
+enumeration. Those already tell a candidate that a list is wanted, which is precisely the shape the
+cue exists to supply; adding one would be noise. The thirteen that took a cue are the technical
+diagnosis questions — the ones that put a test, a request, a report or a load-test run on screen and
+ask what is wrong with it — and they are the openings where a nervous candidate answers in one
+sentence.
+
+Eleven of the thirteen took "Walk me through it." rather than "Walk me through what you see.",
+because this bank's house opening is literally "On your screen is…" and the longer cue would echo it.

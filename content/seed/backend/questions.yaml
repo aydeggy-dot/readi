@@ -27,8 +27,9 @@ questions:
     subtopic: query performance
     difficulty: 3
     prompt: >-
-      An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on
-      your machine. Nothing in the code looks expensive. How do you find out what is happening?
+      An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your
+      machine. Nothing in the code looks expensive. How do you find out what is happening? Take me
+      through it.
     context: null
     rubric: query-performance-diagnosis
     ideal_points:
@@ -101,9 +102,9 @@ questions:
     subtopic: status codes
     difficulty: 2
     prompt: >-
-      A mobile app team says their error handling does not work against your API. This is what
-      your create-account endpoint sends back when the email is already taken. Tell me what the
-      app has to do to detect that failure.
+      A mobile app team says their error handling does not work against your API. This is what your
+      create-account endpoint sends back when the email is already taken. Tell me what the app has
+      to do to detect that failure. Walk me through it.
     context: |
       ```
       HTTP/1.1 200 OK
@@ -141,9 +142,9 @@ questions:
     subtopic: collections
     difficulty: 2
     prompt: >-
-      Your `GET /jobs` endpoint returns every job as one array — it is called by your website and
-      by an Android app that is on twenty thousand phones. It was fine at two hundred jobs and
-      there are now forty thousand. What is going wrong, and for whom?
+      Your `GET /jobs` endpoint returns every job as one array — it is called by your website and by
+      an Android app that is on twenty thousand phones. It was fine at two hundred jobs and there
+      are now forty thousand. What is going wrong, and for whom? Take me through it.
     context: null
     rubric: collection-endpoint-design
     ideal_points:
@@ -179,7 +180,7 @@ questions:
       A handful of invoices stay marked unpaid although the customer has paid in full. This is the
       column and this is the check — it is in JavaScript, but the idea is the same wherever you
       work. Finance can see the two figures match and the check says they do not. Which of them is
-      wrong?
+      wrong? Walk me through it.
     context: |
       ```sql
       CREATE TABLE payments (
@@ -278,7 +279,8 @@ questions:
     prompt: >-
       Users are reporting that they sometimes see someone else's dashboard — the wrong name, the
       wrong figures — and refreshing fixes it. This is the caching that was added last week, in
-      JavaScript — the idea is the same wherever you work. Tell me what is happening.
+      JavaScript — the idea is the same wherever you work. Tell me what is happening. Walk me
+      through it.
     context: |
       ```js
       app.get("/api/dashboard", auth, async (req, res) => {
@@ -354,9 +356,9 @@ questions:
     subtopic: moving work out of the request
     difficulty: 2
     prompt: >-
-      Sign-up sometimes takes four seconds, and when the email provider is having a bad day the
-      user gets an error and no account. This is the handler, in JavaScript — the idea is the same
-      wherever you work. What is the person signing up waiting four seconds for?
+      Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user
+      gets an error and no account. This is the handler, in JavaScript — the idea is the same
+      wherever you work. What is the person signing up waiting four seconds for? Walk me through it.
     context: |
       ```js
       app.post("/api/signup", async (req, res) => {
@@ -398,8 +400,8 @@ questions:
     difficulty: 3
     prompt: >-
       A background job that pays out to a vendor ran twice for the same payout, and the vendor was
-      paid twice. The logs show the worker was restarted in the middle of the first run. Why does
-      a queue do that?
+      paid twice. The logs show the worker was restarted in the middle of the first run. Why does a
+      queue do that? Take me through it.
     context: null
     rubric: duplicate-job-reasoning
     ideal_points:
@@ -435,7 +437,8 @@ questions:
     difficulty: 2
     prompt: >-
       You have joined a team and this is how sign-in works. It is in JavaScript; the idea is the
-      same wherever you work. Tell me what is wrong with the way that password is stored.
+      same wherever you work. Tell me what is wrong with the way that password is stored. Walk me
+      through it.
     context: |
       ```js
       // on sign-up
@@ -640,7 +643,8 @@ questions:
     prompt: >-
       The backend test suite passes when you run one file and fails when you run all of them, and
       the failures move around. It fails on CI more often than locally. The test is in JavaScript;
-      the idea is the same wherever you work. Tell me what you think is going on.
+      the idea is the same wherever you work. Tell me what you think is going on. Walk me through
+      it.
     context: |
       ```js
       test("lists active vendors", async () => {
@@ -680,9 +684,9 @@ questions:
     subtopic: test doubles
     difficulty: 3
     prompt: >-
-      Every test of your payment code passes, and a live payment has been failing for two days.
-      The tests stand in for the provider with a fake that returns a successful response. What did
-      those passing tests prove?
+      Every test of your payment code passes, and a live payment has been failing for two days. The
+      tests stand in for the provider with a fake that returns a successful response. What did those
+      passing tests prove? Take me through it.
     context: null
     rubric: test-double-judgement
     ideal_points:
@@ -1031,7 +1035,7 @@ questions:
     difficulty: 3
     prompt: >-
       This works perfectly in development and, in production, users occasionally get an email
-      addressed to somebody else. Tell me how that happens.
+      addressed to somebody else. Tell me how that happens. Walk me through it.
     context: |
       ```js
       let currentUser = null;
@@ -1079,7 +1083,7 @@ questions:
     prompt: >-
       The order is saved even when the payment record fails, although the method that does both is
       annotated to be transactional. Tell me why the annotation is not doing what it looks like it
-      does here.
+      does here. Walk me through it.
     context: |
       ```java
       @Service
@@ -1134,9 +1138,9 @@ questions:
     subtopic: error responses
     difficulty: 2
     prompt: >-
-      This is what a mobile client receives when it posts a sign-up with a bad email address, from
-      a service that has switched on Spring Boot's message and stack-trace settings. What can the
-      client do with this?
+      This is what a mobile client receives when it posts a sign-up with a bad email address, from a
+      service that has switched on Spring Boot's message and stack-trace settings. What can the
+      client do with this? Walk me through it.
     context: |
       ```json
       {
@@ -1269,8 +1273,9 @@ questions:
     subtopic: input handling
     difficulty: 3
     prompt: >-
-      A user has given themselves an administrator account through the public sign-up form, and
-      the form on the website has only three fields. Tell me how that was possible.
+      A user has given themselves an administrator account through the public sign-up form, and the
+      form on the website has only three fields. Tell me how that was possible. Walk me through what
+      you see.
     context: |
       ```php
       class User extends Model
@@ -1324,7 +1329,7 @@ questions:
     prompt: >-
       You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong
       result for hours. The web side of the same deploy was correct immediately. Tell me what was
-      happening.
+      happening. Take me through it.
     context: null
     rubric: worker-deploy-diagnosis
     ideal_points:

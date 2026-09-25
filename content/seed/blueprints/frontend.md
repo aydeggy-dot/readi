@@ -461,3 +461,43 @@ One stress answer was rewritten rather than re-scored: `help-seeking-judgement`'
 widening. They are now self-taught and ask in their cohort's WhatsApp group, with the same substance
 said just as badly, and still score 3 / 3 / 3. A rubric change that no stress answer reaches is
 untested, which is worth remembering the next time a clause is added rather than a level.
+
+## Appendix B5 — the depth cue on diagnosis openings (2026-09-25)
+
+The owner's decision 2 on the backend retrofit
+(`docs/progress/2026-09-25-backend-probes.md`), applied across all three banks in one pass.
+**26 of frontend's 35 prompts gained a closing cue; no opening was rewritten and no criterion
+moved.** Handover: `docs/progress/2026-09-25-depth-cues.md`.
+
+A one-clause opening tells a candidate _what_ is wanted and nothing about _how much_. The old
+triple-barrelled prompts carried the shape of the answer as a side effect of carrying its content;
+cutting them to one clause in the retrofit took the shape away with it. The cue restores it and asks
+for nothing new.
+
+**Which cue, by a rule rather than by ear** — three forms, so that a candidate hearing five
+questions in one session does not hear the same sentence five times:
+
+| Cue                             | When                                                                                                                      | Frontend |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------- |
+| "Walk me through what you see." | there is a snippet or screen, and the prompt has not already pointed at it                                                | 7        |
+| "Walk me through it."           | there is a snippet or screen and the prompt points at it ("This is the CSS…", "Have a look…") — "what you see" would echo | 9        |
+| "Take me through it."           | nothing on screen                                                                                                         | 10       |
+
+**Where the line was drawn, and this is the judgement to check.** A cue went on a question whose
+opening asks the candidate to work out **why** something is as it is, or what is wrong with what is
+in front of them. It did not go on:
+
+- **design and enumeration openings** — `fetch-failure-states` ("what else does that screen have to
+  show?"), `telling-a-user-the-form-failed`, `react-state-placement`. "What else" already invites a
+  list, which is the shape the cue exists to supply.
+- **behavioural openings** — `stuck-and-asked-for-help`, `feedback-on-your-code`. "Tell me about a
+  time…" is a narrative directive and carries its own shape. The one exception in any bank is
+  `incident-you-contributed-to`, which already carried "Take me through it." from the backend pass.
+- **artefact openings** — `the-overnight-blocker` ("Tell me what you would write"), which names the
+  thing to produce.
+- **openings that already walk** — `js-copy-or-reference` ("Walk me through what is actually
+  happening"), `what-to-test-on-a-login-screen`, `something-you-built`. The cue is already the ask.
+
+**`check-bank.mjs` no longer counts a cue as an ask.** It would otherwise hand every diagnosis
+question a free ask and let a criterion go unasked behind it, which is the one thing that count
+exists to catch. The recognised cues are a closed list; anything with a noun in it is the ask.
