@@ -596,6 +596,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/interviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InterviewsController_list"];
+        put?: never;
+        post: operations["InterviewsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InterviewsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/export": {
         parameters: {
             query?: never;
@@ -1491,6 +1523,104 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        CreateInterviewRequestDto: {
+            role?: string;
+            level?: string;
+            stack?: string | null;
+            types?: components["schemas"]["QuestionType"][];
+            /** @enum {number} */
+            minutes: 15 | 30;
+            /** @default false */
+            is_diagnostic: boolean;
+        };
+        /** @enum {string} */
+        InterviewState_Output: "intro" | "question" | "follow_up" | "candidate_questions" | "wrap_up" | "ended";
+        /** @enum {string} */
+        InterviewStatus_Output: "in_progress" | "completed" | "abandoned";
+        /** @enum {string} */
+        InterviewMode_Output: "text" | "voice";
+        /** @enum {string} */
+        InterviewPersona_Output: "friendly";
+        InterviewCatalogueRef_Output: {
+            slug: string;
+            name: string;
+        };
+        CandidateSessionQuestion_Output: {
+            position: number;
+            type: components["schemas"]["QuestionType_Output"];
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+            prompt: string;
+            context: string | null;
+            /** Format: date-time */
+            asked_at: string;
+        };
+        CandidateTurn_Output: {
+            seq: number;
+            speaker: components["schemas"]["TurnSpeaker_Output"];
+            state: components["schemas"]["InterviewState_Output"];
+            question_position: number | null;
+            text: string;
+            /** Format: date-time */
+            at: string;
+        };
+        /** @enum {string} */
+        TurnSpeaker_Output: "interviewer" | "candidate";
+        InterviewSessionResponseDto_Output: {
+            /** Format: uuid */
+            id: string;
+            state: components["schemas"]["InterviewState_Output"];
+            status: components["schemas"]["InterviewStatus_Output"];
+            mode: components["schemas"]["InterviewMode_Output"];
+            persona: components["schemas"]["InterviewPersona_Output"];
+            is_diagnostic: boolean;
+            /** @enum {number} */
+            planned_minutes: 15 | 30;
+            role: components["schemas"]["InterviewCatalogueRef_Output"];
+            level: components["schemas"]["InterviewCatalogueRef_Output"];
+            stack: components["schemas"]["InterviewCatalogueRef_Output"] | null;
+            types: components["schemas"]["QuestionType_Output"][];
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            ends_at: string;
+            /** Format: date-time */
+            ended_at: string | null;
+            question_budget: number;
+            max_follow_ups: number;
+            questions: components["schemas"]["CandidateSessionQuestion_Output"][];
+            turns: components["schemas"]["CandidateTurn_Output"][];
+        };
+        InterviewSummary_Output: {
+            /** Format: uuid */
+            id: string;
+            state: components["schemas"]["InterviewState_Output"];
+            status: components["schemas"]["InterviewStatus_Output"];
+            mode: components["schemas"]["InterviewMode_Output"];
+            is_diagnostic: boolean;
+            /** @enum {number} */
+            planned_minutes: 15 | 30;
+            role: components["schemas"]["InterviewCatalogueRef_Output"];
+            level: components["schemas"]["InterviewCatalogueRef_Output"];
+            stack: components["schemas"]["InterviewCatalogueRef_Output"] | null;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            ends_at: string;
+            /** Format: date-time */
+            ended_at: string | null;
+            questions_asked: number;
+            question_budget: number;
+        };
+        InterviewListResponseDto_Output: {
+            items: components["schemas"]["InterviewSummary_Output"][];
+            next_cursor: string | null;
+        };
         DataExportDto_Output: {
             /** @enum {number} */
             format_version: 1;
@@ -1581,6 +1711,40 @@ export interface components {
                 after: unknown;
                 /** Format: date-time */
                 created_at: string;
+            }[];
+            interviews: {
+                /** Format: uuid */
+                id: string;
+                role: string;
+                level: string;
+                stack: string | null;
+                mode: string;
+                is_diagnostic: boolean;
+                planned_minutes: number;
+                state: string;
+                status: string;
+                /** Format: date-time */
+                started_at: string;
+                /** Format: date-time */
+                ended_at: string | null;
+                questions: {
+                    position: number;
+                    type: string;
+                    topic: string;
+                    prompt: string;
+                    context: string | null;
+                    /** Format: date-time */
+                    asked_at: string;
+                }[];
+                turns: {
+                    seq: number;
+                    /** @enum {string} */
+                    speaker: "interviewer" | "candidate";
+                    question_position: number | null;
+                    text: string;
+                    /** Format: date-time */
+                    at: string;
+                }[];
             }[];
             ai_processing: {
                 purpose: string;
@@ -3135,6 +3299,107 @@ export interface operations {
                 };
             };
             /** @description No such version (code `content_version_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InterviewsController_list: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewListResponseDto_Output"];
+                };
+            };
+        };
+    };
+    InterviewsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInterviewRequestDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewSessionResponseDto_Output"];
+                };
+            };
+            /** @description No role or level to use (`profile_required`), or the role does not offer that level, variant or question type (`level_not_offered`, `stack_not_offered`) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such published role, level or variant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nothing published to ask (code `no_questions_available`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many interviews started (code `rate_limited`) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InterviewsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewSessionResponseDto_Output"];
+                };
+            };
+            /** @description Not this candidate's (code `interview_not_found`) */
             404: {
                 headers: {
                     [name: string]: unknown;

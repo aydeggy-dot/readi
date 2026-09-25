@@ -269,3 +269,92 @@ export const EMBEDDING_DIMENSIONS = 1024;
  * retry cheaply.
  */
 export const EMBEDDING_LIMITS = { textMaxLength: 8_000, batchMax: 32 } as const;
+
+// -----------------------------------------------------------------------------------------------
+// The interview engine (M3; spec §4.3, CLAUDE.md §5 "Interview engine").
+
+/**
+ * The states our code owns. The LLM phrases what is said inside a state; it never decides which
+ * state comes next, how long a session runs, or which questions are asked.
+ */
+export const INTERVIEW_STATES = [
+  "intro",
+  "question",
+  "follow_up",
+  "candidate_questions",
+  "wrap_up",
+  "ended",
+] as const;
+
+/**
+ * Lifecycle, which is not a state: leaving the page is a pause and returning before the deadline
+ * resumes, so there is no `paused`. A sweep marks what nobody came back to `abandoned`.
+ */
+export const INTERVIEW_STATUSES = ["in_progress", "completed", "abandoned"] as const;
+
+/** `voice` is M5. The column and the enum exist now so that M5 adds a value to neither. */
+export const INTERVIEW_MODES = ["text", "voice"] as const;
+
+/** `neutral` and `tough` are [P2] (spec §4.3). */
+export const INTERVIEW_PERSONAS = ["friendly"] as const;
+
+export const TURN_SPEAKERS = ["interviewer", "candidate"] as const;
+
+/**
+ * Session lengths at MVP. Spec §4.3 lists 45 as well and the question banks can now fill it — the
+ * reason it waits is no longer the corpus but the pace: nobody has typed an answer into this yet,
+ * so a 45-minute question budget would be a guess (owner, 2026-09-25). M4's sessions size it.
+ */
+export const INTERVIEW_LENGTHS = [15, 30] as const;
+
+/**
+ * The budgets, per length. Both are enforced in code and the **time budget is the authoritative
+ * one** — `questions` is a cap that stops a fast typist being asked twenty things, not a target to
+ * reach. A session ends when its wall-clock deadline arrives whatever the count says.
+ */
+export const INTERVIEW_PLANS: Record<
+  (typeof INTERVIEW_LENGTHS)[number],
+  { questions: number; maxFollowUps: number }
+> = {
+  15: { questions: 4, maxFollowUps: 2 },
+  30: { questions: 8, maxFollowUps: 2 },
+};
+
+/**
+ * Follow-ups per question, capped in code whatever the model says (CLAUDE.md §5). Two, and every
+ * one of them comes from the question's own `planned_follow_ups` — the engine keeps no slot for a
+ * probe it invented, which is the thing the planned-follow-up decision removed (M3, 2026-09-25).
+ */
+export const MAX_FOLLOW_UPS = 2;
+
+export const INTERVIEW_LIMITS = {
+  /** A typed answer. Long enough for a thorough one, short enough to bound a prompt. */
+  answerMaxLength: 8_000,
+  /** A candidate's own question at the end, and anything else they type outside an answer. */
+  utteranceMaxLength: 2_000,
+  /** Questions asked in the last N sessions are skipped before the fallback (spec §4.3). */
+  recentSessionsExcluded: 3,
+  /**
+   * How far back question selection looks to date what a candidate has already been asked. Beyond
+   * this a question sorts as never-seen, which is where the least-recently-seen fallback would put
+   * it anyway — so the bound costs nothing and keeps the query a fixed size.
+   */
+  historySessions: 20,
+  /**
+   * How long after its deadline an unfinished session may still be resumed. After this the sweep
+   * marks it `abandoned`; the candidate starts a new one rather than resuming something cold.
+   */
+  resumeGraceMinutes: 30,
+  pageSize: { default: 20, max: 50 },
+  cursorMaxLength: 200,
+} as const;
+
+/**
+ * Sessions a candidate may start. Every one of them spends model calls, so it is capped per user
+ * rather than per IP — and this is the seam M8's entitlement check goes through (see
+ * `interviews.service.ts`).
+ */
+export const INTERVIEW_RATE_LIMITS = {
+  perHour: { window: 3_600, max: 6 },
+  perDay: { window: 86_400, max: 20 },
+} as const;

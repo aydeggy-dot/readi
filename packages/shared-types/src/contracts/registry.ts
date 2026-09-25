@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { CvParseRequest, CvParseResponse } from "./cv.js";
 import { EmbedRequest, EmbedResponse } from "./embeddings.js";
 import { HealthResponse } from "./health.js";
+import { InterviewSessionBundle } from "./interviews.js";
 
 /**
  * Every contract that crosses a language boundary (ADR-0003). `pnpm gen:contracts` exports these to
@@ -19,4 +20,5 @@ export const contractRegistry: Record<string, z.ZodType> = {
   CvParseResponse,
   EmbedRequest,
   EmbedResponse,
+  InterviewSessionBundle,
 };

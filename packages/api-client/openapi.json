@@ -2361,6 +2361,119 @@
         "tags": ["admin-content"]
       }
     },
+    "/api/interviews": {
+      "post": {
+        "operationId": "InterviewsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInterviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewSessionResponseDto_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No role or level to use (`profile_required`), or the role does not offer that level, variant or question type (`level_not_offered`, `stack_not_offered`)"
+          },
+          "404": {
+            "description": "No such published role, level or variant"
+          },
+          "409": {
+            "description": "Nothing published to ask (code `no_questions_available`)"
+          },
+          "429": {
+            "description": "Too many interviews started (code `rate_limited`)"
+          }
+        },
+        "tags": ["interviews"]
+      },
+      "get": {
+        "operationId": "InterviewsController_list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewListResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["interviews"]
+      }
+    },
+    "/api/interviews/{id}": {
+      "get": {
+        "operationId": "InterviewsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewSessionResponseDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not this candidate's (code `interview_not_found`)"
+          }
+        },
+        "tags": ["interviews"]
+      }
+    },
     "/api/me/export": {
       "get": {
         "operationId": "AccountController_export",
@@ -6158,6 +6271,389 @@
         ],
         "additionalProperties": false
       },
+      "CreateInterviewRequestDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "level": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "stack": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "nullable": true
+          },
+          "types": {
+            "minItems": 1,
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionType"
+            }
+          },
+          "minutes": {
+            "type": "number",
+            "enum": [15, 30]
+          },
+          "is_diagnostic": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": ["minutes"]
+      },
+      "InterviewState_Output": {
+        "type": "string",
+        "enum": ["intro", "question", "follow_up", "candidate_questions", "wrap_up", "ended"]
+      },
+      "InterviewStatus_Output": {
+        "type": "string",
+        "enum": ["in_progress", "completed", "abandoned"]
+      },
+      "InterviewMode_Output": {
+        "type": "string",
+        "enum": ["text", "voice"]
+      },
+      "InterviewPersona_Output": {
+        "type": "string",
+        "enum": ["friendly"]
+      },
+      "InterviewCatalogueRef_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          }
+        },
+        "required": ["slug", "name"],
+        "additionalProperties": false
+      },
+      "CandidateSessionQuestion_Output": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "type": {
+            "$ref": "#/components/schemas/QuestionType_Output"
+          },
+          "topic": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 140
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400,
+                "nullable": true
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": ["slug", "name", "description", "id"],
+            "additionalProperties": false
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "nullable": true
+          },
+          "asked_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["position", "type", "topic", "prompt", "context", "asked_at"],
+        "additionalProperties": false
+      },
+      "CandidateTurn_Output": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "speaker": {
+            "$ref": "#/components/schemas/TurnSpeaker_Output"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InterviewState_Output"
+          },
+          "question_position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["seq", "speaker", "state", "question_position", "text", "at"],
+        "additionalProperties": false
+      },
+      "TurnSpeaker_Output": {
+        "type": "string",
+        "enum": ["interviewer", "candidate"]
+      },
+      "InterviewSessionResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InterviewState_Output"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus_Output"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/InterviewMode_Output"
+          },
+          "persona": {
+            "$ref": "#/components/schemas/InterviewPersona_Output"
+          },
+          "is_diagnostic": {
+            "type": "boolean"
+          },
+          "planned_minutes": {
+            "type": "number",
+            "enum": [15, 30]
+          },
+          "role": {
+            "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+          },
+          "level": {
+            "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+          },
+          "stack": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestionType_Output"
+            }
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "question_budget": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "max_follow_ups": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSessionQuestion_Output"
+            }
+          },
+          "turns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateTurn_Output"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "status",
+          "mode",
+          "persona",
+          "is_diagnostic",
+          "planned_minutes",
+          "role",
+          "level",
+          "stack",
+          "types",
+          "started_at",
+          "ends_at",
+          "ended_at",
+          "question_budget",
+          "max_follow_ups",
+          "questions",
+          "turns"
+        ],
+        "additionalProperties": false
+      },
+      "InterviewSummary_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InterviewState_Output"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus_Output"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/InterviewMode_Output"
+          },
+          "is_diagnostic": {
+            "type": "boolean"
+          },
+          "planned_minutes": {
+            "type": "number",
+            "enum": [15, 30]
+          },
+          "role": {
+            "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+          },
+          "level": {
+            "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+          },
+          "stack": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "questions_asked": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "question_budget": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "status",
+          "mode",
+          "is_diagnostic",
+          "planned_minutes",
+          "role",
+          "level",
+          "stack",
+          "started_at",
+          "ends_at",
+          "ended_at",
+          "questions_asked",
+          "question_budget"
+        ],
+        "additionalProperties": false
+      },
+      "InterviewListResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterviewSummary_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": ["items", "next_cursor"],
+        "additionalProperties": false
+      },
       "DataExportDto_Output": {
         "type": "object",
         "properties": {
@@ -6523,6 +7019,157 @@
               "additionalProperties": false
             }
           },
+          "interviews": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "role": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "level": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "stack": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80,
+                  "nullable": true
+                },
+                "mode": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                },
+                "is_diagnostic": {
+                  "type": "boolean"
+                },
+                "planned_minutes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "state": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "status": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "started_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "ended_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "position": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "type": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "topic": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 140
+                      },
+                      "prompt": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "context": {
+                        "type": "string",
+                        "maxLength": 4000,
+                        "nullable": true
+                      },
+                      "asked_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                      }
+                    },
+                    "required": ["position", "type", "topic", "prompt", "context", "asked_at"],
+                    "additionalProperties": false
+                  }
+                },
+                "turns": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "seq": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "speaker": {
+                        "type": "string",
+                        "enum": ["interviewer", "candidate"]
+                      },
+                      "question_position": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991,
+                        "nullable": true
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                      }
+                    },
+                    "required": ["seq", "speaker", "question_position", "text", "at"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "level",
+                "stack",
+                "mode",
+                "is_diagnostic",
+                "planned_minutes",
+                "state",
+                "status",
+                "started_at",
+                "ended_at",
+                "questions",
+                "turns"
+              ],
+              "additionalProperties": false
+            }
+          },
           "ai_processing": {
             "type": "array",
             "items": {
@@ -6568,6 +7215,7 @@
           "linked_accounts",
           "sessions",
           "audit_entries",
+          "interviews",
           "ai_processing"
         ],
         "additionalProperties": false

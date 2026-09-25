@@ -112,10 +112,28 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 ### Interview engine
 - The **interview flow is a deterministic state machine owned by our code**, not by the LLM.
   States: `INTRO → QUESTION → FOLLOW_UP (0..N, capped) → NEXT_QUESTION … → CANDIDATE_QUESTIONS → WRAP_UP → ENDED`.
-- The LLM is used *inside* a state to phrase questions naturally and generate follow-ups that probe
-  **missing rubric points**. It never decides session length, scoring, or which states exist.
-- Every session has a time budget and question budget enforced in code.
+- The LLM is used *inside* a state to phrase questions naturally and to phrase the follow-up **the
+  engine chose** from the question's `planned_follow_ups`. It never decides session length, scoring,
+  which states exist, or what to probe.
+- Every session has a time budget and question budget enforced in code. The **time budget is the
+  authoritative one**: `ends_at` is a wall-clock deadline, and the question count is a cap.
 - Text mode and voice mode share the **same engine**; voice is just a different transport.
+- **A question exists at three widths, and the gaps between them are the product rules**
+  (`apps/api/src/interviews/session-bundle.ts` is the only place they are crossed):
+  `SessionQuestionSnapshot` is pinned on the session and never leaves the API; `BundleQuestion` is
+  what the worker gets — prompt, context, planned follow-ups and `criterion_count`, and **no
+  rubric, no criteria, no weights, no descriptors, no ideal points**; `CandidateSessionQuestion` is
+  what the browser gets, and only for a question the session has reached. Reading ahead is not a
+  leak of the answer key but it is a leak of the interview.
+- **Coverage is judged against the probes, never against the rubric.** That is what lets
+  `session_turns.criteria_covered` hold one entry per criterion while the criteria themselves stay
+  behind the wall. Its verdict is `covered | not_covered | not_judged`; `not_judged` is the ordinary
+  state of the one criterion the opening prompt asks for, because nothing probes it.
+- **A session pins everything it was run against** — question and rubric by version *and* snapshot,
+  and the catalogue's slugs and **names** in `interview_sessions.catalogue`. A version pins what the
+  content said; it does not pin what the row was called, and renaming a role must not rewrite a
+  report the candidate has already read. `interview-pinning.int.spec.ts` is the test, and it has
+  been watched failing.
 
 ### AI provider adapters
 - All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `EmbeddingProvider`, `AvatarProvider`.
@@ -128,8 +146,14 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Only the API connects to Postgres; Prisma owns the schema and migrations (ADR-0004).
 - **Read every generated migration before applying it, and delete anything that undoes hand-written SQL.**
   Prisma cannot see the objects it does not model, so it proposes `DROP INDEX questions_embedding_hnsw`
-  in migrations that never touch `questions` — it has done so three times. Generate with
-  `prisma migrate dev --create-only`, edit, then apply. Dropping it breaks nothing visibly: duplicate
+  in migrations that never touch `questions` — it has done so **five** times, most recently in a
+  migration that only creates the three interview tables. Generate with
+  `prisma migrate dev --create-only`, edit, then apply **with `prisma migrate deploy`**: a second
+  `migrate dev` diffs the schema again, finds the same index it still wants to drop, and stops on an
+  interactive "Enter a name for the new migration" prompt. With no terminal that waits for ever,
+  holding a Postgres advisory lock the whole time — and the *next* run then fails with
+  `P1002 … the database server was reached but timed out`, which sends you looking at Postgres
+  instead of at the prompt. Kill the process by pid and the lock goes with it. Dropping it breaks nothing visibly: duplicate
   search just becomes a sequential scan, and only `content-schema.int.spec.ts` notices. The partial
   unique index `tracks_one_published_per_role_level` is the other hand-written object at risk.
   **A hand-written index can also be lost without Prisma proposing anything**: `DROP COLUMN` takes

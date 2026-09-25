@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 from uuid import UUID
 
 
@@ -13,6 +13,10 @@ class ReadiContracts(RootModel[Any]):
 
 class ErrorCode(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
+
+
+class Context(RootModel[str]):
+    root: str = Field(..., max_length=4000, min_length=1)
 
 
 class StackLabel(RootModel[str]):
@@ -68,12 +72,34 @@ class Error(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
 
+class WeakTopic(RootModel[str]):
+    root: str = Field(..., max_length=140, min_length=1)
+
+
+class InterviewCandidateContext(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    role_label: str = Field(..., max_length=140, min_length=1)
+    level_label: str = Field(..., max_length=140, min_length=1)
+    stack_label: StackLabel | None
+    weak_topics: list[WeakTopic] = Field(..., max_length=10)
+
+
 class Skill(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
 
 class Gap(RootModel[str]):
     root: str = Field(..., max_length=300, min_length=1)
+
+
+class PlannedFollowUp(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    criterion: int = Field(..., ge=0, le=7)
+    probe: str = Field(..., max_length=300, min_length=1)
 
 
 class YearMonth(RootModel[str]):
@@ -104,6 +130,19 @@ class AiCallRecord(BaseModel):
     output_units: int = Field(..., ge=0, le=9007199254740991)
     unit_kind: Literal["tokens", "characters", "seconds"]
     cost_micro_usd: int = Field(..., ge=0, le=9007199254740991)
+
+
+class BundleQuestion(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    position: int = Field(..., ge=0, le=9007199254740991)
+    type: Literal["behavioral", "technical", "scenario", "test_design"]
+    topic_label: str = Field(..., max_length=140, min_length=1)
+    prompt: str = Field(..., max_length=2000, min_length=1)
+    context: Context | None
+    criterion_count: int = Field(..., ge=2, le=8)
+    planned_follow_ups: list[PlannedFollowUp] = Field(..., max_length=10)
 
 
 class CvExperience(BaseModel):
@@ -147,6 +186,22 @@ class HealthResponse(BaseModel):
     status: Literal["ok", "error"]
     service: Literal["api", "ai-worker"]
     checks: dict[str, HealthCheckResult]
+
+
+class InterviewSessionBundle(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    session_id: UUID
+    mode: Literal["text", "voice"]
+    persona: Literal["friendly"]
+    is_diagnostic: bool
+    planned_minutes: Literal[15, 30]
+    ends_at: AwareDatetime
+    question_budget: int = Field(..., ge=1, le=9007199254740991)
+    max_follow_ups: int = Field(..., ge=0, le=2)
+    candidate: InterviewCandidateContext
+    questions: list[BundleQuestion]
 
 
 class ParsedCv(BaseModel):

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ACCOUNT_DELETION } from "../constants.js";
+import { ACCOUNT_DELETION, CONTENT_LIMITS } from "../constants.js";
 import { ConsentType } from "./consents.js";
 import { CvContentType, CvParseError, CvStatus, ParsedCv } from "./cv.js";
 import { TargetCompanyType } from "./profiles.js";
@@ -104,6 +104,54 @@ const ExportAuditEntry = z.object({
   created_at: z.iso.datetime(),
 });
 
+/**
+ * One line of an interview transcript. The candidate's own words, and the interviewer's.
+ */
+const ExportInterviewTurn = z.object({
+  seq: z.int().min(0),
+  speaker: z.enum(["interviewer", "candidate"]),
+  question_position: z.int().min(0).nullable(),
+  text: z.string(),
+  at: z.iso.datetime(),
+});
+
+/** A question as it was put to them — the prompt they answered, not the key it was scored by. */
+const ExportInterviewQuestion = z.object({
+  position: z.int().min(0),
+  type: z.string().min(1).max(40),
+  topic: z.string().min(1).max(140),
+  prompt: z.string().max(CONTENT_LIMITS.questionPromptMaxLength),
+  // Constrained, not bare: a nullable string with no constraint becomes an array of strings in the
+  // OpenAPI document (`openapi-compat.test.ts`, and the lesson behind it).
+  context: z.string().max(CONTENT_LIMITS.questionContextMaxLength).nullable(),
+  asked_at: z.iso.datetime(),
+});
+
+/**
+ * One mock interview and what was said in it (spec §4.3).
+ *
+ * It carries the transcript in full and **not** the engine's own workings: which planned probe was
+ * chosen (`follow_up_index`) and the per-criterion coverage log are positions in a rubric this
+ * export does not contain, so they would be meaningless without the answer key and misleading
+ * with it. What the candidate is owed about how they did is the rubric-based report (M4), which
+ * cites their words back to them; what they are owed here is their words.
+ */
+const ExportInterview = z.object({
+  id: z.uuid(),
+  role: z.string().min(1).max(80),
+  level: z.string().min(1).max(80),
+  stack: z.string().min(1).max(80).nullable(),
+  mode: z.string().min(1).max(20),
+  is_diagnostic: z.boolean(),
+  planned_minutes: z.int().min(1),
+  state: z.string().min(1).max(40),
+  status: z.string().min(1).max(40),
+  started_at: z.iso.datetime(),
+  ended_at: z.iso.datetime().nullable(),
+  questions: z.array(ExportInterviewQuestion),
+  turns: z.array(ExportInterviewTurn),
+});
+
 const ExportAiProcessing = z.object({
   purpose: z.string().min(1).max(50),
   provider: z.string().min(1).max(100),
@@ -128,6 +176,8 @@ export const DataExport = z.object({
   sessions: z.array(ExportSession),
   /** Audit entries the user made or that are about their account, oldest first. */
   audit_entries: z.array(ExportAuditEntry),
+  /** Every mock interview and its transcript, oldest first. */
+  interviews: z.array(ExportInterview),
   /** AI calls made with the user's data (which provider and model), oldest first. No content. */
   ai_processing: z.array(ExportAiProcessing),
 });

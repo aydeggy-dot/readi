@@ -64,6 +64,7 @@ model User {
   profile      Profile?
   consents     ConsentRecord[]
   contentFlags ContentFlag[]
+  interviews   InterviewSession[]
 
   @@map("users")
 }
@@ -382,9 +383,10 @@ model CareerRole {
   levels CareerRoleLevel[]
   stacks CareerRoleStack[]
 
-  tracks    Track[]
-  questions QuestionCareerRole[]
-  profiles  Profile[]
+  tracks     Track[]
+  questions  QuestionCareerRole[]
+  profiles   Profile[]
+  interviews InterviewSession[]
 
   @@index([status])
   /// The CMS list order (`updated_at desc, id desc`).
@@ -415,9 +417,10 @@ model CareerLevel {
 
   roles CareerRoleLevel[]
 
-  tracks    Track[]
-  questions QuestionCareerLevel[]
-  profiles  Profile[]
+  tracks     Track[]
+  questions  QuestionCareerLevel[]
+  profiles   Profile[]
+  interviews InterviewSession[]
 
   @@index([status])
   @@index([updatedAt, id])
@@ -445,8 +448,9 @@ model Stack {
 
   roles CareerRoleStack[]
 
-  questions QuestionStack[]
-  profiles  Profile[]
+  questions  QuestionStack[]
+  profiles   Profile[]
+  interviews InterviewSession[]
 
   @@index([status])
   @@index([updatedAt, id])
@@ -636,8 +640,9 @@ model Rubric {
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  criteria  RubricCriterion[]
-  questions Question[]
+  criteria           RubricCriterion[]
+  questions          Question[]
+  interviewQuestions InterviewSessionQuestion[]
 
   @@index([status])
   /// The CMS list order (`updated_at desc, id desc`).
@@ -721,6 +726,9 @@ model Question {
   /// (ADR-0015). Tagging is how a Spring candidate and a Node candidate stop being asked the
   /// same thing; not tagging is how most questions stay available to everyone.
   stacks QuestionStack[]
+
+  /// Sessions this question has been put to, pinned at the version they used.
+  interviewQuestions InterviewSessionQuestion[]
 
   @@index([status])
   @@index([topicId])
@@ -821,4 +829,216 @@ model ContentVersion {
   @@unique([entityType, entityId, version])
   @@index([entityType, entityId, createdAt])
   @@map("content_versions")
+}
+
+// ---------------------------------------------------------------------------------------------
+// The interview engine (M3; spec §4.3, §6.1). Our code owns the flow: the LLM phrases what is
+// said inside a state and never decides which state comes next, how long a session runs, or which
+// questions are asked (CLAUDE.md §5).
+//
+// Everything here is the candidate's own record of a conversation they had, so every table
+// cascades from `users` and none of it is kept after erasure (ADR-0011) — there is no tombstoned
+// column in this section, and a new one would need an entry in `TOMBSTONED_COLUMNS`.
+
+enum InterviewState {
+  intro
+  question
+  follow_up
+  candidate_questions
+  wrap_up
+  ended
+
+  @@map("interview_state")
+}
+
+/// Lifecycle, which is not a state: leaving the page is a pause and coming back before the
+/// deadline resumes, so there is no `paused` here. A sweep marks what nobody returned to.
+enum InterviewStatus {
+  in_progress
+  completed
+  abandoned
+
+  @@map("interview_status")
+}
+
+/// `voice` is M5. The value exists now so that M5 adds a transport, not an enum value.
+enum InterviewMode {
+  text
+  voice
+
+  @@map("interview_mode")
+}
+
+/// `neutral` and `tough` are [P2] (spec §4.3).
+enum InterviewPersona {
+  friendly
+
+  @@map("interview_persona")
+}
+
+enum TurnSpeaker {
+  interviewer
+  candidate
+
+  @@map("turn_speaker")
+}
+
+/// One mock interview. Cascades from the user: a transcript is personal data.
+///
+/// **It pins every piece of content it was run against** — question, rubric, role, level and stack
+/// — by id *and* version, and `InterviewSessionQuestion.snapshot` holds the content itself
+/// (`tasks/todo.md` "Carried forward"). Content keeps changing after a session: an admin edits a
+/// published question, an expert reworks a rubric's weights, `pnpm db:seed -- --force` re-imports a
+/// bank, someone renames a role. None of that may move a report a candidate has already read.
+model InterviewSession {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Who this session interviewed, from the catalogue (ADR-0015) — and at which version, because
+  /// roles, levels and stacks are versioned content and renaming one must not rewrite history.
+  careerRoleId  String      @map("career_role_id") @db.Uuid
+  careerRole    CareerRole  @relation(fields: [careerRoleId], references: [id], onDelete: Restrict)
+  roleVersion   Int         @map("role_version")
+  careerLevelId String      @map("career_level_id") @db.Uuid
+  careerLevel   CareerLevel @relation(fields: [careerLevelId], references: [id], onDelete: Restrict)
+  levelVersion  Int         @map("level_version")
+  /// Null is a real answer: "no variant" means the general questions for the role, which is what
+  /// `question-eligibility.ts` offers a candidate who has not chosen one.
+  stackId       String?     @map("stack_id") @db.Uuid
+  stack         Stack?      @relation(fields: [stackId], references: [id], onDelete: Restrict)
+  stackVersion  Int?        @map("stack_version")
+
+  /// Which kinds of question this session may use — a subset of the role's
+  /// `supported_question_types`. All of them is the preset mixed session.
+  types          QuestionType[]
+  mode           InterviewMode    @default(text)
+  persona        InterviewPersona @default(friendly)
+  /// The 15-minute preset from `/home` that seeds the first readiness score (spec §4.1).
+  isDiagnostic   Boolean          @default(false) @map("is_diagnostic")
+  plannedMinutes Int              @map("planned_minutes")
+  /// The cap on questions; the time budget is the authoritative one (see `INTERVIEW_PLANS`).
+  questionBudget Int              @map("question_budget")
+  maxFollowUps   Int              @map("max_follow_ups")
+
+  state  InterviewState  @default(intro)
+  status InterviewStatus @default(in_progress)
+
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  /// The wall-clock deadline. The screen counts to this rather than ticking a counter, so a
+  /// backgrounded phone cannot drift and a resumed session does not gain the time it was away.
+  endsAt         DateTime  @map("ends_at") @db.Timestamptz(6)
+  endedAt        DateTime? @map("ended_at") @db.Timestamptz(6)
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz(6)
+
+  /// The catalogue's slugs and names as they read at session time (`SessionCatalogue`). The FKs
+  /// and versions above are for joins and analytics; this is what the session *says it was*. A
+  /// role renamed afterwards must not rewrite a report the candidate has already read, and
+  /// `content_versions` cannot answer that question — it snapshots a row *before* a change, so
+  /// the third edit leaves no record of the second.
+  catalogue Json
+
+  /// Seeds the deterministic question selection, so a session can be replayed exactly.
+  selectionSeed  String @map("selection_seed")
+  /// Which prompt version each interviewer call used, e.g. `{"interview_followup": 1}`. A released
+  /// version is never edited in place, so this keeps meaning what it meant (CLAUDE.md "Prompts").
+  promptVersions Json   @map("prompt_versions")
+  /// Provider and model per purpose, as config resolved them at session start.
+  modelConfig    Json   @map("model_config")
+  /// The engine's own state, returned by the worker on every turn. Redis holds the live copy with
+  /// a TTL; this is what a Redis flush costs a round trip instead of a session.
+  engineSnapshot Json?  @map("engine_snapshot")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  questions InterviewSessionQuestion[]
+  turns     SessionTurn[]
+
+  /// The Practice list: one candidate's sessions, keyset-paged by `(updated_at, id)`.
+  @@index([userId, updatedAt, id])
+  /// The stale-session sweep reads `in_progress` sessions past their deadline.
+  @@index([status, endsAt])
+  /// Question selection asks what this candidate has already been shown, newest sessions first.
+  @@index([userId, startedAt])
+  @@map("interview_sessions")
+}
+
+/// One question as it was put to one candidate, pinned.
+///
+/// `snapshot` is a **copy**, not a reference: `content_versions` snapshots a row *before* a change
+/// (ADR-0014 decision 2), so a version number alone cannot reconstruct what was current at session
+/// time — the third edit leaves no record of the second. It carries the prompt, context, ideal
+/// points, the rubric's criteria and the planned follow-ups, validated by `SessionQuestionSnapshot`.
+///
+/// It is answer key, so it never leaves the API: the worker gets `BundleQuestion` (no rubric, no
+/// ideal points) and the browser gets `CandidateSessionQuestion` (no answer key at all).
+model InterviewSessionQuestion {
+  id        String           @id @default(uuid()) @db.Uuid
+  sessionId String           @map("session_id") @db.Uuid
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// 0-based order within the session.
+  position  Int
+
+  questionId      String   @map("question_id") @db.Uuid
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  questionVersion Int      @map("question_version")
+  rubricId        String   @map("rubric_id") @db.Uuid
+  rubric          Rubric   @relation(fields: [rubricId], references: [id], onDelete: Restrict)
+  rubricVersion   Int      @map("rubric_version")
+
+  snapshot Json
+
+  /// Null until the engine reaches it — which is also what keeps an unasked question out of the
+  /// candidate's own view of the session.
+  askedAt        DateTime? @map("asked_at") @db.Timestamptz(6)
+  followUpsAsked Int       @default(0) @map("follow_ups_asked")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  turns SessionTurn[]
+
+  @@unique([sessionId, position])
+  @@index([questionId])
+  @@map("interview_session_questions")
+}
+
+/// One line of the transcript (spec §6.1).
+model SessionTurn {
+  id        String           @id @default(uuid()) @db.Uuid
+  sessionId String           @map("session_id") @db.Uuid
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// Monotonic within a session. The API persists turns idempotently by `(session_id, seq)`, so a
+  /// retried worker response cannot write a line twice.
+  seq       Int
+
+  speaker TurnSpeaker
+  state   InterviewState
+
+  sessionQuestionId String?                   @map("session_question_id") @db.Uuid
+  sessionQuestion   InterviewSessionQuestion? @relation(fields: [sessionQuestionId], references: [id], onDelete: Cascade)
+  /// Which of the question's **planned** follow-ups was asked — an index into
+  /// `planned_follow_ups`, so the transcript says which probe was used rather than only that one
+  /// was. M4 reads it for "did this answer need prompting?" (closing handover, 2026-09-25).
+  followUpIndex     Int?                      @map("follow_up_index")
+
+  text          String
+  /// Milliseconds from `started_at`, so a transcript is readable without joining the session.
+  startedMs     Int    @map("started_ms")
+  endedMs       Int    @map("ended_ms")
+  /// Voice mode only (M5).
+  sttConfidence Float? @map("stt_confidence")
+
+  /// The per-criterion coverage log, on candidate turns only: one entry per rubric criterion,
+  /// whether this answer touched it, and which follow-up the engine then chose
+  /// (`CriterionCoverage`). It is what makes "a menu, not a script" auditable. A model's judgement
+  /// about an answer, recorded as evidence of what the engine decided — **never** a score, and
+  /// never a substitute for M4's own per-answer evaluation.
+  criteriaCovered Json? @map("criteria_covered")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([sessionId, seq])
+  @@index([sessionQuestionId])
+  @@map("session_turns")
 }
