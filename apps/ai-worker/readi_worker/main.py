@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Protocol
 
 import sentry_sdk
 from fastapi import FastAPI
@@ -17,6 +18,11 @@ from readi_worker.embeddings.service import EmbeddingService
 from readi_worker.embeddings.voyage import VoyageEmbeddingProvider
 from readi_worker.health import SupportsPing, build_health_router
 from readi_worker.http_limits import BodySizeLimit
+from readi_worker.interview.calls import Interviewer
+from readi_worker.interview.fake_script import FakeInterviewerLLMClient
+from readi_worker.interview.router import build_interview_router
+from readi_worker.interview.service import InterviewService
+from readi_worker.interview.state_store import InterviewStateStore, SupportsCache
 from readi_worker.llm.anthropic_client import AnthropicLLMClient
 from readi_worker.llm.base import LLMClient
 from readi_worker.llm.fake import FunctionLLMClient
@@ -39,16 +45,21 @@ def _init_sentry(settings: Settings) -> None:
     )
 
 
-def _build_llm(settings: Settings) -> tuple[LLMClient, str]:
-    """The configured LLM client and the model to use for CV parsing."""
+class RedisClient(SupportsPing, SupportsCache, Protocol):
+    """What the worker asks of Redis: a ping for `/health`, and a small cache for the engine."""
+
+
+def _build_llm(settings: Settings) -> tuple[LLMClient, str, str]:
+    """The configured LLM client, and the models for CV parsing and for the live interviewer."""
     if settings.llm_provider == "fake":
-        return FunctionLLMClient(keyword_extraction), "fake"
+        # One client, two stand-ins: the interviewer shapes first, the CV keyword extractor behind.
+        return FakeInterviewerLLMClient(FunctionLLMClient(keyword_extraction)), "fake", "fake"
     if settings.anthropic_api_key is None:  # guaranteed by Settings validation
         raise RuntimeError("ANTHROPIC_API_KEY missing")
     client = AnthropicLLMClient(
         settings.anthropic_api_key.get_secret_value(), timeout_s=settings.llm_timeout_s
     )
-    return client, settings.llm_model_cv_parse
+    return client, settings.llm_model_cv_parse, settings.llm_model_interviewer
 
 
 def _build_embeddings(settings: Settings) -> tuple[EmbeddingProvider, str]:
@@ -68,7 +79,7 @@ def _build_embeddings(settings: Settings) -> tuple[EmbeddingProvider, str]:
 
 def create_app(
     settings: Settings | None = None,
-    redis: SupportsPing | None = None,
+    redis: RedisClient | None = None,
     llm: LLMClient | None = None,
     embeddings: EmbeddingProvider | None = None,
 ) -> FastAPI:
@@ -88,10 +99,11 @@ def create_app(
 
     owned_llm: AnthropicLLMClient | None = None
     if llm is None:
-        llm, cv_model = _build_llm(settings)
+        llm, cv_model, interviewer_model = _build_llm(settings)
         owned_llm = llm if isinstance(llm, AnthropicLLMClient) else None
     else:
         cv_model = settings.llm_model_cv_parse
+        interviewer_model = settings.llm_model_interviewer
 
     owned_embeddings: VoyageEmbeddingProvider | None = None
     if embeddings is None:
@@ -127,6 +139,15 @@ def create_app(
     app.include_router(
         build_embeddings_router(
             EmbeddingService(embeddings, embedding_model, settings.embedding_dimensions),
+            service_token,
+        )
+    )
+    app.include_router(
+        build_interview_router(
+            InterviewService(
+                Interviewer(llm, interviewer_model),
+                InterviewStateStore(redis, settings.interview_state_ttl_s),
+            ),
             service_token,
         )
     )
