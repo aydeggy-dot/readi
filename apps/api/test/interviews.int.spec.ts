@@ -218,6 +218,68 @@ describe("interviews", () => {
       await prisma.careerLevel.delete({ where: { id: draft.id } });
     });
 
+    it("uses the variant on the profile when the role still offers it", async () => {
+      const signed = await signUpWithEmail(app, uniqueEmail());
+      userIds.push(
+        await giveProfile(
+          prisma,
+          signed.email,
+          fixture.role,
+          fixture.level,
+          fixture.catalogue.stackSlug,
+        ),
+      );
+      const session = await startOk(signed.cookie);
+      expect(session.stack?.slug).toBe(fixture.catalogue.stackSlug);
+    });
+
+    /**
+     * The candidate did nothing wrong: the variant on their profile was retired, or belongs to the
+     * role they usually practise rather than the one they just chose. Refusing would lock them out
+     * of starting any interview until they edited a field that is optional by design, so it
+     * degrades to the general questions instead — which is what "no variant" already means.
+     */
+    it("drops a retired variant inherited from the profile rather than refusing", async () => {
+      const signed = await signUpWithEmail(app, uniqueEmail());
+      userIds.push(
+        await giveProfile(
+          prisma,
+          signed.email,
+          fixture.role,
+          fixture.level,
+          fixture.catalogue.stackSlug,
+        ),
+      );
+      await prisma.stack.update({
+        where: { id: fixture.catalogue.stackId },
+        data: { status: "retired" },
+      });
+      try {
+        const session = await startOk(signed.cookie);
+        expect(session.stack).toBeNull();
+      } finally {
+        await prisma.stack.update({
+          where: { id: fixture.catalogue.stackId },
+          data: { status: "published" },
+        });
+      }
+    });
+
+    it("refuses a variant the request named that the role does not offer", async () => {
+      const { cookie } = await candidate();
+      const elsewhere = await prisma.stack.create({
+        data: {
+          slug: `other-stack-${randomUUID().slice(0, 8)}`,
+          name: "Other",
+          status: "published",
+        },
+      });
+      const response = await start(cookie, { minutes: 15, stack: elsewhere.slug });
+      expect(response.status).toBe(400);
+      expect((response.body as { code: string }).code).toBe("stack_not_offered");
+      await prisma.stack.delete({ where: { id: elsewhere.id } });
+    });
+
     it("refuses a published level the role does not offer", async () => {
       const { cookie } = await candidate();
       const elsewhere = await prisma.careerLevel.create({

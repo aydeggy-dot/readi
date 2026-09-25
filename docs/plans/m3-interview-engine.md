@@ -211,6 +211,14 @@ SessionTurn        session_id (cascade), seq, speaker, state, session_question_i
                    criteria_covered Json?   -- per-criterion coverage, on candidate turns
 ```
 
+**An asked-for variant is refused; an inherited one is dropped** (phase 1). A candidate whose
+profile names a variant that has since been retired, or that belongs to the role they usually
+practise rather than the one they just chose, did nothing wrong — refusing would lock them out of
+starting any interview until they edited an optional field. It degrades to "no variant", which the
+stack rule already reads as the general questions for the role. Naming a variant in the request is a
+different act, and one that is unknown or not on offer is an error. This is also the shape the
+"not listed" path needs in phase 4: the picker sends an explicit `null`.
+
 **`catalogue` was added when the pinning test was written** (phase 1, 2026-09-25). A version number
 pins *what the content said*; it does not pin what the row was **called**. Renaming a role to
 "Backend developer" would otherwise rewrite every past session's report to say something the

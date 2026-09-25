@@ -174,9 +174,6 @@ export class InterviewsService {
 
     const role = await this.publishedRole(request.role ?? null, profile?.targetRoleId ?? null);
     const level = await this.publishedLevel(request.level ?? null, profile?.targetLevelId ?? null);
-    const stackId = request.stack === undefined ? (profile?.targetStackId ?? null) : request.stack;
-    const stack =
-      stackId === null ? null : await this.publishedStack(request.stack ?? null, stackId);
 
     const offersLevel = await this.prisma.careerRoleLevel.findUnique({
       where: { roleId_levelId: { roleId: role.id, levelId: level.id } },
@@ -189,20 +186,51 @@ export class InterviewsService {
         "that role is not interviewed at that level",
       );
     }
-    if (stack) {
-      const offersStack = await this.prisma.careerRoleStack.findUnique({
-        where: { roleId_stackId: { roleId: role.id, stackId: stack.id } },
-        select: { roleId: true },
-      });
-      if (!offersStack) {
-        throw new ApiError(
-          HttpStatus.BAD_REQUEST,
-          "stack_not_offered",
-          "that role does not offer that variant",
-        );
-      }
-    }
+
+    /*
+     * **An asked-for variant is refused; an inherited one is dropped.**
+     *
+     * The candidate did nothing wrong when the variant on their profile is retired, or belongs to
+     * the role they usually practise rather than the one they just chose. Refusing there would
+     * lock them out of starting any interview at all until they edited their profile, over a field
+     * that is optional by design — so it degrades to "no variant", which the stack rule already
+     * has a meaning for: the general questions for the role. Naming one in the request is a
+     * different act, and a variant that does not exist or is not on offer is an error.
+     */
+    const stack =
+      request.stack === undefined
+        ? await this.inheritedStack(profile?.targetStackId ?? null, role.id)
+        : request.stack === null
+          ? null
+          : await this.requestedStack(request.stack, role.id);
     return { role, level, stack };
+  }
+
+  /** A variant the request named: it must exist, be published, and be one this role offers. */
+  private async requestedStack(slug: string, roleId: string): Promise<Stack> {
+    const stack = await this.prisma.stack.findFirst({ where: { slug, status: "published" } });
+    if (!stack) throw this.notFound("stack_not_found", "no such variant");
+    const offered = await this.prisma.careerRoleStack.findUnique({
+      where: { roleId_stackId: { roleId, stackId: stack.id } },
+      select: { roleId: true },
+    });
+    if (!offered) {
+      throw new ApiError(
+        HttpStatus.BAD_REQUEST,
+        "stack_not_offered",
+        "that role does not offer that variant",
+      );
+    }
+    return stack;
+  }
+
+  /** The variant on the profile, if this role still offers it and it is still published. */
+  private async inheritedStack(stackId: string | null, roleId: string): Promise<Stack | null> {
+    if (!stackId) return null;
+    const stack = await this.prisma.stack.findFirst({
+      where: { id: stackId, status: "published", roles: { some: { roleId } } },
+    });
+    return stack;
   }
 
   private async publishedRole(slug: string | null, fallbackId: string | null): Promise<CareerRole> {
@@ -226,14 +254,6 @@ export class InterviewsService {
     });
     if (!level) throw this.notFound("level_not_found", "no such level");
     return level;
-  }
-
-  private async publishedStack(slug: string | null, id: string): Promise<Stack> {
-    const stack = await this.prisma.stack.findFirst({
-      where: slug ? { slug, status: "published" } : { id, status: "published" },
-    });
-    if (!stack) throw this.notFound("stack_not_found", "no such variant");
-    return stack;
   }
 
   /** Nothing asked for and nothing on the profile: finish onboarding, or say what you want. */
