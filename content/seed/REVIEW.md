@@ -32,8 +32,10 @@ Please read the generated pages rather than the YAML unless you would rather not
 or communication question is usually asked of all four roles, and it appears on all four pages —
 written once, in one file, which each page names beside it. Review it where you first meet it and
 skip it after that; it is repeated so that nobody signing off a single role is signing off less
-than their candidates will be asked. Full-stack has no bank of its own yet, so its page is entirely
-questions from the other three, and question 6 below asks the full-stack half of it.
+than their candidates will be asked. Full-stack has no bank of its own yet, so **its page asks a
+different question**: every question on it is already being reviewed on the frontend or backend
+page, so its reviewer is asked about the set rather than about each question — what is missing
+between the two halves, and what would you cut. Question 6 below is the same ask in one line.
 
 Each page puts a question, the answer key and all five level descriptors of its rubric in one
 place, with tick boxes. They print, and they render on GitHub.

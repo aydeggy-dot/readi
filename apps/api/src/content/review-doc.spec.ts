@@ -60,6 +60,36 @@ const file = (path: string, questions: readonly SeedQuestion[]): LoadedSeedFile 
   }),
 });
 
+/** `roles.yaml` in miniature: the page's title and the bank names come off these rows (ADR-0015). */
+const roles: LoadedSeedFile = {
+  file: "content/seed/roles.yaml",
+  data: SeedFile.parse({
+    version: 1,
+    author: "ai_draft",
+    status: "draft",
+    career_roles: [
+      {
+        slug: "frontend",
+        name: "Frontend engineer",
+        summary: "Builds what the user sees.",
+        position: 0,
+        supported_question_types: ["technical"],
+        levels: ["mid"],
+        stacks: [],
+      },
+      {
+        slug: "fullstack",
+        name: "Full-stack engineer",
+        summary: "Holds both ends.",
+        position: 1,
+        supported_question_types: ["technical"],
+        levels: ["mid"],
+        stacks: [],
+      },
+    ],
+  }),
+};
+
 const files = (questions: readonly SeedQuestion[]): LoadedSeedFile[] => [
   file("content/seed/frontend/questions.yaml", questions),
 ];
@@ -79,6 +109,12 @@ describe("buildReviewDoc", () => {
     const corpus = [
       file("content/seed/frontend/questions.yaml", [frontendOnly, shared]),
       file("content/seed/qa/questions.yaml", [question({ slug: "qa-one", roles: ["qa"] })]),
+    ];
+    const corpusWithFullstack = [
+      roles,
+      file("content/seed/frontend/questions.yaml", [
+        question({ slug: "borrowed-one", roles: ["frontend", "fullstack"] }),
+      ]),
     ];
     const page = (role: string) => buildReviewDoc(role, corpus, { generatedBy: "a test" }).markdown;
 
@@ -100,6 +136,25 @@ describe("buildReviewDoc", () => {
       const qa = page("qa");
       expect(qa).toContain("**2 questions** (1 written for this role, 1 shared with other roles)");
       expect(qa.indexOf("qa-one")).toBeLessThan(qa.indexOf("shared-one"));
+    });
+
+    /*
+     * A role with no bank of its own is asked a different question (owner's decision, 2026-09-25).
+     * `fullstack` is offered 62 questions it did not write, every one of them already being read
+     * question by question on the page of the role it was written for, so asking this reviewer for
+     * the same review again is asking for the one thing they are worst placed to give. The page
+     * asks what is missing between the halves instead.
+     */
+    it("asks a borrowed bank's reviewer about the set, not about each question", () => {
+      const borrowed = buildReviewDoc("fullstack", corpusWithFullstack, {
+        generatedBy: "a test",
+      }).markdown;
+      expect(borrowed).toContain("**This role has no bank of its own");
+      expect(borrowed).toContain("**What is missing between them?**");
+      expect(borrowed).toContain("you do not need to tick them");
+      // Named from `roles.yaml`, not from the directory, and only the banks that fed this page.
+      expect(borrowed).toContain("written for Frontend engineer");
+      expect(borrowed).not.toContain("For each question, five questions");
     });
   });
 
