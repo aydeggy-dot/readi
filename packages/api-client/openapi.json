@@ -2441,6 +2441,86 @@
         "tags": ["interviews"]
       }
     },
+    "/api/interviews/{id}/advance": {
+      "post": {
+        "operationId": "InterviewsController_advance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceInterviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An event stream: one `data:` message per `InterviewFrame` (see @readi/shared-types). The generated API client does not model streaming, so the web app reads it by hand.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "event-stream"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not this candidate's (code `interview_not_found`)"
+          },
+          "409": {
+            "description": "Already finished (`interview_ended`), too old to resume (`interview_expired`), or another exchange is in flight (`interview_busy`)"
+          }
+        },
+        "tags": ["interviews"]
+      }
+    },
+    "/api/interviews/{id}/status": {
+      "get": {
+        "operationId": "InterviewsController_status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewStatusResponseDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not this candidate's (code `interview_not_found`)"
+          }
+        },
+        "tags": ["interviews"]
+      }
+    },
     "/api/interviews/{id}": {
       "get": {
         "operationId": "InterviewsController_get",
@@ -6652,6 +6732,54 @@
           }
         },
         "required": ["items", "next_cursor"],
+        "additionalProperties": false
+      },
+      "InterviewAction": {
+        "type": "string",
+        "enum": ["start", "answer", "skip", "end"]
+      },
+      "CandidateText": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 8000
+      },
+      "AdvanceInterviewRequestDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/InterviewAction"
+          },
+          "text": {
+            "$ref": "#/components/schemas/CandidateText"
+          }
+        },
+        "required": ["action"]
+      },
+      "InterviewStatusResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InterviewState_Output"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus_Output"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "feedback_ready": {
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "state", "status", "ended_at", "feedback_ready"],
         "additionalProperties": false
       },
       "DataExportDto_Output": {

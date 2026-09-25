@@ -1,29 +1,37 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, Res } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiProduces,
   ApiTags,
   ApiTooManyRequestsResponse,
 } from "@nestjs/swagger";
 import {
+  AdvanceInterviewRequest,
   CreateInterviewRequest,
   InterviewListQuery,
   InterviewListResponse,
   InterviewSessionResponse,
+  InterviewStatusResponse,
 } from "@readi/shared-types";
+import type { Response } from "express";
 import { createZodDto, ZodSerializerDto } from "nestjs-zod";
 import { z } from "zod";
 import { CurrentUser } from "../auth/auth.decorators";
 import type { AuthenticatedUser } from "../auth/auth.service";
+import { InterviewAdvanceService } from "./interview-advance.service";
+import { InterviewStream } from "./interview-sse";
 import { InterviewsService } from "./interviews.service";
 
 class CreateInterviewRequestDto extends createZodDto(CreateInterviewRequest) {}
 class InterviewListQueryDto extends createZodDto(InterviewListQuery) {}
 class InterviewListResponseDto extends createZodDto(InterviewListResponse) {}
 class InterviewSessionResponseDto extends createZodDto(InterviewSessionResponse) {}
+class AdvanceInterviewRequestDto extends createZodDto(AdvanceInterviewRequest) {}
+class InterviewStatusResponseDto extends createZodDto(InterviewStatusResponse) {}
 class IdParamsDto extends createZodDto(z.object({ id: z.uuid() })) {}
 
 /**
@@ -38,7 +46,10 @@ class IdParamsDto extends createZodDto(z.object({ id: z.uuid() })) {}
 @ApiTags("interviews")
 @Controller("interviews")
 export class InterviewsController {
-  constructor(private readonly interviews: InterviewsService) {}
+  constructor(
+    private readonly interviews: InterviewsService,
+    private readonly advances: InterviewAdvanceService,
+  ) {}
 
   /** Starts a session: picks the questions and pins the content they were asked at. */
   @Post()
@@ -68,6 +79,56 @@ export class InterviewsController {
     @Query() query: InterviewListQueryDto,
   ): Promise<InterviewListResponse> {
     return this.interviews.list(user, query);
+  }
+
+  /**
+   * One exchange, streamed (ADR-0016).
+   *
+   * `@Res()` rather than Nest's `@Sse()`: this is a POST with a body, and the heartbeat has to
+   * interleave with an `await` on the worker. It means Nest applies no response interceptor here, so
+   * the frames are serialized and validated by `InterviewStream` instead.
+   *
+   * Everything refusable is refused **before** the stream opens, and reaches the client as an
+   * ordinary `ApiError` body with a status. After that the status is already 200, so a failure is an
+   * `error` frame — `interview-stream.ts` in the web app is the one place that handles both.
+   */
+  @Post(":id/advance")
+  @ApiProduces("text/event-stream")
+  @ApiOkResponse({
+    description:
+      "An event stream: one `data:` message per `InterviewFrame` (see @readi/shared-types). " +
+      "The generated API client does not model streaming, so the web app reads it by hand.",
+    content: { "text/event-stream": { schema: { type: "string", format: "event-stream" } } },
+  })
+  @ApiNotFoundResponse({ description: "Not this candidate's (code `interview_not_found`)" })
+  @ApiConflictResponse({
+    description:
+      "Already finished (`interview_ended`), too old to resume (`interview_expired`), or another " +
+      "exchange is in flight (`interview_busy`)",
+  })
+  async advance(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: IdParamsDto,
+    @Body() body: AdvanceInterviewRequestDto,
+    @Res() response: Response,
+  ): Promise<void> {
+    await this.advances.advance(user, params.id, body, new InterviewStream(response));
+  }
+
+  /**
+   * Polled by the completion screen while it waits (the `cv-panel.tsx` pattern). In M3 there is
+   * nothing to wait for — `feedback_ready` is always false, and the screen says so rather than
+   * spinning for something that is not coming.
+   */
+  @Get(":id/status")
+  @ZodSerializerDto(InterviewStatusResponseDto)
+  @ApiOkResponse({ type: InterviewStatusResponseDto.Output })
+  @ApiNotFoundResponse({ description: "Not this candidate's (code `interview_not_found`)" })
+  status(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: IdParamsDto,
+  ): Promise<InterviewStatusResponse> {
+    return this.interviews.status(user, params.id);
   }
 
   /** One session and its transcript so far. */

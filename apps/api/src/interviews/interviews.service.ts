@@ -9,6 +9,7 @@ import {
   type InterviewListQuery,
   type InterviewListResponse,
   type InterviewSessionResponse,
+  type InterviewStatusResponse,
   type InterviewSummary,
   MAX_FOLLOW_UPS,
   type QuestionType,
@@ -34,9 +35,10 @@ import { candidateQuestion, snapshotOf } from "./session-bundle";
 /**
  * Sessions: starting one, listing them, and reading one back (spec §4.3).
  *
- * The engine itself is not here — it lives in the worker (ADR-0004) and arrives in phase 2. What
- * this owns is everything the worker may not: who the candidate is, what they are allowed to
- * start, which questions they get, and the pinned copy of the content they were asked.
+ * The engine itself is not here — it lives in the worker (ADR-0004), and `InterviewAdvanceService`
+ * is the API's half of one exchange with it. What this owns is everything the worker may not: who
+ * the candidate is, what they are allowed to start, which questions they get, and the pinned copy of
+ * the content they were asked.
  *
  * ## The catalogue a candidate may be interviewed against is the **published** one
  *
@@ -149,11 +151,34 @@ export class InterviewsService {
   }
 
   async get(user: AuthenticatedUser, id: string): Promise<InterviewSessionResponse> {
+    return toSessionResponse(await this.owned(user, id));
+  }
+
+  /**
+   * What the completion screen polls for.
+   *
+   * `feedback_ready` is always false in M3, which scores nothing. It is here rather than left out
+   * because the screen written against it in phase 4 should not have to change when M4 makes it
+   * true — and because a screen that polls an endpoint with no answer in it would be a screen
+   * promising a candidate something we do not have.
+   */
+  async status(user: AuthenticatedUser, id: string): Promise<InterviewStatusResponse> {
+    const session = await this.owned(user, id);
+    return {
+      id: session.id,
+      state: session.state,
+      status: session.status,
+      ended_at: session.endedAt?.toISOString() ?? null,
+      feedback_ready: false,
+    };
+  }
+
+  private async owned(user: AuthenticatedUser, id: string): Promise<SessionWithContent> {
     const session = await this.repository.findForUser(id, user.id);
     if (!session) {
       throw new ApiError(HttpStatus.NOT_FOUND, "interview_not_found", "no such interview");
     }
-    return toSessionResponse(session);
+    return session;
   }
 
   // ---------------------------------------------------------------------------------------------

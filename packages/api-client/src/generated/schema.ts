@@ -612,6 +612,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/interviews/{id}/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["InterviewsController_advance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InterviewsController_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/interviews/{id}": {
         parameters: {
             query?: never;
@@ -1620,6 +1652,22 @@ export interface components {
         InterviewListResponseDto_Output: {
             items: components["schemas"]["InterviewSummary_Output"][];
             next_cursor: string | null;
+        };
+        /** @enum {string} */
+        InterviewAction: "start" | "answer" | "skip" | "end";
+        CandidateText: string;
+        AdvanceInterviewRequestDto: {
+            action: components["schemas"]["InterviewAction"];
+            text?: components["schemas"]["CandidateText"];
+        };
+        InterviewStatusResponseDto_Output: {
+            /** Format: uuid */
+            id: string;
+            state: components["schemas"]["InterviewState_Output"];
+            status: components["schemas"]["InterviewStatus_Output"];
+            /** Format: date-time */
+            ended_at: string | null;
+            feedback_ready: boolean;
         };
         DataExportDto_Output: {
             /** @enum {number} */
@@ -3373,6 +3421,74 @@ export interface operations {
             };
             /** @description Too many interviews started (code `rate_limited`) */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InterviewsController_advance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvanceInterviewRequestDto"];
+            };
+        };
+        responses: {
+            /** @description An event stream: one `data:` message per `InterviewFrame` (see @readi/shared-types). The generated API client does not model streaming, so the web app reads it by hand. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            /** @description Not this candidate's (code `interview_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already finished (`interview_ended`), too old to resume (`interview_expired`), or another exchange is in flight (`interview_busy`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InterviewsController_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewStatusResponseDto_Output"];
+                };
+            };
+            /** @description Not this candidate's (code `interview_not_found`) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

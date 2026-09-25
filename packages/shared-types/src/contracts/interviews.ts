@@ -548,3 +548,112 @@ export const InterviewAdvanceResponse = z.object({
   error: z.enum(["bundle_required", "bad_request", "engine_error", "llm_error"]).nullable(),
 });
 export type InterviewAdvanceResponse = z.infer<typeof InterviewAdvanceResponse>;
+
+// -----------------------------------------------------------------------------------------------
+// Web ↔ API: advancing a session, over SSE (ADR-0016).
+//
+// One exchange usually produces two or three things to show — intro and the first question, or a
+// follow-up, or the close and the end — so the channel is a stream rather than a JSON body. What it
+// buys in M3 is honest to state: **not** token streaming (that waits for M5, where voice latency
+// needs it), but the screen showing "composing" the instant the answer is sent, a heartbeat while a
+// model call is in flight so nothing between here and the browser drops an idle connection, and the
+// channel M5's LiveKit agent reuses.
+//
+// **Where an error appears depends on when it happens.** Anything knowable before the stream opens —
+// not this candidate's session, a session already ended, a session past its resume grace, another
+// advance already in flight, a malformed body — is an ordinary HTTP error with an `ApiError` code.
+// Once the headers are out the status is already 200, so a failure after that is an `error` frame.
+// The client has to handle both, and `interview-stream.ts` is the one place that does.
+
+/** What the browser asks for. `text` belongs to `answer` and is ignored by the rest. */
+export const AdvanceInterviewRequest = z
+  .object({
+    action: InterviewAction,
+    text: CandidateText.optional(),
+  })
+  .refine((request) => request.action !== "answer" || (request.text ?? "").length > 0, {
+    message: "an answer needs words",
+    path: ["text"],
+  });
+export type AdvanceInterviewRequest = z.infer<typeof AdvanceInterviewRequest>;
+
+/**
+ * The interviewer is composing. Sent immediately, before the worker is called, and then repeated as
+ * a heartbeat while waiting (`INTERVIEW_SSE_HEARTBEAT_MS`).
+ *
+ * Repeating a frame rather than sending an SSE comment is deliberate: a comment keeps a connection
+ * open but tells the screen nothing, and a candidate on a slow Nigerian connection watching a
+ * spinner deserves to know the difference between "still working" and "we have lost you". The
+ * client renders the first one and counts the rest.
+ */
+export const InterviewThinkingFrame = z.object({ type: z.literal("thinking") });
+
+/** One line of the transcript, exactly as `GET /api/interviews/{id}` would have served it. */
+export const InterviewTurnFrame = z.object({ type: z.literal("turn"), turn: CandidateTurn });
+
+/**
+ * A question the session has just reached, sent **before** the turn that asks it.
+ *
+ * The turn carries the interviewer's words; this carries the question's setup material — a snippet, a
+ * scenario, a table — which the screen renders beneath them and which never passes through a model.
+ * Before the turn, so the screen has the code by the time it has the sentence pointing at it.
+ */
+export const InterviewQuestionFrame = z.object({
+  type: z.literal("question"),
+  question: CandidateSessionQuestion,
+});
+
+/** Where the session now stands. Always sent, always last before `done`. */
+export const InterviewStateFrame = z.object({
+  type: z.literal("state"),
+  state: InterviewState,
+  status: InterviewStatus,
+  /** Re-sent because a resumed session must not silently gain the time it was away. */
+  ends_at: z.iso.datetime(),
+  ended_at: z.iso.datetime().nullable(),
+  questions_asked: z.int().min(0),
+  question_budget: z.int().min(1),
+});
+
+/**
+ * The exchange failed after the stream had opened. Nothing was persisted — an exchange is
+ * all-or-nothing — so the same action may simply be sent again.
+ */
+export const InterviewErrorFrame = z.object({
+  type: z.literal("error"),
+  code: z.enum(["worker_unavailable", "interview_error"]),
+});
+
+/**
+ * The exchange finished. An explicit terminal frame rather than relying on the connection closing,
+ * because "the interviewer has finished speaking" and "the pipe broke" need different answers on
+ * screen and a closed stream cannot tell them apart.
+ */
+export const InterviewDoneFrame = z.object({ type: z.literal("done") });
+
+export const InterviewFrame = z.discriminatedUnion("type", [
+  InterviewThinkingFrame,
+  InterviewTurnFrame,
+  InterviewQuestionFrame,
+  InterviewStateFrame,
+  InterviewErrorFrame,
+  InterviewDoneFrame,
+]);
+export type InterviewFrame = z.infer<typeof InterviewFrame>;
+
+/**
+ * `GET /api/interviews/{id}/status` — polled by the completion screen (the `cv-panel.tsx` pattern).
+ *
+ * `feedback_ready` is always `false` in M3, which scores nothing, and the screen says so plainly
+ * rather than spinning for something that is not coming (the owner's decision on the completion
+ * screen, 2026-09-22). M4 makes it true and adds the report beside it; the shape is here now so the
+ * screen it is written for does not have to change when that happens.
+ */
+export const InterviewStatusResponse = z.object({
+  id: z.uuid(),
+  state: InterviewState,
+  status: InterviewStatus,
+  ended_at: z.iso.datetime().nullable(),
+  feedback_ready: z.boolean(),
+});
+export type InterviewStatusResponse = z.infer<typeof InterviewStatusResponse>;

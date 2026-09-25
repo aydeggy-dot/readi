@@ -1,6 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { INTERVIEW_LIMITS, type QuestionType } from "@readi/shared-types";
-import type { Prisma } from "../generated/prisma/client";
+import {
+  type AiCallRecord,
+  INTERVIEW_LIMITS,
+  type InterviewAdvanceResponse,
+  type QuestionType,
+} from "@readi/shared-types";
+import { Prisma } from "../generated/prisma/client";
 import { stackFilter } from "../content/question-eligibility";
 import { PrismaService } from "../prisma/prisma.service";
 import type { SelectableQuestion } from "./question-selection";
@@ -213,4 +218,148 @@ export class InterviewSessionsRepository {
     });
     return result.count;
   }
+
+  /**
+   * Writes one exchange: the turns, which questions it reached, and where the session now stands.
+   *
+   * **Idempotent by `(session_id, seq)`.** The engine allocates the seqs, so a response that is
+   * replayed — because the stream broke, or the API timed out while the worker went on to finish —
+   * writes nothing a second time. That is what lets an exchange be all-or-nothing: either this
+   * transaction commits and the session moved, or nothing did and the same action replays.
+   *
+   * `follow_ups_asked` is **recounted from the transcript** rather than incremented, for the same
+   * reason: an increment is right once and wrong on a replay, and the transcript is the record.
+   */
+  async applyExchange(
+    session: SessionWithContent,
+    response: InterviewAdvanceResponse,
+    at: { requestedAt: Date; respondedAt: Date },
+  ): Promise<AppliedExchange> {
+    const questionIdAt = new Map(session.questions.map((row) => [row.position, row.id]));
+    const askedAlready = new Set(
+      session.questions.filter((row) => row.askedAt !== null).map((row) => row.position),
+    );
+    const since = {
+      lastEndedMs: session.turns.at(-1)?.endedMs ?? 0,
+      requestMs: at.requestedAt.getTime() - session.startedAt.getTime(),
+      respondedMs: at.respondedAt.getTime() - session.startedAt.getTime(),
+    };
+    const reached = response.turns
+      .filter(
+        (turn) =>
+          turn.speaker === "interviewer" &&
+          turn.state === "question" &&
+          turn.question_position !== null,
+      )
+      .map((turn) => turn.question_position as number);
+    const newlyAsked = [...new Set(reached)].filter((position) => !askedAlready.has(position));
+
+    const applied = await this.prisma.$transaction(async (tx) => {
+      for (const turn of response.turns) {
+        const sessionQuestionId =
+          turn.question_position === null
+            ? null
+            : (questionIdAt.get(turn.question_position) ?? null);
+        await tx.sessionTurn.upsert({
+          where: { sessionId_seq: { sessionId: session.id, seq: turn.seq } },
+          create: {
+            sessionId: session.id,
+            seq: turn.seq,
+            speaker: turn.speaker,
+            state: turn.state,
+            sessionQuestionId,
+            followUpIndex: turn.follow_up_index,
+            text: turn.text,
+            ...timingFor(turn.speaker, since),
+            criteriaCovered: turn.criteria_covered ?? Prisma.DbNull,
+          },
+          // A replay changes nothing: what was said was said, and its timing belongs to the
+          // exchange that really produced it.
+          update: {},
+        });
+      }
+
+      for (const position of newlyAsked) {
+        await tx.interviewSessionQuestion.updateMany({
+          where: { sessionId: session.id, position, askedAt: null },
+          data: { askedAt: at.respondedAt },
+        });
+      }
+
+      const followUps = await tx.sessionTurn.groupBy({
+        by: ["sessionQuestionId"],
+        where: { sessionId: session.id, followUpIndex: { not: null } },
+        _count: { _all: true },
+      });
+      for (const row of followUps) {
+        if (!row.sessionQuestionId) continue;
+        await tx.interviewSessionQuestion.update({
+          where: { id: row.sessionQuestionId },
+          data: { followUpsAsked: row._count._all },
+        });
+      }
+
+      return tx.interviewSession.update({
+        where: { id: session.id },
+        data: {
+          state: response.state,
+          status: response.ended ? "completed" : session.status,
+          endedAt: response.ended ? (session.endedAt ?? at.respondedAt) : session.endedAt,
+          lastActivityAt: at.respondedAt,
+          engineSnapshot: response.engine_snapshot ?? Prisma.DbNull,
+          // Merged, not replaced: a session records every released prompt that spoke in it, and a
+          // later exchange must not erase the version the intro was rendered from.
+          promptVersions: {
+            ...asRecord(session.promptVersions),
+            ...response.prompt_versions,
+          },
+          // Taken from what was actually CALLED rather than from config. A session that ran while
+          // `LLM_MODEL_INTERVIEWER` was being changed should say which model answered it, and the
+          // `ai_calls` records are the only place that is a fact rather than a setting.
+          modelConfig: { ...asRecord(session.modelConfig), ...modelsUsed(response.ai_calls) },
+        },
+        include: sessionInclude,
+      });
+    });
+    return { session: applied, newlyAsked };
+  }
+}
+
+/**
+ * What one exchange changed. The session is re-read inside the same transaction, so what the frames
+ * are built from is what was actually written rather than what was about to be.
+ */
+export interface AppliedExchange {
+  session: SessionWithContent;
+  /** Positions this exchange reached for the first time — a replay reports none. */
+  newlyAsked: number[];
+}
+
+/**
+ * Turn timing, in milliseconds from `interview_sessions.started_at`.
+ *
+ * Text mode has two things worth recording and they are both real, not filler. A candidate turn
+ * spans from the moment the interviewer finished speaking to the moment their answer arrived: the
+ * time they spent reading and typing, which is what M6's pace coaching has to work from when there
+ * is no audio. An interviewer turn spans the request arriving to the response coming back: the
+ * latency the candidate actually waited, which is the figure CLAUDE.md's "log per-stage latency"
+ * asks for. Every interviewer turn in one exchange shares it, because one round trip produced them.
+ */
+function timingFor(
+  speaker: "interviewer" | "candidate",
+  since: { lastEndedMs: number; requestMs: number; respondedMs: number },
+): { startedMs: number; endedMs: number } {
+  return speaker === "candidate"
+    ? { startedMs: since.lastEndedMs, endedMs: since.requestMs }
+    : { startedMs: since.requestMs, endedMs: since.respondedMs };
+}
+
+/** A stored Json object as something mergeable. Anything else — a null, an array — reads as empty. */
+function asRecord(value: Prisma.JsonValue | null): Prisma.JsonObject {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+/** `purpose -> provider/model`, from the calls this exchange really made. */
+function modelsUsed(calls: readonly AiCallRecord[]): Prisma.JsonObject {
+  return Object.fromEntries(calls.map((call) => [call.purpose, `${call.provider}/${call.model}`]));
 }

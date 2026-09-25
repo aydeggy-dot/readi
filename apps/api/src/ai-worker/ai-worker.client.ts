@@ -4,6 +4,8 @@ import {
   CvParseResponse,
   type EmbedRequest,
   EmbedResponse,
+  type InterviewAdvanceRequest,
+  InterviewAdvanceResponse,
 } from "@readi/shared-types";
 import type { Env } from "../config/env";
 import { ENV } from "../config/env.module";
@@ -17,6 +19,8 @@ export class AiWorkerUnavailableError extends Error {
 export abstract class AiWorkerClient {
   abstract parseCv(request: CvParseRequest): Promise<CvParseResponse>;
   abstract embed(request: EmbedRequest): Promise<EmbedResponse>;
+  /** One interview exchange (ADR-0004/0016). The engine lives in the worker; this asks it. */
+  abstract advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse>;
 }
 
 @Injectable()
@@ -33,6 +37,10 @@ export class HttpAiWorkerClient extends AiWorkerClient {
 
   async embed(request: EmbedRequest): Promise<EmbedResponse> {
     return this.post("/embeddings", request, EmbedResponse, request.request_id);
+  }
+
+  async advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse> {
+    return this.post("/interview/advance", request, InterviewAdvanceResponse, request.session_id);
   }
 
   /** One POST to the worker, validated against the response contract (ADR-0003/0004). */
