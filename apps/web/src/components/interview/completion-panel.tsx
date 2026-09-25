@@ -118,6 +118,17 @@ export function CompletionPanel({
         <p className="text-lg leading-relaxed">{t("interview.complete.scoring")}</p>
       </section>
 
+      {/*
+        The same sentence the setup screen made before the interview, now in the past tense: which
+        round this was, and which two it was not. A product that prepares one round out of three
+        must not let a candidate walk away thinking it prepared three (product principle 1, and the
+        owner's coding-round decision of 2026-09-25).
+      */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl leading-tight">{t("interview.complete.scopeTitle")}</h2>
+        <Note as="p">{t("interview.complete.scope")}</Note>
+      </section>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-xl leading-tight">{t("interview.complete.nextTitle")}</h2>
         <Note as="p">{t("interview.complete.next")}</Note>

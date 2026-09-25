@@ -2,6 +2,7 @@ import type { CandidateSessionQuestion, CandidateTurn } from "@readi/shared-type
 import { t } from "@/i18n";
 import { contextBlocks } from "@/lib/question-context";
 import { cn } from "@/lib/utils";
+import { CodeBlock } from "./code-block";
 
 /**
  * The interview, as a transcript (ADR-0013, the M3 plan's "The interview screen").
@@ -107,13 +108,7 @@ function QuestionSetup({ context }: { context: string }) {
       </figcaption>
       {contextBlocks(context).map((block, index) =>
         block.kind === "code" ? (
-          <pre
-            key={index}
-            // The one horizontal scroller we allow: a snippet must not be reflowed to fit 360px.
-            className="max-w-full overflow-x-auto rounded-sm border border-border bg-background p-3 font-mono text-base leading-relaxed"
-          >
-            <code>{block.text}</code>
-          </pre>
+          <CodeBlock key={index} text={block.text} />
         ) : (
           <p key={index} className="leading-relaxed whitespace-pre-wrap">
             {block.text}

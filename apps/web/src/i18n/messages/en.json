@@ -283,7 +283,7 @@
       "length": "{minutes} minutes",
       "activeTitle": "One interview at a time",
       "active": "You have an interview in progress. Starting a new one leaves that one unfinished.",
-      "scope": "Every interview here is a conversation you type: questions, follow-ups, and the chance to ask your own at the end. Coding and whiteboard rounds are not part of it yet.",
+      "scope": "Every interview here is the conversation round, typed: questions, follow-ups, and the chance to ask your own at the end. Live coding and system design are not built yet.",
       "status": {
         "in_progress": "In progress",
         "completed": "Finished",
@@ -313,7 +313,7 @@
       "typesHint": "All of them is the mixed interview a first round usually is. Narrow it when you want to drill one thing.",
       "typesRequired": "Pick at least one kind of question.",
       "scopeTitle": "What this covers",
-      "scope": "How you explain your work, your judgement, and how you hold up when a question is pushed further. It is not a coding round and not a whiteboard — those are not built yet, and we would rather say so than imply otherwise.",
+      "scope": "The conversation round: how you explain your work, your judgement, and how you hold up when a question is pushed further. It does not cover live coding or system design — neither is built yet, so prepare for those elsewhere until they are.",
       "start": "Start the interview",
       "starting": "Starting…",
       "noRoles": "There are no roles on offer yet."
@@ -364,7 +364,9 @@
       "endNow": "End it now",
       "ended": "The interview is over.",
       "seeSummary": "See where you got to",
-      "draftKept": "Saved on this device until you send it."
+      "draftKept": "Saved on this device until you send it.",
+      "snippet": "Code snippet",
+      "snippetScroll": "Scroll sideways to read the whole snippet."
     },
     "complete": {
       "title": "Interview finished",
@@ -374,6 +376,8 @@
       "waiting": "Saving the last of the transcript.",
       "scoringTitle": "Scoring is not built yet",
       "scoring": "The whole conversation is recorded. Rubric-based feedback and your readiness score arrive in the next update, and this session is scored then — none of what you just did is thrown away.",
+      "scopeTitle": "What this covered",
+      "scope": "The conversation round: your answers, the follow-ups they earned, and the questions you asked at the end. Not live coding and not system design — neither is built yet, so a real first round may still hold something this one did not.",
       "nextTitle": "What to do now",
       "next": "Read the interview back and mark the answers you would rather give again. Then take another one: the questions you have already been asked are put aside first.",
       "again": "Start another interview",
