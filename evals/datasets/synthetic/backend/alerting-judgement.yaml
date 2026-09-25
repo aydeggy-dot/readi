@@ -91,8 +91,11 @@ answers:
       fifteen minutes, and if it's over a small percentage, one or two, it fires, and this one was
       at eight so it'd have gone off basically in the first hour. The window matters, too short
       and it's noisy, too long and it takes days, which is sort of the failure here. And the
-      acting-on-it part — it has to page someone on call, with the endpoint in the title, and it
-      has to not be crying wolf, otherwise people mute it.
+      acting-on-it part — well, on my own projects there's no rota, it's me, so it goes to my
+      phone, but that's still the same thing, it has to say which endpoint and what the rate is
+      so I'm not opening a dashboard at eleven at night to find out whether it matters. And it
+      has to not be crying wolf, otherwise you mute it, and then you're back to a customer
+      telling you.
     expected:
       - dimension: Measures the right thing
         score: 3
@@ -102,7 +105,11 @@ answers:
         because: One or two percent over ten or fifteen minutes, and eight would have fired in the first hour; the window is named as the failure here.
       - dimension: Makes it reach someone who can act
         score: 4
-        because: Pages someone on call with the endpoint in the title, "and it has to not be crying wolf, otherwise people mute it".
+        because: >-
+          A named reader who can act — themselves, with what the message has to say so they do not
+          start by looking — and the crying-wolf point. This is the answer the 2026-09-25 widening
+          exists for: one person and no rota scores the same as an on-call rotation, and level 1 is
+          now about there being no account of who reads it rather than about the channel.
   - kind: nigerian-english
     text: |
       The real problem no be say nothing dey measured — na say nobody measure from the customer

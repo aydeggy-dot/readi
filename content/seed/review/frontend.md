@@ -2849,12 +2849,12 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **How they decided a change was safe — 35%**
 
-Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine.
+Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine. Scored on what told them, never on what there was to tell them.
 
 - **0 (absent):** Not addressed; they changed it and it worked.
 - **1 (weak):** Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
 - **2 (partial):** Names one safeguard without saying what it would have caught.
-- **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
+- **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
 - **4 (excellent):** As 3, and says what it did not cover, so they knew what they were still taking a chance on.
 
 _Asked for by the opening prompt; no planned follow-up._
@@ -2867,7 +2867,7 @@ Smaller than it was tempting to make, and they can say why.
 - **1 (weak):** A rewrite, or a refactor of code they had just met, described as the obvious improvement.
 - **2 (partial):** Describes the change without a reason for its size.
 - **3 (solid):** A change narrow enough to reason about, and they can say what they deliberately did not touch.
-- **4 (excellent):** As 3, and says what they wrote down for whoever reads it next — including what they were still unsure of, and what they left alone because they did not understand it yet.
+- **4 (excellent):** As 3, and says what they wrote down for whoever reads it next, themselves in six months included — what they were still unsure of, and what they left alone because they did not understand it yet.
 
 _Asked for by the opening prompt; no planned follow-up._
 

@@ -71,7 +71,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 States and sequences — double submission, going back, a dropped connection — and a stated reason the list is long enough.
 
 - **0 (absent):** Happy path only.
-- **1 (weak):** Names error cases that the input validation already covers and calls that the failure paths — the second tap, the back button and the dropped request are treated as the same case as a bad value.
+- **1 (weak):** Names error cases the input validation already covers and calls that the failure paths — or answers "beyond the values" with more values — so the second tap, the back button and the dropped request are treated as the same case as a bad value.
 - **2 (partial):** Several error cases, all of them about input validation.
 - **3 (solid):** Covers behaviour as well as input — resubmission, navigation, failure mid-request — and cases drawn from how the software will really be used here, on a bad connection and a small screen.
 - **4 (excellent):** As 3, and says where the list stops and why — what is deliberately out of scope, and what would make them add to it.
@@ -150,9 +150,9 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 Resend against the expiry and against the counter, and two codes alive at once.
 
-- **0 (absent):** Treats each rule on its own.
-- **1 (weak):** Tests Resend as its own case — a new code arrives — without asking anything about the code it replaced or the counter it may reset.
-- **2 (partial):** Notices one interaction, without saying what should happen — or asserts what the interactions are instead of asking, including that Resend clears the attempt counter, which would make the lock unenforceable by resending.
+- **0 (absent):** Treats each rule on its own — and answers the collision put in front of them as a single-rule case, the code typed simply being the wrong code.
+- **1 (weak):** Tests Resend as its own case — a new code arrives — or answers only the collision put in front of them, with nothing about the code it replaced, the attempt counter, or two codes alive at once.
+- **2 (partial):** Reaches one interaction beyond the one they were given, without saying what should happen — or asserts what the interactions are instead of asking, including that Resend clears the attempt counter, which would make the lock unenforceable by resending.
 - **3 (solid):** Asks what Resend does to the previous code and to the attempt counter, and what two codes in flight should do, rather than deciding any of the three.
 - **4 (excellent):** As 3, and says which answer they would argue for and why — an old code that still works is the difference between a convenience and a way in.
 
@@ -206,7 +206,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 A timeout, the app closed mid-request, the same tap twice — whether the money moved exactly once, and where that is read.
 
-- **0 (absent):** Not considered; every request either succeeds or fails.
+- **0 (absent):** Answers that it either went through or it did not, so there is nothing to find out — a timeout means it failed.
 - **1 (weak):** Treats the unknown outcome as a display problem — plans to check that a spinner or an error message appears, and never checks what happened to the money.
 - **2 (partial):** Mentions a network failure, without saying what would be checked afterwards.
 - **3 (solid):** Tests the interrupted cases, and checks the money moved exactly once somewhere other than the success message.
@@ -766,13 +766,13 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **What they check before writing it up — 35%**
 
-The agreed contract, and whether anything else uses the other spelling.
+The agreed contract, and whether anything else uses the other spelling. Not scored on having a contract to check: settling it against what the callers already send counts the same.
 
-- **0 (absent):** Writes it up straight away.
+- **0 (absent):** Nothing to check first — the response is the finding, and a spec would not change what gets written.
 - **1 (weak):** Verifies by repetition — sends the request again, tries it in another tool, checks the token — rather than checking what the field is supposed to be called.
 - **2 (partial):** Says they would "check the documentation", with nothing about what would settle it.
-- **3 (solid):** Checks what the contract says the field is, and whether the app and other endpoints agree.
-- **4 (excellent):** As 3, and says what they would conclude if there is no contract to check — that the missing agreement is itself the finding.
+- **3 (solid):** Checks what the field is supposed to be called — the agreed contract where there is one, otherwise what the app and the other endpoints already send — and says which of the two they are going on.
+- **4 (excellent):** As 3, and treats a missing agreement as a finding in its own right rather than an obstacle to work around.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
@@ -1812,10 +1812,10 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 Including that it shipped anyway, and including that they turned out to be wrong.
 
 - **0 (absent):** No outcome, or an outcome that does not follow from what they did.
-- **1 (weak):** Ends with having been right, and with the concern vindicated, and nothing about what they would do again or differently.
+- **1 (weak):** Ends with having been right, and nothing follows from it — what is different now is answered with the vindication itself, that they would raise it again, or not at all.
 - **2 (partial):** An outcome, with a lesson that is a platitude.
 - **3 (solid):** How it ended — including being overruled, or being wrong — and one specific thing they now do because of it.
-- **4 (excellent):** As 3, and separates what they would still argue for from what they now think was the right call against them.
+- **4 (excellent):** As 3, and separates what they would still argue for from what they now think was right against them — or, with nobody to rule either way, what would have changed their own mind.
 
 _Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
 
@@ -2860,12 +2860,12 @@ _Asked for by the opening prompt; no planned follow-up._
 
 **How they decided a change was safe — 35%**
 
-Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine.
+Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine. Scored on what told them, never on what there was to tell them.
 
 - **0 (absent):** Not addressed; they changed it and it worked.
 - **1 (weak):** Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
 - **2 (partial):** Names one safeguard without saying what it would have caught.
-- **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
+- **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
 - **4 (excellent):** As 3, and says what it did not cover, so they knew what they were still taking a chance on.
 
 _Asked for by the opening prompt; no planned follow-up._
@@ -2878,7 +2878,7 @@ Smaller than it was tempting to make, and they can say why.
 - **1 (weak):** A rewrite, or a refactor of code they had just met, described as the obvious improvement.
 - **2 (partial):** Describes the change without a reason for its size.
 - **3 (solid):** A change narrow enough to reason about, and they can say what they deliberately did not touch.
-- **4 (excellent):** As 3, and says what they wrote down for whoever reads it next — including what they were still unsure of, and what they left alone because they did not understand it yet.
+- **4 (excellent):** As 3, and says what they wrote down for whoever reads it next, themselves in six months included — what they were still unsure of, and what they left alone because they did not understand it yet.
 
 _Asked for by the opening prompt; no planned follow-up._
 

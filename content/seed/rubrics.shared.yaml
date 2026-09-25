@@ -235,13 +235,16 @@ rubrics:
           "3": A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
           "4": As 3, and worked out what the code was *for* before deciding what it was doing wrong.
       - dimension: How they decided a change was safe
-        description: Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine.
+        description: >-
+          Something told them — a test, a small experiment, a person, a way to undo it — rather than
+          a feeling that it would be fine. Scored on what told them, never on what there was to
+          tell them.
         weight: 35
         levels:
           "0": Not addressed; they changed it and it worked.
           "1": Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
           "2": Names one safeguard without saying what it would have caught.
-          "3": Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew.
+          "3": Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
           "4": As 3, and says what it did not cover, so they knew what they were still taking a chance on.
       - dimension: The change they made
         description: Smaller than it was tempting to make, and they can say why.
@@ -251,7 +254,7 @@ rubrics:
           "1": A rewrite, or a refactor of code they had just met, described as the obvious improvement.
           "2": Describes the change without a reason for its size.
           "3": A change narrow enough to reason about, and they can say what they deliberately did not touch.
-          "4": As 3, and says what they wrote down for whoever reads it next — including what they were still unsure of, and what they left alone because they did not understand it yet.
+          "4": As 3, and says what they wrote down for whoever reads it next, themselves in six months included — what they were still unsure of, and what they left alone because they did not understand it yet.
 
   # `incident-you-contributed-to` used `behavioural-answer-quality` until 2026-09-22, when two
   # critique passes said independently that it could not score what the question asks — owning a

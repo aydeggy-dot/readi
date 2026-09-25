@@ -45,7 +45,7 @@ rubrics:
         weight: 45
         levels:
           "0": Happy path only.
-          "1": Names error cases that the input validation already covers and calls that the failure paths — the second tap, the back button and the dropped request are treated as the same case as a bad value.
+          "1": Names error cases the input validation already covers and calls that the failure paths — or answers "beyond the values" with more values — so the second tap, the back button and the dropped request are treated as the same case as a bad value.
           "2": Several error cases, all of them about input validation.
           "3": Covers behaviour as well as input — resubmission, navigation, failure mid-request — and cases drawn from how the software will really be used here, on a bad connection and a small screen.
           "4": As 3, and says where the list stops and why — what is deliberately out of scope, and what would make them add to it.
@@ -97,7 +97,7 @@ rubrics:
         description: A timeout, the app closed mid-request, the same tap twice — whether the money moved exactly once, and where that is read.
         weight: 35
         levels:
-          "0": Not considered; every request either succeeds or fails.
+          "0": Answers that it either went through or it did not, so there is nothing to find out — a timeout means it failed.
           "1": Treats the unknown outcome as a display problem — plans to check that a spinner or an error message appears, and never checks what happened to the money.
           "2": Mentions a network failure, without saying what would be checked afterwards.
           "3": Tests the interrupted cases, and checks the money moved exactly once somewhere other than the success message.
@@ -249,14 +249,17 @@ rubrics:
           "3": Puts the two side by side and says the name is the difference.
           "4": As 3, and says that the API rejected the request correctly — the defect is in one of the two sides' idea of the field name, not in the rejection.
       - dimension: What they check before writing it up
-        description: The agreed contract, and whether anything else uses the other spelling.
+        description: >-
+          The agreed contract, and whether anything else uses the other spelling. Not scored on
+          having a contract to check: settling it against what the callers already send counts the
+          same.
         weight: 35
         levels:
-          "0": Writes it up straight away.
+          "0": Nothing to check first — the response is the finding, and a spec would not change what gets written.
           "1": Verifies by repetition — sends the request again, tries it in another tool, checks the token — rather than checking what the field is supposed to be called.
           "2": Says they would "check the documentation", with nothing about what would settle it.
-          "3": Checks what the contract says the field is, and whether the app and other endpoints agree.
-          "4": As 3, and says what they would conclude if there is no contract to check — that the missing agreement is itself the finding.
+          "3": Checks what the field is supposed to be called — the agreed contract where there is one, otherwise what the app and the other endpoints already send — and says which of the two they are going on.
+          "4": As 3, and treats a missing agreement as a finding in its own right rather than an obstacle to work around.
       - dimension: Writes it so the evidence decides it
         description: The write-up puts the disagreement on a document rather than on a person, and needs no one to be named.
         weight: 25
@@ -982,9 +985,9 @@ rubrics:
         description: Resend against the expiry and against the counter, and two codes alive at once.
         weight: 40
         levels:
-          "0": Treats each rule on its own.
-          "1": Tests Resend as its own case — a new code arrives — without asking anything about the code it replaced or the counter it may reset.
-          "2": Notices one interaction, without saying what should happen — or asserts what the interactions are instead of asking, including that Resend clears the attempt counter, which would make the lock unenforceable by resending.
+          "0": Treats each rule on its own — and answers the collision put in front of them as a single-rule case, the code typed simply being the wrong code.
+          "1": Tests Resend as its own case — a new code arrives — or answers only the collision put in front of them, with nothing about the code it replaced, the attempt counter, or two codes alive at once.
+          "2": Reaches one interaction beyond the one they were given, without saying what should happen — or asserts what the interactions are instead of asking, including that Resend clears the attempt counter, which would make the lock unenforceable by resending.
           "3": Asks what Resend does to the previous code and to the attempt counter, and what two codes in flight should do, rather than deciding any of the three.
           "4": As 3, and says which answer they would argue for and why — an old code that still works is the difference between a convenience and a way in.
 
@@ -1023,10 +1026,10 @@ rubrics:
         weight: 25
         levels:
           "0": No outcome, or an outcome that does not follow from what they did.
-          "1": Ends with having been right, and with the concern vindicated, and nothing about what they would do again or differently.
+          "1": Ends with having been right, and nothing follows from it — what is different now is answered with the vindication itself, that they would raise it again, or not at all.
           "2": An outcome, with a lesson that is a platitude.
           "3": How it ended — including being overruled, or being wrong — and one specific thing they now do because of it.
-          "4": As 3, and separates what they would still argue for from what they now think was the right call against them.
+          "4": As 3, and separates what they would still argue for from what they now think was right against them — or, with nobody to rule either way, what would have changed their own mind.
 
   # `repeatable-test-data` — `the-test-that-only-passes-once` was two questions, which two passes said
   # independently and the drafter's own note suspected. The second-run collision is junior material;

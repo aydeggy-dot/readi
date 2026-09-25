@@ -563,11 +563,14 @@ rubrics:
           "3": Derives it from what this endpoint normally does — or says they would watch it for a week first to find out — and puts roughly one in twelve far outside it.
           "4": As 3, and says what they would do about the endpoints whose normal is genuinely noisy, rather than letting one of them train everyone to ignore alerts.
       - dimension: Makes it reach someone who can act
-        description: An alert nobody receives, or nobody can act on, is not an alert.
+        description: >-
+          An alert nobody receives, or nobody can act on, is not an alert. Scored on there being a
+          named reader who can act, never on there being a team — one person who receives it and
+          knows what to do next is a complete answer.
         weight: 35
         levels:
           "0": Treats the alert as done once it is configured.
-          "1": Routes everything to a shared channel or an email nobody reads, described as covered.
+          "1": Sends it somewhere with no account of who reads it or when — a shared channel, an inbox — and calls that covered.
           "2": Says someone "should be notified" without saying who or what they would do.
           "3": Says who receives it — even if that is only themselves — and what the message has to contain for them to start work rather than start looking.
           "4": As 3, and says an alert that fires often and means nothing gets ignored, which is how three days pass, so the number of alerts is itself a thing to keep down.
@@ -905,7 +908,7 @@ rubrics:
           "2": Says to "restart the workers" without saying what puts it in the deploy.
           "3": Puts the restart in the deploy itself, using the graceful signal so a job in flight is finished rather than cut off.
           "4": As 3, and says what the process manager then has to do — bring the worker back — because a graceful stop that nothing restarts is an outage of a different kind.
-      - dimension: Makes the next person's version visible
+      - dimension: Makes the running version visible
         description: Something should say which version each worker is running.
         weight: 25
         levels:

@@ -94,7 +94,10 @@ answers:
         because: Ran it because reading was not working, then matched the printed output back to the code; `git blame` on the odd parts.
       - dimension: How they decided a change was safe
         score: 3
-        because: Checked what called it — only the crontab — then ran it against a copy of last month's data and diffed before and after.
+        because: >-
+          Checked what called it — only the crontab — then ran it against a copy of last month's
+          data and diffed before and after. No suite and nobody to ask: this is the candidate the
+          criterion's route is written for, and the route is what it covered, not what was there.
       - dimension: The change they made
         score: 3
         because: Three lines, a weekday check at the top, and a hardcoded date deliberately left alone.

@@ -119,6 +119,17 @@ generalist reviewer.` The seed contract has no field for this and does not need 
   `client-boundary-reasoning` criterion 2 have level 0s defined by not having been told the thing the
   probe tells them. After writing a probe, read its criterion's level 0 and level 1 and ask whether
   the probe has just made them impossible.
+- **A protective clause belongs on a behavioural criterion, and rarely anywhere else.** A scenario or
+  technical prompt _supplies_ the workplace — the report on screen, the snippet, the provider outage
+  — and a rubric written in the hypothetical ("what they would do") needs no route however much
+  workplace furniture it mentions. The bug is a criterion that requires the candidate to have **had**
+  one: a past-tense criterion, or a level reachable only by recalling a real job. Check the question's
+  `type` and `prompt` before calling a criterion unfair. This is why counting clauses is a poor signal
+  and reading is the only one that works: the 2026-09-25 sweep expected backend to be the worst file
+  in the repo on a clause count of zero across eighty-seven criteria, and found three real ones,
+  because nearly every backend question hands the candidate an artefact instead of asking for recall.
+  `rubrics.shared.yaml` is the best-covered file precisely because it is where the behavioural
+  questions live.
 - **A clause in a description is guidance; a clause in a level descriptor is a score** (owner's
   decision, 2026-09-25). Both reach the evaluator, but only the descriptor is what it lands on and
   quotes evidence against, so a fairness clause belongs in the descriptors of the levels it is meant
@@ -138,6 +149,13 @@ generalist reviewer.` The seed contract has no field for this and does not need 
   group, with the same substance said just as badly, and still scored 3 / 3 / 3. Ask, after every
   descriptor change: which of the five answers now lands somewhere it did not before? If the answer
   is none, the set does not test the change.
+
+**And it must not evict the case it already had.** The same 2026-09-25 sweep narrowed three level 1s
+to the wrong answer a _probed_ candidate gives, and all three stranded the stress answer that used to
+land there — on `rule-interaction-test-design` the `weak` answer tests Resend as its own case and
+never meets the collision the probe hands over, so the sharper descriptor had nowhere to put it. All
+three were widened to hold both shapes. Read the set in both directions after every descriptor
+change: which answer now lands somewhere new, and which answer no longer lands anywhere.
 
 ## House style
 

@@ -1566,11 +1566,16 @@ the work each one leaves, and none of it is a question change.
       moves scoring, so this needs its own `check-stress.mjs` run.
       **Done 2026-09-24** — see the section below and
       `docs/progress/2026-09-24-rubric-fairness.md`.
-- [ ] **Check QA and backend for the same two gaps** — criteria that assume a workplace, and level 0
-      or 1 descriptors the probe has made unreachable. A regex for the phrasing these clauses use
-      finds all five written on 2026-09-24 in frontend and **none at all** in `backend/rubrics.yaml`
-      across 87 criteria, against three in QA's 99 — a place to look, not a count to quote (it
-      finds five of the eleven the owner counted in `rubrics.shared.yaml`).
+- [x] **Check QA and backend for the same two gaps** — done 2026-09-25,
+      `docs/progress/2026-09-25-fairness-sweep-qa-backend.md`. Two fairness passes, one per bank,
+      run separately; 15 findings, **five did not survive checking against the file**. Applied: 3 in
+      backend (`alerting-judgement` 3, `unfamiliar-code-approach` 2 + 3, `worker-deploy-diagnosis` 3)
+      and 7 edits across 5 QA criteria (`api-evidence-reading` 2 — the worst, a route written into
+      level 4 and gated behind a level 3 that needs the thing; `rule-interaction-test-design` 3,
+      `transactional-test-design` 2, `raising-a-quality-concern` 3, `test-case-selection` 3). Plus
+      eleven silent level 0s and a new check (`7ea284f`). **The mechanical signal was wrong**: the
+      regex said backend had none, and the reason is that a scenario prompt supplies the workplace —
+      clauses belong on behavioural criteria and almost nowhere else.
 - [ ] **Backend (68 probes)**, opening with the mis-aim check (decision 5): per question, name the
       criterion the opening asks and check it is the one without a probe.
 - [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.
@@ -1646,3 +1651,43 @@ review. **Nine descriptor changes, no question changed.** Handover:
 seen on the other three is not wanted, `hasContent` in `apps/api/src/cli/content-review-doc.ts` is
 the line, and the corpus test would then skip roles with no page rather than asserting one for
 every catalogue role.
+
+## The fairness sweep, and the full-stack page (2026-09-25, branch `content/catalogue-banks`)
+
+Handover: `docs/progress/2026-09-25-fairness-sweep-qa-backend.md`. Four commits: `12a6e5a` the
+full-stack page's asks, `7ea284f` the silent level 0s and the check, and the sweep itself.
+
+- [x] **The full-stack reviewer is asked about the set, not about each question** (owner's
+      refinement). A role with no bank of its own gets its own "What we are asking you": is this the
+      right set, and **what is missing between them** — the questions that only come up when one
+      person owns both ends. Keyed on "no questions of its own", not on the slug.
+- [x] **A level 0 reading only "Not addressed." is silence, not a wrong answer.** Eleven rewritten;
+      eight backend ones are warnings until its retrofit. `check-bank.mjs` enforces it.
+- [x] **QA and backend swept** for both gaps. Ten criteria changed, five findings rejected.
+
+### Left for the owner
+
+1. **The QA stress sets predate the probes and were never revisited.** Where a descriptor's meaning
+   now depends on the probe having been asked, the set cannot confirm it. Not wrong — a weak answer
+   failing to cover a probed point is legitimate — but the sets test the rubrics as they were, not
+   as the engine will use them. Rewriting all 33 against the whole exchange is its own job.
+2. **`status-code-honesty` at `intern-junior`** — a level judgement, not a fairness one, and worth a
+   reviewer's opinion: 30% of a junior question whose subject is what sits between an app and a server.
+3. **No QA question carries `fullstack`**, against 31 of frontend's 35 and 31 of backend's 34. For
+   the held tagging pass.
+
+### What the sweep taught, now in `SKILL.md`
+
+- A protective clause belongs on a **behavioural** criterion and rarely anywhere else: a scenario
+  prompt supplies the workplace, and a rubric written in the hypothetical needs no route however much
+  workplace furniture it mentions. This is why the clause-count signal overstated the backend gap.
+- A rubric change must not **evict** the case it already had. Three rewrites in this pass would have
+  stranded an existing stress answer by narrowing a level 1 to the post-probe wrong answer; all three
+  were widened to hold both. Check the set in both directions, not only for the new case.
+
+### Next
+
+- [ ] **Backend (68 probes)**, opening with the mis-aim check: per question, name the criterion the
+      opening asks and check it is the one without a probe. The eight silent level 0s in
+      `backend/rubrics.yaml` become errors in that pass and are part of it.
+- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.

@@ -29,7 +29,7 @@ answers:
       - dimension: Restarts it as part of deploying
         score: 4
         because: "`queue:restart` in the deploy after the code is live, graceful between jobs, with Supervisor bringing it back — and the cache has to be one the workers can see."
-      - dimension: Makes the next person's version visible
+      - dimension: Makes the running version visible
         score: 3
         because: Logs the release sha from inside the job so a stale worker raises an alert; does not reach the payloads already queued.
   - kind: weak
@@ -50,7 +50,7 @@ answers:
       - dimension: Restarts it as part of deploying
         score: 1
         because: "`cache:clear` and `config:clear`, or restarting the whole box, in place of restarting the workers."
-      - dimension: Makes the next person's version visible
+      - dimension: Makes the running version visible
         score: 1
         because: Would push one job through after deploying and check the output before walking away.
   - kind: fluent-but-wrong
@@ -74,7 +74,7 @@ answers:
       - dimension: Restarts it as part of deploying
         score: 0
         because: Drains the queue and resets OPcache behind maintenance mode; the resident workers are never restarted.
-      - dimension: Makes the next person's version visible
+      - dimension: Makes the running version visible
         score: 0
         because: Nothing would make a stale worker visible; the claim is that the deploy is now deterministic.
   - kind: correct-poorly-explained
@@ -97,7 +97,7 @@ answers:
       - dimension: Restarts it as part of deploying
         score: 4
         because: "`queue:restart` drops a flag the worker sees after its current job, Supervisor restarts it, and a per-release file cache will not reach it."
-      - dimension: Makes the next person's version visible
+      - dimension: Makes the running version visible
         score: 3
         because: "`--max-time` so they recycle anyway, and the release sha logged from inside a job."
   - kind: nigerian-english
@@ -120,6 +120,6 @@ answers:
       - dimension: Restarts it as part of deploying
         score: 4
         because: "Same: `queue:restart` after the code is live, the same cache the workers see, graceful after the current job."
-      - dimension: Makes the next person's version visible
+      - dimension: Makes the running version visible
         score: 3
         because: "Same: `--max-time` to recycle, and the release sha logged so an alert fires on a stale worker."

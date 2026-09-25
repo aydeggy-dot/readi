@@ -89,11 +89,14 @@ answers:
       concerned there's no job id at all, that's why validation failed. Not the token,
       because it's a 400, if it was the token it would be 401. Not the cover note either,
       it didn't mention that one. So I'd send it again with job_id and I think it'll pass
-      — sorry, before that, the spec. I'd open the spec and look at the exact field name,
-      the casing, whether it's required, whether it's a uuid. Because that's the whole
-      thing — if the spec says jobId then the developer's code is wrong, it's their
-      defect. If the spec says job_id then honestly it's me, my request was wrong, no
-      defect, I just correct it. Then for the write-up I'd paste the request and the
+      — sorry, before that. Is there a spec. On this one there isn't, there's no written
+      contract for it anywhere I can find, so what I'd do instead is look at what the app
+      itself sends to this endpoint, and what the other endpoints call the same field,
+      and go on that. Because that's the whole thing — if everything else says jobId then
+      the developer's code is the odd one out, it's their defect. If everything else says
+      job_id then honestly it's me, my request was wrong, no defect, I just correct it.
+      And I'd say that's what I'm going on, that it's from the other callers and not from
+      a spec, so nobody thinks I read it somewhere. Then for the write-up I'd paste the
       response exactly as they are with the status code, and quote the line from the spec,
       and put expected and actual. Then nobody can argue, because it's not my opinion.
     expected:
@@ -102,7 +105,12 @@ answers:
         because: Level 4 — the two names put side by side and found not to be the same, so the field is missing; 400 rather than 401 so not the token, and the defect is in one side's idea of the name rather than in the rejection.
       - dimension: What they check before writing it up
         score: 3
-        because: Level 3 — opens the spec for the exact field name, the casing, whether it is required and whether it is a uuid, and says which side that makes wrong; nothing about there being no spec.
+        because: >-
+          Level 3 by the other route — there is no contract to open, so the field name is settled
+          against what the app and the other endpoints already send, and they say which of the two
+          they are going on. This is the answer the 2026-09-25 route exists for: it used to cap at
+          2, because level 3 required a contract and the way out was written into level 4 above it.
+          Not 4: a missing agreement is worked around here, not named as a finding in its own right.
       - dimension: Writes it so the evidence decides it
         score: 3
         because: Level 3 — pastes the request and the response exactly as they are with the status code, quotes the line from the spec, gives expected and actual, and names nobody.
