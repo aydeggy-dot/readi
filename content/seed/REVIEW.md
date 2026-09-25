@@ -80,7 +80,7 @@ developer a React snippet — so say which you think each one is.
 **7. Does this question belong to full-stack as well?**
 Full-stack is one of our four launch roles and has **no bank of its own** — it is made of the
 frontend and backend questions that genuinely transfer, each carrying `fullstack` as a second role.
-**Sixty-four of the hundred and four do today** — 31 of frontend's 35, 31 of backend's 34 and 2 of
+**Sixty-five of the hundred and four do today** — 31 of frontend's 35, 31 of backend's 34 and 3 of
 QA's 35. The heading on each question says which roles it is for. So, per question: would a
 full-stack interview ask this, or is it specialist enough that only a frontend or only a backend
 candidate should meet it? A wrong "yes" wastes a full-stack candidate's practice on something they
@@ -96,11 +96,13 @@ Two parts of that are worth knowing before you start, because they are where we 
   estimate was that about two thirds would transfer; in the event the only reason to say no turned
   out to be the stack. If that is too generous — if there are questions here a full-stack interview
   would genuinely never reach — those are the ones to mark.
-- **Only two QA questions cross over**, chosen for the testing judgement a developer who owns a
-  feature end to end needs rather than for QA craft: `what-to-test-when-there-is-no-time` and
-  `where-your-test-data-comes-from`. Everything else in that bank is about testing as a discipline —
-  automation suites, defect workflow, pipelines, test-case design — which is a specialist's round.
-  Tell us if one or two more belong, and if so which.
+- **Only three QA questions cross over.** Two for the testing judgement a developer who owns a
+  feature end to end needs rather than for QA craft — `what-to-test-when-there-is-no-time` and
+  `where-your-test-data-comes-from` — and `the-field-that-changed-shape`, which is there because a
+  field changing shape between the database and the screen is the full-stack question this bank
+  happens to contain. Everything else is testing as a discipline — automation suites, defect
+  workflow, pipelines, test-case design — which is a specialist's round. Tell us if more belong, and
+  if so which.
 
 ## How to send it back
 

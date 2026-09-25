@@ -1,6 +1,6 @@
 # Full-stack engineer — question bank blueprint
 
-**Wave 1. Status: blueprint drafted 2026-09-22; tagging pass done 2026-09-25 — 64 borrowed
+**Wave 1. Status: blueprint drafted 2026-09-22; tagging pass done 2026-09-25 — 65 borrowed
 questions, still no track and no boundary questions.** Derived from `docs/role-catalogue.md`
 § Full-stack Engineer — _added 2026-09-22_. Appendix C has the tagging audit;
 `docs/progress/2026-09-25-fullstack-tagging.md` is the handover.
@@ -97,7 +97,7 @@ questions the plan named, which is the whole of this role's own bank.
 
 The rest of the work is **tagging, not writing**: as the frontend and backend banks grow, each new
 question is asked "would a full-stack interview ask this?" and carries the second role when the
-answer is yes. **64 do today** (Appendix C). The drafting estimate here was "roughly two thirds";
+answer is yes. **65 do today** (Appendix C). The drafting estimate here was "roughly two thirds";
 in the event every general frontend and backend question transferred and the only reason to say no
 was a stack this role does not offer.
 
@@ -121,7 +121,7 @@ complete: false
 
 |            | Own new questions | Borrowed                  | Available | Today |
 | ---------- | ----------------- | ------------------------- | --------- | ----- |
-| Full-stack | ~8                | 64 across the three banks | **~72**   | 64    |
+| Full-stack | ~8                | 65 across the three banks | **~73**   | 65    |
 
 About 7 new rubrics — the boundary questions, less the behavioural one.
 
@@ -154,8 +154,8 @@ _Filled as the boundary questions are drafted._
 ## Appendix C — the tagging pass (2026-09-25)
 
 Held since 2026-09-22 so that it would inherit whatever the three banks ended up carrying, and run
-once at the end rather than three times. **64 of the 104 questions in the three banks are offered to
-a full-stack candidate** — 31 of frontend's 35, 31 of backend's 34, 2 of QA's 35 — against 11 when
+once at the end rather than three times. **65 of the 104 questions in the three banks are offered to
+a full-stack candidate** — 31 of frontend's 35, 31 of backend's 34, 3 of QA's 35 — against 11 when
 this blueprint was written.
 
 ### The frontend and backend banks: nothing to re-tag
@@ -191,10 +191,10 @@ in front of a candidate preparing for Django + React is exactly the unfairness t
 exists to prevent. The three variant shortfalls — `django-react` 1 of 2, `ruby-rails` 0 of 2,
 `dotnet-react` 0 of 1 — are a **writing** gap, and `check-bank.mjs` reports all three every run.
 
-### The QA bank: two crossed over, and why only two
+### The QA bank: three crossed over
 
 No QA question carried `fullstack` before this pass. The owner's brief was to consider whether one or
-two testing-mindset questions should. Two did:
+two **testing-mindset** questions should; two did, and the owner then added a third on merit.
 
 - **`what-to-test-when-there-is-no-time`** (scenario, `risk-based-testing`, both levels) — deciding
   what to check when there is no time to check everything. It is the only risk-prioritisation
@@ -220,15 +220,28 @@ gives them `what-to-test-on-a-login-screen` and `the-test-that-broke-for-nothing
 `check-bank.mjs` would reject them. If the testing mindset should reach full-stack through those,
 it is a one-line content change to `roles.yaml`, not a re-tag.
 
-### The near miss
+### The third, added on merit rather than on the brief
 
-**`the-field-that-changed-shape`** (technical, `testing-apis`, mid) — an endpoint's `salary` goes
-from a number to an object overnight and the Android app shows nothing. On merit it is the strongest
-transfer in the QA bank, because "what is the client entitled to assume" is the whole of
-`fullstack-boundary`, this role's defining topic. It was left because it is a contract question
-rather than a testing-mindset one, which was the brief, and because its answer key leans on contract
-checks running in the API's own pipeline — QA craft. If the boundary questions below are slow to
-arrive, this is the one to tag in the meantime.
+**`the-field-that-changed-shape`** (technical, `testing-apis`, mid; owner's decision, 2026-09-25) —
+an endpoint's `salary` goes from a number to an object overnight, nothing in the release notes
+mentions it, and the Android app shows an empty salary on every job. It is not a testing-mindset
+question, which is why the pass reported it rather than tagging it: it is a **contract** question.
+That is also why the owner took it. "What is the client entitled to assume" is the whole of
+`fullstack-boundary`, this role's defining topic, and **this is the best question the role has on it
+until the boundary questions are written** — which they are not, and will not be for a while.
+
+One descriptor moved with it, and it is the same defect this programme has spent three days on.
+Criterion 2's level 4 read "…and what they would ask **the API's owners** for", written for a QA
+candidate who cannot touch that pipeline. A full-stack candidate _is_ the API's owner, so the best
+answer available to them — "I would put the contract check in the API's own pipeline, in the same
+change" — was described by no band and would have scored 3 on a 35% criterion. The band now holds
+both routes. It is additive, so nothing was evicted: `check-stress.mjs` scores this rubric
+identically before and after (3.75 / 0.60 strong, 3.75 / 1.00 fluent-but-wrong).
+
+**The new case has no stress answer.** Every answer in `api-contract-reasoning.yaml` was written for
+a tester who has to ask someone else. That is a gap the skill's own rule names — a rubric change
+needs an answer from the case it now includes — and it folds into the standing stress-set rewrite
+rather than being done twice.
 
 ### What this pass did not do
 

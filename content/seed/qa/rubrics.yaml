@@ -290,7 +290,7 @@ rubrics:
           "1": Proposes a test that would still have passed — a status-code check, an end-to-end journey through the app's own screens, or a snapshot of the response taken after the change.
           "2": Says a test on the response, without saying what it asserts or where it runs.
           "3": A check on types and required fields, running somewhere it fails before users see it, and says where it ought to live even if that is not somewhere they can put it today.
-          "4": As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for.
+          "4": As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for, or, where they own both ends themselves, what they would put in the API's pipeline before the change could ship.
       - dimension: What changes so the next one is not found by a user
         description: Who else reads the field, and what agreement is missing.
         weight: 25

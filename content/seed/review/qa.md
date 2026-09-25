@@ -804,7 +804,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 ### 11. the-field-that-changed-shape
 
-**technical** · difficulty 3/5 · roles: qa · mid · topic: Testing an API (contract changes)
+**technical** · difficulty 3/5 · roles: qa, fullstack · mid · topic: Testing an API (contract changes)
 
 **The interviewer asks**
 
@@ -854,7 +854,7 @@ A check on the shape of the response, running against the API rather than agains
 - **1 (weak):** Proposes a test that would still have passed — a status-code check, an end-to-end journey through the app's own screens, or a snapshot of the response taken after the change.
 - **2 (partial):** Says a test on the response, without saying what it asserts or where it runs.
 - **3 (solid):** A check on types and required fields, running somewhere it fails before users see it, and says where it ought to live even if that is not somewhere they can put it today.
-- **4 (excellent):** As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for.
+- **4 (excellent):** As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for, or, where they own both ends themselves, what they would put in the API's pipeline before the change could ship.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
@@ -874,7 +874,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > How would you find out who else is reading that field, and what would you want agreed before the next change?
 
-> **The drafter is unsure about:** I have kept every product name out of this so it cannot go stale. Two judgements I would like checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not at fault, which is a political statement in some teams — is that the right thing to reward? And is "the test has to live in the API's pipeline" too strong for a QA candidate who has no access to that pipeline and would realistically add a check to their own suite?
+> **The drafter is unsure about:** I have kept every product name out of this so it cannot go stale. Two judgements I would like checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not at fault, which is a political statement in some teams — is that the right thing to reward? And is "the test has to live in the API's pipeline" too strong for a QA candidate who has no access to that pipeline and would realistically add a check to their own suite? **Carries `fullstack` from 2026-09-25** (owner's decision): a field that changes shape on its way from the database to the screen is this role's defining topic, and it is the best question we have on it until the boundary questions are written. Criterion 2's level 4 was widened with it — a candidate who owns both ends does not ask the API's owners for anything, they change the pipeline.
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
