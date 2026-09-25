@@ -301,3 +301,66 @@ Two things to keep:
   seeding is out of date silently narrows to whatever it can still get to — here, nothing at all,
   which at least failed loudly. A partial failure would have been worse: a "before/after" review of
   a subset nobody noticed had shrunk.
+
+## `prisma migrate dev` after `--create-only` stops on a prompt, and the error you see is the wrong one (M3 phase 1, 2026-09-25)
+
+CLAUDE.md says to generate with `--create-only`, edit the SQL, then apply. Applying it with a
+second `prisma migrate dev` is what I did, and it hung — silently, for the rest of the session.
+
+The reason is the hand-written HNSW index. Prisma cannot see an index over an `Unsupported`
+column, so the schema and the shadow database **never** agree: every `migrate dev` diffs them,
+finds an index it wants to drop, and asks `Enter a name for the new migration:`. With stdin at
+`/dev/null` it waits for ever, holding `pg_advisory_lock(72707369)` the whole time. The previous
+session had left exactly such a process running for **twenty hours**.
+
+The damage is in the next run, not this one. It fails with
+`P1002 … The database server was reached but timed out`, which reads like Postgres being unwell and
+sends you to `docker ps` and connection settings. The lock is held by an `idle` backend whose client
+died; `select * from pg_locks where locktype='advisory'` names the pid, and terminating it frees it.
+
+**The rule:** `--create-only`, edit, then **`prisma migrate deploy`** — it applies pending
+migrations without diffing, so it cannot prompt. And when a Prisma command times out talking to a
+database that is plainly up, look for an advisory lock before looking at the database.
+
+## A test that borrows catalogue rows passes only on a warm database (M3 phase 1, 2026-09-25)
+
+`content-seed.int.spec.ts` builds a temporary seed directory whose question says
+`roles: [frontend]`, `levels: [mid]` — rows no file in that directory defines. The importer resolves
+them from the database, so the block passed for as long as some other spec, or some earlier run, had
+imported the real corpus first. On a genuinely empty database — which is what CI creates — thirteen
+tests failed with `SeedReferenceError: … names role frontend, which no seed file defines`.
+
+This was true on `main` before M3 touched anything. I found it only because M3's schema change made
+me drop `readi_test`, and a warm database had been hiding it since M2.5.
+
+**The rule:** the M2.5 lesson ("a test that names content it does not create is borrowing") has a
+second half — **drop the test database and run the suite before believing it is green.** A suite
+that has only ever run against a database with history in it is a suite with an unknown number of
+these. The fixture now defines its own role and level, and borrows nothing.
+
+## A leak-test control has to widen the schema, not add a field (M3 phase 1, 2026-09-25)
+
+To check that the widened answer-key test really covers the interview routes, I added a `debug`
+field carrying the pinned snapshots to the session response — and the test passed. `ZodSerializerDto`
+had stripped it before it reached the wire.
+
+That is the serializer doing its job, and it is worth knowing it is there. But it means a negative
+control of that shape proves nothing about the detector. The control that works is the mistake that
+would really happen: **widen the candidate schema** — I added `planned_follow_ups` to
+`CandidateSessionQuestion` and to its mapper — and then the test failed on both counts, the marker
+text and the field name, exactly as the content half does.
+
+**The rule:** to prove a leak test works, make the leak the way a careless change would make it. An
+undeclared field is not that way; a wider contract is.
+
+## One candidate per test when the endpoint is rate-limited (M3 phase 1, 2026-09-25)
+
+`interviews.int.spec.ts` shared one signed-in candidate across the file. Starting an interview is
+capped at six an hour, so the seventh `start()` in the file returned 429, the test read `.body.id`
+off an error body, and the failure surfaced three tests later as a request to
+`/api/interviews/undefined` — a 400 about a uuid, pointing at nothing that was wrong.
+
+**The rule:** a spec against a rate-limited route mints a fresh principal per test, and its
+helpers throw on an unexpected status rather than returning a body to be indexed into. `startOk`
+now says `starting an interview failed: 429 …`, which is the sentence that would have saved the
+detour.
