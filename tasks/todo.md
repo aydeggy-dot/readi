@@ -1665,16 +1665,25 @@ full-stack page's asks, `7ea284f` the silent level 0s and the check, and the swe
       eight backend ones are warnings until its retrofit. `check-bank.mjs` enforces it.
 - [x] **QA and backend swept** for both gaps. Ten criteria changed, five findings rejected.
 
-### Left for the owner
+### Decided by the owner, 2026-09-25
 
-1. **The QA stress sets predate the probes and were never revisited.** Where a descriptor's meaning
-   now depends on the probe having been asked, the set cannot confirm it. Not wrong — a weak answer
-   failing to cover a probed point is legitimate — but the sets test the rubrics as they were, not
-   as the engine will use them. Rewriting all 33 against the whole exchange is its own job.
-2. **`status-code-honesty` at `intern-junior`** — a level judgement, not a fairness one, and worth a
-   reviewer's opinion: 30% of a junior question whose subject is what sits between an app and a server.
-3. **No QA question carries `fullstack`**, against 31 of frontend's 35 and 31 of backend's 34. For
-   the held tagging pass.
+- [ ] **The stress sets against the probes — after all four banks are retrofitted, not before.**
+      The QA sets were written before probes existed; frontend's and backend's will be in the same
+      position. Doing it once against the final shape rather than twice is the whole point, so this
+      waits for the full-stack pass to land. Scope: every set, every answer written against the
+      whole exchange (`references/stress-test.md`), because a descriptor whose meaning depends on
+      the probe having been asked cannot be confirmed by an answer that only meets the opening.
+- [x] **`status-code-honesty` at `intern-junior`** — left flagged for the reviewers, not changed.
+- [ ] **QA → full-stack tagging**: left for the held tagging pass, which is to consider
+      **whether one or two testing-mindset questions should cross over**. No QA question carries
+      `fullstack` today, against 31 of frontend's 35 and 31 of backend's 34.
+- [ ] **Sweep every `reviewer_notes` for flags that are known defects rather than questions for an
+      expert, and fix or escalate each one.** From `api-evidence-reading`: the drafter had written
+      "the descriptors may still read as assuming one" and the fix was never applied, so a 35%
+      criterion capped an honest answer at 2 for three days. A flag nobody acts on is a record of a
+      bug, not a mitigation. The two kinds are distinguishable: "is this the right weight?" is a
+      judgement an expert should make, "this descriptor still assumes X" is a defect with a known
+      fix. Run it over all four banks, sort into fix / escalate, and say which in the blueprint.
 
 ### What the sweep taught, now in `SKILL.md`
 
