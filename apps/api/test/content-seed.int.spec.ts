@@ -48,10 +48,34 @@ describe("seeding content", () => {
     const directory = mkdtempSync(join(tmpdir(), "readi-seed-"));
     const slug = `seedtest-${Date.now()}`;
 
+    /*
+     * It defines its own role and level, and borrows nothing.
+     *
+     * It used to say `roles: [frontend]` and `levels: [mid]`, which no file in this temporary
+     * directory defines — so the import only succeeded when some *other* spec had already put those
+     * rows in the database, or when a previous run had left them there. On a genuinely empty
+     * database, which is what CI creates, every test in this block failed with
+     * `SeedReferenceError: … names role frontend, which no seed file defines`. That was true on
+     * `main` before M3 touched anything; it is the M2.5 lesson exactly — a test that names content
+     * it does not create is borrowing, and what it borrows can change under it.
+     */
     const file = (prompt: string, rubricName = "Seed test rubric", author = "ai_draft") => `
 version: 1
 author: ${author}
 status: draft
+career_levels:
+  - slug: ${slug}-level
+    name: Seed test level
+    summary: null
+    rank: 20
+career_roles:
+  - slug: ${slug}-role
+    name: Seed test role
+    summary: null
+    position: 0
+    supported_question_types: [technical]
+    levels: [${slug}-level]
+    stacks: []
 topics:
   - slug: ${slug}-topic
     name: Seed test topic
@@ -70,8 +94,8 @@ rubrics:
         levels: { "0": a, "1": b, "2": c, "3": d, "4": e }
 questions:
   - slug: ${slug}-question
-    roles: [frontend]
-    levels: [mid]
+    roles: [${slug}-role]
+    levels: [${slug}-level]
     type: technical
     topic: ${slug}-topic
     subtopic: null
@@ -95,6 +119,9 @@ questions:
       await prisma.question.deleteMany({ where: { slug: `${slug}-question` } });
       await prisma.rubric.deleteMany({ where: { slug: `${slug}-rubric` } });
       await prisma.topic.deleteMany({ where: { slug: `${slug}-topic` } });
+      await prisma.careerRoleLevel.deleteMany({ where: { role: { slug: `${slug}-role` } } });
+      await prisma.careerRole.deleteMany({ where: { slug: `${slug}-role` } });
+      await prisma.careerLevel.deleteMany({ where: { slug: `${slug}-level` } });
     });
 
     it("creates what the files describe", async () => {
