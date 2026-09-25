@@ -86,7 +86,9 @@
     "admin": "Admin",
     "main": "Main",
     "wordmark": "Readi home",
-    "content": "Content"
+    "content": "Content",
+    "practice": "Practice",
+    "tabs": "Sections"
   },
   "auth": {
     "email": "Email",
@@ -257,9 +259,140 @@
     "greetingNoName": "Welcome",
     "diagnostic": {
       "title": "Start with a diagnostic interview",
-      "body": "A 15-minute mixed interview that shows where you are today and builds your first study plan.",
-      "cta": "Available soon",
-      "note": "The diagnostic interview arrives in the next update. Your profile is ready for it."
+      "body": "A 15-minute mixed interview that shows where you stand today. Four questions, typed, with follow-ups — the way a first round actually goes.",
+      "cta": "Start the diagnostic",
+      "note": "You can end it early, and nothing about it is shared with anyone.",
+      "takenTitle": "You have taken the diagnostic",
+      "taken": "Take another interview whenever you like — the questions you have already been asked are put aside first.",
+      "practice": "Go to Practice"
+    }
+  },
+  "interview": {
+    "list": {
+      "title": "Practice",
+      "lead": "Your mock interviews, and the next one whenever you are ready.",
+      "start": "Start an interview",
+      "startFirst": "Start your first interview",
+      "empty": "You have not taken a mock interview yet. The first one takes fifteen minutes and tells you where you stand.",
+      "resume": "Resume",
+      "read": "Read it back",
+      "more": "Show more",
+      "diagnostic": "Diagnostic",
+      "asked": "{asked} of {budget} questions",
+      "started": "Started {date}",
+      "length": "{minutes} minutes",
+      "activeTitle": "One interview at a time",
+      "active": "You have an interview in progress. Starting a new one leaves that one unfinished.",
+      "scope": "Every interview here is a conversation you type: questions, follow-ups, and the chance to ask your own at the end. Coding and whiteboard rounds are not part of it yet.",
+      "status": {
+        "in_progress": "In progress",
+        "completed": "Finished",
+        "abandoned": "Left unfinished"
+      }
+    },
+    "setup": {
+      "title": "Set up your interview",
+      "lead": "Choose how long you have and what you want to be asked about. You can end it early at any point.",
+      "length": "How long have you got?",
+      "lengthHint": "The clock runs from the interviewer's first word to the end, whatever happens in between.",
+      "length15": "15 minutes",
+      "length15Note": "About four questions",
+      "length30": "30 minutes",
+      "length30Note": "About eight questions",
+      "role": "Which role are you interviewing for?",
+      "level": "At what level?",
+      "levelAfterRole": "Choose a role first.",
+      "levelNone": "This role has no levels on offer yet.",
+      "stack": "Which variant?",
+      "stackHint": "Stack-specific questions only exist for a variant we offer. Anything else gets the general questions for the role — a real interview, just not about your framework.",
+      "noStack": "Not one of these",
+      "tellUs": "What do you actually use?",
+      "tellUsHint": "This does not change the questions you are asked. We read it when deciding which variants to build next, and it is saved to your profile.",
+      "tellUsPlaceholder": "For example React",
+      "types": "What should the interviewer ask about?",
+      "typesHint": "All of them is the mixed interview a first round usually is. Narrow it when you want to drill one thing.",
+      "typesRequired": "Pick at least one kind of question.",
+      "scopeTitle": "What this covers",
+      "scope": "How you explain your work, your judgement, and how you hold up when a question is pushed further. It is not a coding round and not a whiteboard — those are not built yet, and we would rather say so than imply otherwise.",
+      "start": "Start the interview",
+      "starting": "Starting…",
+      "noRoles": "There are no roles on offer yet."
+    },
+    "types": {
+      "behavioral": {
+        "label": "Behavioural",
+        "description": "How you have worked: a time something went wrong, and what you did about it."
+      },
+      "technical": {
+        "label": "Technical",
+        "description": "What you know, and how clearly you can explain it."
+      },
+      "scenario": {
+        "label": "Scenario",
+        "description": "A situation to reason through, the way you would with a colleague."
+      },
+      "test_design": {
+        "label": "Test design",
+        "description": "How you would test something, and what you would test first."
+      }
+    },
+    "screen": {
+      "title": "Interview",
+      "transcript": "The interview so far",
+      "interviewer": "Interviewer",
+      "you": "You",
+      "setup": "What you are given",
+      "thinking": "The interviewer is thinking…",
+      "slow": "Still waiting. Nothing is lost if this fails — you can send it again.",
+      "starting": "The interviewer is getting ready…",
+      "progress": "Question {asked} of {budget}",
+      "progressBefore": "Getting started",
+      "timeLeft": "{minutes} min left",
+      "lastMinute": "Under a minute left",
+      "timeUp": "Time is up",
+      "meter": "{minutes} of {total} minutes left",
+      "answerLabel": "Your answer",
+      "answerPlaceholder": "Type your answer. Take the time you need.",
+      "askLabel": "Your question for the interviewer",
+      "askPlaceholder": "Ask what you would ask a real interviewer.",
+      "send": "Send",
+      "sending": "Sending…",
+      "skipQuestion": "Skip",
+      "nothingToAsk": "Nothing to ask",
+      "endLabel": "End the interview",
+      "endConfirm": "End it now? Everything you have said is kept — we simply stop here.",
+      "endNow": "End it now",
+      "ended": "The interview is over.",
+      "seeSummary": "See where you got to",
+      "draftKept": "Saved on this device until you send it."
+    },
+    "complete": {
+      "title": "Interview finished",
+      "lead": "You answered {asked} of {budget} questions in {minutes} minutes.",
+      "leadUnfinished": "This one was left unfinished after {asked} of {budget} questions.",
+      "waitingTitle": "Putting the session away",
+      "waiting": "Saving the last of the transcript.",
+      "scoringTitle": "Scoring is not built yet",
+      "scoring": "The whole conversation is recorded. Rubric-based feedback and your readiness score arrive in the next update, and this session is scored then — none of what you just did is thrown away.",
+      "nextTitle": "What to do now",
+      "next": "Read the interview back and mark the answers you would rather give again. Then take another one: the questions you have already been asked are put aside first.",
+      "again": "Start another interview",
+      "practice": "Back to Practice",
+      "transcript": "The transcript",
+      "noTurns": "Nothing was said in this one."
+    },
+    "errors": {
+      "notFound": "We cannot find that interview.",
+      "ended": "That interview has already finished.",
+      "expired": "That interview is too old to carry on. Start a new one.",
+      "workerUnavailable": "The interviewer did not answer. Nothing was lost — send it again.",
+      "interviewError": "Something went wrong on our side. Nothing was lost — send it again.",
+      "rateLimited": "You have started a lot of interviews. Try again a little later.",
+      "noQuestions": "We have nothing published for that combination yet. Try another level or variant, or leave the question types as they were.",
+      "profileRequired": "We need a role and a level before we can interview you. Choose them above.",
+      "levelNotOffered": "That role is not interviewed at that level. Pick another level.",
+      "stackNotOffered": "That role does not offer that variant. Pick another one.",
+      "catalogueGone": "That choice is not on offer any more. Reload the page and pick again."
     }
   },
   "profile": {

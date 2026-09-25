@@ -467,3 +467,67 @@ Two details cost time and are worth keeping:
 **The rule:** prove a transport before building on it, with the smallest thing that can answer the
 question — here a stub origin, not the real API — and commit the proof as a script. And when a
 long-running script goes quiet, suspect the pipe before suspecting the work.
+
+## A guard that outlives what it guards: the abort that stopped the interview starting (M3 phase 4, 2026-09-25)
+
+The interview screen starts itself — a session with no turns is one nobody has started, so the first
+thing it does is send `start`. The first time it ran in a browser, nothing happened: the header and
+the progress strip drew, the transcript stayed empty, and the network panel said the request was
+`net::ERR_ABORTED`.
+
+Three separate refs were doing one job badly:
+
+- `inFlight` (a boolean) said an exchange was running;
+- `abort` held the controller;
+- `autoStarted` (a boolean) said the start had been attempted.
+
+React runs effects twice in development — mount, unmount, mount — so the cleanup aborted the start,
+and the second mount found `autoStarted` still `true` and did nothing. Refs survive the simulated
+unmount; the request did not. A screen that had cancelled its own start and would never try again.
+
+The second half of the same bug showed up in a screenshot later: because `inFlight` and `abort` were
+separate, an exchange aborted while the component stayed mounted (a Fast Refresh, an effect whose
+deps changed) returned to a completion path that took `abort.current !== controller` as "somebody
+else owns the screen" and returned early — leaving the composer saying "Sending…" and the spinner
+turning for ever.
+
+What it became:
+
+- **The controller _is_ the guard.** `if (abort.current) return` refuses a second exchange, and the
+  one place that clears it is the one place that aborts it. A boolean that can disagree with the
+  controller will.
+- **The flags come down whatever happened.** `setBusy(false)` and `setThinking(false)` run before
+  the "was this still mine?" check; only _routing_ and _reporting a failure_ are skipped for a
+  superseded exchange. If the component really went, React ignores the writes.
+- **The start guard records which session it started**, and is cleared by the unmount cleanup — so a
+  re-render cannot start the interview twice, and a remount that has just aborted the first attempt
+  can.
+
+**The rule:** when a cleanup cancels work, every flag that describes that work has to be reachable
+from the cancel path. Guards and handles for one operation belong in one ref — and the test for
+whether you have got it right is not "does it work", it is "does it still work after React mounts
+it twice".
+
+## The React Compiler lint rules were right about the clock and the draft (M3 phase 4, 2026-09-25)
+
+`react-hooks/set-state-in-effect` and `react-hooks/purity` rejected three things at once: a ticking
+timer implemented as `setState` in an interval, a `sessionStorage` draft copied into state on mount,
+and `Date.now()` called in a render.
+
+The temptation was to reach for an `eslint-disable` and a sentence about how a one-shot read from
+storage is benign. Both are external stores, and saying so removed a real defect rather than a lint
+error: the draft had been living in **two** places — React state and `sessionStorage` — kept in step
+by hand, which is the shape that eventually loses somebody's answer. `useSyncExternalStore` over
+storage leaves one copy, and it makes the server snapshot (`""`) the honest one, so there is nothing
+for hydration to disagree about.
+
+The clock is the same argument: one module-level interval, shared by every subscriber, with the
+server's `now` passed down as the floor so the first paint of a countdown is right rather than blank.
+
+Reading the clock in an async **server** component is fine and the rule is about client re-renders —
+so it goes through a named helper (`serverNow()`, beside `todayIsoDate()`), which says what it is for
+at the call site.
+
+**The rule:** when the React Compiler rules reject a hook, ask what external system is being mirrored
+before asking how to silence them. Twice out of three here the rule was pointing at a second copy of
+the truth.

@@ -2050,14 +2050,41 @@ Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm check:co
 module, the status and candidate shapes, and the Margin rules for the interview screen, gathered so a
 fresh session does not have to reconstruct them.
 
-- [ ] Practice list + setup (published catalogue, defaults from the profile, types from the role's
+- [x] Practice list + setup (published catalogue, defaults from the profile, types from the role's
       `supported_question_types`); the variant picker's "not listed" path (**owner decision 3**)
-- [ ] The interview screen at 360px — serif interviewer, ruled candidate rail, wall-clock timer,
+- [x] The interview screen at 360px — serif interviewer, ruled candidate rail, wall-clock timer,
       pinned composer, `sessionStorage` draft, `role="status"` composing region
-- [ ] End-interview confirm (the `transition-panel.tsx` two-click pattern), completion/processing
+- [x] End-interview confirm (the `transition-panel.tsx` two-click pattern), completion/processing
       screen that promises scoring in M4 and **not** a study plan (item 7)
-- [ ] `/home` diagnostic CTA alive; the phone tab bar (Home, Practice, Profile); `proxy.ts` matcher
-- [ ] `interview-errors.ts`, the `interview` i18n namespace
+- [x] `/home` diagnostic CTA alive; the phone tab bar (Home, Practice, Profile); `proxy.ts` matcher
+- [x] `interview-errors.ts`, the `interview` i18n namespace
+- [ ] **Owner: a look at the interview screen at 360px** (screenshots taken 2026-09-25, light and
+      dark, in `screenshots/m3-phase4/`) — then the handover, then the one paid diagnostic
+
+#### Decided while building it
+
+1. **Where the "what do you actually use?" answer lands: the profile's `technologies`** (the
+   primer's open question, "a profile field vs. a table we read"). It is already the field that
+   means "free text describing what the candidate knows", it is already readable — the query is
+   profiles with `target_stack` null joined to their `technologies` — and it needs no API change,
+   no migration and no new contract. The setup screen merges what is typed into the existing list
+   through `PUT /api/me/profile`, **best effort and before the interview call**: it is a note to us,
+   so a profile that refuses the update must not stop the interview starting.
+2. **The meter on the grey bar tracks time, not the question count.** The time budget is the
+   authoritative one (CLAUDE.md §5), and its accessible name says "minutes" so the two numbers
+   beside it cannot be confused. The count is in words next to it, which is what keeps colour from
+   being the only signal (ADR-0013).
+3. **A new question starts a new section, marked by a hairline rule.** Without it the intro, the
+   first question and the answer beneath it read as one column and "which of these am I answering"
+   becomes work. A follow-up carries no rule: it belongs to the question above it.
+4. **The completion screen reports the time the session actually took**, not `planned_minutes`.
+   The first capture said "4 of 4 questions in 15 minutes" about an interview that took six.
+5. **The draft and the clock are external stores, not effects.** `useSyncExternalStore` over
+   `sessionStorage` and over one shared ticking clock — which is what the React Compiler lint rules
+   push towards, and it removed the second copy of the draft rather than just moving it.
+6. **`agentRules: false` in `next.config.ts`.** Next 16 writes an `AGENTS.md` and a `CLAUDE.md` into
+   `apps/web` on every `next dev`; a generated `apps/web/CLAUDE.md` is loaded as project
+   instructions and would quietly compete with the one we maintain at the root.
 
 ### Phase 5 — Langfuse (ADR-0008)
 
