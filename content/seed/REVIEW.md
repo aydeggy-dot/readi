@@ -117,6 +117,13 @@ worth more than eight you half-trust, and cutting is the cheapest improvement av
   something a question's answer key asks for, say so — that is the most useful thing you can tell us.
 - **Weights add up to 100** and are a claim about what matters most in the answer. They are easy to
   change and often wrong on a first draft.
+- **About fourteen of the follow-ups are some version of "What would you change?"**, and we have
+  deliberately left them that way. A follow-up is asked only of a candidate who has _not_ already
+  proposed a fix, and at that moment the plain question is arguably the right one — anything sharper
+  risks handing over the thing the criterion exists to see whether they reach for. But they are
+  bland, and each of those criteria has an attractive wrong answer at the low end that a better
+  follow-up would separate. **If you can think of the question you would actually ask there, it is
+  worth more to us than almost anything else on the page.**
 - **Assume the candidate has never had an employer.** A large part of this audience is self-taught:
   no code reviewer, no staging environment, no error-reporting dashboard, no test suite, no
   designer. Questions may describe those things — several do — but none should _require_ having had

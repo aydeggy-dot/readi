@@ -81,3 +81,58 @@ shared-types tests.
 The stress answers were written against the old prompts and were not rewritten. That is deliberate
 and is now the owner's standing decision: the sets are re-written against the probes **once**, after
 all four banks are retrofitted, rather than three times.
+
+---
+
+## The owner's decisions on this pass, 2026-09-25
+
+All five taken the same day. Two are rules, one is a question change, one is a note to the
+reviewers, and one is a debt assigned to M4.
+
+### 1. The snippet openings stay as they are
+
+**Do not invert them.** The remote-manager pass wanted decision first and diagnosis as the probe;
+the reasons against are about the interview rather than the arithmetic. **A candidate cannot decide
+about a bug they have not diagnosed**, and an opening of "what would you change?" rewards
+pattern-matching on the snippet's *shape* — the reflex that recognises a `@Transactional` gotcha
+without reading what the method does, which is the opposite of what the bank is for.
+
+**The arithmetic complaint is real and it is M4's to answer.** If a prompted answer scores slightly
+below a volunteered one, then "the heaviest criterion sits behind a probe" largely dissolves —
+across all three banks, with no prompt rewritten, because the candidate who volunteers the
+remediation is then scored above the one who had to be asked for it. That is recorded against the
+open M4 item in `tasks/todo.md` ("Needed no prompting is a signal we throw away"), so **M4 knows a
+content decision is waiting on it**. `SessionTurn.follow_up_index` already carries the data.
+
+### 2. A depth cue on diagnosis openings, as house style
+
+"Take me through it", or the equivalent — one clause that asks for nothing new. A one-clause opening
+tells a candidate *what* is wanted and nothing about *how much*, and nervous candidates under-answer
+when they cannot tell. The rule is in `SKILL.md`. **Applying it across the three banks is its own
+pass and has not been done**; the natural time is alongside the stress-set rewrite, since both touch
+every question.
+
+### 3. The fourteen "What would you change?" probes stay
+
+Flagged for the expert reviewers in `content/seed/REVIEW.md` rather than changed, with the argument
+for leaving them and the invitation to do better stated plainly.
+
+### 4. `the-ticket-nobody-can-explain` opens with the message
+
+"Write me the message you would send them." If that is the one remote-predictive artefact in the
+bank, it should not be conditional on the candidate having missed something first. Criterion 2
+(35%, "writes something that can be answered asleep") is now the un-probed criterion, and criterion 1
+gained the probe "What did you go and look at before you wrote that?".
+
+Worth noting because it corrects something this handover's earlier commit claimed: **it is the first
+question in any bank whose un-probed criterion is not criterion 0.** The senior pass had flagged the
+positional habit — "in all 34 questions the un-probed criterion is criterion 0 … it is a positional
+mapping, not the per-question reading the skill asks for" — and this is the first break from it. The
+rule was always "the opening asks the un-probed criterion", never "the opening asks criterion 0".
+
+### 5. The probe rule, confirmed as first-class
+
+A probe that names what its criterion scores **converts a miss into a gift, given only to the
+candidate who had not earned it** — worse than the clause it replaced, not merely as bad. Already in
+`SKILL.md` under the probe rules; recorded here as the owner's confirmation rather than a drafter's
+inference.

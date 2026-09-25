@@ -232,6 +232,27 @@ criterion the opening asks, check it is the one without a probe, and check nothi
 opening as well. `check-bank.mjs` cannot do this — it counts asks and probes and cannot tell which
 criterion an opening names.
 
+**A diagnosis question opens on the diagnosis, and that is not a defect to be fixed** (owner's
+decision, 2026-09-25). After the backend retrofit every snippet question opened on "what is
+happening" and none on a decision, so the guaranteed-asked share of the score fell to about 37% and
+in nine questions the heaviest criterion sat behind a probe. The remote-manager critique pass wanted
+them inverted — decision first, diagnosis as the probe. **They stay as they are**, for two reasons
+that are about the interview rather than about the arithmetic: a candidate cannot decide about a bug
+they have not diagnosed, and an opening of "what would you change?" rewards pattern-matching on the
+snippet's _shape_ — the reflex that recognises a `@Transactional` gotcha without reading what the
+method does. The arithmetic complaint has a different answer, and it is not a content one: **if a
+prompted answer scores slightly below a volunteered one, "the heaviest criterion sits behind a probe"
+largely dissolves across all three banks without a single prompt being rewritten.** That is what M4
+owes; see `tasks/todo.md`.
+
+**Give a diagnosis opening a depth cue** (owner's decision, 2026-09-25). "Take me through it", "walk
+me through what you see", or the equivalent — one short clause that is not a second ask, because it
+asks for nothing new. A one-clause opening tells a candidate _what_ is wanted and nothing about _how
+much_, and the nervous-candidate pass put the cost plainly: the grammar asks for one thing and the
+rubric charges for three, so the under-confident candidate gives two sentences and stops. The old
+triple-barrelled prompts carried the shape of the answer as a side effect of carrying its content;
+cutting them to one clause took the shape away with it. A cue restores it for nothing.
+
 **Ask the criterion in the order the work happens.** A probe about what the candidate would decide
 _before starting_ cannot follow an answer describing what they did. Two QA questions had the plan
 criterion as a probe under an opening that asked how the hour or the work was spent, and three passes

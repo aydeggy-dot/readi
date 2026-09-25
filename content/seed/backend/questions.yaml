@@ -1365,7 +1365,7 @@ questions:
     prompt: >-
       A ticket says "add filtering to the vendors page". There is no design, nothing about which
       fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow.
-      What do you do before you write to them?
+      Write me the message you would send them.
     context: null
     rubric: ambiguous-work-judgement
     ideal_points:
@@ -1376,20 +1376,22 @@ questions:
       - Build the part that is not in doubt, so the eight hours are not lost either way.
       - Do not build the ambiguous half on a guess and present it as done.
     planned_follow_ups:
-      - criterion: 1
+      - criterion: 0
         probe: >-
-          What do you write to them?
+          What did you go and look at before you wrote that?
       - criterion: 2
         probe: >-
-          And what would you build before you hear back?
+          What would you build while you wait?
     reviewer_notes: >-
       A remote hiring manager named this as the single biggest remote failure mode — a week spent
       building the wrong thing because nobody asked — and nothing in either bank went near it. It
       needs no employer: a ticket, a person who is not there, and a date is a situation a candidate
-      can reason about without ever having had one. What I am least sure of is the eight hours. It is
-      there to force the candidate to choose between waiting and guessing, but a candidate whose
-      whole experience is same-room work may read it as an odd detail rather than the constraint.
-      Does it land, or should it just say "you will not hear back today"?
+      can reason about without ever having had one. **The opening asks for the message itself**
+      (owner's decision, 2026-09-25): it is the one artefact in this bank that predicts remote work,
+      so it should not be conditional on the candidate having missed something first. What I am least
+      sure of is the eight hours — it is there to force a choice between waiting and guessing, but a
+      candidate whose whole experience is same-room work may read it as an odd detail rather than the
+      constraint. Does it land, or should it just say "you will not hear back today"?
 
   - slug: a-change-you-are-not-sure-about
     roles: [backend, frontend, qa, fullstack]

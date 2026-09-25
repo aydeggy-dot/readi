@@ -2912,7 +2912,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do before you write to them?
+> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. Write me the message you would send them.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2935,7 +2935,9 @@ Reads what already exists before asking, and narrows the unknowns to the ones th
 - **3 (solid):** Looks at the page, the data and anything similar already built, and comes out with a short list of real unknowns.
 - **4 (excellent):** As 3, and separates the questions that change the work from the ones they can decide themselves.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What did you go and look at before you wrote that?
 
 **Writes something that can be answered asleep — 35%**
 
@@ -2947,9 +2949,7 @@ One message, the specific decisions needed, what will be assumed without a reply
 - **3 (solid):** Names the specific decisions, and says what they will assume if there is no answer.
 - **4 (excellent):** As 3, and says when the answer stops being useful, so the reader can judge it against their own morning.
 
-_Planned follow-up — asked only if the answer has not already covered this:_
-
-> What do you write to them?
+_Asked for by the opening prompt; no planned follow-up._
 
 **Does not lose the eight hours — 35%**
 
@@ -2963,9 +2963,9 @@ Builds the part that is not in doubt, and does not build the part that is.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> And what would you build before you hear back?
+> What would you build while you wait?
 
-> **The drafter is unsure about:** A remote hiring manager named this as the single biggest remote failure mode — a week spent building the wrong thing because nobody asked — and nothing in either bank went near it. It needs no employer: a ticket, a person who is not there, and a date is a situation a candidate can reason about without ever having had one. What I am least sure of is the eight hours. It is there to force the candidate to choose between waiting and guessing, but a candidate whose whole experience is same-room work may read it as an odd detail rather than the constraint. Does it land, or should it just say "you will not hear back today"?
+> **The drafter is unsure about:** A remote hiring manager named this as the single biggest remote failure mode — a week spent building the wrong thing because nobody asked — and nothing in either bank went near it. It needs no employer: a ticket, a person who is not there, and a date is a situation a candidate can reason about without ever having had one. **The opening asks for the message itself** (owner's decision, 2026-09-25): it is the one artefact in this bank that predicts remote work, so it should not be conditional on the candidate having missed something first. What I am least sure of is the eight hours — it is there to force a choice between waiting and guessing, but a candidate whose whole experience is same-room work may read it as an odd detail rather than the constraint. Does it land, or should it just say "you will not hear back today"?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
