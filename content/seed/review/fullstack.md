@@ -1,12 +1,12 @@
 # Full-stack engineer — drafted content for expert review
 
-**64 questions**, all of them shared with other roles, 64 rubrics, no track.
+**65 questions**, all of them shared with other roles, 65 rubrics, no track.
 
 Everything here is a **draft written by `ai_draft`** and is invisible to candidates until a human publishes it. Your review is what decides whether it ever is.
 
 ## What we are asking you
 
-**This role has no bank of its own, so your page is a different job from the others.** All 64 questions below were written for Backend engineer, Frontend engineer and QA engineer, and carry this role as a second one. Every one of them is being reviewed question by question, on those pages, by someone who interviews for that role — so we are **not** asking you to do that again.
+**This role has no bank of its own, so your page is a different job from the others.** All 65 questions below were written for Backend engineer, Frontend engineer and QA engineer, and carry this role as a second one. Every one of them is being reviewed question by question, on those pages, by someone who interviews for that role — so we are **not** asking you to do that again.
 
 We are asking you one thing: **is this the right set for an interview for this role?** Four ways into it:
 
@@ -4746,7 +4746,89 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 ---
 
-### 64. where-your-test-data-comes-from
+### 64. the-field-that-changed-shape
+
+**technical** · difficulty 3/5 · roles: qa, fullstack · mid · topic: Testing an API (contract changes) · shared, from `content/seed/qa/questions.yaml`
+
+**The interviewer asks**
+
+> On your screen is the same endpoint a week apart. This went out last night. What would you say happened, and what does it mean for the apps already reading that field?
+
+**Setup the candidate is given**
+
+> The same endpoint, a week apart.
+>
+> ```
+> Last week   { "id": "...", "salary": 250000 }
+>
+> This week   { "id": "...", "salary": { "min": 250000, "max": 400000, "currency": "NGN" } }
+> ```
+>
+> Nothing in the release notes mentions it. The Android app now shows an empty salary on every
+> job, and on some versions it closes when the list loads.
+
+**What a strong answer covers** — the answer key; never shown to a candidate
+
+- A field's type changed under callers that were already reading it, which breaks them by definition.
+- The app was not wrong — it was reading a number that is now an object.
+- A check on the shape of the response — types and required fields — fails the moment this ships.
+- That check has to run against the API, in the API's own pipeline; in the app's suite it fails after the release.
+- A status-code check would have passed, which is why the pipeline said nothing.
+- Ask for a new field or a version rather than a changed one, and ask who else reads it — the app is the caller that shouted.
+
+**Rubric: A response that changed shape** (`api-contract-reasoning`)
+
+**Names it as a breaking change — 40%**
+
+A field's type changed, which breaks every client already reading it, whatever the release notes say.
+
+- **0 (absent):** Reports it as an app defect.
+- **1 (weak):** Describes the change correctly and calls it an improvement the app should catch up with — a richer salary object is better data, so the app is behind rather than broken.
+- **2 (partial):** Says the API changed, without saying why that is a problem in itself.
+- **3 (solid):** Says a field's type changed under callers who were already reading it, which breaks them by definition.
+- **4 (excellent):** As 3, stated as what the contract did rather than who erred — and says the same change as a new field, or behind a version, would have broken nobody.
+
+_Asked for by the opening prompt; no planned follow-up._
+
+**The test that would have caught it, and where it runs — 35%**
+
+A check on the shape of the response, running against the API rather than against the app.
+
+- **0 (absent):** Nothing would have caught it.
+- **1 (weak):** Proposes a test that would still have passed — a status-code check, an end-to-end journey through the app's own screens, or a snapshot of the response taken after the change.
+- **2 (partial):** Says a test on the response, without saying what it asserts or where it runs.
+- **3 (solid):** A check on types and required fields, running somewhere it fails before users see it, and says where it ought to live even if that is not somewhere they can put it today.
+- **4 (excellent):** As 3, and says what it costs to have it only in their own suite — it fails after the API has already shipped — and what they would ask the API's owners for, or, where they own both ends themselves, what they would put in the API's pipeline before the change could ship.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> What kind of test would have caught this before a user did, and what would it be running against?
+
+**What changes so the next one is not found by a user — 25%**
+
+Who else reads the field, and what agreement is missing.
+
+- **0 (absent):** Nothing changes — this one gets fixed and the next one is found the same way, or the whole answer is that the app should have been tested before release.
+- **1 (weak):** Puts the remedy anywhere but the contract — on communication alone, or on the caller, asking for defensive parsing and a device pass before release — with nothing that would fail automatically on the API's side.
+- **2 (partial):** Asks for the release notes to say more.
+- **3 (solid):** Asks for a contract checked in the pipeline, and for additive changes or a version rather than a changed field.
+- **4 (excellent):** As 3, and asks who else reads that field, on the grounds that the app is only the caller that shouted.
+
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> How would you find out who else is reading that field, and what would you want agreed before the next change?
+
+> **The drafter is unsure about:** I have kept every product name out of this so it cannot go stale. Two judgements I would like checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not at fault, which is a political statement in some teams — is that the right thing to reward? And is "the test has to live in the API's pipeline" too strong for a QA candidate who has no access to that pipeline and would realistically add a check to their own suite? **Carries `fullstack` from 2026-09-25** (owner's decision): a field that changes shape on its way from the database to the screen is this role's defining topic, and it is the best question we have on it until the boundary questions are written. Criterion 2's level 4 was widened with it — a candidate who owns both ends does not ask the API's owners for anything, they change the pipeline.
+
+- [ ] a real interviewer would ask this, at this level
+- [ ] the rubric is what a strong answer actually covers
+- [ ] the five level descriptors are distinguishable
+- [ ] each planned follow-up is what you would actually ask next
+- [ ] nothing here is wrong or out of date
+
+---
+
+### 65. where-your-test-data-comes-from
 
 **scenario** · difficulty 3/5 · roles: qa, fullstack · intern-junior, mid · topic: Test data (personal data in test environments) · shared, from `content/seed/qa/questions.yaml`
 

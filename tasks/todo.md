@@ -1781,21 +1781,48 @@ as already applied (`bd76be6`), not re-done.
 - [ ] **The stress sets against the probes** — every set, every answer written against the whole
       exchange. Now unblocked: all four banks are retrofitted and the full-stack pass has landed. The
       depth cues add nothing to its scope, because a cue changes no descriptor.
-- [ ] **The full-stack role's own content** — a skeleton track at `intern-junior`, and the ~8
-      boundary questions (`fullstack-boundary` 0 of 5, `deployment-basics` 0 of 4). Writing, not
-      tagging; `content/seed/blueprints/fullstack.md` has the shape of both.
-- [ ] Three variant shortfalls that only new questions can close: `django-react` 1 of 2,
-      `ruby-rails` 0 of 2, `dotnet-react` 0 of 1.
+- [ ] **The full-stack role's own content — a later pass, deliberately deferred** (owner's decision,
+      2026-09-25). It is writing, not tagging, and it waits for two things that do not exist yet:
+      **M4 showing real scoring** on the banks as they stand, and the **experts' first round** coming
+      back. Writing eight more questions before either would be drafting against the same
+      unvalidated assumptions three times over. What is outstanding: - **No track at either level.** A full-stack candidate gets `track_not_found` at
+      `intern-junior` and at `mid` today. `blueprints/fullstack.md` recommends one skeleton track
+      at `intern-junior` first, in the shape of `backend/track.yaml`. - **`fullstack-boundary` 0 of 5** (2 intern-junior, 3 mid) and **`deployment-basics` 0 of 4**
+      (2 and 2) — the ~8 boundary questions, the whole of this role's own bank. The blueprint names
+      their shape: "the form saves but the list does not update", "the price is right on the screen
+      and wrong in the database", "you deployed the API and forgot the migration".
+      `the-field-that-changed-shape` is the stand-in until they exist. - **Three variant shortfalls that only new questions can close**: `django-react` 1 of 2,
+      `ruby-rails` 0 of 2, `dotnet-react` 0 of 1. A re-tag cannot close them —
+      `python-blocking-call-in-async` is a FastAPI snippet and `django-react` means Django — and
+      there is no Rails or .NET question in any bank. - Five of the eight role × level combinations still have **no track at all**; the checker
+      reports each one every run.
 
 ### Open for the owner
 
-1. **`the-field-that-changed-shape` → full-stack?** On merit it is the strongest transfer in the QA
-   bank and it is the boundary question the role is short of; it was left because the brief said
-   testing mindset. If the ~8 boundary questions are not imminent, tag it.
-2. **`fullstack` does not support `test_design`**, so QA's three "What would you test?" questions
-   cannot carry the role at all. A one-line `roles.yaml` change if they should — a catalogue
-   decision, not a tagging one.
+1. - [x] **`the-field-that-changed-shape` tagged for full-stack**, 2026-09-25 — the owner took it on
+         merit rather than on the brief: it is the role's best available question on its defining topic
+         and the boundary questions are not imminent. Criterion 2's level 4 was widened with it, because
+         "what they would ask the API's owners for" describes no answer a candidate who owns both ends
+         would give. 65 available.
+2. - [x] **`test_design` stays off `fullstack`** (owner's decision, 2026-09-25). QA's three "What
+         would you test?" questions therefore cannot carry the role, and that is deliberate — the three
+         crossovers are enough.
 3. **Every general frontend and backend question transfers**, against the blueprint's estimate of two
    thirds. `content/seed/REVIEW.md` §7 now asks the expert whether that is over-tagging.
 4. **The diagnosis/decision line has no check behind it**, so the next bank needs the depth cue
    applied by hand — the same gap the mis-aim check has, and for the same reason.
+
+## The programme closed (2026-09-25, branch `content/catalogue-banks`)
+
+**Closing handover: `docs/progress/2026-09-25-question-banks-closing.md`** — what exists per role and
+level, what the skill learned, every open reviewer question, and what the next content pass should
+cover. Content work stops here; the branch merges and M3 starts.
+
+Final state: 4 roles · 3 levels · 23 stacks · 29 topics · 102 rubrics · 104 questions · 225 planned
+follow-ups · 3 tracks · 102 stress sets · 14 blueprints. Offered per role — frontend 40, backend 38,
+QA 45, full-stack 65.
+
+The next pass's order, and the reasoning is in the closing handover: the `reviewer_notes` sweep
+first (it needs nothing else and is most likely to be hiding a live defect), then the stress-set
+rewrite, then the five missing tracks, then the full-stack content above, then backend at
+intern-junior, then wave 2.

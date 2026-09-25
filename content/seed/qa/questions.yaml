@@ -495,7 +495,7 @@ questions:
       developer-versus-tester framing we would rather not teach?
 
   - slug: the-field-that-changed-shape
-    roles: [qa]
+    roles: [qa, fullstack]
     levels: [mid]
     type: technical
     topic: testing-apis
@@ -537,7 +537,11 @@ questions:
       checked. The question blames nobody, but criterion 1's level 4 rewards saying the app was not
       at fault, which is a political statement in some teams — is that the right thing to reward? And
       is "the test has to live in the API's pipeline" too strong for a QA candidate who has no access
-      to that pipeline and would realistically add a check to their own suite?
+      to that pipeline and would realistically add a check to their own suite? **Carries `fullstack`
+      from 2026-09-25** (owner's decision): a field that changes shape on its way from the database to
+      the screen is this role's defining topic, and it is the best question we have on it until the
+      boundary questions are written. Criterion 2's level 4 was widened with it — a candidate who owns
+      both ends does not ask the API's owners for anything, they change the pipeline.
 
   # -------------------------------------------------------------------------------------------
   # Automation. Strategy and judgement only — the engine has no code editor, so no question here
