@@ -22,3 +22,4 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0013](0013-visual-identity.md) | Visual identity: the Margin direction, its tokens, fonts and chart rules | Accepted |
 | [0014](0014-content-model-and-workflow.md) | Learning content: statuses, version history, the answer key, the source of truth after import, and expert review before production | Accepted |
 | [0015](0015-roles-levels-stacks-are-content.md) | Roles, levels and stacks are content, and a question can be written for a stack | Accepted |
+| [0016](0016-interview-transport-and-streaming.md) | Interview transport: whole-turn frames over SSE, and events that ride the response | Accepted |

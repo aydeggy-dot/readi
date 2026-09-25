@@ -101,6 +101,7 @@ pnpm --filter @readi/api admin:cancel-deletion -- --email <their-email>      # k
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
 node .claude/skills/question-bank/scripts/check-bank.mjs   # offline checks on the question banks: house style, slugs, blueprint targets
+node scripts/sse-rewrite-proof.mjs   # does an event stream survive proxy.ts and the Next rewrite under `next start`? (ADR-0016)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -152,6 +153,21 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   not made when the follow-up budget is spent, when no probe remains in play, or when the deadline
   leaves no room for a follow-up — `machine.probes_to_judge` is the one place that rule lives. The
   turn is still logged, as `not_judged` for every criterion, which is exactly what happened.
+- **Browser ↔ API is SSE carrying whole turns; API ↔ worker is plain JSON** (ADR-0016). Each frame
+  is one `data:` message holding one schema-validated `InterviewFrame`, and `InterviewStream`
+  validates every one on the way out. It is **not** token streaming — an AI call returns a whole
+  structured object, so there is no half-turn — and what it buys is the `thinking` frame sent before
+  the model call, a heartbeat (`INTERVIEW_SSE_HEARTBEAT_MS`) while it runs, and the channel M5
+  reuses. Nothing may buffer, cache or compress `/api/interviews/*/advance`;
+  `scripts/sse-rewrite-proof.mjs` proves the Next rewrite does not, under `next start`, and is worth
+  re-running after a Next upgrade.
+- **A refusal is an HTTP error before the stream opens and an `error` frame after it.** Everything
+  knowable up front — `interview_not_found`, `interview_ended`, `interview_expired`,
+  `interview_busy`, request validation — is refused before `stream.open()`, because once the headers
+  are out the status is already 200. Nothing between `open()` and `close()` may throw.
+- **One exchange at a time per session**, on a Redis lock (`interview_busy`). Two exchanges from one
+  snapshot allocate the same seqs and collide on `(session_id, seq)` — a 500 for what is really a
+  double-tapped send button.
 - **The intro is rendered, not generated** (`prompts/interview_intro.v1.md`). It states the session
   length, the question count and that skipping and ending early are allowed; a model paraphrasing
   those gets them wrong eventually, and it is the one turn where the candidate is waiting on an
@@ -224,11 +240,18 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   and client components take their options as props from their server page. Publishing a role is refused
   unless it offers a **published** level; retiring anything a published track, question or profile still
   points at is refused (`role_in_use` / `level_in_use` / `stack_in_use`).
-- **Candidate-facing content responses never contain rubrics, criteria, level descriptors, ideal points
-  or planned follow-ups.** The candidate schemas are separate, smaller shapes — never an admin shape with
-  fields omitted — and
-  `apps/api/test/content-no-answer-key.int.spec.ts` enforces it over the raw JSON of every `/api/content/`
-  GET route, with the endpoint list read from the OpenAPI document. Never weaken that test to make another pass.
+- **Candidate-facing responses never contain rubrics, criteria, level descriptors or ideal points.**
+  The candidate schemas are separate, smaller shapes — never an admin shape with fields omitted —
+  and `apps/api/test/content-no-answer-key.int.spec.ts` enforces it over the raw JSON of every
+  candidate route, with the endpoint list read from the OpenAPI document. Never weaken that test to
+  make another pass.
+  **Planned follow-ups are the one part of the answer key with a moment when it is allowed out**
+  (M3 phase 3): they say what the candidate is about to be asked, right up until the interviewer
+  asks it, at which point they hear it by definition. So the rule for them is narrower, not absent —
+  a probe may appear inside the `text` of a turn an interviewer has **spoken**, and nowhere else in
+  any payload: not in a content response, not in a question the session has not reached, not in a
+  state frame. The fixture marks them apart (`plannedFollowUpMarkers`) and the leak test asserts
+  that count, which is a stronger claim than the old blanket one over every surface that never speaks.
 - **A question's `planned_follow_ups` are where the criteria its prompt does not ask for get asked**
   (owner's decision, 2026-09-23; `docs/progress/2026-09-23-planned-follow-ups.md`). The opening prompt
   asks one thing, the way an interviewer does; each remaining criterion carries `{ criterion, probe }`,

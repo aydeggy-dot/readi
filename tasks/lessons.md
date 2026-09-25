@@ -420,3 +420,50 @@ rather than a strange turn in a session somebody had to read.
 **The rule:** name a field for the one thing it is read as, and set it only where that thing is true.
 "The last utterance" and "a question the candidate asked" are different claims, and a field that
 answers both answers neither.
+
+## A rule phrased as "never, anywhere" breaks the day something legitimately speaks it (M3 phase 3, 2026-09-25)
+
+`content-no-answer-key.int.spec.ts` treated a question's planned follow-ups as answer key and
+forbade them in every candidate response. That was exactly right until phase 3 built the route that
+**asks** one: the interviewer speaks the probe, so the candidate hears it, and the leak test failed
+on the fixture's own marker.
+
+The tempting fixes are both wrong. Dropping probes from the marker list would have removed the check
+that stops a probe leaking through a question's `context`, or through a question the session has not
+reached — which is the leak that matters, because it tells a candidate what is coming. Adding an
+exception for "the interview routes" would have exempted the surface with the most to leak.
+
+What it became: a probe may appear inside the `text` of a turn an **interviewer has spoken**, and
+nowhere else in any payload — counted, so one occurrence in the right place and one in the wrong
+place still fails. The fixture now carries `plannedFollowUpMarkers` separately from
+`answerKeyMarkers`, because the two obey different rules.
+
+**The rule:** when a safety-net test fails because the product legitimately started doing the thing,
+narrow the assertion to the one case that is now allowed — do not delete the assertion, and do not
+exempt the route. A rule with a stated exception is still a rule; a rule with a route-shaped hole in
+it is not. And the fixture is the right place for the distinction, because a marker list that means
+two different things will eventually be used for the wrong one.
+
+## Two pieces of Next can buffer a stream, and only a production build answers the question (M3 phase 3, 2026-09-25)
+
+The interview screen reads whole-turn frames over SSE, and the browser reaches the API through
+Next's `/api/*` rewrite — so every frame passes `proxy.ts` (which matches `/api/:path*`) **and** the
+rewrite, and `next dev` and `next start` are different code paths. None of that is worth guessing at
+after a screen has been written against it.
+
+`scripts/sse-rewrite-proof.mjs` is the answer: a stub origin that emits five frames 300 ms apart, a
+production `next start` in front of it, and a client that times each arrival. They arrived at 330,
+625, 926, 1226 and 1527 ms, with no `content-length` and `transfer-encoding: chunked`. It is
+committed rather than written up, because a Next upgrade could change it and a note cannot fail.
+
+Two details cost time and are worth keeping:
+
+- **`server.close()` waits for keep-alive connections**, so the script hung after reporting — and
+  because its output was piped through `tail`, nothing was printed at all and it looked like the
+  build was still running. `closeAllConnections()` first.
+- **`pnpm exec next start` leaves `next-server` as a grandchild.** Killing the child leaves it
+  holding the script's stdout pipe open for ever. Spawn `detached: true` and kill the process group.
+
+**The rule:** prove a transport before building on it, with the smallest thing that can answer the
+question — here a stub origin, not the real API — and commit the proof as a script. And when a
+long-running script goes quiet, suspect the pipe before suspecting the work.

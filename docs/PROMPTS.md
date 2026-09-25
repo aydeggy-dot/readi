@@ -260,8 +260,12 @@ Architecture
   at mid level"), the shape the CV contract already uses, with every staff-written label wrapped as data.
 - Langfuse tracing per ADR-0008: opaque ids only, retention matching recordings, deletion by user_id
   (verify retention and bulk-delete support).
-- Streaming: stream interviewer text to the web client (SSE or WebSocket — pick one, record an ADR;
-  M2.5 took ADR-0015, so this one is **ADR-0016**).
+- Streaming: **whole turns, not tokens** — SSE from the API to the browser, one schema-validated
+  frame per message (**ADR-0016**; M2.5 took 0015). Corrected here rather than in the ADR because
+  this line said "stream interviewer text" and CLAUDE.md's rule that every AI call is
+  schema-validated structured output wins (CLAUDE.md §7.4): there is no half-turn to stream. Token
+  streaming waits for M5, where voice latency needs it. What SSE buys in M3 is the `thinking` frame
+  before the model call, a heartbeat while it runs, and the channel M5 reuses.
 - Web UI: session setup screen (role, level, stack, type, length — read from
   `GET /api/content/career-roles`, published only, defaulting to the profile's role, level and stack;
   there is no `TARGET_ROLES` constant to import), mobile-first chat interview screen

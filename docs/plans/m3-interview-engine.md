@@ -290,7 +290,7 @@ still reading its route list from the OpenAPI document.
 | `POST /api/interviews` | Create; rate-limited (6/h, 20/day); a documented seam where M8 will check entitlements |
 | `GET /api/interviews` | Keyset-paged list for the Practice page |
 | `GET /api/interviews/:id` | Session + transcript, candidate shape |
-| `POST /api/interviews/:id/advance` | `{action: start \| answer \| skip \| end, text?}` → `text/event-stream` |
+| `POST /api/interviews/:id/advance` | `{action: start \| answer \| skip \| end, text?}` → `text/event-stream`. Built in phase 3: frames are `thinking`, `turn`, `question`, `state`, `error`, `done`; a refusal before the stream opens is an HTTP error and after it an `error` frame; one exchange at a time per session (`interview_busy`) |
 | `GET /api/interviews/:id/status` | Polled by the completion screen; `status` + nullable error + nullable payload, the `CvResponse` shape |
 | worker `POST /interview/advance` | Bundle (first call or after a Redis miss) + engine state + event → turns, state, snapshot, `prompt_versions`, `ai_calls`. Built in phase 2: **the snapshot in the request is the authority** and Redis caches the bundle, so a miss answers `bundle_required` — which is how the API learns of a miss it cannot see. An exchange is all-or-nothing: on an error the response carries no turns and a null snapshot, and a retry replays it |
 | worker `POST /traces/delete` | By `user_id`, and by age for the retention sweep |

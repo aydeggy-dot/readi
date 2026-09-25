@@ -1999,14 +1999,50 @@ Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean; `pnpm te
 **427 API · 120 web · 95 shared-types · 178 Python · 56 ui · 3 api-client** (Python was 77).
 `pnpm test:e2e` still belongs to phase 6.
 
-### Phase 3 — wiring
+### Phase 3 — wiring · **done 2026-09-25**
 
-- [ ] `advanceInterview` on `AiWorkerClient`; `AI_WORKER_TIMEOUT_MS` re-checked for two chained calls
-- [ ] The SSE route, its frame contract, and **proof that a stream survives the Next rewrite**
-      (`next start`, not only `next dev`) — the first thing this phase proves, before the screen exists
-- [ ] Idempotent turn persistence by `(session_id, seq)`; `ai_call_log` rows carrying the session id
-- [ ] Resume after a Redis miss from `engine_snapshot`; end-early; abandon
-- [ ] **ADR-0016** — transport, whole-turn frames, and why the events ride the response
+- [x] **The stream proved first**, before anything depended on it: `scripts/sse-rewrite-proof.mjs`
+      runs a stub origin behind a production `next start` and times the frames through `proxy.ts` and
+      the rewrite. Five frames 300 ms apart arrived at 330/625/926/1226/1527 ms, no `content-length`,
+      `transfer-encoding: chunked`. Committed, because a Next upgrade could change the answer
+- [x] `advanceInterview` on `AiWorkerClient`; `AI_WORKER_TIMEOUT_MS` re-checked — and the real fix
+      was on the **worker** side: `INTERVIEW_LLM_TIMEOUT_S` (45 s) bounds an interview call far
+      tighter than `LLM_TIMEOUT_S` (90 s, right for a CV in a background job), so two chained calls
+      fit inside 150 s with room for a retry
+- [x] The SSE route and its frame contract (`InterviewFrame`: thinking / turn / question / state /
+      error / done), validated on the way out; `INTERVIEW_SSE_HEARTBEAT_MS`
+- [x] Idempotent turn persistence by `(session_id, seq)`; `asked_at` and `follow_ups_asked` derived
+      from the transcript; `ai_call_log` rows carrying the session id; `prompt_versions` merged and
+      `model_config` taken from what was actually called
+- [x] The Redis-miss round trip (`bundle_required` → resend the bundle); end-early; the expired
+      session refused past its resume grace
+- [x] A Redis lock per session (`interview_busy`), because a double-tapped send button would
+      otherwise collide on `(session_id, seq)` and read as a 500
+- [x] `GET /api/interviews/{id}/status` for the completion screen (`feedback_ready` always false in
+      M3, deliberately)
+- [x] **ADR-0016**, and `docs/PROMPTS.md`'s "stream interviewer text" corrected in the same change
+
+Three things phase 3 decided or found that the plan did not have:
+
+1. **A model that will not answer does not end the interview** (built in phase 2, wired here): the
+   API sees a normal exchange with `status: "error"` calls in `ai_calls`. Only an unreachable worker
+   or a refused exchange produces an `error` frame, and neither persists anything.
+2. **The leak test's rule about planned follow-ups had to be narrowed, and it caught it.** M3 phase 3
+   is where a route first _speaks_ a probe, so "never, anywhere" stopped being true — the test failed
+   on the fixture's own marker. It now asserts a probe appears **only** inside the text of a turn an
+   interviewer has spoken, counted, and nowhere else in any payload. That is stronger than the old
+   rule everywhere except the one place it was wrong. `plannedFollowUpMarkers` is its own list on the
+   fixture now, and CLAUDE.md §5 says so.
+3. **The API has no per-criterion view at all**, which is the API's answer to the `review-doc.ts`
+   bug: the coverage log arrives whole from the worker and is written whole, asserted byte-for-byte.
+   The three real ones were audited — `probes.py` (a list), `review-doc.ts` (grouped, with a test for
+   two probes on one criterion), `check-bank.mjs` (a count) — and `test_interview_probes.py` now
+   holds the general form: every probe reachable, one log entry per criterion.
+
+Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm check:contracts` clean;
+`pnpm test` green — **471 API · 120 web · 95 shared-types · 180 Python · 56 ui · 3 api-client**.
+`pnpm test:e2e` belongs to phase 6. No paid provider call yet: the owner's word is given for **one
+15-minute diagnostic on `claude-sonnet-5` after phase 4**, in the browser, with the cost reported.
 
 ### Phase 4 — the web
 
@@ -2029,7 +2065,9 @@ Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean; `pnpm te
 
 - [ ] e2e interview spec; `slow-network` and `visual` suites extended (and the skipped specs grepped
       for renamed fields, per the M2.5 lesson)
-- [ ] One real 15-minute diagnostic against `claude-sonnet-5`, **after the owner says so** (≈2–4¢)
+- [ ] ~~One real 15-minute diagnostic against `claude-sonnet-5`~~ — **moved to the end of phase 4**
+      (owner, 2026-09-25): they want to sit through it in the browser rather than read a transcript.
+      One 15-minute diagnostic on `claude-sonnet-5`, announced before it runs, with the cost reported
 - [ ] The pinning test watched to fail; a Redis flush mid-session followed by a resume
 - [ ] `CLAUDE.md`, the corrected M3 prompt in `docs/PROMPTS.md`, the handover, lessons
 
