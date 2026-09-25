@@ -1,0 +1,46 @@
+<script>
+render('d9', 1240, 552, 'Privacy by construction — consent, export and deletion', 'Built and covered by tests since milestone M1, before there was any personal data worth protecting. The Nigeria Data Protection Act 2023 and GDPR were designed for, not retrofitted.', () => {
+  const y = 48;
+  const s = [
+    ['Deletion requested','a typed confirmation and a recent sign-in',30,206],
+    ['Soft delete','every sign-in method blocked immediately',266,206],
+    ['7-day grace period','support can cancel it — an audited action',502,206],
+    ['Hourly sweep','erases everything due, idempotently',738,206],
+    ['Tombstone id','the rows that must be kept lose the person',974,236],
+  ];
+  const bs = s.map(([t,d,x,w]) => box({x,y,w,h:80,title:t,lines:[d.length>30?d.slice(0,d.lastIndexOf(' ',30)):d, d.length>30?d.slice(d.lastIndexOf(' ',30)+1):''],state: 'accent', ts:13.5}));
+  for (let i=0;i<bs.length-1;i++) arrow(bs[i].right, y+40, bs[i+1].left, y+40, {color:'pen'});
+
+  band(30, 162, 580, 376, 'what is kept, and what is erased');
+  const keep = [
+    ['Erased','the account, the profile, the CV and its file, the parsed CV, consent records, sessions and transcripts.'],
+    ['Kept without the person','payments, subscriptions, webhook events, audit logs and AI call logs — required records, re-keyed to a tombstone id with no foreign key back.'],
+    ['Never written down at all','no transcript, CV, email address or phone number reaches an application log or an error report. Sentry runs with request bodies and stack-frame locals switched off, and there is a test for it.'],
+    ['A schema test enforces this','any new column holding a user id that must survive erasure has to be listed, or the test fails.'],
+  ];
+  keep.forEach(([h,b],i)=>{
+    const yy = 196 + i*88;
+    push(`<circle cx="52" cy="${yy-4}" r="3.5" fill="${P.pen}"/>`);
+    label(68, yy, h, {anchor:'start', size:12, weight:700, fill:P.ink});
+    let cur='', ln=0;
+    b.split(' ').forEach(w=>{ if((cur+' '+w).trim().length<=62) cur=(cur+' '+w).trim(); else { label(68, yy+17+ln*16, cur, {anchor:'start', size:11.5}); cur=w; ln++; } });
+    label(68, yy+17+ln*16, cur, {anchor:'start', size:11.5});
+  });
+
+  band(630, 162, 580, 376, 'consent, and the parts still to come');
+  const c = [
+    ['Consent is versioned','four purposes — recording audio, storing recordings, camera coaching, marketing. Change the wording and the version bumps; decisions on the old version stop counting as granted.'],
+    ['Camera coaching runs in the browser','only numeric metrics are ever sent. No raw video leaves the device. It is opt-in and it is phase 2.'],
+    ['Still to be wired','recording retention (default 30 days), Langfuse trace retention and erasure — both planned, neither written. Langfuse is treated as a personal-data store and needs a signed data-processing agreement.'],
+    ['Still owed to launch','a privacy policy, terms, and a refund policy. None exists; the landing page has nothing to link to.'],
+  ];
+  c.forEach(([h,b],i)=>{
+    const yy = 196 + i*88;
+    push(`<circle cx="652" cy="${yy-4}" r="3.5" fill="${i>1?P.warn:P.pen}"/>`);
+    label(668, yy, h, {anchor:'start', size:12, weight:700, fill:P.ink});
+    let cur='', ln=0;
+    b.split(' ').forEach(w=>{ if((cur+' '+w).trim().length<=62) cur=(cur+' '+w).trim(); else { label(668, yy+17+ln*16, cur, {anchor:'start', size:11.5}); cur=w; ln++; } });
+    label(668, yy+17+ln*16, cur, {anchor:'start', size:11.5});
+  });
+});
+</script>

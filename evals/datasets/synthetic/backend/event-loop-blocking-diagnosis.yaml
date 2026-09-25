@@ -1,0 +1,124 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: event-loop-blocking-diagnosis
+question: node-blocked-event-loop
+# `fluent-but-wrong` diagnoses connection-pool starvation — the connection held for the life of
+# the handler, a default pool of ten, the health check queueing for one — and dismisses the
+# synchronous map and join over eighty thousand rows as "microseconds per row, noise". It
+# prescribes a bigger pool, an acquire timeout and a read replica. 1/1/1 against `strong`'s 4/4/4.
+answers:
+  - kind: strong
+    text: |
+      So Node runs all your JavaScript on one thread. The `await` on the query isn't the problem —
+      that's I/O, it hands control back to the event loop while it waits. The problem is the two
+      lines after it. The map over eighty thousand rows and then the join into one giant string,
+      that's pure CPU, and it runs on the event loop with no yield in it. While it's running,
+      nothing else moves. No other request gets picked up, no timer fires, and the health check
+      handler doesn't run either, even though all it does is return okay — it's not slow, it just
+      never gets a turn. So the probe times out, the platform decides the pod is dead and restarts
+      it. And the restart kills the export too, so the person retries and we do it all again. What
+      I'd change: stream it. Query with a cursor, transform row by row, pipe into the response.
+      Small chunk, yield, next chunk. That fixes the memory too, because right now the rows and
+      the whole CSV string are both in memory at once.
+    expected:
+      - dimension: Says what is blocking and what is not
+        score: 4
+        because: The `await` yields and the map and join do not — and says so as the counter-example rather than as an aside.
+      - dimension: Connects it to the restart
+        score: 4
+        because: The health check is not slow, it never gets a turn; the probe fails, the pod restarts, and the restart kills the export so it is retried.
+      - dimension: Moves the work off the thread
+        score: 4
+        because: Streams with a cursor row by row into the response, and notices the rows and the whole CSV are both in memory at once.
+  - kind: weak
+    text: |
+      Okay so eighty thousand rows is a big query, so this endpoint is heavy. I think the issue is
+      it's using a lot of memory and CPU, and when one request uses everything there's nothing
+      left for the others, so they get slow. That's why the health check fails, the server is
+      basically overloaded. What I'd do — I'd add a limit to the query so it doesn't get all
+      eighty thousand at once. Or increase the memory on the container, because Node has a heap
+      limit, I know you can raise it with a flag. And maybe run more instances so the load is
+      spread out. For the health check, honestly I'd give it a longer timeout so it stops
+      restarting the service while the export is running, because the export does need to finish.
+      And maybe do exports at night when nobody's using it.
+    expected:
+      - dimension: Says what is blocking and what is not
+        score: 1
+        because: Puts the block in memory and CPU generally — "one request uses everything" — rather than in the synchronous work.
+      - dimension: Connects it to the restart
+        score: 1
+        because: The restart explained as the server being overloaded, and the answer is a longer probe timeout.
+      - dimension: Moves the work off the thread
+        score: 1
+        because: A query limit, a bigger heap and more instances; the work stays exactly where it is.
+  - kind: fluent-but-wrong
+    text: |
+      Right, this is pool starvation. `db.orders.findAll()` checks a connection out of the pool,
+      and the client doesn't hand it back at the end of the await — it holds it for the lifetime
+      of the request handler, so it's still checked out while we build the CSV and while the
+      response is draining to a slow client. Default pool size is ten. Two or three concurrent
+      exports and the pool is empty, so every other request sits in the acquire queue waiting for
+      a connection to come free, and that queue wait is your seconds. The health check queries the
+      database too, so it's in the same queue, it times out, and the orchestrator restarts the
+      pod. The map and join are synchronous, yes, but that's microseconds per row on eighty
+      thousand rows — it's noise. So the fix is pool-level: raise max connections to something
+      like a hundred, set a short acquire timeout so requests fail fast instead of hanging, point
+      the export at a read replica with its own dedicated pool, and make the health check a pure
+      in-memory check that never touches the pool at all.
+    expected:
+      - dimension: Says what is blocking and what is not
+        score: 1
+        because: Pool starvation argued in full, with the synchronous map and join explicitly dismissed as noise.
+      - dimension: Connects it to the restart
+        score: 1
+        because: The health check reaching the same acquire queue — the restart explained by something that is not there.
+      - dimension: Moves the work off the thread
+        score: 1
+        because: "A hundred connections, an acquire timeout and a read replica: infrastructure tuned around work that never left the thread."
+  - kind: correct-poorly-explained
+    text: |
+      So it's one thread. That's the whole thing really. The await is fine, awaits are fine, it's
+      the map and the join — eighty thousand rows, that's synchronous, and there's nowhere in
+      there for anything else to run, so it just sits there. And the health check, people think
+      health checks are special but they're not, it's the same queue, so it's waiting behind the
+      CSV like everything else and then it times out and Kubernetes or whatever kills the pod, and
+      then the export dies too so they try again. Sorry, I said that backwards — the point is the
+      health check isn't slow, it just never gets scheduled. What I'd do, um, stream it, so cursor
+      on the query and then a transform that does one row and then hands back, and pipe that into
+      the response, so it's lots of little bits of work instead of one enormous one, and also
+      you're not holding the whole CSV in memory which right now you are, twice basically. Better
+      version is it's a job and you email them a link but that's a bigger change.
+    expected:
+      - dimension: Says what is blocking and what is not
+        score: 4
+        because: '"The await is fine, awaits are fine, it''s the map and the join" — nowhere in there for anything else to run.'
+      - dimension: Connects it to the restart
+        score: 4
+        because: Health checks are not special, it is the same queue — and the export dies with the pod so they try again.
+      - dimension: Moves the work off the thread
+        score: 4
+        because: A cursor and a transform piped into the response, and the CSV no longer held whole, "twice basically".
+  - kind: nigerian-english
+    text: |
+      Node na one thread. The `await` for the query no be the problem — that one na I/O, e go
+      release the loop. Na the two lines under am. That map over eighty thousand rows, then the
+      join wey dey build one enormous string — na pure CPU, and e dey run for the event loop
+      without breaking anywhere. So while e dey do am, nothing else fit move. No other request, no
+      timer, and the health check handler self no go run, even though na only "ok" e dey return. E
+      no slow — e just no get turn. So the probe go timeout, the platform go say this pod don die,
+      e go restart am. And the restart go kill the export too, so the person go try again, and na
+      the same thing again. Wetin I go change: make we stream am. Use cursor for the query,
+      transform row by row, pipe am into the response — small work, release, small work again.
+      That one go solve the memory matter too, because as e be now, the rows and the full CSV dey
+      memory together.
+    expected:
+      - dimension: Says what is blocking and what is not
+        score: 4
+        because: "Same as `strong`: the `await` releases the loop, the map and join do not."
+      - dimension: Connects it to the restart
+        score: 4
+        because: "Same: the health check has no turn, the platform restarts the pod, and the export dies with it."
+      - dimension: Moves the work off the thread
+        score: 4
+        because: "Same: cursor, row-by-row transform, piped out — and the memory problem gone with it."

@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: resilient-layout-reasoning
+question: content-you-do-not-control
+# `fluent-but-wrong` is the whole rubric in one answer: it is fluent, confident, uses the right
+# vocabulary, and inverts the lesson — clip the content instead of letting it flow. Two of its three
+# technical claims are also false. It scores 0.4 against `strong`'s 3.4.
+answers:
+  - kind: strong
+    text: |
+      Okay so the first thing that breaks is the long title — sorry, let me start again. The card
+      was built against one short line, and now production has "Senior Frontend Engineer, Payments
+      and Checkout". If that title has a fixed height or nowrap on it, it either spills out of the
+      card or it pushes the card wider than the row, and on a phone that's your sideways scroll.
+      The bank name is worse, because it's one unbroken word — the browser won't break it anywhere,
+      so I'd allow it to wrap mid-word and let the title run to two lines. The missing logo, that
+      box just collapses, so that card is shorter than the other two and the row looks broken. I'd
+      reserve the space with an aspect ratio and draw initials in it. And honestly I'd stop
+      building against the pretty sample — I'd seed the ugliest names I can find and look at 360.
+    expected:
+      - dimension: "Predicts what breaks"
+        score: 4
+        because: "Spilling text, a card pushed wider than the row, the collapsed logo box — and separates the ugly from the sideways scroll."
+      - dimension: "Builds so it holds"
+        score: 3
+        because: "Break the unbroken word, let the title take two lines, reserve the logo's space with an aspect ratio."
+      - dimension: "Tests with real content"
+        score: 3
+        because: "Would seed the ugliest names available and look at 360 rather than build against the sample."
+  - kind: weak
+    text: |
+      Um. So the cards look different from each other, yeah. I think the main issue is the data,
+      like the job titles are too long and the company names are too long, so what I'd do is talk
+      to the backend guy and ask him to cut them down before they send them, maybe fifty characters
+      or something like that. And for the one with no logo I'd just tell them every company must
+      upload a logo, make it required on the form. Then on the CSS side, I'd probably... I'd have
+      to look at it in the inspector to see, I can't really say from here. Something with the
+      height maybe. I know there's a property for making text not go outside but I'd have to check
+      the name of it.
+    expected:
+      - dimension: "Predicts what breaks"
+        score: 1
+        because: "Says the cards look different; the failures are treated as bad data rather than as things the layout does."
+      - dimension: "Builds so it holds"
+        score: 0
+        because: "No layout technique — the fix is to ask the backend to truncate and to make logos required."
+      - dimension: "Tests with real content"
+        score: 0
+        because: "Assumes the sample is representative; would go and look in the inspector."
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a content resilience problem, and the way I handle it is to stop letting
+      the content decide anything. I'd give every card a fixed height and a fixed width — say 320
+      by 180 — and set overflow hidden on the card itself, so whatever comes in, the box is the box
+      and the grid stays perfectly aligned. On the title I'd put white-space nowrap with
+      text-overflow ellipsis, and that handles both the long title and the long company name in one
+      rule, it'll trim them at two lines automatically. For the missing logo I'd set object-fit
+      cover on the img — an empty img with object-fit still fills its box, so nothing collapses.
+      That's the whole fix really. Fixed geometry, clip anything that doesn't fit, and then the
+      layout is guaranteed identical no matter what production sends you.
+    expected:
+      - dimension: "Predicts what breaks"
+        score: 1
+        because: "Never says what breaks; goes straight to a geometry that would clip it."
+      - dimension: "Builds so it holds"
+        score: 0
+        because: "Fixed height and width with `overflow: hidden` — the sample data made permanent. `nowrap` with an ellipsis does not trim at two lines, and `object-fit` does not fill an empty image."
+      - dimension: "Tests with real content"
+        score: 0
+        because: "Treats the fixed box as a guarantee, so there is nothing left to test."
+  - kind: correct-poorly-explained
+    text: |
+      So, I mean, it depends a bit, but probably the logo one first, or actually no, the text, um,
+      because there's like three cards and they're not the same, and one of them the image isn't
+      there so it's — the card kind of jumps, or it's shorter, I've seen that before where the
+      thing loads late and everything moves, and then the company name, that one's very long, and
+      long words are, yeah, they don't break, so it goes out. I'd look at it small first. What I'm
+      trying to say is I wouldn't fix it by setting sizes, because then it just breaks somewhere
+      else with different data — you let it wrap, you keep a space for the image whether it's there
+      or not, and you test with the worst data in the database, not the one row you designed with.
+    expected:
+      - dimension: "Predicts what breaks"
+        score: 3
+        because: "The jumping when the image is missing, and the long word that will not break — including the failure caused by something absent."
+      - dimension: "Builds so it holds"
+        score: 4
+        because: "Refuses to fix it with sizes because it would break again on other data, and lets it wrap instead."
+      - dimension: "Tests with real content"
+        score: 3
+        because: "Test with the worst data in the database, not the row you designed with."
+  - kind: nigerian-english
+    text: |
+      Ah, this one I've seen it before. So the first one, that long title, "Senior Frontend
+      Engineer, Payments and Checkout" — if you put nowrap or you fix the height, the text will now
+      just enter outside the card, or it will push the whole card pass the screen, and that is how
+      you now get that side scrolling on phone. The bank name is even worse, because it is one word
+      straight, no space, so the browser cannot break it anywhere — I will now allow it to break
+      inside the word, and let the title take two lines, no wahala. Then the one without logo, that
+      box will just collapse, so that card will be short and the row will scatter. I go reserve the
+      space, aspect ratio, and put initials inside. And abeg, I will not test with sweet data — I
+      will go and find the longest name in the database and check am at 360.
+    expected:
+      - dimension: "Predicts what breaks"
+        score: 4
+        because: "Same three failures, same distinction, including the row scattering."
+      - dimension: "Builds so it holds"
+        score: 3
+        because: "Same: break inside the word, two lines, reserve the space with initials."
+      - dimension: "Tests with real content"
+        score: 3
+        because: "Same habit — find the longest name in the database and check it at 360."

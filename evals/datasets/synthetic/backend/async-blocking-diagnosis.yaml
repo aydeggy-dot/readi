@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: async-blocking-diagnosis
+question: python-blocking-call-in-async
+# `fluent-but-wrong` inverts the one fact the question turns on — it says `async def` is what
+# hands the endpoint to Starlette's thread pool — and builds a complete, plausible story on top: a
+# forty-thread cap, saturation explaining the unrelated endpoints, and urllib3 holding the GIL. It
+# prescribes raising the pool to two or three hundred and a `requests.Session`, leaving the
+# blocking call exactly where it is. 1/1/1 against `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      Okay, so the async here isn't buying anything. Declaring it async means FastAPI runs the
+      coroutine on the event loop itself — and there's one event loop, on one thread. Then inside
+      it we call `requests.get`, which is synchronous. It doesn't yield. So for however long that
+      provider takes, up to the five second timeout, the loop is sitting inside a socket read and
+      it cannot run anything else. Every other request is just queued behind it, including the
+      ones that do nothing. That's why the whole service slows down — the async is actually making
+      it worse than if you'd written it as a plain def, because with a plain def FastAPI would
+      have pushed it to a thread pool and the loop would have stayed free. The fix I'd go for is
+      httpx — an AsyncClient, created once at startup, `await client.get(...)`, so the await is a
+      real await and the loop goes off and serves other requests while we wait. Keep the timeout,
+      and I'd cache the rates for a few seconds too, since a rates endpoint doesn't need a live
+      call per request.
+    expected:
+      - dimension: Says what `async` did and did not do
+        score: 4
+        because: The coroutine runs on the one loop and `requests` does not yield, so every other request queues behind it — including the ones that do nothing.
+      - dimension: Fixes it in a way that yields
+        score: 3
+        because: An `AsyncClient` created once at startup and awaited; does not weigh it against running the blocking call in a thread.
+      - dimension: Knows the framework was offering a safer default
+        score: 3
+        because: Says a plain `def` would have gone to a thread pool and left the loop free — "the async is actually making it worse".
+  - kind: weak
+    text: |
+      So async is for making things faster, it runs things concurrently. Here it's declared async
+      but I think the problem might be that we're not awaiting anything inside, so the async isn't
+      really doing its job — there's no await on the requests.get line. So I would add await
+      there, like `await requests.get(...)`, so that it's properly asynchronous and the function
+      can yield. That should let other requests go through. Also five seconds is a long timeout,
+      maybe bring it down to two so it doesn't hold things up. And the provider might be slow, so
+      maybe we cache it. If that doesn't work I'd add more workers, like run uvicorn with four
+      workers instead of one, so there's more capacity to handle requests when one is busy. That's
+      usually what we did when the service was slow — scale it up. I'm not fully sure why
+      endpoints that do nothing would be slow though, that part is strange to me.
+    expected:
+      - dimension: Says what `async` did and did not do
+        score: 1
+        because: '"There''s no await on the requests.get line" — an `await` in front of it taken to be what makes it asynchronous.'
+      - dimension: Fixes it in a way that yields
+        score: 1
+        because: Keeps `requests` on the loop and changes things around it — a shorter timeout, a cache, more uvicorn workers.
+      - dimension: Knows the framework was offering a safer default
+        score: 0
+        because: Not addressed; says outright that endpoints doing nothing being slow is strange.
+  - kind: fluent-but-wrong
+    text: |
+      Right. So what `async def` buys you here is that FastAPI hands the endpoint to Starlette's
+      anyio worker thread pool rather than running it inline — so the call itself isn't the
+      problem, it's off the main thread. The problem is that pool is capped at forty threads by
+      default, and every in-flight rates call occupies one for up to five seconds. Under load you
+      saturate the forty, and once it's saturated everything queues behind it, which is exactly
+      why endpoints that do no work are also slow — they're waiting for a worker. On top of that,
+      `requests` is built on urllib3, which holds the GIL during the socket read, so even the
+      threads you do have don't interleave properly. So two changes. First, raise the anyio
+      capacity — I'd set the total tokens to two or three hundred, since these threads are I/O
+      bound and cheap. Second, use a `requests.Session` at module level so we reuse connections
+      and cut the time each thread holds its slot. That takes the pressure off the pool without
+      rewriting the endpoint.
+    expected:
+      - dimension: Says what `async` did and did not do
+        score: 1
+        because: A specific wrong mechanism — a forty-thread anyio cap and the GIL — with the loop never entering the account.
+      - dimension: Fixes it in a way that yields
+        score: 1
+        because: "Raises the pool capacity and adds a `Session`: a thread pool the code never actually uses."
+      - dimension: Knows the framework was offering a safer default
+        score: 1
+        because: The two the wrong way round — `async def` believed to be the one the framework runs in a thread.
+  - kind: correct-poorly-explained
+    text: |
+      The async is doing nothing. Worse than nothing. Because — okay. `requests` is blocking,
+      right, it's a normal synchronous call, and an async def in FastAPI runs on the loop, the
+      actual event loop, one thread, so when you sit inside requests.get for five seconds the loop
+      is stuck there and it can't run anything else, which is why your health check or whatever,
+      something that does zero work, is also slow, they're all queued behind that one socket read.
+      And the annoying part is if you just deleted the word async it would be better, because then
+      FastAPI throws it in a threadpool and the loop is free. But don't do that, do it properly —
+      httpx, AsyncClient, make it once at startup not per request, and await it. Then the await
+      actually gives the loop back. Timeout stays. And, honestly, cache the rates, few seconds,
+      because we're calling the provider once per request for a number that barely moves.
+    expected:
+      - dimension: Says what `async` did and did not do
+        score: 4
+        because: '"The async is doing nothing. Worse than nothing" — and the health check is queued behind the same socket read.'
+      - dimension: Fixes it in a way that yields
+        score: 3
+        because: "`httpx`, `AsyncClient`, made once at startup rather than per request, and awaited."
+      - dimension: Knows the framework was offering a safer default
+        score: 3
+        because: '"If you just deleted the word async it would be better, because then FastAPI throws it in a threadpool" — and says to do it properly instead.'
+  - kind: nigerian-english
+    text: |
+      The async no dey buy anything here. When you declare am async, FastAPI go run the coroutine
+      for the event loop itself — and na one event loop, for one thread. Then inside, we dey call
+      `requests.get`, which is synchronous. E no dey yield at all. So for as long as the provider
+      take, up to that five second timeout, the loop dey sit down inside socket read, e no fit run
+      anything else. Every other request go just line up behind am, including the ones wey no dey
+      do any work. Na why the whole service dey slow. As e be so, the async dey make am worse pass
+      ordinary def — because with plain def, FastAPI for push am go threadpool, and the loop for
+      remain free. What I go do na httpx: AsyncClient, create am once at startup, then `await
+      client.get(...)`, so the await na real await and the loop fit serve other people while we
+      dey wait. Keep the timeout. And I go cache the rates for a few seconds sef, because rates no
+      need live call for every single request.
+    expected:
+      - dimension: Says what `async` did and did not do
+        score: 4
+        because: "Same as `strong`: one loop, one thread, and everything lined up behind a call that does not yield."
+      - dimension: Fixes it in a way that yields
+        score: 3
+        because: "Same: `AsyncClient` created once at startup and awaited, with the timeout kept."
+      - dimension: Knows the framework was offering a safer default
+        score: 3
+        because: "Same: plain `def` would have gone to a threadpool, so the `async` makes it worse than ordinary `def`."

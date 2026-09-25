@@ -1,0 +1,132 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: pipeline-health-response
+question: the-pipeline-has-been-red
+answers:
+  - kind: strong
+    text: |
+      First thing, I'd stop calling it the usual one. I'd open the runs, actually read the failure, find
+      the first run where it started — three days ago — and see what went in around then. Because the
+      usual one is a story nobody has checked since day one, and that same message can be sitting on top
+      of a second, newer failure.
+      Then: is it the test or the product? If the product is genuinely broken, that's an outage waiting.
+      If the test is wrong, fix it, and if it can't be fixed today, switch it off openly — a ticket, a
+      name, a date — rather than everybody quietly ignoring it.
+      What it's costing them that they haven't counted is the signal. For three days nobody can tell a
+      new break from the old one, so everything merged in that window is effectively untested, and when
+      a bug shows up you can't say which change caused it — you're reading three days of commits instead
+      of one. And the habit: once people learn to merge over red, they'll do it when it's real.
+      Then a short note — which check, the first failing run, the message, what changed near it, how
+      many merges since — in the team channel with the lead tagged, not a DM.
+    expected:
+      - dimension: "Deals with the failure itself first"
+        score: 3
+        because: 'Level 3 — reads the failure, finds the first failing run and what went in around it, and separates the two cases: a wrong test (fixed, or switched off openly with a ticket, a name and a date) or a genuinely broken product, "an outage waiting". It does not say which it would assume until shown otherwise.'
+      - dimension: "What the team is losing"
+        score: 4
+        because: 'Level 4 — nothing after the failing step is believed, so three days of merges are effectively untested, and the habit is named as the more expensive loss: "once people learn to merge over red, they''ll do it when it''s real".'
+      - dimension: "Who they take it to, and what keeps it green"
+        score: 3
+        because: "Level 3 — a note naming which check, the first failing run, the message, what changed near it and the merges since, in the team channel with the lead tagged rather than a DM, so it exists after the conversation."
+  - kind: weak
+    text: |
+      Three days is too long, that's the first thing. I'd... ehm, I'd rerun the build first,
+      because sometimes it's just a network thing and when you run it again it passes. If it
+      still fails, then I'd open the log and look at the error.
+      Honestly I might not understand the error myself, so I'd ask the developer who owns that
+      part, or my lead, and see if they can explain what it means.
+      What it's costing — time, I think. People are waiting for the build and the build is
+      failing, so that's wasted time. And it doesn't look good, if a client or somebody sees that
+      everything is red.
+      For writing it down, I'd send a message in the group that the checks have been failing for
+      three days and can somebody please look at it. Maybe an email to the lead too. And I'd put
+      it in my daily report so it's documented, because if something goes wrong later, at least
+      nobody can say I didn't raise it.
+    expected:
+      - dimension: "Deals with the failure itself first"
+        score: 2
+        because: "Level 2 — would rerun for a network blip, then open the log and ask the developer or the lead; says it would look at the failure without saying what it would do with either answer."
+      - dimension: "What the team is losing"
+        score: 1
+        because: "Level 1 — prices it in time: people waiting on the build, and how red looks to a client."
+      - dimension: "Who they take it to, and what keeps it green"
+        score: 2
+        because: 'Level 2 — raises it in the group and by email with "can somebody please look at it": no owner for this failure and nothing asked for, so it stays in the level-2 band despite naming recipients.'
+  - kind: fluent-but-wrong
+    text: |
+      Okay, my rule is the build must be green. A red build everyone ignores is worse than no
+      build at all, so job one is getting it green today and investigating at leisure.
+      And the clue here is that it's the same failure for three days. A real product defect
+      doesn't behave like that — a real defect gets noticed, somebody fixes it, it moves. When a
+      failure is stable and identical across three days and across different people's changes,
+      it's environmental: the agent, the network, a timeout. So I'd put a retry on it, two
+      attempts, because a test that passes on retry was never a real failure. If it still fails,
+      I mark that check as allowed to fail, or skip it with a tag, and the pipeline goes green.
+      That restores the signal immediately, because now a new failure shows up on its own instead
+      of being buried under the old red.
+      On cost, the risk is lower than people make out, because nothing ships on the automated
+      checks alone — we still do a manual pass before release, so quality is covered. The cost is
+      developer time and confidence, mainly.
+      And I'd write it up for the DevOps person, since it's their environment, and hand them the
+      skipped check to fix when they've got time.
+    expected:
+      - dimension: "Deals with the failure itself first"
+        score: 1
+        because: 'Level 1 — "the usual one" is never read: the product is ruled out from the failure being stable across three days, then a retry and a skipped check make the pipeline green, so nobody yet knows whether it is a defect.'
+      - dimension: "What the team is losing"
+        score: 1
+        because: "Level 1 — prices it in developer time and confidence, and argues the risk is lower than people make out because a manual pass still happens before release."
+      - dimension: "Who they take it to, and what keeps it green"
+        score: 2
+        because: 'Level 2 — writes it up for the DevOps person and hands over the skipped check "when they''ve got time": a recipient and a record, but nothing owned today, so it falls below 3 into the level-2 band.'
+  - kind: correct-poorly-explained
+    text: |
+      So, I should say, I've never worked on a team with automated checks — I test on my own
+      laptop, I run my own things. But if it's failing for three days and people are still
+      putting changes in, then... okay. The problem is nobody knows what is actually broken now.
+      Like, if it's already red, and my change also breaks something, how will anybody see mine?
+      It's already red. So we've lost the — the checking part. I should have started there.
+      And then, three days of changes have gone in, so if something is broken now, which change
+      is it? It could be any of them, so somebody will spend days looking. Whereas if it was
+      green and it turned red on your change, you know immediately, it's yours.
+      What I'd do is read the actual error. Nobody seems to have read it, they just say it's the
+      usual one. Find the first run that failed, and what went in that day. And if the test
+      itself is the problem, then either fix it or say openly that we're switching it off, with a
+      ticket, rather than leaving it red.
+      And I'd write it in the team's channel, not to one person, so nobody can say they didn't
+      see it.
+    expected:
+      - dimension: "Deals with the failure itself first"
+        score: 3
+        because: 'Level 3 — reads the actual error nobody has read, finds the first failing run and what went in that day, and if the test itself is the problem fixes it or says openly it is being switched off, with a ticket; the real-defect branch is implied by "if the test itself is the problem" rather than stated.'
+      - dimension: "What the team is losing"
+        score: 3
+        because: "Level 3 — nobody can see a new break under the old red, so the checking is gone, and three days of commits have to be searched instead of one; it does not reach the habit."
+      - dimension: "Who they take it to, and what keeps it green"
+        score: 2
+        because: "Level 2 — writes it in the team channel rather than to one person, but names no owner and asks for nothing, and the note has no contents; the cap is the missing owner and ask, not the absence of a team."
+  - kind: nigerian-english
+    text: |
+      First thing, me I will stop this "it's the usual one". So I will open the runs, read the error
+      myself, find the first run where it started — three days ago — and check what people pushed around
+      that time. Because that same message can be covering another new failure behind it.
+      Then, is it the test or the product? If it is the product, ah, that one is serious. If it is the
+      test, fix am, and if we cannot fix it today, we switch it off openly — ticket, somebody's name on
+      it, and a date — not everybody just closing their eyes.
+      The cost they have not counted is the signal. For three days nobody can tell a new problem from
+      the old one, so everything they pushed inside that window, nobody has tested it. And when a bug
+      shows tomorrow, which change caused it? You will be checking three days of commits instead of one.
+      And the habit: once people learn to push when it is red, they will do it when it is real.
+      So, short note — which check, the first failing run, the error, what changed near it — inside the
+      team channel, and tag the lead, not DM.
+    expected:
+      - dimension: "Deals with the failure itself first"
+        score: 3
+        because: 'Level 3 — same as `strong`: stops "it''s the usual one", reads the error, finds the first failing run and what was pushed, and splits the product case ("that one is serious") from the test case (fix it, or switch it off openly with a ticket, a name and a date).'
+      - dimension: "What the team is losing"
+        score: 4
+        because: 'Level 4 — same as `strong`: nobody has tested anything pushed inside the window, and the habit is the larger loss ("once people learn to push when it is red, they will do it when it is real").'
+      - dimension: "Who they take it to, and what keeps it green"
+        score: 3
+        because: "Level 3 — the same short note (which check, the first failing run, the error, what changed near it) in the team channel with the lead tagged, not a DM."

@@ -136,6 +136,11 @@ export async function seedPublishedContent(
   const catalogue = await seedCataloguePair(prisma);
 
   const idealPoints = [marker("ideal-1"), marker("ideal-2")];
+  // The planned follow-ups are answer key too — they tell a candidate what they are about to be
+  // asked next — so the fixture plants one and `answerKeyMarkers` carries it (owner's decision,
+  // 2026-09-23). One marker is all a new answer-key field costs, which is why the detector is
+  // marker-based rather than a list of assertions.
+  const plannedFollowUps = [{ criterion: 1, probe: marker("follow-up-1") }];
   const criteria = [60, 40].map((weight, index) => ({
     dimension: marker(`dimension-${index}`),
     description: marker(`criterion-${index}`),
@@ -176,6 +181,7 @@ export async function seedPublishedContent(
       context: null,
       rubricId: rubric.id,
       idealPoints,
+      plannedFollowUps,
       status,
     },
   });
@@ -235,6 +241,7 @@ export async function seedPublishedContent(
     level: catalogue.levelSlug,
     answerKeyMarkers: [
       ...idealPoints,
+      ...plannedFollowUps.map((plan) => plan.probe),
       ...criteria.flatMap((criterion) => [
         criterion.dimension,
         criterion.description,

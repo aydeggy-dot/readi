@@ -1,0 +1,142 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: api-evidence-reading
+question: the-request-that-came-back-400
+answers:
+  - kind: strong
+    text: |
+      Okay, reading it — the request has jobId, camel case, and the response says
+      validation failed on job_id, with the underscore. So first, the server didn't reject
+      my token, it's a 400 not a 401, and it said nothing about the cover note. It's
+      telling me the job id field failed validation, and the name it gives back is spelt
+      differently from the name I sent. So most likely the endpoint wants job_id, and my
+      jobId never arrived as far as it's concerned — the field is missing, and missing
+      shows up as validation failed. It could be the value itself too, so I'd resend with
+      job_id and see. Before I write anything up I'd go to the spec: what exactly is the
+      field called, what casing, is it required, what format — uuid — and is there an
+      example request I can copy. Because if the spec says jobId, the server is wrong and
+      that's a defect. If the spec says job_id, my test is wrong, there's no defect, I
+      just fix my request. For the write-up: method and path, the exact body I sent, the
+      exact response with the status code, then the line from the spec, then expected
+      versus actual. All evidence, so nobody has to argue — the spec decides it, not me.
+    expected:
+      - dimension: Reads what the response actually says
+        score: 4
+        because: "Level 4 — puts jobId next to job_id and treats the rejection as correct: the field never arrived, and a missing field showing up as validation failed puts the defect in one side's idea of the name."
+      - dimension: What they check before writing it up
+        score: 3
+        because: Level 3 — goes to the spec for the exact field name, the casing, whether it is required and the format, and says which side that makes wrong; nothing about what to conclude if there is no spec.
+      - dimension: Writes it so the evidence decides it
+        score: 3
+        because: Level 3 — method and path, the exact body sent, the exact response with the status code, the line from the spec, expected versus actual, nobody named; nothing about what would change the answer.
+  - kind: weak
+    text: |
+      Erm, 400 bad request, so that means something went wrong with the request I sent.
+      From the response it's saying validation failed and it mentions job_id, so I think
+      the job id is the problem. Maybe the id I used is not a correct one, or maybe it has
+      expired — I copied it from somewhere so it might be old. I'd try a different job id
+      and see if that one works. It could also be the token, because sometimes the token
+      expires and you get errors like this, so I'd log in again, get a fresh token and
+      send it one more time. If it still fails then I'd go and meet the developer and show
+      him, because he's the one who knows how the endpoint is built. For writing it up,
+      I'd screenshot the request and the response, put it in the bug tracker with the
+      steps, say the endpoint is not working, and set it high because you can't apply for
+      a job at all. And, erm, the spec — I'd check the spec to see if there's something
+      there about the job id being required. Yeah, that's what I'd do.
+    expected:
+      - dimension: Reads what the response actually says
+        score: 1
+        because: Level 1 — names mechanisms the response does not support, an id that is wrong or has expired and then an expired token, while the response names job_id and the request shows jobId.
+      - dimension: What they check before writing it up
+        score: 1
+        because: "Level 1 — verifies by repetition: a different job id, a fresh token, send it again, then show the developer; the spec is checked for whether the field is required, not for what it is called."
+      - dimension: Writes it so the evidence decides it
+        score: 2
+        because: Level 2 — says which side is wrong, the endpoint is not working and set it high, without saying how they know; the screenshots are attached but the naming difference is never stated.
+  - kind: fluent-but-wrong
+    text: |
+      Right. So the status is 400, the error code is validation_failed, and the fields
+      array names job_id, so the server has told us precisely where it failed. Auth is
+      fine — a bad token gives you 401, and we got past that. So the failure is on the job
+      id, and the only validation a uuid-shaped field really gets at this layer is whether
+      it resolves to an existing job. That's what's happened here: the job was deleted or
+      taken down, the lookup came back empty, and the validator reported it as a
+      field-level failure on job_id. And 400 is actually the correct status for that,
+      because the resource we're creating is the application, not the job — the job is
+      just a field in the body, so a missing one is a bad field, not a 404. Which means
+      this is a data problem, not a code problem. My test data has gone stale. So before
+      raising anything I'd check the spec to confirm the id format is a uuid, then reseed
+      a live job, take a fresh id and re-run, and it'll pass. I wouldn't write it up as a
+      defect at all. Writing up your own stale test data as a bug is how testers lose
+      credibility with the developers.
+    expected:
+      - dimension: Reads what the response actually says
+        score: 1
+        because: Level 1 — names a mechanism the response does not support, a deleted job whose lookup came back empty, while the two spellings are on the screen in front of it.
+      - dimension: What they check before writing it up
+        score: 1
+        because: "Level 1 — verifies by repetition: reseed a live job, take a fresh id, re-run; the spec is opened only to confirm the id format is a uuid, never for the field's name."
+      - dimension: Writes it so the evidence decides it
+        score: 1
+        because: Level 1 — declines to write it up at all on the strength of a cause it has invented (stale test data), so neither side's idea of the field name reaches a document.
+  - kind: correct-poorly-explained
+    text: |
+      So it's a 400, which is — okay, the important thing actually is the spelling. I sent
+      jobId, j-o-b, capital I, and the thing that came back is saying job_id with
+      underscore. So they are not the same name. Which means, erm, probably the API is
+      expecting the underscore one, and what I sent it just didn't see, so as far as it's
+      concerned there's no job id at all, that's why validation failed. Not the token,
+      because it's a 400, if it was the token it would be 401. Not the cover note either,
+      it didn't mention that one. So I'd send it again with job_id and I think it'll pass
+      — sorry, before that. Is there a spec. On this one there isn't, there's no written
+      contract for it anywhere I can find, so what I'd do instead is look at what the app
+      itself sends to this endpoint, and what the other endpoints call the same field,
+      and go on that. Because that's the whole thing — if everything else says jobId then
+      the developer's code is the odd one out, it's their defect. If everything else says
+      job_id then honestly it's me, my request was wrong, no defect, I just correct it.
+      And I'd say that's what I'm going on, that it's from the other callers and not from
+      a spec, so nobody thinks I read it somewhere. Then for the write-up I'd paste the
+      response exactly as they are with the status code, and quote the line from the spec,
+      and put expected and actual. Then nobody can argue, because it's not my opinion.
+    expected:
+      - dimension: Reads what the response actually says
+        score: 4
+        because: Level 4 — the two names put side by side and found not to be the same, so the field is missing; 400 rather than 401 so not the token, and the defect is in one side's idea of the name rather than in the rejection.
+      - dimension: What they check before writing it up
+        score: 3
+        because: >-
+          Level 3 by the other route — there is no contract to open, so the field name is settled
+          against what the app and the other endpoints already send, and they say which of the two
+          they are going on. This is the answer the 2026-09-25 route exists for: it used to cap at
+          2, because level 3 required a contract and the way out was written into level 4 above it.
+          Not 4: a missing agreement is worked around here, not named as a finding in its own right.
+      - dimension: Writes it so the evidence decides it
+        score: 3
+        because: Level 3 — pastes the request and the response exactly as they are with the status code, quotes the line from the spec, gives expected and actual, and names nobody.
+  - kind: nigerian-english
+    text: |
+      The request is carrying jobId, capital I, and the response is saying validation
+      failed on job_id, with underscore. So the two names are not the same. It's not the
+      token — if it was token they would give me 401, this one is 400. And it didn't
+      complain about the cover note. So the thing is the job id. So this API is expecting
+      job_id, so the jobId I sent, it didn't even see it — the field is missing, and
+      missing na the same thing as validation failed for them. It can still be the value
+      itself if the uuid is not complete, so I'll send it again with job_id and see. But
+      before I write anything, I'll go and check the spec: what exactly is the name, is it
+      capital or underscore, is it compulsory, is it uuid. Because if the spec is saying
+      jobId, then it's the developer's code that is wrong, na their own defect. If the
+      spec is saying job_id, then me I'm the one that is wrong, no defect, I'll just
+      correct my request. Then for the write-up, I'll paste the request and the response
+      exactly as it is with the status code, then quote the spec, then expected and
+      actual. Nobody can argue — the spec is deciding, not me.
+    expected:
+      - dimension: Reads what the response actually says
+        score: 4
+        because: Level 4 — the two names put side by side, 400 not 401 so not the token, the field therefore missing, and the defect in one side's idea of the name rather than in the rejection.
+      - dimension: What they check before writing it up
+        score: 3
+        because: Level 3 — checks the spec for the exact name, capital or underscore, whether it is compulsory, whether it is uuid, and says which side that makes wrong.
+      - dimension: Writes it so the evidence decides it
+        score: 3
+        because: Level 3 — the request and the response pasted exactly with the status code, the spec quoted, then expected and actual, and nobody named.

@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: log-usefulness-reasoning
+question: it-failed-and-we-do-not-know-why
+# `fluent-but-wrong` blames the logger serialising a non-enumerable `Error` to an empty object,
+# then prescribes running production at `debug` and logging full request and response bodies so
+# support can search the phone number — and says correlation ids are unnecessary and personal data
+# in logs is fine because "compliance is about what leaves the building". It is wrong in the one
+# place that matters most to us. 1/1/1 against `strong`'s 4/4/3.
+answers:
+  - kind: strong
+    text: |
+      Honestly, from those three lines I know almost nothing. I know something errored twice
+      around two, and the duplicated timestamp probably means one line is the catch and one is a
+      rethrow of the same thing. But I can't tell you which user, which transfer, what actually
+      failed, or even whether this is her transfer at all — there could be twenty failures in that
+      window and I've only got three lines. And "something went wrong" isn't the error, that's the
+      message we showed the user. What I'd log instead: timestamp, level, a correlation id
+      generated at the edge that follows the request through every service, the user id and the
+      transfer id — ids, not names — the operation, the exception class and its real message, and
+      if a provider was involved, their status code and their reference so I can go and ask them.
+      Structured JSON so I can query it instead of grepping. What I'd keep out deliberately:
+      account numbers, phone numbers, emails, the whole request body, anything card-related.
+    expected:
+      - dimension: Says what these lines cannot answer
+        score: 4
+        because: Nothing identifies the user or the transfer, and twenty failures in that window would be indistinguishable from three.
+      - dimension: Says what to log instead
+        score: 4
+        because: A correlation id from the edge, ids for user and transfer, the operation, the real exception, the provider's reference — structured, not prose.
+      - dimension: Says what to keep out
+        score: 3
+        because: Account numbers, phone numbers, emails, the body and anything card-related kept out; does not say why the phone number in particular matters here.
+  - kind: weak
+    text: |
+      Yeah, that log isn't helpful at all. I'd add way more logging — log when the transfer
+      starts, log when it finishes, log the request coming in and the response going out, and
+      console.log the whole error object so you actually get the stack trace, because right now it
+      just says error and that tells you nothing. And if we'd had the full request in there we
+      could search her name or her phone number and find it straight away, so I'd log the request
+      body too, that's genuinely the fastest way to find somebody's transaction when they call
+      support. Probably set the log level to debug as well so everything shows up. Things to keep
+      out — passwords, obviously, you never log a password. Apart from that I think more is
+      better, it's our own server, nobody outside is reading them. And put them somewhere
+      searchable, not just a file on the box.
+    expected:
+      - dimension: Says what these lines cannot answer
+        score: 2
+        because: '"That log isn''t helpful at all", with no account of which question it fails to answer.'
+      - dimension: Says what to log instead
+        score: 1
+        because: Volume rather than structure — log everything, the whole request and response, and run at debug.
+      - dimension: Says what to keep out
+        score: 1
+        because: Passwords out and everything else in, because "it's our own server, nobody outside is reading them".
+  - kind: fluent-but-wrong
+    text: |
+      So the root cause of a bare line like that is almost always the logger, not the code. When
+      you hand an Error straight to a JSON logger it serialises to an empty object, because
+      message and stack are non-enumerable properties — so the line comes out as just the level
+      and the timestamp, which is exactly what you're looking at. Two fixes follow from that.
+      First, the level: most production apps ship at level error, which suppresses the info lines
+      that would have carried the context, so I'd run production at debug and the surrounding
+      detail appears with no code change at all. Second, log the full request and response body on
+      the error path — that's the highest-value single change, because then support can search the
+      phone number or the account number and land straight on her transfer. You don't need a
+      correlation id if you're logging bodies; timestamps line up across services well enough to
+      reconstruct the sequence. And logs are internal and encrypted at rest, so personal data in
+      them is fine — compliance is about what leaves the building.
+    expected:
+      - dimension: Says what these lines cannot answer
+        score: 1
+        because: Settles on the logger dropping non-enumerable fields as the finding, and builds the whole answer on it.
+      - dimension: Says what to log instead
+        score: 1
+        because: Production at `debug` and full bodies on the error path, with correlation ids argued to be unnecessary.
+      - dimension: Says what to keep out
+        score: 1
+        because: The wrong boundary drawn outright — personal data in logs is fine because the logs are internal.
+  - kind: correct-poorly-explained
+    text: |
+      I mean — there's nothing there. Two errors and a sentence. And the sentence is the user-
+      facing one, "something went wrong", that's what the API returned, so it isn't even the
+      failure. What I can get out of it: a time, roughly the time she says, and two things in the
+      same second, so maybe a retry, maybe a rethrow, can't tell which. Who it was, no. Which
+      transfer, no. Whether it's even hers, no. So what I want in there is an id that ties the
+      whole request together, generated at the edge and passed down through every hop, plus the
+      user id and the transfer id, the operation name, the actual exception type and message, and
+      the provider's code and reference if a third party touched it. JSON, not free text, so you
+      can filter on it. And what stays out — account number, phone number, email, the request
+      body. You log the id of the thing, not the thing itself. Sorry, that probably should have
+      come first.
+    expected:
+      - dimension: Says what these lines cannot answer
+        score: 4
+        because: '"Two errors and a sentence", and the sentence is the user-facing one — who, which, and whether it is even hers are all unanswerable.'
+      - dimension: Says what to log instead
+        score: 4
+        because: An id tying the request together across hops, the ids of the user and transfer, the exception type, the provider's reference, in JSON.
+      - dimension: Says what to keep out
+        score: 3
+        because: '"You log the id of the thing, not the thing itself" — account number, phone, email and body out.'
+  - kind: nigerian-english
+    text: |
+      Honestly, from these three lines I no sabi anything. I know say something error two times
+      around two o'clock, and because two lines carry the same timestamp, e fit be the catch and
+      then a rethrow of the same error. But which user? Which transfer? Wetin actually fail?
+      Nothing. And that "something went wrong" na the message wey we show the user, e no be the
+      error itself. So person go just dey guess. Wetin I for log instead: the timestamp, the
+      level, one correlation id wey we generate for the edge and e go follow the request reach
+      every service, the user id and the transfer id — na ids o, no be person name — the operation
+      wey we dey do, the exception class with the real message, and if na provider cause am, their
+      status code and their own reference, so we fit carry am go meet them. Make e be structured
+      JSON so you fit query am instead of grep. Wetin I go deliberately keep out: account number,
+      phone number, email, the full request body, anything about card.
+    expected:
+      - dimension: Says what these lines cannot answer
+        score: 4
+        because: "Same as `strong`: nothing says which user or transfer, and the message shown is the user-facing one."
+      - dimension: Says what to log instead
+        score: 4
+        because: "Same: correlation id from the edge, ids rather than names, the operation, the exception, the provider's reference, structured."
+      - dimension: Says what to keep out
+        score: 3
+        because: "Same: account number, phone, email, the full body and anything card-related deliberately out."

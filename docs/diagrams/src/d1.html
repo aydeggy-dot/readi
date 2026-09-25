@@ -1,0 +1,63 @@
+<script>
+render('d1', 1240, 800, 'Readi — system architecture', 'Solid boxes are built and tested today; dashed boxes are planned. Only the API reaches the database (ADR-0004); every AI provider call is made by the worker.', () => {
+
+  band(30, 8, 1180, 96, 'clients');
+  const cand = box({x:60,y:32,w:470,title:'Candidate browser — installable PWA',lines:['Next.js pages · forms · (M5) LiveKit voice client'],state:'accent'});
+  const staff = box({x:700,y:32,w:470,title:'Staff browser — /admin CMS',lines:['server-rendered; filtering and paging need no JavaScript']});
+
+  band(30, 132, 1180, 340, 'our services — this repository');
+  const web = box({x:60,y:158,w:660,h:76,title:'apps/web — Next.js (App Router, TypeScript)',lines:['pages resolve the user on the server: requireUser / requireOnboarded / requireAdmin','calls the API through @readi/api-client, generated from the OpenAPI document'],tag:'BUILT'});
+  const api = box({x:60,y:280,w:660,h:176,title:'apps/api — NestJS · the only service with database access',lines:[''],tag:'BUILT'});
+  const wk  = box({x:790,y:280,w:390,h:176,title:'apps/ai-worker — Python 3.12 / FastAPI',lines:['provider adapters behind interfaces','versioned Jinja2 prompts, injection-hardened','no database access, service-token gated','today: CV parse + embeddings only'],tag:'PART BUILT',tagColor:'#B45309'});
+
+  label(76, 322, 'Modules — orange = shipped, grey = planned', {anchor:'start', size:10.5});
+  const mods = [['auth',1],['users',1],['profiles',1],['consents',1],['cv',1],['content',1],['account',1],['admin',1],['health',1],['storage',1],['ai-worker',1],['ai-calls',1],['audit',1],['notifications',1],['sessions',0],['evaluations',0],['readiness',0],['plans',0],['billing',0],['feedback',0],['orgs',0]];
+  let mx = 76, my = 332;
+  mods.forEach((m) => {
+    const w = m[0].length * 6.9 + 18;
+    if (mx + w > 706) { mx = 76; my += 28; }
+    const b = m[1] === 1;
+    push(`<rect x="${mx}" y="${my}" width="${w}" height="22" rx="11" fill="${b?'#FFF7ED':'#FAFAFA'}" stroke="${b?'#C2410C':'#B0B6BE'}" stroke-width="1.1"${b?'':' stroke-dasharray="4 3"'}/>`);
+    push(`<text x="${mx+w/2}" y="${my+15}" text-anchor="middle" font-family="${P.sans}" font-size="10.5" fill="${b?'#C2410C':'#9CA3AF'}">${m[0]}</text>`);
+    mx += w + 7;
+  });
+
+  band(30, 496, 1180, 104, 'state — owned by the API');
+  const pg = box({x:60,y:520,w:330,title:'PostgreSQL 16 + pgvector',lines:['28 Prisma models · 12 migrations'],state:'data'});
+  const rd = box({x:420,y:520,w:230,title:'Redis',lines:['queues · rate limits'],state:'data'});
+  const s3 = box({x:680,y:520,w:330,title:'S3-compatible object storage',lines:['SeaweedFS local · Cloudflare R2 in production'],state:'data'});
+
+  band(30, 626, 1180, 156, 'third parties');
+  push(`<line x1="700" y1="640" x2="700" y2="770" stroke="${P.border}" stroke-width="1.5" stroke-dasharray="4 4"/>`);
+  label(66, 658, 'reached by the API', {anchor:'start', size:10.5, weight:600});
+  label(722, 658, 'reached by the worker', {anchor:'start', size:10.5, weight:600});
+  const ext = [
+    ['Better Auth + Google','sign-in',62,666,'ext',162],
+    ['Resend','email',234,666,'ext',110],
+    ['Termii','SMS / OTP',354,666,'ext',112],
+    ['Sentry','errors',476,666,'ext',96],
+    ['PostHog','analytics',582,666,'planned',100],
+    ['Paystack','checkout NGN',62,726,'planned',120],
+    ['Stripe','checkout USD',192,726,'planned',120],
+    ['Meta WhatsApp','reminders (P2)',322,726,'planned',140],
+    ['Anthropic','LLM',718,666,'ext',110],
+    ['Voyage AI','embeddings',838,666,'planned',120],
+    ['Langfuse','LLM tracing',968,666,'planned',120],
+    ['Deepgram','speech-to-text',718,726,'planned',130],
+    ['ElevenLabs','text-to-speech',858,726,'planned',130],
+    ['LiveKit','real-time media',998,726,'planned',130],
+  ];
+  ext.forEach(([t,s,x,y,st,w]) => box({x,y,w,h:48,title:t,lines:[s],state:st,ts:12}));
+
+  arrow(cand.cx, cand.bottom, web.cx - 140, web.top, {label:'HTTPS'});
+  arrow(staff.cx, staff.bottom, web.cx + 180, web.top, {label:'HTTPS'});
+  arrow(web.cx, web.bottom, api.cx, api.top, {color:'pen', w:1.8, label:'REST /api · session cookie'});
+  arrow(160, api.bottom, pg.cx - 40, pg.top, {color:'pen', label:'Prisma', lx:150, ly:495});
+  arrow(400, api.bottom, rd.cx, rd.top, {});
+  arrow(640, api.bottom, s3.cx - 40, s3.top, {label:'presigned URLs', lx:700, ly:495});
+  arrow(api.right, 300, wk.left, 300, {color:'pen', label:'Bearer token', ly:292});
+  arrow(wk.left, 430, api.right, 430, {color:'mute', label:'typed events + AI-call records', ly:450});
+  arrow(300, api.bottom + 2, 300, 666, {elbow:'v', mid:612, color:'mute', dash:'5 4'});
+  arrow(wk.cx, wk.bottom, 900, 666, {elbow:'v', mid:612, color:'mute', dash:'5 4'});
+});
+</script>

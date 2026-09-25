@@ -1,0 +1,71 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: wait-strategy-reasoning
+question: cypress-fixed-wait
+answers:
+  - kind: strong
+    text: |
+      Okay, so reading it — you click the thing with the apply test id, then cy.wait three thousand, then you get the confirmation and check it contains "Application sent". The problem is the three thousand is waiting on the clock, not on the app. It's not asking "is the confirmation there yet", it's just sleeping for three seconds. On my machine that's plenty, the request comes back fast. On the shared runner the box is busy, the backend is slower, so one time in five the confirmation still isn't rendered when the three seconds is up, and the next command fails. And even when it passes it's wasting three seconds every single run. So — delete the wait. Cypress already retries: the get with the should keeps re-querying until it times out, so the assertion is the wait, and if that flow is genuinely slow I give that one command a longer timeout instead of a sleep. Better still, cy.intercept the POST, alias it, cy.wait on the alias, then assert — now I'm waiting for the actual response. And where a wait still belongs: on an aliased request like that, and as a last resort where there's genuinely no signal to watch — a debounce, an animation, some third-party widget — with a comment saying why it's there.
+    expected:
+      - dimension: Why a fixed wait is unreliable
+        score: 4
+        because: Lands on 4 — the three thousand waits on the clock and not on the app, plenty here and short on a busy shared runner, and it wastes three seconds every single run even when it passes.
+      - dimension: What replaces it
+        score: 4
+        because: Lands on 4 — delete it, because the get with the should keeps re-querying until it times out, so the assertion is the wait; then intercept the POST, alias it and wait on the alias.
+      - dimension: Where a timeout still belongs
+        score: 3
+        because: Lands on 3 — a longer timeout on that one command rather than globally, plus the cases with no signal to watch, each with a comment saying why; nothing about failing readably.
+  - kind: weak
+    text: |
+      So three thousand is three seconds, and the test is passing on the fast machine and failing on the runner, so the runner is slower — the machine is slower, maybe the network too. It's a flaky test basically. What I'd do, I'd first rerun it to confirm, because sometimes it passes on the second run, and Cypress has a retries setting in the config, so I'd put retries two so if it fails the first time it tries again and the pipeline doesn't go red for nothing. If it keeps happening then maybe three seconds isn't enough on that machine and I'd push it up a bit and watch it for a few days. I've seen people use cy.wait with an at sign, like waiting for a route, I haven't really used that one myself but I know it exists. And if it's still failing after that I'd mark it as known flaky and raise it so somebody who knows the app better can look at it, because I wouldn't want it blocking everybody.
+    expected:
+      - dimension: Why a fixed wait is unreliable
+        score: 0
+        because: Lands on 0 — the conclusion is that three seconds is not enough on that machine and it would be pushed up and watched; the slower runner is named but never that any fixed number is a guess.
+      - dimension: What replaces it
+        score: 1
+        because: Lands on 1 exactly — one guess for another, a longer fixed wait plus retries two around the whole test, with cy.wait on a route mentioned only as something other people use.
+      - dimension: Where a timeout still belongs
+        score: 0
+        because: No descriptor fits — the answer never says where a wait belongs at all, and 0 is written for saying there should be none; scored at the floor and reported as a gap in the scale.
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a retry-ability problem, and the mechanism matters. Cypress does retry the assertion, but what it retries against is the element it already found. And what's happening here is that the confirmation node is in the DOM before the app has finished hydrating it. So the element exists — Cypress finds it, so it stops looking — but it isn't interactive yet, and the text is still the placeholder that came down from the server render. The assertion then runs against that stale reference and fails. On my machine hydration finishes well inside the three seconds so you never see it. On the shared runner it takes longer, and that's your one in five. So the fix is two things. One, give it room: I'd take the wait up to eight, maybe ten seconds, because a fixed wait only has to be bigger than the slowest machine you own, and a wait that's long but passing costs you nothing but time. Two, put a should be visible on the element before the contain, so you know it's live before you read its text. I wouldn't remove the fixed wait, though. It's the only thing covering hydration, because hydration isn't something Cypress can see.
+    expected:
+      - dimension: Why a fixed wait is unreliable
+        score: 1
+        because: Lands on 1 exactly — explained by hydration and an element that exists but is not yet interactive, rather than by three seconds being a guess about a varying duration.
+      - dimension: What replaces it
+        score: 1
+        because: Lands on 1 exactly — take the wait up to eight or ten seconds, on the rule that a fixed wait only has to be bigger than the slowest machine you own.
+      - dimension: Where a timeout still belongs
+        score: 1
+        because: Lands on 1 — keeps the fixed wait as the safety margin covering hydration, which is the original problem under another name.
+  - kind: correct-poorly-explained
+    text: |
+      So the wait three thousand, that's the problem, obviously. Because — okay. It's not that three seconds is too small, I mean it is, on that machine, but that's not really it, the point is it's counting time instead of looking at the app, so whatever number you put there is a guess about somebody's laptop, and the runner is shared, so... yeah. One in five. And you'd just delete it, because the get and the should already retry on their own, that's the thing people don't realise, Cypress keeps checking until the timeout, so the assertion is doing the waiting for you. Sorry — the better version is intercept the POST first, alias it, then cy.wait at apply or whatever you call it, then do the confirmation check, because then you're waiting for the response that actually matters. And it's faster too, that's the other thing, three seconds times however many tests. Waits still belong somewhere though — on the alias like I said, and if there's literally nothing to look at, a debounce or an animation or some widget that isn't yours, then fine, but write a comment.
+    expected:
+      - dimension: Why a fixed wait is unreliable
+        score: 4
+        because: Lands on 4 — it counts time instead of looking at the app so whatever number you put there is a guess about somebody's laptop, and three seconds times however many tests is the cost.
+      - dimension: What replaces it
+        score: 4
+        because: Lands on 4 — delete it because the get and the should already retry until the timeout, then intercept the POST, alias it, wait on the alias and assert.
+      - dimension: Where a timeout still belongs
+        score: 3
+        because: Lands on 3 — on the alias, and where there is literally nothing to look at, with a comment; nothing about the timeout's job being to fail readably.
+  - kind: nigerian-english
+    text: |
+      So looking at it, you click the apply, then cy.wait three thousand, then you check that confirmation is containing "Application sent". That cy.wait three thousand, that one is waiting for clock, it's not waiting for the app at all. It will just sleep three seconds and continue. On my own laptop, three seconds is plenty, the request will come back sharp sharp. But that shared runner, plenty things are running on it, the backend is slow, so one out of five times the confirmation is not yet showing when the three seconds finishes, and the next line will now fail. Even when it passes, you are still wasting three seconds every run. So me I will remove the wait completely. Cypress is already retrying by itself — the get with the should will keep checking until timeout, so the assertion is the wait. If the flow is truly slow, I will increase timeout for that one line alone. But the better one is: intercept the POST, give it alias, cy.wait on the alias, then check the confirmation — now you're waiting for the real response. And wait still has its place: on that alias, or when there's nothing at all you can watch — debounce, animation, some third-party widget — then fixed wait, but put comment to say why.
+    expected:
+      - dimension: Why a fixed wait is unreliable
+        score: 4
+        because: Lands on 4 — same as strong, waiting for clock and not for the app, one out of five times on the shared runner, and three seconds wasted every run.
+      - dimension: What replaces it
+        score: 4
+        because: Lands on 4 — same as strong, remove it because the get with the should keeps checking until timeout, then intercept, give it an alias and wait on the alias.
+      - dimension: Where a timeout still belongs
+        score: 3
+        because: Lands on 3 — same as strong, the timeout increased for that one line alone, the alias, and a comment where there is nothing to watch.

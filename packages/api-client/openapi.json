@@ -5558,6 +5558,22 @@
         "required": ["matches"],
         "additionalProperties": false
       },
+      "PlannedFollowUp": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "probe": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": ["criterion", "probe"]
+      },
       "QuestionInputDto": {
         "type": "object",
         "properties": {
@@ -5643,6 +5659,13 @@
               "minLength": 1,
               "maxLength": 300
             }
+          },
+          "planned_follow_ups": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedFollowUp"
+            }
           }
         },
         "required": [
@@ -5657,8 +5680,26 @@
           "prompt",
           "context",
           "rubric_id",
-          "ideal_points"
+          "ideal_points",
+          "planned_follow_ups"
         ]
+      },
+      "PlannedFollowUp_Output": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "probe": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": ["criterion", "probe"],
+        "additionalProperties": false
       },
       "QuestionDto_Output": {
         "type": "object",
@@ -5744,6 +5785,13 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 300
+            }
+          },
+          "planned_follow_ups": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/PlannedFollowUp_Output"
             }
           },
           "id": {
@@ -5890,6 +5938,7 @@
           "context",
           "rubric_id",
           "ideal_points",
+          "planned_follow_ups",
           "id",
           "status",
           "version",

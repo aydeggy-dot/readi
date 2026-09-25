@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="570" viewBox="0 0 1240 570" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">From a finished interview to a readiness score (milestones M4 and M6)</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Designed, specified and unit-testable — not yet written. The shape matters: the model scores one answer at a time against one rubric, and our code does all the arithmetic.</text></g><g transform="translate(0,50)"><rect x="30" y="50" width="214" height="96" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="137" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Sealed transcript</text>
+<text x="137" y="87" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">every turn, timestamped</text>
+<path d="M 244 98 L 272 98" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="272" y="50" width="214" height="96" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="379" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Per-answer evaluation</text>
+<text x="379" y="87" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">one call per answer, low</text>
+<text x="379" y="101.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">temperature,</text>
+<text x="379" y="116" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">schema-validated output</text>
+<path d="M 486 98 L 514 98" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="514" y="50" width="214" height="96" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="621" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Evidence check</text>
+<text x="621" y="87" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">every non-zero criterion</text>
+<text x="621" y="101.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">score quotes the candidate</text>
+<path d="M 728 98 L 756 98" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="756" y="50" width="214" height="96" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="863" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Weighted score in code</text>
+<text x="863" y="87" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">criteria weights → 0–100,</text>
+<text x="863" y="101.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">never asked of the model</text>
+<path d="M 970 98 L 998 98" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="998" y="50" width="214" height="96" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="1105" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Session report</text>
+<text x="1105" y="87" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">assembled in code:</text>
+<text x="1105" y="101.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">strengths, fixes,</text>
+<text x="1105" y="116" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">per-question breakdown,</text>
+<text x="1105" y="130.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">lesson links</text>
+<rect x="272" y="214" width="214" height="78" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="379" y="235" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Readiness score</text>
+<text x="379" y="251" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">technical 40% · behavioural 25%</text>
+<text x="379" y="265.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">communication 20% · coverage 15%</text>
+<rect x="514" y="214" width="214" height="78" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="621" y="235" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Dashboard</text>
+<text x="621" y="251" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">band, trend, weak topics</text>
+<rect x="756" y="214" width="214" height="78" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="863" y="235" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="650" fill="#6B7280">Study plan</text>
+<text x="863" y="251" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">rules-based; the model only</text>
+<text x="863" y="265.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">writes the friendly summary</text>
+<path d="M 1030 146 L 1030 180 L 600 180 L 600 214" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<path d="M 486 253 L 514 253" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<path d="M 728 253 L 756 253" fill="none" stroke="#6B7280" stroke-width="1.5" marker-end="url(#ag)"></path>
+<rect x="30" y="320" width="1180" height="178" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="339" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">THE GUARDRAILS THAT MAKE THE SCORE DEFENSIBLE</text>
+<circle cx="52" cy="348" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="352" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">A score of zero may have no evidence only when the criterion was never addressed. Anything else without a quote is rejected and retried.</text>
+<circle cx="52" cy="378" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="382" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">Invalid model output is retried at most twice. A refusal is never retried as if it were a formatting error.</text>
+<circle cx="52" cy="408" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="412" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">The readiness formula lives in code, is versioned and unit-tested — and its unspecified constants need the owner’s sign-off before version 1 is final.</text>
+<circle cx="52" cy="438" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="442" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">Any change to an evaluator prompt or model must pass the /evals regression: agreement with human scores may not drop.</text>
+<circle cx="52" cy="468" r="3.5" fill="#B91C1C"></circle>
+<text x="68" y="472" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">The human-scored gold set that agreement is measured against does not exist yet. The 510 sample answers in the repository are model-written and model-scored — a rubric stress test, deliberately not a gold set.</text></g></svg>

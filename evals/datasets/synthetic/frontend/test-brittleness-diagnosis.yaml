@@ -1,0 +1,109 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: test-brittleness-diagnosis
+question: the-test-that-broke-for-nothing
+# `fluent-but-wrong` scores 0.0 — the only answer in the frontend set to do so. It is articulate,
+# it uses the right words, and every one of its three conclusions is the opposite of the right one.
+# That is the clearest evidence in this exercise that the rubric is scoring content.
+answers:
+  - kind: strong
+    text: |
+      So eleven tests failing when nothing behaved differently tells me those tests are holding
+      onto the markup — they're selecting by class name, or by, like, the third div inside the
+      second div. The class is an implementation detail and the wrapper is too, so the moment
+      somebody tidies up, the whole suite screams. And the cost isn't the twenty minutes fixing
+      them. It's that the team starts assuming a red build means nothing, and then a real
+      failure walks straight through. So what I'd do is fix the tests, not revert the rename —
+      the refactor wasn't the problem, it did exactly what a refactor should do. I'd go and
+      select things the way a user finds them: the button by its role and its visible name, the
+      inputs by their labels, text by the text that's actually on screen.
+    expected:
+      - dimension: "Identifies what the tests are coupled to"
+        score: 4
+        because: "Class names and nesting position, and separates these eleven from a failure that would have been real."
+      - dimension: "Knows what it costs"
+        score: 3
+        because: "The team starts assuming a red build means nothing; does not reach the point about the refactor itself being avoided."
+      - dimension: "Fixes the tests, not the code"
+        score: 3
+        because: "Fixes the tests rather than the rename, and selects by role, label and visible text."
+  - kind: weak
+    text: |
+      Hmm. So eleven tests broke, that's… that's a lot. I'd probably go and message the person
+      and ask whether the class rename was really necessary, because if it wasn't we could just
+      put the old class back and everything's green again. If it was necessary then I'd open the
+      eleven tests and update the selectors to the new class name, one by one, and re-run. Maybe
+      there's a find-and-replace I can do since it's the same class each time. I'd also add the
+      new wrapper into the queries so they match the structure again. And going forward maybe we
+      tell people to check the tests before they rename things.
+    expected:
+      - dimension: "Identifies what the tests are coupled to"
+        score: 0
+        because: "Concludes the rename should be reconsidered and possibly reverted."
+      - dimension: "Knows what it costs"
+        score: 0
+        because: "Treats it as an inconvenience — eleven files to edit."
+      - dimension: "Fixes the tests, not the code"
+        score: 1
+        because: "Updates the class names in all eleven and adds the new wrapper into the queries."
+  - kind: fluent-but-wrong
+    text: |
+      Honestly? That's the suite doing exactly what it's for. Eleven tests caught a structural
+      change on the same day it happened — that's your regression net working, and I'd be more
+      worried if it had stayed green. The lesson isn't that the tests are wrong, it's that the
+      DOM is a contract and we were changing it casually. So I'd double down: add snapshot tests
+      over the rendered tree, so any structural drift gets flagged and reviewed deliberately
+      rather than slipping in. I'd also move away from role and text queries — those are the
+      fragile ones, copy changes every sprint and roles shift the moment you nest something — and
+      pin the selectors to class names in one shared constants file, so a rename is a one-line
+      edit instead of eleven.
+    expected:
+      - dimension: "Identifies what the tests are coupled to"
+        score: 0
+        because: 'Concludes the suite worked and the refactor was the problem — "the DOM is a contract and we were changing it casually".'
+      - dimension: "Knows what it costs"
+        score: 0
+        because: "Frames the eleven failures as the safety net functioning as designed."
+      - dimension: "Fixes the tests, not the code"
+        score: 0
+        because: "Doubles down on the coupling: snapshots of the tree, and selectors pinned to class names in a shared file."
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so, I mean, you'd fix them, the tests I mean, not the rename, because the rename was
+      fine, he didn't break anything — and, okay, some failing is good actually, like if the
+      behaviour really did change you want it to fail, that's the whole point of having them, but
+      this wasn't that, this was, erm, they were looking at the class, or the shape of the divs,
+      the wrapper thing, so it moved and they lost it. And the reason it matters, and I should
+      probably have led with this, is people stop believing the build. Once it cries for nothing
+      everybody just reruns it and moves on. You'd query by the label, or the button's name.
+    expected:
+      - dimension: "Identifies what the tests are coupled to"
+        score: 4
+        because: "The class and the wrapper, and says plainly that a behaviour change *should* fail — which these did not."
+      - dimension: "Knows what it costs"
+        score: 3
+        because: '"Once it cries for nothing everybody just reruns it and moves on."'
+      - dimension: "Fixes the tests, not the code"
+        score: 4
+        because: "Fixes the tests, keeps the rename, and names the case that should legitimately break a test."
+  - kind: nigerian-english
+    text: |
+      Eleven tests just fail and nothing changed? That one is telling you say the tests are
+      holding the markup — dem dey select by class name, or by the div inside the div inside the
+      div. Class name na styling, the wrapper na structure, so the day anybody tidy the code the
+      suite go start to shout. And the wahala no be the time wey you go take fix am o. The wahala
+      be say people go stop to trust the build. Once e dey red for nothing, everybody go just
+      rerun am and move, then the real one go pass. So me, I'll fix the tests, I no go revert the
+      rename — the guy no do anything wrong, na proper refactor. I now select them the way a user
+      finds them: the button by role and the name wey dey am, the label, the text wey dey screen.
+    expected:
+      - dimension: "Identifies what the tests are coupled to"
+        score: 4
+        because: "Same coupling, same distinction from a real failure."
+      - dimension: "Knows what it costs"
+        score: 3
+        because: "Same cost — people stop trusting the build and the real one passes through."
+      - dimension: "Fixes the tests, not the code"
+        score: 3
+        because: "Same fix, same three ways of finding elements as a user would."

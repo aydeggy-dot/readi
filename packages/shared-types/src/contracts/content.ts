@@ -166,6 +166,62 @@ export const Rubric = z.object({
 });
 export type Rubric = z.infer<typeof Rubric>;
 
+/**
+ * ANSWER KEY — a probe the engine may ask when an answer has not covered one of the rubric's
+ * criteria (owner's decision, 2026-09-23; `docs/progress/2026-09-23-planned-follow-ups.md`).
+ *
+ * The opening prompt asks one thing, the way an interviewer does; every other criterion is asked
+ * for here instead. So the rule "nothing may charge for something the candidate was never asked"
+ * survives, while the prompt stops being triple-barrelled — and the engine sends the question's own
+ * probes to the interviewer model rather than the rubric, which takes the answer key out of every
+ * live call.
+ *
+ * **A menu, not a script.** The engine asks a probe only for a criterion the answer has not already
+ * covered, so a complete first answer earns no follow-up at all. That condition is the engine's,
+ * which is why there is no condition field here: prose the engine would have to branch on ("if they
+ * have not mentioned the limit…") belongs in neither.
+ */
+export const PlannedFollowUp = z
+  .object({
+    /**
+     * Which criterion this probes, by its position in the rubric — 0-based, as
+     * `rubric_criteria.position` stores it and as the CMS lists them. Not the criterion's id:
+     * criteria are replaced wholesale on every rubric edit, so their uuids do not survive one.
+     */
+    criterion: z
+      .int()
+      .min(0)
+      .max(CONTENT_LIMITS.rubricCriteria.max - 1),
+    /** One sentence, as the interviewer would say it out loud. The model phrases it in context. */
+    probe: z.string().trim().min(1).max(CONTENT_LIMITS.followUpProbeMaxLength),
+  })
+  .meta({ id: "PlannedFollowUp" });
+export type PlannedFollowUp = z.infer<typeof PlannedFollowUp>;
+
+/**
+ * **At most two probes per criterion** (owner's decision, 2026-09-23, after the QA pilot). It was
+ * one, on the reasoning that `max_follow_ups` is 2 against three criteria so the engine is already
+ * choosing. The pilot found the cost: a criterion that scores two separable things — "thinks past
+ * the happy path **and** says where the list stops" — gets one probe, so half of it is scored and
+ * never asked, which is the defect planned follow-ups exist to remove. Two is the cap because a
+ * third is a criterion that should have been split.
+ *
+ * Which of a criterion's probes the engine asks is a selection rule, not a contract: it prefers a
+ * criterion nothing has probed yet, and reaches a second probe on the same criterion only when no
+ * other criterion is uncovered. So the **first** probe listed for a criterion is its primary one.
+ */
+export const followUpsWithinPerCriterionCap = (
+  followUps: readonly { criterion: number }[],
+): boolean => {
+  const perCriterion = new Map<number, number>();
+  for (const followUp of followUps) {
+    const seen = (perCriterion.get(followUp.criterion) ?? 0) + 1;
+    if (seen > CONTENT_LIMITS.followUpsPerCriterion) return false;
+    perCriterion.set(followUp.criterion, seen);
+  }
+  return true;
+};
+
 export const QuestionInput = z.object({
   slug: slug(),
   /**
@@ -199,6 +255,17 @@ export const QuestionInput = z.object({
     .array(z.string().trim().min(1).max(CONTENT_LIMITS.idealPointMaxLength))
     .min(1)
     .max(CONTENT_LIMITS.idealPoints),
+  /**
+   * ANSWER KEY — the probes for the criteria the prompt does not ask for. Empty is legitimate and
+   * means the prompt asks for everything its rubric scores; `check-bank.mjs` is what holds a seed
+   * bank to the house rule, because only it can see the rubric and the prompt together.
+   */
+  planned_follow_ups: z
+    .array(PlannedFollowUp)
+    .max(CONTENT_LIMITS.plannedFollowUps)
+    .refine(followUpsWithinPerCriterionCap, {
+      message: `a criterion may have at most ${CONTENT_LIMITS.followUpsPerCriterion} planned follow-ups`,
+    }),
 });
 export type QuestionInput = z.infer<typeof QuestionInput>;
 

@@ -1,0 +1,138 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: defect-report-quality
+question: the-report-that-came-back
+answers:
+  - kind: strong
+    text: |
+      Okay. I wouldn't reopen it with nothing new, because honestly, nobody could
+      reproduce this from what's written. So first I'd go and find out: does it happen
+      every time, or only on a job you already applied for? That last line about having
+      already applied for that job earlier — that's the most useful thing in the report,
+      and it's buried at the bottom of Actual. I'd retest it: fresh job, apply once, then
+      the same job again. If it only fails the second time, we have a reproducible bug and
+      the steps are just written wrong. Then, seen versus guessed. Seen is: tapped Submit,
+      nothing happened, after a few seconds I was back on the job list. Guessed is the
+      connection to the earlier application — she's assuming that's the cause, and she may
+      be right, but that's a theory. And "Expected: it should work" isn't an expectation.
+      It should say what should happen — a confirmation screen, the job showing in My
+      Applications. What I'd want attached: a screen recording, the exact time so backend
+      can find that request in the logs, which account, and whether she was on data or
+      WiFi. And the developer should say which device and which build he tried, because
+      "my device" isn't information.
+    expected:
+      - dimension: "Reproducible by someone else"
+        score: 4
+        because: "Level 4: a developer could act on it without asking back — it names the missing precondition (a job already applied for), the account and the data, and asks how often it happens before reopening."
+      - dimension: "Separates observation from interpretation"
+        score: 4
+        because: 'Level 4: seen and expected are stated separately — "it should work" is rejected and replaced with a confirmation screen — and the earlier application is offered separately and marked as a theory.'
+      - dimension: "Gives the evidence and the context"
+        score: 4
+        because: "Level 4: recording, exact time, account and network, plus what it would ask the developer for and who from — which device and which build he tried."
+  - kind: weak
+    text: |
+      Erm, okay. So for me, the first thing I would do is try to reproduce it myself.
+      Because the developer is saying he cannot reproduce, so maybe it's only on that
+      Tecno phone. So I'd look for a Tecno Spark, follow the steps one by one, and see
+      whether it happens. If it happens I'd screenshot it and reopen it and tell him,
+      look, it's really happening. If it doesn't happen for me then... I mean, then maybe
+      he's right and it stays closed. What is missing — I think a screenshot is missing.
+      That's the main one. Any bug report should have a screenshot attached, that's what
+      we were taught. And maybe the date it happened. The severity, Critical, I would
+      agree with that, because the application is failing and the user cannot apply for
+      the job, so that's critical for me. And the part about what was seen and what is a
+      guess — er, I'd say the steps are what was seen, because she actually did them. And
+      the actual result too, she saw that one. The guess would be... maybe the severity is
+      a guess? Sorry, I'm not too sure about that part.
+    expected:
+      - dimension: "Reproducible by someone else"
+        score: 1
+        because: "Level 1: takes the sequence of taps as sufficient and only tries to repeat it on a Tecno, missing that there is no account and no job, so nobody can reach the same state."
+      - dimension: "Separates observation from interpretation"
+        score: 1
+        because: "Level 1: one side only — the steps and the actual result are named as what was seen, and the report's actual theory is never found, with severity guessed at instead."
+      - dimension: "Gives the evidence and the context"
+        score: 1
+        because: 'Level 1: a template recitation — a screenshot and "maybe the date" — that omits the exact time, so nothing would let a developer find the logs.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so the detail that jumps out at me is "nothing happens, and after a while the
+      app goes back to the job list." That's not a failed submit. That's the activity
+      being destroyed and the app coming back up on its last screen. That's Android
+      killing the process, and on a Tecno Spark that's nearly always HiOS battery
+      management — it's very aggressive about anything holding a connection open for a few
+      seconds. So the mechanism is clear enough: Submit is a long call, the OS reclaims
+      the process, the activity is recreated on Jobs. Which means what I'd go and find out
+      is whether it reproduces on any other device — a Samsung, an Infinix. If it's only
+      the Tecno, then it's an environment defect, not a product defect, and the right
+      thing is to reclassify it as device-specific and bring the severity down from
+      Critical to Medium, because severity is about how many users are hit and this is one
+      device family. Seen versus guessed — everything in the Actual is seen, that part's
+      fine. And what I'd attach is the battery optimisation settings and a memory dump, so
+      the developer can see it isn't his code. That note about applying earlier, I'd take
+      out. It's noise, and it's what made him stop trusting the report.
+    expected:
+      - dimension: "Reproducible by someone else"
+        score: 1
+        because: 'Level 1: proposes cross-device runs while explicitly deleting the one precondition that makes it repeatable — "That note about applying earlier, I''d take out. It''s noise."'
+      - dimension: "Separates observation from interpretation"
+        score: 1
+        because: "Level 1: a named mechanism offered as the observation — the activity being destroyed by HiOS battery management — and it declares everything in the Actual to be seen, including the theory."
+      - dimension: "Gives the evidence and the context"
+        score: 1
+        because: "Level 1: environment only — battery optimisation settings and a memory dump — with no time, no account and nothing that would find the request in the logs."
+  - kind: correct-poorly-explained
+    text: |
+      So the report is not... okay. "It should work" is not an expected result, that's the
+      first thing, it should say a confirmation appears or the application shows up
+      somewhere. And there's no recording and no time, so nobody can go and look in the
+      logs, which — that's what I'd attach, the time and the account, and a recording, and
+      also what network she was on, data or WiFi. But the main thing, sorry, let me start
+      from the main thing. At the bottom she says she noticed it after she had already
+      applied for that job earlier. That's, I mean that's probably the whole bug, and it's
+      not in the steps, so the developer followed the steps with a fresh job and of course
+      it worked for him. So before I reopen it I would go and try it that way — apply,
+      then apply again for the same one — and if it fails I put that in the steps. And the
+      guess part is that, the earlier-application thing is her theory, she didn't see that
+      cause. What she actually saw is Submit doing nothing and the screen going back. Also
+      the developer didn't say which device or build he used, which — yeah, he should say.
+    expected:
+      - dimension: "Reproducible by someone else"
+        score: 2
+        because: Level 2 — has the precondition and the data, and never asks how often it happens out of how many attempts, which level 3 now requires.
+      - dimension: "Separates observation from interpretation"
+        score: 4
+        because: 'Level 4: "the earlier-application thing is her theory, she didn''t see that cause" — the theory is separated and marked, against what was actually seen.'
+      - dimension: "Gives the evidence and the context"
+        score: 4
+        because: "Level 4: the time and the account so the logs can be searched, plus a recording, and asks the developer for the device and build he used."
+  - kind: nigerian-english
+    text: |
+      Me, I won't reopen am just like that — the way it is written, nobody can reproduce
+      it. So first, I want to know: is it happening every time, or only when you have
+      applied for that same job before? That last line, where she said she had already
+      applied for that one earlier — that one is the best information in the whole report.
+      So I will test am myself: fresh job, apply, does Submit work? Then that same job
+      again. If only the second one is failing, then the steps are just written wrongly.
+
+      Now, seen versus guess. She saw that she tapped Submit, nothing happened, and after
+      some time the thing carried her back to the job list. The guess is that the first
+      application caused it — maybe she is right, but that one is still theory. And "it
+      should work" is not expected result. It should say what is supposed to happen, like
+      confirmation showing, or the job entering My Applications.
+
+      Then what I want attached: screen recording, the exact time so backend can find that
+      request inside logs, and whether she was on data or WiFi. And the developer should
+      say which device and which build he used, because "my device" is not information.
+    expected:
+      - dimension: "Reproducible by someone else"
+        score: 4
+        because: 'Level 4, same as `strong`: the buried precondition found, the frequency asked — "is it happening every time, or only when you have applied for that same job before?" — and a retest a developer could run.'
+      - dimension: "Separates observation from interpretation"
+        score: 4
+        because: 'Level 4, same as `strong`: what she saw against what she is guessing, the guess named as theory, and "it should work" rejected as an expectation.'
+      - dimension: "Gives the evidence and the context"
+        score: 4
+        because: "Level 4, same as `strong`: a screen recording, the exact time so backend can find the request in the logs, the network — and the developer asked which device and which build."

@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: network-failure-handling
+question: fetch-failure-states
+# `fluent-but-wrong` is the interesting one: it is articulate, correctly structured, and wrong
+# about the one thing this rubric weights at 40%. It scores 1 there against `strong`'s 3.
+answers:
+  - kind: strong
+    text: |
+      So the mistake is thinking there's one state. There's really four. Loading, while the
+      request is out — a skeleton or a spinner. The happy path, jobs come back, you render the
+      list. Empty, which is not an error — the API worked fine, there just aren't any jobs, so
+      that gets its own message like "no jobs yet", because a blank screen makes people think
+      the app is broken. And the error state. The bit people get wrong is what the code
+      actually checks. fetch doesn't throw on a 404 or a 500, it resolves happily and then you
+      try to .json() an error page. So you check response.ok, or the status, before you touch
+      the body. The catch block is really only for the network being gone. And the error state
+      should give them a retry button, not a dead end.
+    expected:
+      - dimension: "Covers the states a screen needs"
+        score: 4
+        because: "All four states, empty distinguished from error, and a retry from the error state."
+      - dimension: "Handles HTTP errors correctly"
+        score: 3
+        because: "Knows `fetch` resolves for a 404 or 500 and checks `response.ok`; does not separate statuses."
+      - dimension: "Thinks about a bad connection"
+        score: 1
+        because: "Says the catch is for the network being gone, but offers no deadline or retry mechanism."
+  - kind: weak
+    text: |
+      Okay so you call the API, and if it works you show the jobs, and if it doesn't work you
+      show an error. So I'd wrap the fetch in a try catch, and in the catch I'd render
+      something like "sorry, something went wrong, please try again". And before that a
+      loading spinner while it's fetching so the user knows something is happening. What does
+      the code check... I mean, the catch catches it, so if anything is wrong it goes to the
+      catch, that's the point of it. If the list comes back empty then it just shows nothing,
+      which is fine I think, because there's nothing to show. Maybe I'd check the data isn't
+      undefined before I map over it, so it doesn't crash.
+    expected:
+      - dimension: "Covers the states a screen needs"
+        score: 2
+        because: 'Loading, success and error; treats an empty list as "nothing to show", not as its own state.'
+      - dimension: "Handles HTTP errors correctly"
+        score: 1
+        because: "A `try`/`catch` only — a 500 would arrive as a parsing failure."
+      - dimension: "Thinks about a bad connection"
+        score: 0
+        because: "Assumes the request either succeeds or fails promptly."
+  - kind: fluent-but-wrong
+    text: |
+      Sure. So the states are loading, success and error, and I'd structure it as a try/catch
+      around an async fetch. The nice thing about fetch is it rejects on any non-2xx response,
+      so a 404 or a 500 lands straight in your catch — you don't need to inspect response.ok,
+      that's really a hangover from the XHR days. So the catch gives you one place to render
+      your error UI, which keeps the component clean. An empty array I'd treat as an error
+      case too, because if the jobs endpoint returns nothing then something upstream has
+      usually failed, so I'd surface "couldn't load jobs". And fetch has a default timeout of
+      around thirty seconds, so a dead connection resolves itself into the catch eventually.
+      Loading is just a boolean around the whole thing.
+    expected:
+      - dimension: "Covers the states a screen needs"
+        score: 2
+        because: "Three states, and empty is deliberately reported as an error — the distinction is inverted."
+      - dimension: "Handles HTTP errors correctly"
+        score: 1
+        because: "Asserts `fetch` rejects on any non-2xx and that `response.ok` is a hangover, which is the single most common mistake in this area."
+      - dimension: "Thinks about a bad connection"
+        score: 1
+        because: "Claims a built-in thirty-second timeout — a mechanism, and one that does not exist."
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so you do the fetch, and there's the spinner obviously, and then if it comes back
+      you map over it, but the thing is it might come back with nothing in it, which isn't an
+      error, people treat it like an error but it's not, it's just no jobs, so that's its own
+      message. And then errors. And, sorry, the actual checking part, because that's the part
+      — fetch will hand you back a response even when the server said 500 or 404, it doesn't
+      reject, so your catch never fires and you end up rendering rubbish or blowing up on the
+      json. So you have to look at response.ok yourself before you do anything with the body,
+      and the catch is really only for like, the phone lost signal. And a retry button in the
+      error one.
+    expected:
+      - dimension: "Covers the states a screen needs"
+        score: 4
+        because: "All four, empty explicitly not an error, retry named at the end."
+      - dimension: "Handles HTTP errors correctly"
+        score: 3
+        because: "Same `response.ok` point as `strong`, buried two sentences after the digression."
+      - dimension: "Thinks about a bad connection"
+        score: 0
+        because: "Never reaches the connection; the catch is mentioned only as the place a lost signal lands."
+  - kind: nigerian-english
+    text: |
+      The mistake is to think say na one thing. It's four. Loading, when the request has gone
+      out — you put spinner. Then the jobs come, you show them. Then empty — and empty is not
+      error o. The API worked, it's just that no job dey, so it needs its own message, "no
+      jobs for now", because if you show blank screen the person will think the app has
+      spoiled. Then error. But the part people miss is what the code is actually checking.
+      fetch will not throw for 404 or 500, it will still resolve, then you will now try to
+      .json() an error page and everything will scatter. So you check response.ok first
+      before you touch the body. The catch is for when network has gone completely. And for
+      error, give them retry button, don't just leave the person there.
+    expected:
+      - dimension: "Covers the states a screen needs"
+        score: 4
+        because: "Same substance as `strong`, including the retry."
+      - dimension: "Handles HTTP errors correctly"
+        score: 3
+        because: "Same: resolves on 404/500, check `response.ok` before touching the body."
+      - dimension: "Thinks about a bad connection"
+        score: 1
+        because: "Same omission as `strong` — the catch is for a dead network, with no deadline."

@@ -1113,3 +1113,689 @@ migrations, contracts and the worker, the web and the docs. Findings below; ever
   the catalogue its pickers draw from. All server-side and inside `Promise.all`, so no client
   waterfall — but `serverApi()` is not `cache()`d, unlike `getMe`, so a page that calls both
   `roleAndLevelChoices()` and `catalogueChoices()` fetches the levels twice.
+
+## Question banks from the catalogue — stop 1 (branch `content/catalogue-banks`, from `main` at `00daa6f`)
+
+Plan: `docs/plans/content-catalogue-banks.md`. Owner's decisions, 2026-09-22: **stop after the skill
+and the blueprints, then after each role**; **five stress-test answers per rubric**, not per question.
+
+- [x] The blocker in the plan's §0 is gone — M2.5 merged, so the catalogue format is final and
+      `pnpm db:seed -- --dry-run` is a gate from the first question. The two code changes the plan
+      reserved (`content-review-doc.ts` role derivation, the hardcoded role title map) were both made
+      in M2.5 and need nothing here.
+- [x] `.claude/skills/question-bank/` — SKILL.md, four references, two templates, `check-bank.mjs`
+- [x] `content/seed/blueprints/` — 12 role blueprints (waves 1–3), `wave-4.md`, `README.md`
+- [x] `check-bank.mjs` runs clean on the existing 14 questions; `pnpm db:seed -- --dry-run` unchanged
+      (14 files, everything unchanged — the blueprints are `.md` and the loader ignores them)
+- [x] CLAUDE.md §4 and §5 updated; the plan document rewritten to current state
+- [ ] **Stop 1: the owner reads the blueprints.** Nothing is drafted until then.
+
+### What the blueprints found — each needs an owner or reviewer decision
+
+- **No backend question is offered at `intern-junior`.** All three are `mid`, so a junior backend
+  candidate practises two shared behavioural questions and nothing else. Largest wave-1 content hole.
+- **A full-stack candidate never sees a frontend or backend variant question** unless it carries a
+  full-stack variant too: a profile holds one `target_stack`, and `laravel-vue` is not `php-laravel`.
+  M2.5 solved it for the two React questions (`react-node`); `blueprints/fullstack.md` now states the
+  rule for every stack-tagged question in both banks.
+- **`react-state` has no general question at all** — both are React-tagged, so Vue, Angular and
+  vanilla candidates practise nothing about where state lives.
+- **`async-ordering-understanding` descriptor 4 rewards confidence**, which scores delivery rather
+  than content. Found by `check-bank.mjs`, fixed in the frontend pass.
+- **Three catalogue "stacks" are topics, not variants** — AI/LLM's vector stores and agent
+  frameworks, DevOps's Terraform and CI tooling, QA's `manual-exploratory`. Each blueprint proposes
+  the deviation and says what overruling it costs.
+- **The frontend track and the catalogue disagree** about accessibility and frontend testing being
+  core. The track (which feeds readiness coverage, spec §7) says no; the blueprint recommends yes.
+  One boolean each.
+- **Full-stack's track level is a judgement call**: the blueprint proposes a skeleton at
+  `intern-junior` and says why. Owner may overrule.
+- **Five of eight role × level combinations have no track** (frontend mid, backend intern-junior, QA
+  mid, full-stack both). Lessons work, not question-bank work — but `check-bank.mjs` reports it every
+  run so it cannot be forgotten.
+- **Group A is ≈ 103 new questions and ≈ 86 new rubrics**, larger than the plan's first estimate of
+  ~82, because the counts are now derived per topic per level and because backend and QA need seven
+  and six new topics.
+
+## Question banks — frontend (the same branch, `content/catalogue-banks`)
+
+Owner's decisions on the stop-1 findings, 2026-09-22: fix backend's junior gap (backend pass); write
+the full-stack variant rule **into the eligibility truth table, not only prose**; give `react-state`
+general questions; accept the three "these are topics, not variants" deviations and record in the
+catalogue that they become topics or technologies later; make accessibility and frontend testing core
+for frontend; full-stack track at `intern-junior`. And: **do not hit a target by writing weaker
+questions — if a topic supports two good ones, write two and say so.**
+
+- [x] Decision 2 — the full-stack trap is now mechanical, in three places: two rows in `STACK_RULE`
+      (`question-eligibility.spec.ts`) asserting that one role's variant is never inferred from
+      another's; a **third distinct stack** in `content-stacks.int.spec.ts`, without which those rows
+      collapsed onto the existing ones and asserted nothing; and an **error** in `check-bank.mjs` for
+      a question whose role can never be offered it. 361 API tests pass.
+- [x] Decision 4 — `docs/role-catalogue.md` now says a stack is what a candidate _is_, names the five
+      entries that fail that test, and says they become topics or `technologies` when their wave lands.
+- [x] Decision 5 — `accessibility` and `frontend-testing` are `core: true` in `frontend/track.yaml`,
+      so they count towards readiness coverage (spec §7).
+- [x] `topics.yaml` — `react-state` renamed "Component state and data flow" (slug kept: renaming a
+      slug creates a second topic). Two new topics, `written-communication` and `own-work`.
+- [x] The bank: **8 questions → 34** (23 general, 11 stack-tagged), 28 new rubrics. Every core topic
+      meets its floor at both levels.
+- [x] Four critique passes, run separately as parallel subagents. ~109 findings; 54 applied as edits,
+      25 left in `reviewer_notes` as judgements for the expert. Counts and what changed:
+      `content/seed/blueprints/frontend.md` Appendix B.
+- [x] Fact-check against vendor docs, dated, in Appendix A. Three of four checked claims had moved.
+- [x] Rubric stress test — 34 rubrics × 5 answers = **170 sample answers**, written from the prompts
+      alone by subagents that never saw a rubric, then scored. `evals/datasets/synthetic/frontend/`,
+      with a README that says plainly they are model-written and model-scored and **not** the M4 gold
+      set. `scripts/check-stress.mjs` enforces the two separations mechanically: **all 34 pass**, and
+      three rubrics changed because the answers broke them (see the blueprint's Appendix B2).
+- [ ] **Stop: the owner reads the bank.** Leading with the three questions I am least sure about.
+
+### What the critique passes changed that is worth remembering
+
+- **Three of the four passes independently named the same worst problem**: the shared behavioural
+  rubric. It could not score what its two questions asked — both questions' best `ideal_points` had
+  no criterion to land on — so they rewarded storytelling form, which is coachable in an afternoon.
+  And its wording scored delivery: "clear" gated the top of all three criteria, one wanted an account
+  "in their own words", one wanted detail enough "to be believable", and **level 0 of the heaviest
+  criterion was awarded for saying "we"** — the polite register in much of this audience's working
+  culture. Rewritten, and the two questions now have their own rubrics (`help-seeking-judgement`,
+  `handling-review-feedback`).
+- **A new house rule, and the best single finding of the run: every criterion must have a clause in
+  the spoken prompt that asks for it.** Nine questions charged 25–35% for something the prompt never
+  requested — ask for a diagnosis, score a fix. All nine prompts fixed; the rule is in `SKILL.md`.
+- **Two questions were unanswerable without an employer** (`feedback-on-your-code` needed a code
+  reviewer; `error-only-in-production` needed an error dashboard). Both fixed, and `SKILL.md` and
+  `REVIEW.md` now carry "assume no employer" as a rule.
+- **Level 4 must contain something that cannot be bluffed.** Four descriptors rewarded a claimed
+  habit ("would keep a sample of awkward content around") that costs nothing to say.
+- **Angular had moved under us.** Zoneless is the default from v21; the change-detection question was
+  rewritten around a mutated array, which behaves the same in zone, `OnPush` and signal applications.
+  `angular.dev` contradicts itself about whether `OnPush` is now the default strategy — the roadmap
+  says yes, the zoneless guide says no — so the question avoids depending on it. Flagged for an
+  Angular reviewer.
+- **The stress test earned its cost.** It changed three rubrics, and it found one thing worth more
+  than any of them: **no rubric has a descriptor that fits a confident, specific, wrong answer.** The
+  scores come out right — a fluent wrong answer lands on level 1 or 2 everywhere — but the
+  descriptors it lands on were written for vagueness ("a rule with no mechanism", "with nothing
+  behind it"), so the evaluator will quote evidence that does not match the answer it just scored.
+  That is a house-style change across every rubric in the product, so it is recorded rather than
+  applied here, and `SKILL.md` carries it as a rule for the next bank.
+- **A local caveat, not a defect:** `pnpm db:seed -- --dry-run` reports four M2 rows as "left alone —
+  published" on this machine, because they were published in a developer database. ADR-0014 decision
+  7 working as designed; a fresh database takes all 34.
+
+## The owner's six decisions on the frontend bank (2026-09-22)
+
+- [x] **1. `angular-view-did-not-update` kept, flagged for an Angular specialist.** Its
+      `reviewer_notes` now opens with the version-sensitive marker and says in as many words that a
+      generalist reviewer cannot settle it: the one thing a specialist has to decide is whether
+      setting `ChangeDetectionStrategy.OnPush` explicitly in the snippet is the right way around the
+      docs contradicting themselves, or whether it gives the game away.
+- [x] **1b. How a question is marked version-sensitive** is now a hard rule in `SKILL.md`: the
+      `reviewer_notes` opens with `**Version-sensitive: <claim>, checked against <source> on
+<date>.**`, plus `— needs a <X> specialist` where it needs one. No schema field, because the
+      seed contract would only carry it to a database column nothing reads;
+      `grep -l 'Version-sensitive' content/seed/*/questions.yaml` finds them across every bank and
+      `grep -o '\*\*Version-sensitive:[^*]*'` prints the claims with their dates. Six questions in
+      the frontend bank carry it — the six rows of the blueprint's fact-check appendix.
+- [ ] **1c. Version-sensitive questions need a re-check cycle, and it does not exist yet.** Three of
+      the four claims checked on 2026-09-22 had moved since the drafter learned them, in a bank
+      three months old. The marking above makes the set findable; what is missing is **when** it is
+      re-read and **who** by. Cheapest version: a quarterly pass that greps the marker, re-reads each
+      claim against the vendor's current docs, and dates the row in the blueprint's fact-check
+      appendix — about an hour per bank. Needs a decision on cadence (quarterly? per milestone?
+      before each expert review?) and on whether a mark older than one cycle should make
+      `check-bank.mjs` warn. **Do not let this become "we will remember": the whole point of the
+      2026-09-22 fact-check is that we did not.**
+- [x] **2. `something-you-built` kept**, unchanged. Describing your own work clearly is a skill
+      practising improves, so a question we cannot anticipate is not a question candidates game.
+- [x] **3. `js-async-ordering` rewritten and moved to mid only.** The `console.log` ordering snippet
+      is gone; it is now a click handler that sets "Saving…" and then blocks the main thread for two
+      seconds, so the message never paints. Same mechanism, unmemorisable, and the rubric became
+      `Understanding what the main thread is doing` with three new criteria. **Moving it off
+      intern-junior took `javascript-fundamentals` below its floor there**, so
+      `js-loop-that-returns-nothing` was written to fill the slot — a `return` inside a `forEach`
+      callback, which is where a self-taught junior actually meets this. The bank is 35 questions.
+- [x] **4. `react-state-placement` kept.** It is not subsumed: `state-that-can-disagree` covers
+      deriving and `url-as-state` covers the URL, but neither asks where shared state should _live_
+      — lifting to the nearest common component rather than reaching for a global store, and server
+      data belonging in a cache rather than in `useState`. Nothing else in the bank asks either. The
+      critique pass's real complaint stands in `reviewer_notes` for the expert: it is the only one
+      of the four with nothing concrete to reason from.
+- [x] **5. Both Vue questions kept in the Composition API with `<script setup>`**, flagged in
+      `reviewer_notes` on both for the reviewers to confirm against what this audience learned on.
+- [x] **6. The descriptor finding applied across all 34 rubrics** — 82 descriptors rewritten so a
+      confident, specific, wrong answer has words to land on. See the blueprint's Appendix B2.
+
+## Question banks — backend (the same branch, `content/catalogue-banks`)
+
+- [x] **7 new topics** in `topics.yaml` — `caching`, `async-work`, `auth`, `concurrency`,
+      `backend-testing`, `observability`, `system-design-basics`. Five will be reused by DevOps,
+      data engineering and full-stack.
+- [x] **The bank: 3 questions → 37** (25 general, 12 stack-tagged), 35 new rubrics — 33 in
+      `backend/rubrics.yaml`, plus `escalating-early` and `unfamiliar-code-approach` in
+      `rubrics.shared.yaml` for the two role-general questions the frontend pass said belonged here.
+      Every target in the blueprint's `targets` block is met, and the two shortfalls
+      `check-bank.mjs` had been reporting since the frontend pass (`written-communication` and
+      `own-work` at 1 of 2) are closed.
+- [x] **Fact-check against vendor docs**, dated, in Appendix A. **Four of nine claims had moved**,
+      and one was a defect in a question rather than in a note: `spring-default-error-body` showed a
+      body with `trace` and `message` in it, and both are **off by default** with the keys omitted
+      entirely, so the snippet was not something anyone would see out of the box. Also: the docs
+      document Spring self-injection as an alternative rather than warning against it, so the rubric
+      no longer scores it at level 1; Laravel 13 has moved to PHP attributes; and Node's own API docs
+      and learn page disagree about `worker_threads`.
+- [x] **Four critique passes, run separately.** ~110 findings; 64 applied as edits, 19 left in
+      `reviewer_notes`. Counts and what changed: `content/seed/blueprints/backend.md` Appendix B.
+- [x] **Rubric stress test — 37 rubrics × 5 answers = 185 answers**, written from the prompts alone
+      by seven subagents that never opened a rubric, then scored. `evals/datasets/synthetic/backend/`.
+      All 37 pass the two separations. It broke one rubric outright and sharpened 23 descriptors
+      (Appendix B2).
+- [ ] **Stop: the owner reads the bank.** Appendix C lists the six things that need a decision,
+      in order. The first two are the ones that matter.
+
+### What this pass found that is worth remembering
+
+- **A house rule can smuggle back the defect it was written to remove.** The descriptor rule added
+  after the frontend stress test read "a descriptor that fits a **confident**, specific, wrong
+  answer" — and writing it that way put the word _confident_ into **34 level-1 descriptors across
+  both banks** before two critique passes caught it independently. Every word in a descriptor is a
+  scoring instruction, so that one told the evaluator to attend to how an answer sounded, which is
+  exactly what `rubrics.shared.yaml` had been reworked to stop that same morning. `SKILL.md` now
+  says **"name the belief, never the manner"** with the story attached.
+- **Two factual defects in questions a model wrote, both found by reading rather than by checking a
+  vendor.** `db-money-as-a-float` asked why naira totals drift a few kobo over a month; `double
+precision` carries fifteen to sixteen significant digits and float errors largely cancel, so the
+  rubric was charging 30% for an explanation that is not true — _and_ the example value, 1500.50,
+  is exactly representable, so the premise was false of the number on screen. `node-async-error-
+never-caught` said the request hangs; since Node 15 an unhandled rejection exits the process.
+  **A fact-check against vendor docs would have caught neither.** Both came from a critique pass
+  doing arithmetic.
+- **The prompt-clause rule is not learned once.** "Every criterion must have a clause in the spoken
+  prompt that asks for it" was the frontend pass's best finding and is a hard rule in `SKILL.md` —
+  and the backend bank still broke it **eighteen times**. It needs a check, not a rule.
+- **The stress test paid for itself again, and differently.** On frontend it changed three rubrics;
+  here it _proved_ something two critique passes had only argued: `behavioural-answer-quality`
+  could not tell a story about the candidate's own break from a polished story about somebody
+  else's — 3.70 against 3.70, identical. `incident-you-contributed-to` now has `incident-ownership`.
+  A judgement becomes a defect the moment a mechanical check fails on it.
+- **A local caveat, not a defect:** `pnpm db:seed -- --dry-run` reports ten rows as "left alone —
+  published" on this machine, now including `api-error-shape`, `n-plus-one-diagnosis` and their
+  rubrics, because this pass edited them. ADR-0014 decision 7 working as designed; a fresh database
+  takes everything, and `-- --force` is the way through on a developer one.
+
+## The owner's six decisions on the backend bank (2026-09-23)
+
+All six taken as recommended; `content/seed/blueprints/backend.md` Appendix C records what each
+cost. The bank is **34 questions** (25 general, 9 stack-tagged), 38 offered to a backend candidate.
+69 rubrics and 345 stress answers across both banks, all passing.
+
+- [x] Level tags: ten general questions at `intern-junior`, the rest `mid` only. **Seven floor
+      shortfalls accepted rather than padded** — `databases`, `caching`, `backend-reliability` and
+      `backend-testing` have nothing at intern-junior. Reported every run.
+- [x] `api-error-shape` and `the-counter-that-lost-updates` cut; `what-happens-when-it-is-down`
+      narrowed to what the user is told.
+- [x] The judgement ratio is now **one in four of what a candidate is offered, by topic
+      (`collaboration`, `written-communication`, `own-work`) rather than by `type`** — the two best
+      judgement questions are typed `scenario`. Backend: 9 of 38, 24%.
+- [x] Added `the-ticket-nobody-can-explain` and `a-change-you-are-not-sure-about`, both carrying all
+      four wave-1 roles.
+- [x] `golang`, `dotnet` and `ruby-rails` off `roles.yaml`; three questions, rubrics and stress sets
+      removed with them.
+- [x] Nine untagged questions say "JavaScript" in the prompt.
+
+- [ ] **Ask the reviewers which backend variant this market actually hires for** before restoring
+      any of `golang`, `dotnet` or `ruby-rails`. The rule that removed them is the blueprint's own:
+      a variant with one question is a variant we are not serving, and advertising one in the
+      onboarding picker and then handing that candidate the general set is worse than not offering
+      it. Whichever they name comes back with a bank of its own, not one question. The three
+      `stacks.yaml` rows are untouched, so restoring is a `roles.yaml` line plus the questions.
+- [ ] **Four judgement-and-communication slots left**, from the same critique pass: shipping to
+      production with nobody else awake; explaining a cause to support and to a team lead in two
+      registers; and two more of the reviewer's choosing. These come before more snippet questions —
+      22 of 34 already hand the candidate a planted defect.
+- [ ] **The junior shortfall above is a worklist.** Seven topic-level gaps at `intern-junior`, each
+      one a question that has to be genuinely junior rather than a mid question relabelled.
+
+## Question banks — QA (the same branch, `content/catalogue-banks`)
+
+**Drafted 2026-09-23. 3 questions to 35** (25 general, 10 stack-tagged), 33 rubrics, six new topic
+rows. A QA candidate is offered **45**, because ten role-general questions in the frontend and backend
+banks carry `qa` — nine already did, and `it-works-for-me` gained the role in this pass, which its own
+notes had asked for. Everything is `status: draft` / `author: ai_draft`.
+
+Built to `content/seed/blueprints/qa.md`, which now carries the fact-check log (Appendix A), what the
+four critique passes changed (Appendix B) and the coverage (Appendix C).
+
+- [x] Six new topics: `risk-based-testing`, `testing-apis`, `test-automation`, `ci-pipelines`,
+      `exploratory-testing`, `test-data`
+- [x] 23 new questions and 3 reworked; 30 new rubrics
+- [x] Four critique passes, run separately — 139 findings, 105 applied, 25 left in `reviewer_notes`
+- [x] Fact-check: 8 version-sensitive claims against current vendor docs; **3 had moved**
+- [x] Arithmetic worklist — three numeric defects found and fixed, none of them by the fact-check
+- [ ] Stress test — 33 rubrics × 5 answers, in progress
+- [ ] `content:review-doc` regenerated for the reviewers
+- [ ] Owner's decisions (below)
+
+### The two shortfalls, reported rather than filled
+
+Decision-1 doctrine from the backend bank, applied here. `check-bank.mjs` prints both every run.
+
+- `test-automation` @ intern-junior: **1 of 2** — `what-to-automate-first` went mid-only because its
+  40% criterion needs a suite somebody has maintained.
+- `performance-testing` stack: **1 of 2** — `performance-what-to-ask-first` was untagged.
+
+### What the skill learned, and what became a check
+
+- **Weights were a template, not a claim.** 21 of 30 QA rubrics were exactly 35/35/30 against 11
+  distinct patterns in frontend and 12 in backend. `check-bank.mjs` now warns when one split covers
+  more than half a rubric file.
+- **The manner defect returned in a third form** — the wrong answer defined by the _quantity_ of
+  speech ("a detailed plan", "a thorough set of flows", "Prices it accurately"). Nine in QA, and the
+  new check found **seven more in the frontend, backend and shared files**, so it was never a QA
+  problem. All sixteen fixed; `detailed`, `in detail`, `thorough*`, `accurately` and `at length` are
+  now on the suspect list.
+- **A promise the evaluator cannot read is not a promise.** `qa/rubrics.yaml` had none of the
+  protective clauses `rubrics.shared.yaml` carries eleven of, and the bank's fairness promise sat in a
+  YAML comment that said the seed format had nowhere to put it. It does: the descriptor.
+- **The thing you would hire on belongs at level 3, not level 4.** All 90 QA level-4 descriptors were
+  additive; in six criteria the behaviour worth hiring on was in the level-4 clause, so a candidate
+  scoring 3 throughout read as competent while missing the point of every criterion.
+
+### Open for the owner — the QA decisions
+
+1. **The triple-barrelled prompt — DECIDED 2026-09-23, not yet implemented.** Resolved as "different
+   moments": the opening prompt asks one thing, the remaining criteria become **planned follow-ups
+   stored on the question**, and the check becomes "every criterion is asked for by the prompt **or** by
+   a planned follow-up". The field lands **before M3** so `interview_followup.v1.md` is written against
+   it; the engine wiring and the per-criterion coverage log are M3. Consequence worth knowing: **the
+   rubric stops reaching the interviewer model entirely.** Measured cost to retrofit: **208 follow-ups
+   and 104 prompts** across the three banks, uniformly two per question. Sequencing: the field plus
+   QA's 70 as the pilot, then frontend and backend, then full-stack. Full reasoning and what is still
+   open: `docs/progress/2026-09-23-planned-follow-ups.md`; `docs/plans/m3-interview-engine.md` updated.
+   **The full-stack pass is held until this is built.**
+
+   The original framing, kept because it is why the decision was needed:
+   **The triple-barrelled prompt, and the engine.** Both the senior-interviewer and the
+   nervous-junior pass made this their first finding, and the senior pass's argument is the one that
+   matters: asking all three clauses up front **pre-empts the engine**, whose job is to generate
+   follow-ups that probe missing rubric points (CLAUDE.md §5). Against it stands the prompt-clause
+   rule, written because the frontend pass found nine criteria charging for something never asked and
+   the backend pass eighteen, and enforced by `check-bank.mjs`. **This changes every bank and the
+   skill, so it was not resolved inside QA.** The likely resolution: the prompt must raise every
+   criterion's _subject_, and the follow-up draws out the detail.
+
+2. **`behavioural-answer-quality` — DELETED 2026-09-23** (`e912038`). Four questions used it and all
+   four needed their own; `SKILL.md` carries the table and the structural reason, the template no longer
+   offers it, and `REVIEW.md` no longer tells reviewers the sharing is deliberate. The importer never
+   deletes, so a developer database keeps the row.
+3. **`manual-exploratory` is the default QA variant and has zero tagged questions.** The blueprint's
+   argument for that still holds — its subject matter is the general set, and tagging would hide test
+   design from automation candidates. The consequence it did not state: the most common candidate in
+   this market practises nothing about their own working week (keeping 400 manual cases useful, how a
+   cycle is planned and reported, what goes in a summary a stakeholder reads).
+4. **The largest content gap is Android on a real phone, as general content.** Almost everything
+   shipped here is an Android app on a mid-range phone, and the only question about devices, network,
+   permissions, storage or app upgrade is `appium-passes-on-the-emulator` — tagged, mid, about a tool.
+5. **Two questions one pass would cut or replace**: `where-the-tests-run` (reframed so the candidate
+   advises rather than decides, which may not be enough) and one of the three questions about a signal
+   nobody believes (`the-suite-nobody-trusts`, `intermittent-failure-triage`,
+   `the-pipeline-has-been-red` — a senior interviewer would ask one of the three in an hour).
+6. **Appendix C lists eight more gaps** worth a round two, the cheapest being "here is a user story
+   and its acceptance criteria — what would you refuse to sign off?"
+
+### Still open from earlier passes, unchanged
+
+The **version-sensitive re-check cycle** (now 23 marked claims across three banks, and **three of the
+eight QA claims had moved after one day**), the **seven backend junior shortfalls**, the **four
+backend judgement slots**, and the missing `intern-junior` backend track / `mid` frontend track /
+`mid` QA track — `track_not_found` for those candidates, and lessons work rather than
+question-bank work.
+
+## Planned follow-ups — the field, and QA as the pilot (2026-09-23, branch `content/catalogue-banks`)
+
+Implements the decision in `docs/progress/2026-09-23-planned-follow-ups.md`. Stop at the end of the
+pilot for the owner's review; frontend, backend and full-stack are the next passes.
+
+### The three questions the handover left to the pilot, and what the pilot decided
+
+- **Shape**: `planned_follow_ups: [{ criterion, probe }]` — `criterion` is the criterion's position
+  in the rubric (0-based, as `rubric_criteria.position` stores it), `probe` is one spoken sentence.
+  **No condition field**: the condition is already the engine's rule ("ask this only for a criterion
+  the answer has not covered"), so prose the engine would have to branch on never arrives.
+- **One probe per criterion**, enforced — duplicates are an error. `max_follow_ups` is 2 against
+  three criteria, so the engine is already choosing; a second probe for the same criterion multiplies
+  that choice for nothing.
+- **The ask-check becomes an error**, not a warning: `asks(prompt) + follow-ups ≥ criteria`. The
+  broad-clause escape hatch goes with it — a probe is a better answer than a note in `reviewer_notes`,
+  and it is now available. All 104 questions pass it today, so nothing else in the repo breaks.
+
+### Phase A — the field · **done**
+
+- [x] Contracts: `PlannedFollowUp`, `QuestionInput.planned_follow_ups` (**required**, so a client that
+      has not heard of it cannot silently wipe a question's probes), `SeedQuestion` (defaulted),
+      limits in `constants.ts`, contract tests
+- [x] Prisma column + migration — Prisma proposed `DROP INDEX questions_embedding_hnsw` for the
+      **fourth** time and it was deleted; the index is verified present
+- [x] `content.service.ts`, `content.mappers.ts`, `seed-import.ts`
+- [x] `review-doc.ts` — each probe under the criterion it probes, and a fifth reviewer tick box
+- [x] Leak test: one fixture marker, plus the real corpus in `content-seed.int.spec.ts`; a round-trip
+      test in `content-admin.int.spec.ts`; the e2e writes one through the CMS form at 360px
+- [x] CMS question editor (criterion labelled from the selected rubric, fetched on change), i18n
+- [x] `check-bank.mjs`: range, distinctness, punctuation, and the ask-check **as an error**
+- [x] `pnpm gen:contracts`, docs (CLAUDE.md, seed README, REVIEW.md, SKILL.md, template, M3 plan)
+
+### Phase B — QA's follow-ups · **done, reviewed by the owner 2026-09-23**
+
+- [x] 35 prompts cut to one ask; 70 probes written against the criteria the prompt no longer asks,
+      then **74** after the owner allowed a second probe per criterion (below)
+- [x] Four critique passes on the reshape — 93 findings, 73 applied, 13 to `reviewer_notes`
+- [x] All checks green; `content:review-doc` regenerated
+- [x] Handover: `docs/progress/2026-09-23-planned-follow-ups-pilot.md`
+
+### What the pilot sends back to the owner
+
+1. ~~One probe per criterion is not quite enough, twice.~~ **Decided 2026-09-23: a criterion may carry
+   two probes, three is refused, and the three questions are fixed** — `test-design-signup-form` and
+   `api-collection-that-only-works-in-order` carry three probes each, `pushing-back-on-a-release`
+   four. The first probe listed for a criterion is its primary one; the engine prefers a criterion
+   nothing has probed yet and reaches a second only when no other criterion is uncovered, which is now
+   a selection rule in the M3 plan.
+2. **"Needed no prompting" is a signal we throw away** — a candidate who covers everything unprompted
+   scores the same as one probed twice. M4 report question, not a content one.
+   **A content decision now waits on this one (owner, 2026-09-25).** After all three banks were
+   retrofitted, every snippet question opens on a diagnosis and about 37% of the score is guaranteed,
+   with the heaviest criterion behind a probe in nine backend questions. The owner has decided **not**
+   to invert those openings — a candidate cannot decide about a bug they have not diagnosed, and
+   opening with "what would you change?" rewards pattern-matching on the snippet's shape. **The
+   resolution is here instead: if a prompted answer scores slightly below a volunteered one, "the
+   heaviest criterion sits behind a probe" largely dissolves across all three banks without a single
+   prompt being rewritten.** `SessionTurn.follow_up_index` already records which probe produced which
+   turn (`docs/plans/m3-interview-engine.md`), so the data exists; what M4 owes is the scoring rule.
+3. **`max_follow_ups = 2` leaves the engine no budget** to chase a vague answer, because both slots
+   are planned. M3 decision.
+4. **Five openings ask a criterion lighter than one of their probes** — reported, not changed; nothing
+   is unreachable, and `criteria_covered` is what makes the exposure auditable.
+
+### Next
+
+- [ ] Frontend (70 probes) and backend (68), to the rules the pilot added to `SKILL.md`
+- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry
+
+## Frontend planned follow-ups — the retrofit (2026-09-24, branch `content/catalogue-banks`)
+
+The shape QA piloted, applied to the frontend bank. **13 prompts rewritten, 81 probes**, four
+critique passes (51 findings, 40 applied, 11 recorded). `content/seed/blueprints/frontend.md`
+Appendix B3 has the detail. Checks green: `check-bank.mjs` (no errors, the same 53 warnings as
+`main`), `check-stress.mjs`, `pnpm db:seed -- --dry-run`, `pnpm format`, 365 API + 120 web + 91
+shared-types tests.
+
+### What the passes changed that the QA pilot had not already taught
+
+- [x] **A prompt cut to its first clause is not a prompt cut to its first criterion.** Six questions
+      had the un-probed criterion mis-aimed; all six openings re-aimed. This is the sharpest thing
+      learned in this pass and it belongs in `SKILL.md` if the backend pass repeats it.
+- [x] Two questions had opening and first probe swapped (`it-works-for-me`,
+      `state-that-can-disagree`) — the order-of-work rule, found again.
+- [x] Ten probes handed over what their criterion scores; reworded.
+- [x] Five criteria that score two separable things gained a second probe (ten in total now).
+
+### Decided by the owner, 2026-09-24 — `docs/progress/2026-09-24-frontend-probes.md`
+
+All four were decided the same day. The detail and the reasoning are in the handover; what follows is
+the work each one leaves, and none of it is a question change.
+
+1. **Six frontend descriptors need a fairness clause.** `frontend/rubrics.yaml` carries **two**
+   protective clauses across ninety criteria; `rubrics.shared.yaml` carries eleven. The
+   planned-follow-up field removed the escape route a candidate used to have — answering around
+   the criterion they had no workplace to answer from — so the rubric's silence is now
+   load-bearing. `help-seeking-judgement` criterion 3 is the worst: 40%, and a self-taught
+   candidate with nobody to ask has no route above level 0.
+2. **Three level descriptors have been made unreachable by the format.**
+   `state-placement-reasoning` criterion 2 level 1 is "notices the duplication **only when
+   prompted**" — the probe _is_ the prompting, so every candidate reached by it caps at 1 on 30%.
+   `url-state-reasoning` criterion 3 level 0 and `client-boundary-reasoning` criterion 2 level 0
+   are unreachable for the same reason: the probe supplies what level 0 is defined by not having.
+   **This generalises to every bank**, and is worth checking on QA before the backend pass.
+3. **`check-bank.mjs` cannot see any of this.** It counts asks and probes; it cannot tell which
+   criterion the opening asks. The pilot's own lesson — a rule that must be remembered once per
+   instance needs a check — applies to the rule the pilot itself added. A check that flagged
+   "the un-probed criterion is not the one the opening names" would need the opening matched to a
+   criterion, which is the lexical comparison that failed at 130 warnings before; the cheaper
+   version is to require a `reviewer_notes` line naming the un-probed criterion.
+4. `stuck-and-asked-for-help` now says "and ended up asking someone for help" in the opening. That
+   fixes the ambush the probes were creating, and it is a **shared** rubric used by four banks —
+   the descriptor fix in (1) is what makes it fair rather than merely coherent.
+
+### Next, in this order
+
+- [x] **The six fairness clauses and the three dead descriptors** (decision 2), starting with
+      `help-seeking-judgement` criterion 3, and widening what counts as asking so
+      `stuck-and-asked-for-help` is fair as well as coherent (decision 1). Changing a descriptor
+      moves scoring, so this needs its own `check-stress.mjs` run.
+      **Done 2026-09-24** — see the section below and
+      `docs/progress/2026-09-24-rubric-fairness.md`.
+- [x] **Check QA and backend for the same two gaps** — done 2026-09-25,
+      `docs/progress/2026-09-25-fairness-sweep-qa-backend.md`. Two fairness passes, one per bank,
+      run separately; 15 findings, **five did not survive checking against the file**. Applied: 3 in
+      backend (`alerting-judgement` 3, `unfamiliar-code-approach` 2 + 3, `worker-deploy-diagnosis` 3)
+      and 7 edits across 5 QA criteria (`api-evidence-reading` 2 — the worst, a route written into
+      level 4 and gated behind a level 3 that needs the thing; `rule-interaction-test-design` 3,
+      `transactional-test-design` 2, `raising-a-quality-concern` 3, `test-case-selection` 3). Plus
+      eleven silent level 0s and a new check (`7ea284f`). **The mechanical signal was wrong**: the
+      regex said backend had none, and the reason is that a scenario prompt supplies the workplace —
+      clauses belong on behavioural criteria and almost nowhere else.
+- [ ] **Backend (68 probes)**, opening with the mis-aim check (decision 5): per question, name the
+      criterion the opening asks and check it is the one without a probe.
+- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.
+
+Done 2026-09-24: `error-only-in-production`'s opening tightened (decision 3); five uncertain probes
+flagged in `reviewer_notes` rather than changed (decision 4); three rules added to `SKILL.md`.
+
+## Frontend rubric fairness — items 1–3 (2026-09-24, branch `content/catalogue-banks`)
+
+The owner's decisions 1–3 from `docs/progress/2026-09-24-frontend-probes.md`, done and stopped for
+review. **Nine descriptor changes, no question changed.** Handover:
+`docs/progress/2026-09-24-rubric-fairness.md`; blueprint detail: `frontend.md` Appendix B4.
+
+- [x] **Decision 1** — `help-seeking-judgement` criterion 3 (shared, 40% of its question) widened:
+      asking is reaching outward by whatever route was open — a colleague, a community, a group
+      chat, an issue thread — in the description and in levels 3 and 4. The question's
+      `ideal_points` say the same, and the shared file's header records why. Reaches four banks.
+- [x] **Decision 2** — six fairness clauses (`help-seeking-judgement` 3,
+      `test-brittleness-diagnosis` 2, `performance-investigation` 2, `semantic-html-diagnosis` 3,
+      `secret-exposure-diagnosis` 3, `resilient-layout-reasoning` 3) and the three descriptors the
+      probes had made unreachable (`state-placement-reasoning` 2 level 1, `url-state-reasoning` 3
+      level 0, `client-boundary-reasoning` 2 level 0).
+- [x] **Decision 3** — verified, not re-done: `error-only-in-production`'s opening was already
+      tightened in `a294ea6`.
+- [x] Checks: `check-bank.mjs` no errors and **53 warnings byte-identical to HEAD's** (diffed
+      against a worktree, not eyeballed); `check-stress.mjs` 103 sets, every separation passes, no
+      score moved; `db:seed --dry-run`; `content:review-doc`; `format`; `lint`; 365 API + 91
+      shared-types tests.
+
+### What this pass sends back to the owner
+
+1. **The widening is in the rubric, not in the opening**, which still says "asking someone for
+   help". A self-taught candidate may still hear a question about a workplace they have not had,
+   and no rubric clause reaches them before they answer. Flagged in `reviewer_notes` too. Your
+   call whether the opening should say it aloud.
+2. **A stress set that does not reach the descriptor you changed proves nothing.** Every
+   `help-seeking-judgement` answer had a colleague to ask. The `correct-poorly-explained` answer
+   was rewritten — self-taught, asking in a cohort WhatsApp group, same substance said just as
+   badly — and still scores 3 / 3 / 3. A skill rule if the backend pass hits it again.
+3. **The reviewer pages are built per directory, not per role.** `buildReviewDoc` filters by the
+   seed file's path, so the four role-general behavioural questions living in
+   `content/seed/frontend/` appear only on the frontend reviewer's page — a QA reviewer signs off
+   35 questions while their candidates are offered 45. A code change in
+   `apps/api/src/content/review-doc.ts`, and the owner's call whether it comes before the
+   reviewers are sent the pages.
+4. **Fairness clauses do not fit in a criterion description.** `criterionDescriptionMaxLength` is
+   300 characters; two of the six clauses moved down into the level descriptors, which is the
+   better place anyway — a clause in the description is guidance, a clause in level 3 is a score.
+
+### The owner's answers, and what they left — all done 2026-09-25
+
+- [x] **1. Say the widening in the opening too.** `stuck-and-asked-for-help` now asks "…ended up
+      asking someone for help — whether a colleague, a community or a group chat". A clause in a
+      descriptor fixes the score; only a clause in the prompt reaches the candidate before they
+      flinch. `reviewer_notes` now asks whether it sounds like something you would say out loud.
+- [x] **2. `review-doc.ts` builds pages per role, by the roles a question carries.** frontend
+      35 → 40, backend 34 → 38, **QA 35 → 45** (the ten unreviewed ones). A shared question names
+      its own file beside it; the role's own questions print first; the track is selected by
+      `track.role` rather than by path. **`fullstack` now gets a page — 62 questions, all shared**,
+      because the CLI listed roles by "has a directory" and so the role with the most unreviewed
+      content reaching candidates was the one getting no page at all. The test the owner asked for
+      loads the real corpus and asserts, per role in `roles.yaml`, that every question carrying
+      that role is on that role's page and the page's count matches. Nine new tests, API suite 374.
+      `content/seed/REVIEW.md` corrected with it: it claimed there was no full-stack page and that
+      full-stack was "eleven of the questions" on the other pages, when 62 carry it.
+- [x] **3. Skill rule** — a clause in a criterion description is guidance, a clause in a level
+      descriptor is a score; fairness clauses belong in the descriptors.
+- [x] **4. Skill rule** — when a rubric changes to include a case, the stress set needs an answer
+      from that case, or the change is untested. Rewrite the kind that fits; a sixth answer is
+      ignored by `check-stress.mjs`.
+
+**One thing left for the owner**: if a 288 KB full-stack page of questions a reviewer has already
+seen on the other three is not wanted, `hasContent` in `apps/api/src/cli/content-review-doc.ts` is
+the line, and the corpus test would then skip roles with no page rather than asserting one for
+every catalogue role.
+
+## The fairness sweep, and the full-stack page (2026-09-25, branch `content/catalogue-banks`)
+
+Handover: `docs/progress/2026-09-25-fairness-sweep-qa-backend.md`. Four commits: `12a6e5a` the
+full-stack page's asks, `7ea284f` the silent level 0s and the check, and the sweep itself.
+
+- [x] **The full-stack reviewer is asked about the set, not about each question** (owner's
+      refinement). A role with no bank of its own gets its own "What we are asking you": is this the
+      right set, and **what is missing between them** — the questions that only come up when one
+      person owns both ends. Keyed on "no questions of its own", not on the slug.
+- [x] **A level 0 reading only "Not addressed." is silence, not a wrong answer.** Eleven rewritten;
+      eight backend ones are warnings until its retrofit. `check-bank.mjs` enforces it.
+- [x] **QA and backend swept** for both gaps. Ten criteria changed, five findings rejected.
+
+### Decided by the owner, 2026-09-25
+
+- [ ] **The stress sets against the probes — after all four banks are retrofitted, not before.**
+      The QA sets were written before probes existed; frontend's and backend's will be in the same
+      position. Doing it once against the final shape rather than twice is the whole point, so this
+      waits for the full-stack pass to land. Scope: every set, every answer written against the
+      whole exchange (`references/stress-test.md`), because a descriptor whose meaning depends on
+      the probe having been asked cannot be confirmed by an answer that only meets the opening.
+- [x] **`status-code-honesty` at `intern-junior`** — left flagged for the reviewers, not changed.
+- [ ] **QA → full-stack tagging**: left for the held tagging pass, which is to consider
+      **whether one or two testing-mindset questions should cross over**. No QA question carries
+      `fullstack` today, against 31 of frontend's 35 and 31 of backend's 34.
+- [ ] **Sweep every `reviewer_notes` for flags that are known defects rather than questions for an
+      expert, and fix or escalate each one.** From `api-evidence-reading`: the drafter had written
+      "the descriptors may still read as assuming one" and the fix was never applied, so a 35%
+      criterion capped an honest answer at 2 for three days. A flag nobody acts on is a record of a
+      bug, not a mitigation. The two kinds are distinguishable: "is this the right weight?" is a
+      judgement an expert should make, "this descriptor still assumes X" is a defect with a known
+      fix. Run it over all four banks, sort into fix / escalate, and say which in the blueprint.
+
+### What the sweep taught, now in `SKILL.md`
+
+- A protective clause belongs on a **behavioural** criterion and rarely anywhere else: a scenario
+  prompt supplies the workplace, and a rubric written in the hypothetical needs no route however much
+  workplace furniture it mentions. This is why the clause-count signal overstated the backend gap.
+- A rubric change must not **evict** the case it already had. Three rewrites in this pass would have
+  stranded an existing stress answer by narrowing a level 1 to the post-probe wrong answer; all three
+  were widened to hold both. Check the set in both directions, not only for the new case.
+
+### Next
+
+- [x] **Backend — done 2026-09-25**, `docs/progress/2026-09-25-backend-probes.md`. **34 prompts cut
+      to one clause, 70 probes**, four critique passes on the reshape (44 findings, 34 applied).
+      The mis-aim check ran first and changed **eight** openings a mechanical cut would have got
+      wrong. The eight silent level 0s became errors the moment their criteria were probed, exactly
+      as the check predicted, and were cleared as part of the pass.
+- [x] **Full-stack tagging — done 2026-09-25**,
+      `docs/progress/2026-09-25-fullstack-tagging.md`. An audit, not a rework: every general frontend
+      and backend question already carried `fullstack`, and all thirteen stack-tagged ones already
+      reach one of the role's six variants. **Two QA questions crossed over** —
+      `what-to-test-when-there-is-no-time` and `where-your-test-data-comes-from` — taking the role
+      from 62 to 64 available. One re-tag declined (`python-blocking-call-in-async` is a FastAPI
+      snippet and `django-react` means Django), one word fixed in `test-data-judgement`.
+
+## The backend retrofit (2026-09-25, branch `content/catalogue-banks`)
+
+Handover: `docs/progress/2026-09-25-backend-probes.md`; detail in `blueprints/backend.md` Appendix D.
+Commits: `6207ee5` the mechanical retrofit, `90d93f4` the stale notes, and the critique passes.
+
+### What generalises, and is now in `SKILL.md`
+
+**A probe that names what its criterion scores is worse than the clause it replaced, not merely as
+bad.** A clause was asked of everyone; a probe is asked only of the candidate whose answer missed
+that criterion — so a leading probe converts a miss into a gift, to precisely the candidate who had
+not earned it. Eleven of seventy probes needed rewriting on this in one pass.
+
+**And the silent-level-0 check was matching half the defect.** It matched whole strings, so "Not
+addressed — the answer is entirely about the code" escaped it on 35% and 25% criteria. It now also
+errors when a level 0 merely _opens_ with a non-answer and the criterion is probed: that found nine
+more across all four rubric files, one of them in `rubrics.shared.yaml`. Twenty-two level 0s
+rewritten over the two days.
+
+### Decided by the owner, 2026-09-25
+
+1. **Do not invert the snippet openings.** A candidate cannot decide about a bug they have not
+   diagnosed, and opening with "what would you change?" rewards pattern-matching on the snippet's
+   shape. The arithmetic complaint — 37% guaranteed, the heaviest criterion behind a probe in nine
+   questions — **is M4's to answer, not the banks'**: if a prompted answer scores slightly below a
+   volunteered one, it largely dissolves across all three banks with no prompt rewritten. Recorded
+   against the M4 item above so M4 knows this is waiting on it. Rule in `SKILL.md`.
+2. - [x] **Depth cue on diagnosis openings — done 2026-09-25**,
+         `docs/progress/2026-09-25-depth-cues.md`. **54 of 104 prompts** gained one; no opening was
+         rewritten and no criterion moved. Three cues, assigned by whether there is something on screen
+         and whether the prompt already points at it. Frontend 26, backend 15, QA 13 — QA fewest
+         because twenty-two of its openings already invite a list, backend fewest relative to size
+         because eight already say "explain" or "walk me through". `check-bank.mjs` no longer counts a
+         cue towards the asks, or every diagnosis question would have had a free one; its output is
+         byte-identical to HEAD's. Done ahead of the stress-set rewrite rather than with it, because a
+         cue changes no descriptor and adds nothing to that rewrite's scope.
+3. **The fourteen "what would you change?" probes stay**, flagged for the reviewers in
+   `content/seed/REVIEW.md` rather than changed.
+4. - [x] **`the-ticket-nobody-can-explain` opens with "Write me the message you would send them."**
+         If that is the one remote-predictive artefact in the bank, it should not be conditional on the
+         candidate having missed something. Done 2026-09-25: criterion 2 (35%, "writes something that can
+         be answered asleep") is now the un-probed one, and criterion 1 gained the probe "What did you go
+         and look at before you wrote that?". **It is the first question in any bank whose un-probed
+         criterion is not criterion 0** — which is the rule working as written, since the rule is "the
+         opening asks the un-probed criterion", not "the opening asks criterion 0". The senior pass had
+         flagged the positional habit as a risk; this is the first break from it.
+5. **A probe that names what its criterion scores converts a miss into a gift**, given only to the
+   candidate who had not earned it — worse than the clause it replaced, not merely as bad. Already
+   first-class in `SKILL.md` under the probe rules.
+
+## The depth cues and the full-stack tagging (2026-09-25, branch `content/catalogue-banks`)
+
+Two passes, handovers `docs/progress/2026-09-25-depth-cues.md` and
+`docs/progress/2026-09-25-fullstack-tagging.md`. Decision 4 from the backend retrofit was verified
+as already applied (`bd76be6`), not re-done.
+
+### What is now left on the banks, in order
+
+- [ ] **Sweep every `reviewer_notes` for flags that are known defects rather than questions for an
+      expert**, and fix or escalate each one. Unchanged from 2026-09-25; the two passes above added
+      four notes and none of them is of that kind.
+- [ ] **The stress sets against the probes** — every set, every answer written against the whole
+      exchange. Now unblocked: all four banks are retrofitted and the full-stack pass has landed. The
+      depth cues add nothing to its scope, because a cue changes no descriptor.
+- [ ] **The full-stack role's own content** — a skeleton track at `intern-junior`, and the ~8
+      boundary questions (`fullstack-boundary` 0 of 5, `deployment-basics` 0 of 4). Writing, not
+      tagging; `content/seed/blueprints/fullstack.md` has the shape of both.
+- [ ] Three variant shortfalls that only new questions can close: `django-react` 1 of 2,
+      `ruby-rails` 0 of 2, `dotnet-react` 0 of 1.
+
+### Open for the owner
+
+1. **`the-field-that-changed-shape` → full-stack?** On merit it is the strongest transfer in the QA
+   bank and it is the boundary question the role is short of; it was left because the brief said
+   testing mindset. If the ~8 boundary questions are not imminent, tag it.
+2. **`fullstack` does not support `test_design`**, so QA's three "What would you test?" questions
+   cannot carry the role at all. A one-line `roles.yaml` change if they should — a catalogue
+   decision, not a tagging one.
+3. **Every general frontend and backend question transfers**, against the blueprint's estimate of two
+   thirds. `content/seed/REVIEW.md` §7 now asks the expert whether that is over-tagging.
+4. **The diagnosis/decision line has no check behind it**, so the next bank needs the depth cue
+   applied by hand — the same gap the mis-aim check has, and for the same reason.

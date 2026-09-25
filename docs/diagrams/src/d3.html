@@ -1,0 +1,29 @@
+<script>
+render('d3', 1240, 560, 'The candidate journey — what works today, and where it stops', 'A candidate can sign up, be onboarded, have a CV parsed, and read published lessons and practice questions. The interview itself — the centre of the product — is the next milestone.', () => {
+  const steps = [
+    ['Landing page','marketing + pricing-free copy',1],
+    ['Sign up',  'email · phone OTP · Google',1],
+    ['Career profile','role, level, stack, target date',1],
+    ['CV upload','presigned upload → LLM parse',1],
+    ['Consent','versioned, per purpose',1],
+    ['Diagnostic interview','15 min, seeds the first score',0],
+    ['Session report','rubric scores + evidence',0],
+    ['Study plan','rules-based, weak-topic weighted',0],
+    ['Dashboard','readiness trend and next items',0],
+    ['Mock interview','text now, voice at M5',0],
+    ['Rate & flag','quality feedback loop',0],
+    ['Subscribe','Paystack NGN · Stripe USD',0],
+  ];
+  steps.forEach((s, i) => {
+    const r = Math.floor(i / 4), c = i % 4;
+    const x = 30 + c * 300, y = 24 + r * 160;
+    const b = box({x, y, w:250, h:74, title:s[0], lines:[s[1]], state: s[2] ? 'accent' : 'planned', tag: s[2] ? 'LIVE' : 'PLANNED', tagColor: s[2] ? P.ok : P.muted});
+    if (c < 3) arrow(x + 250, y + 37, x + 300, y + 37, {color: s[2] && steps[i+1][2] ? 'pen' : 'mute'});
+    else if (i < 11) { arrow(x + 125, y + 74, 30 + 125, y + 160, {elbow:'v', mid: y + 118, color:'mute'}); }
+  });
+  band(30, 500, 1180, 50, '');
+  label(46, 520, 'Where it stops today:', {anchor:'start', size:12, weight:700, fill:P.pen});
+  label(190, 520, 'the interview engine, the evaluator, the readiness score, the plan and billing are all specified in detail and none is written. That is milestones M3 to M8.', {anchor:'start', size:12, fill:P.ink});
+  label(46, 538, 'Everything before that point is built, tested at 360px on a throttled connection, and covered end to end by Playwright.', {anchor:'start', size:11.5});
+});
+</script>

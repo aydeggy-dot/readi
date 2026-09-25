@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: regression-scoping
+question: regression-scope-after-a-small-change
+answers:
+  - kind: strong
+    text: |
+      Okay so, it's one line, but it's money, so I'd start at the function itself. I'd use amounts
+      where rounding down and rounding to nearest actually disagree — something landing on point
+      five, then point four, point six, and then a very small order where the discount rounds all
+      the way down to zero, because that's the one that surprises people. Then I'd go one step out
+      and just follow the money: the order total, the amount we hand to the payment gateway, and
+      the receipt or invoice the customer sees. Because if the discount moved by a naira and the
+      total didn't move with it, somebody finds that later when they're reconciling, not now. I'd
+      also check the total still equals the sum of the lines on screen. What I'd deliberately leave
+      alone — login, search, profile, anything that never touches an amount. Not worth a run. And
+      before I believe nothing else was touched... honestly, I'd want to see the diff myself, and
+      I'd want to know whether that rounding lives in a shared helper that other things call,
+      because one line in a shared utility isn't one line.
+    expected:
+      - dimension: "Follows the change to what depends on it"
+        score: 3
+        because: "Level 3: names the places the number reappears — the order total, the amount handed to the payment gateway, the receipt or invoice — and checks the total still equals the sum of the lines; it never reaches rows already stored."
+      - dimension: "Justifies what is left out"
+        score: 3
+        because: "Level 3: login, search and profile are out because they never touch an amount, which is how they are known to be safe; it does not say which exclusion it is least sure of."
+      - dimension: "What would widen it"
+        score: 4
+        because: 'Level 4: treats "nothing else was touched" as a claim and says what it would want first — the diff itself, and whether the rounding lives in a shared helper other callers use.'
+  - kind: weak
+    text: |
+      Um, okay. So he changed the discount, so I would test the discount. I'd add an item, apply
+      the discount, and check that a discount is showing and the price came down. Then I'd
+      probably just do a full regression, to be safe — go through register, login, add to cart,
+      checkout, all the main things, because you never know what one change can affect. Honestly I
+      wouldn't want to leave anything out, because if I skip something and it breaks, it's on me.
+      Maybe the admin side? I'm not sure, I'd ask. For the rounding part I'd just check the number
+      looks correct — like it shouldn't show a long decimal or something strange. I don't really
+      know which amounts to use, I'd try normal prices, two thousand, five thousand, and see if
+      the discount looks right. And for believing nothing else was touched, I would ask the
+      developer. He wrote it, he knows the code better than me, so if he says one line I'd take
+      that. Maybe confirm with the team lead as well. Sorry — that's, yeah, that's what I'd do.
+    expected:
+      - dimension: "Follows the change to what depends on it"
+        score: 1
+        because: "Level 1: follows the journey rather than the number — register, login, add to cart, checkout — so nothing that recomputes the amount later is ever reached."
+      - dimension: "Justifies what is left out"
+        score: 0
+        because: "Level 0: would run a full regression and says outright it would not want to leave anything out."
+      - dimension: "What would widen it"
+        score: 0
+        because: 'Level 0: nothing would widen it, because the developer''s word settles the question — "if he says one line I''d take that".'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a blast radius question, and I'd argue the blast radius here is genuinely
+      tiny. Here's my reasoning. Rounding down instead of to nearest can only ever change the
+      answer by less than one naira. The direction changed, yes, but the magnitude is sub-unit.
+      And nothing downstream of us cares about sub-unit differences — the gateway takes a naira
+      amount, the invoice prints a naira amount, the ledger stores naira. So the change physically
+      cannot propagate past the discount line. It's bounded by one naira and it dies there. So my
+      scope is the discount calculation and the discount display, with a small boundary table on
+      the calculation, and that's it. I'd deliberately leave the entire checkout path alone,
+      including totals and payment, because arithmetic downstream of a one-naira change is still
+      arithmetic — addition doesn't amplify a difference, it just carries it. And what would I
+      want before I believed nothing else was touched? The one-line diff. A diff is the proof. If
+      one line changed, one behaviour changed. I'd rather spend that time on boundary values than
+      re-run checkout over something smaller than the smallest coin we handle.
+    expected:
+      - dimension: "Follows the change to what depends on it"
+        score: 0
+        because: "Level 0: scope is the discount calculation and the discount display, which is the change's own area; it argues explicitly that the change physically cannot propagate past the discount line."
+      - dimension: "Justifies what is left out"
+        score: 1
+        because: "Level 1: justifies leaving the whole checkout path out by the size of the change — sub-unit magnitude, bounded by one naira — which is the premise rather than a reason."
+      - dimension: "What would widen it"
+        score: 0
+        because: 'Level 0: the plan is the plan — "a diff is the proof. If one line changed, one behaviour changed", so nothing is named that would widen it.'
+  - kind: correct-poorly-explained
+    text: |
+      So, the main thing is the total — sorry, let me start with the rounding. Where they
+      disagree. So you'd need amounts that are like half a naira, point five, because point five
+      goes up one way and down the other way, and also the zero case, when the discount is so
+      small that rounding down makes it nothing, that one matters, and then the total, because the
+      discount goes into the total, and then whatever we charge, the gateway, and the receipt,
+      because all of those come from the total, or from the discount through the total, same
+      thing. Things I wouldn't touch, um, login, search, I don't know, profile, there's no money in
+      them so there's no point spending a run there. Oh and sorry, coming back to the earlier
+      part — the other callers. If something else calls that same function then it's not really
+      one line, so I'd want to actually look at the diff and search the code for it, not just take
+      his word, because people forget what they touched, and also, maybe, old orders, if we
+      recalculate old ones, but I'm not sure we do that.
+    expected:
+      - dimension: "Follows the change to what depends on it"
+        score: 4
+        because: 'Level 4: names the total, the gateway and the receipt, and reaches data already stored — "maybe, old orders, if we recalculate old ones".'
+      - dimension: "Justifies what is left out"
+        score: 3
+        because: 'Level 3: login, search and profile are out because "there''s no money in them", which is how they cannot reach the change; no least-sure exclusion.'
+      - dimension: "What would widen it"
+        score: 4
+        because: 'Level 4: the other callers would widen it, the developer''s word is not taken as fact — "people forget what they touched" — and it says it would look at the diff and search the code first.'
+  - kind: nigerian-english
+    text: |
+      Okay so me, I will start from the function itself, because this one is money — money matter
+      is different. I will use amounts where the two rounding will not agree: one that is ending
+      with point five, then point four, point six, then one very small order where the discount
+      will now round down to zero — that one is the one that will shock somebody. After that I
+      will follow the money small small: the order total, the amount we are sending to the payment
+      gateway, and the receipt the customer will see. Because if the discount drop by one naira and
+      the total did not move, end of month when they are reconciling, they will now see say
+      something is not balancing. I will also check that the total is the same thing with the sum
+      of the lines on the screen. The ones I will leave, I will leave them well well — login,
+      search, profile, anything that is not touching amount. No need. And before I will believe
+      say nothing else was touched, I want to see the diff myself, and I want to know if that
+      rounding is inside one shared helper, because if other places are calling that same helper,
+      then this your one line is not one line.
+    expected:
+      - dimension: "Follows the change to what depends on it"
+        score: 3
+        because: "Level 3, as `strong`: the order total, the amount sent to the payment gateway, the receipt, and the total against the sum of the lines; stored rows are not reached."
+      - dimension: "Justifies what is left out"
+        score: 3
+        because: 'Level 3, as `strong`: login, search and profile are out because they are "not touching amount".'
+      - dimension: "What would widen it"
+        score: 4
+        because: "Level 4, as `strong`: wants to see the diff itself and whether the rounding sits in a shared helper other places call, before believing the claim."

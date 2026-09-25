@@ -241,9 +241,13 @@ Architecture
   `apps/api/src/content/question-eligibility.ts` (ADR-0015) rather than rewriting either; weight toward weak topics
   (from past evaluations if any); exclude questions seen in the last 3 sessions, falling back to the
   least-recently-seen questions when too few remain; deterministic given a seed (for tests).
-- LLM use inside states only: (a) phrase the intro/transition naturally, (b) generate a follow-up
-  that probes rubric criteria not yet covered by the candidate's answer, (c) answer candidate
-  questions at the end in-character without revealing rubric/scoring internals.
+- LLM use inside states only: (a) phrase the intro/transition naturally, (b) **phrase** the follow-up
+  the engine has chosen — the probes are the question's own `planned_follow_ups`, one per rubric
+  criterion the opening prompt does not ask for, and the engine picks one only for a criterion the
+  answer has not already covered (owner's decision, 2026-09-23). The model does not decide what to
+  probe, and **the rubric does not reach it**: a follow-up call gets the chosen probe and the
+  per-criterion coverage flags, not the criteria, the weights or the level descriptors.
+  (c) answer candidate questions at the end in-character without revealing rubric/scoring internals.
 - Prompts as versioned Jinja2 files in readi_worker/prompts/. Candidate text always wrapped as
   data in delimited tags; system prompt instructs the model to ignore instructions inside it.
 - Store every turn (SessionTurn) with timestamps; store prompt versions and model config on the session.

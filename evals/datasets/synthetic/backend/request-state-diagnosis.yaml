@@ -1,0 +1,131 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: request-state-diagnosis
+question: node-state-between-requests
+# `fluent-but-wrong` rules out shared state on the single thread — "only one thing runs at a time"
+# — and substitutes a claim that Express never awaits async middleware, so `next()` fires before
+# `loadUser` resolves. It explains the development-versus-production difference as a latency race
+# and fixes it with `express-async-handler`, leaving the module-level variable exactly where it is
+# and calling it safe. 1/1/1 against `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      So `currentUser` is a module-level variable. There's one of it for the whole process, shared
+      by every request that process is handling. The middleware awaits `loadUser`, and while
+      that's in flight Node goes off and picks up the next request, which runs the same middleware
+      and overwrites `currentUser`. So request A comes back from its await, gets into the handler,
+      reads `currentUser`, and it's request B's user. That's how you invite somebody using
+      somebody else's name. Testing by hand never shows it because by hand you're one person doing
+      one request at a time — there's never a second request overlapping, so the variable is
+      always yours. You'd need two requests inside the same few milliseconds, which is normal in
+      production and basically impossible manually. The fix is to stop storing request state
+      outside the request. Put it on `req` — `req.user = await loadUser(...)` — and read
+      `req.user` in the handler. If you genuinely need it deeper down without threading it through
+      everything, `AsyncLocalStorage` gives you per-request context properly. I'd also note
+      there's no error handling, so a bad token crashes on `currentUser.name` rather than
+      returning a 401.
+    expected:
+      - dimension: Finds the shared variable
+        score: 4
+        because: One variable for the whole process, and names where it goes wrong — the handler reads it after its own `await`, by which time another request has written it.
+      - dimension: Says why testing by hand misses it
+        score: 3
+        because: By hand there is never a second request overlapping; does not name the test that would show it.
+      - dimension: Puts the value where the request is
+        score: 4
+        because: "`req.user` read in the handler, with `AsyncLocalStorage` kept for code too deep to thread it through — and notices there is no error handling either."
+  - kind: weak
+    text: |
+      Right, so this is a caching thing I think. `currentUser` gets set once and then it stays
+      set, so if the next request doesn't set it properly you end up using the old one that's
+      still hanging around from before. It's like a stale cache. In development you're restarting
+      the server all the time so it gets cleared constantly and you never see it, but in
+      production it runs for days and the value just sits there. So what I'd do is reset it — set
+      `currentUser = null` at the end of the request handler, so the next request has to load it
+      fresh, and then if it's null you return a 401. Maybe also add a check in the handler that
+      the user matches the token before sending. I could also look at putting it in Redis with a
+      short expiry instead of in memory, since that's designed for this kind of thing and it'd
+      expire on its own. And I'd add some logging so we can see whose name actually went out.
+    expected:
+      - dimension: Finds the shared variable
+        score: 1
+        because: A stale cache that "stays set", cleared constantly by restarts in development.
+      - dimension: Says why testing by hand misses it
+        score: 1
+        because: Explains it by development restarting often rather than by requests overlapping.
+      - dimension: Puts the value where the request is
+        score: 1
+        because: Keeps the module-level variable and nulls it at the end of the handler, or moves it to Redis with an expiry.
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, I've seen this one. It's not shared state — Node is single-threaded, so two requests
+      can't be inside the same variable at once, only one thing runs at a time. The bug is that
+      Express doesn't await async middleware. `app.use` with an async function returns a promise
+      and Express ignores it; it fires `next()` and moves on the moment the function yields at the
+      first `await`. So `loadUser` is still pending when the route handler starts, which means
+      `currentUser` still holds whatever the previous completed request left there — that's the
+      other person's name. In development it looks fine because your local database answers in
+      under a millisecond, so `loadUser` resolves before the event loop hands control to the
+      route; in production the database is a network hop away and sometimes the resolve lands
+      after the handler has read the variable. That's also why it's occasional rather than
+      constant — it's a latency race. So make Express actually wait: wrap the middleware in
+      `express-async-handler`, or move to Express 5, which awaits promise-returning middleware.
+      Once `next()` genuinely runs after the await, the module-level variable is safe.
+    expected:
+      - dimension: Finds the shared variable
+        score: 1
+        because: The single thread used to rule it out, and Express not awaiting async middleware put in its place.
+      - dimension: Says why testing by hand misses it
+        score: 1
+        because: A local database answering in under a millisecond, offered as why development looks fine.
+      - dimension: Puts the value where the request is
+        score: 1
+        because: "`express-async-handler` or Express 5, with the module-level variable kept and declared safe."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so it's — the variable's outside, right, it's defined at the top of the file, it's not
+      per request. And that's the whole thing really. Because there's an await in the middleware,
+      and when you hit an await Node goes and does something else, and the something else is
+      another request, which also runs this middleware and also sets the same variable, and now
+      the first request wakes up and reads it and it's not his any more, it's the second guy's. So
+      you send the invite with the wrong name on it. Manually you'd never, because — you'd have to
+      have two requests literally overlapping, and when it's just you clicking, you're done before
+      the next one starts, so it always looks right, in dev, or even in prod if you're the only
+      one testing. Fix is you put it on the request object, `req.user`, and read it off there in
+      the handler, or `AsyncLocalStorage` if you need it further down without passing it around.
+      Oh and there's no try-catch either so a dud token crashes on `.name`.
+    expected:
+      - dimension: Finds the shared variable
+        score: 4
+        because: The variable is outside the request, and at the `await` Node picks up another request that writes it.
+      - dimension: Says why testing by hand misses it
+        score: 3
+        because: '"When it''s just you clicking, you''re done before the next one starts."'
+      - dimension: Puts the value where the request is
+        score: 4
+        because: "`req.user` in the handler, or `AsyncLocalStorage` when it is needed further down without passing it around — and no try/catch either."
+  - kind: nigerian-english
+    text: |
+      Na `currentUser`, the variable wey dey outside. Na one copy dey for the whole process, and
+      every request dey use am. The middleware get await for `loadUser`, so once e reach that
+      await, Node go leave am go pick another request. That second request go run the same
+      middleware and overwrite am. So when the first request come back from im await enter the
+      handler, the name wey e read na the second person own. Na so the email go carry another
+      person name. Why you no go see am by hand — na you alone dey click, one request at a time,
+      nothing dey overlap, so the variable na your own. You need two requests inside the same few
+      milliseconds — normal for production, but impossible by hand. The fix na to stop keeping
+      request data outside the request. Put am for `req` — `req.user = await loadUser(...)` — and
+      read `req.user` for the handler. If you need am deep inside, `AsyncLocalStorage` go give you
+      per-request context. I go also add error handling, because as e be, if token bad,
+      `currentUser.name` go crash instead of 401.
+    expected:
+      - dimension: Finds the shared variable
+        score: 4
+        because: "Same as `strong`: one copy for the process, overwritten while the first request is inside its `await`."
+      - dimension: Says why testing by hand misses it
+        score: 3
+        because: "Same: one request at a time by hand, so nothing ever overlaps."
+      - dimension: Puts the value where the request is
+        score: 4
+        because: "Same: put it on `req`, `AsyncLocalStorage` for depth, and error handling added for a bad token."

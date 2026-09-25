@@ -1,45 +1,412 @@
 # Rubrics used by more than one role. A behavioural answer is judged the same way whether the
 # candidate is a frontend, backend or QA engineer, so there is one rubric rather than three copies
 # that would drift apart.
+#
+# Reworked 2026-09-22 after the four critique passes, which converged on this file from three
+# directions. Two things were wrong with it:
+#
+# 1. **It scored delivery.** Every criterion's top band turned on "clear", one asked for an account
+#    "in their own words", and one required detail enough "to be believable" — none of which an
+#    evaluator reading a transcript of spoken Nigerian English can separate from fluency. Level 0 of
+#    the heaviest criterion was awarded for saying "we", which is the polite register in much of this
+#    audience's working culture and says nothing about what the candidate did.
+# 2. **It could not score the questions that used it.** `stuck-and-asked-for-help` is about judgement
+#    on when to ask; `feedback-on-your-code` is about handling a comment you did not agree with.
+#    Neither had anywhere to be scored, so both questions rewarded storytelling form instead — which
+#    is coachable in an afternoon. Those two now have their own rubrics below, keeping the first two
+#    criteria in common and differing where the question differs. That is a deliberate duplication:
+#    the alternative was a fourth criterion that meant something different per question.
+#
+# **`behavioural-answer-quality` was deleted on 2026-09-23 (owner's decision).** It was the generic
+# situation / actions / outcome rubric every behavioural question started on, and its record was
+# four for four against it: `stuck-and-asked-for-help` and `feedback-on-your-code` got their own on
+# 2026-09-22, `incident-you-contributed-to` got `incident-ownership` after two critique passes argued
+# it and the stress test proved it (a polished story about somebody else's outage scored 3.70,
+# identical to the candidate's own break), and `pushing-back-on-a-release` got
+# `raising-a-quality-concern` on 2026-09-23 after all four QA passes said the same thing. There is no
+# generic behavioural rubric now, and a new role should not write one — see "A behavioural question
+# needs its own rubric" in the question-bank skill. The importer never deletes, so a developer
+# database still holds the row; retire it in the CMS if it matters there.
+#
+# **`help-seeking-judgement` criterion 3 was widened on 2026-09-24** (owner's decision, after the
+# frontend planned-follow-up retrofit). It is 40% of `stuck-and-asked-for-help`, and it scored
+# "judgement about when to ask" with no route above level 0 for a candidate who has never had
+# anyone at work to ask — the bootcamp graduate and the self-taught developer this bank is written
+# for. Planned follow-ups removed the escape route those candidates used to have, because the
+# criterion is now asked by name of whoever did not volunteer it. So asking is defined as reaching
+# outward by whatever route was open — a community, a group chat, an issue thread — rather than as
+# turning to a colleague. The rule is in the question-bank skill: where the act itself is the
+# criterion, widen what counts as the act rather than excusing its absence.
 version: 1
 author: ai_draft
 status: draft
 
 rubrics:
-  - slug: behavioural-answer-quality
-    name: Behavioural answer quality
+  - slug: help-seeking-judgement
+    name: Judgement about when to ask for help
     criteria:
       - dimension: A specific, real situation
-        description: >-
-          The answer is about one thing that actually happened, with enough detail — what the task
-          was, who else was involved, when — to be believable, rather than a general description of
-          how the candidate likes to work.
-        weight: 30
+        description: One occasion that actually happened, with the concrete detail an outsider needs to follow it.
+        weight: 25
         levels:
-          "0": No situation given; answers in generalities ("I always communicate early").
-          "1": Names a situation but with no detail that fixes it in time or place.
-          "2": One situation with some context, but key details are missing or vague.
-          "3": One clear situation with the context an outsider needs to follow it.
-          "4": One clear situation, concrete and specific, including what made it hard.
-      - dimension: Their own actions
+          "0": No situation given; answers in generalities.
+          "1": Names a situation with no detail that fixes it in time or place.
+          "2": One situation with some context; the task or the timeframe is missing.
+          "3": One situation, with the context an outsider needs in order to follow it.
+          "4": As 3, and says what made it hard rather than only what it was.
+      - dimension: What they tried before asking
+        description: Evidence of a real attempt — what they read, what they ruled out — rather than a search and a shrug.
+        weight: 35
+        levels:
+          "0": No attempt of their own described — including an account of an attempt that was somebody else's.
+          "1": '"I looked it up", with nothing they learned from doing so.'
+          "2": One thing tried, with no account of what it told them.
+          "3": Several things tried, and what each one ruled out.
+          "4": As 3, and the attempt narrowed the problem enough that the question they finally asked was a small one.
+      - dimension: Judgement about when to ask
         description: >-
-          What the candidate personally did, in enough detail to judge, rather than what the team
-          did or what should have been done in principle.
+          Why they asked when they did. The decision can show in the story rather than be stated.
+          Scored on the judgement, never on the hours and never on having had a colleague — a team
+          that treats asking as weakness, or no team at all, is a fact about the candidate's
+          circumstances and not a fault in them.
         weight: 40
         levels:
-          "0": No actions described, or entirely "we" with no visible role for the candidate.
-          "1": Actions are generic ("I fixed it") and could describe anyone.
-          "2": Some of their own actions, but the sequence or reasoning is unclear.
-          "3": A clear account of what they did and why, in their own words.
-          "4": A clear account, including a decision they weighed and the trade-off they took.
-      - dimension: Outcome and what they took from it
+          "0": No decision about their own asking — not treated as a decision at all, or a lesson drawn about somebody else's process instead.
+          "1": A rule with nothing behind it ("I always try for an hour first").
+          "2": Says they waited or asked, with no reason tied to what was at stake or what they had ruled out.
+          "3": The moment they asked follows from what they had run out of — or they say plainly that they left it too long, and why. Asking is reaching outward by whatever route was open — a colleague, a community, a group chat, an issue thread.
+          "4": As 3, and says what made asking easy or hard wherever they had to ask — a team, a group chat, a thread of strangers — and how they worked with or around that.
+
+  - slug: handling-review-feedback
+    name: Handling feedback on your own work
+    criteria:
+      - dimension: A specific, real situation
+        description: One piece of work and the feedback it actually got, from whoever gave it.
+        weight: 25
+        levels:
+          "0": No situation given; answers in generalities about being open to feedback.
+          "1": No piece of work to point at — a situation with nothing about what the feedback said, or a specific, well-told story about feedback on something other than their work.
+          "2": One situation, with the feedback described only as "a lot of comments".
+          "3": One situation, with at least one comment described specifically enough to discuss.
+          "4": As 3, and the comment described is one that changed something, not the easiest one.
+      - dimension: What they did with it
+        description: The changes they made, and how the work ended up different.
+        weight: 35
+        levels:
+          "0": No actions described.
+          "1": Nothing recoverable about the work — "I made the changes" with no account of them, or changes to how they behave rather than to what they built.
+          "2": Some changes described, without saying what problem each addressed.
+          "3": What they changed and why it was an improvement is recoverable from the answer.
+          "4": As 3, and something they now do earlier so that comment would not arise again.
+      - dimension: A comment they did not agree with, or did not understand
         description: >-
-          How it ended, honestly — including if it went badly — and something specific they do
-          differently now as a result.
+          How they got to the bottom of it. Pushing back is one route and is not available in every
+          workplace; asking until it made sense is another and counts the same.
+        weight: 40
+        levels:
+          "0": No such comment; the answer is about accepting feedback gracefully.
+          "1": Mentions disagreeing, with no account of what happened next.
+          "2": Complied without understanding, and still cannot say what the reviewer was worried about.
+          "3": Describes finding out what the comment was really about — by asking, reading, or trying it — and where that left them.
+          "4": As 3, and can say which of them turned out to be right, including when it was not them.
+
+  # The two questions added from the critique passes are asked of every wave-1 role, so their
+  # rubrics live here rather than in one role's file.
+
+  - slug: async-unblocking
+    name: Getting unblocked without anyone there
+    criteria:
+      - dimension: Writes enough for someone to answer while they sleep
+        description: >-
+          What they were doing, what they tried, what happened, and what they think is going on —
+          enough that the reply can be an answer rather than a request for more detail.
+        weight: 40
+        levels:
+          "0": Waits to explain it live, or sends "are you around?".
+          "1": Describes the symptom only, with no account of what they tried.
+          "2": Describes the problem and the attempts, but leaves out what they expected to happen.
+          "3": Covers the goal, the attempts, the result and their current theory.
+          "4": As 3, and the message can be acted on without a follow-up question — links, versions, the exact error.
+      - dimension: Asks something specific, and says what it holds up
+        description: One answerable question, and what is blocked and by when.
         weight: 30
         levels:
-          "0": No outcome, or an outcome that does not follow from the actions described.
-          "1": States that it worked out, with nothing to show for it.
-          "2": An outcome, but the lesson is a platitude ("communication is important").
-          "3": A clear outcome and one specific thing they changed afterwards.
-          "4": A clear outcome, honest about what went wrong, and a change they can point to since.
+          "0": No question; a statement that they are stuck.
+          "1": Asks for help in general terms.
+          "2": Asks a question, but so broad that the reply will be another question.
+          "3": Asks one specific question and says what it is blocking.
+          "4": As 3, and says by when the answer matters, so the reader can judge it against their own work.
+      - dimension: Does not stop
+        description: What they do with the six hours.
+        weight: 30
+        levels:
+          "0": Waits — for want of anything else to do, or on the argument that working on a blocked task creates rework.
+          "1": Says they would "keep trying" with no plan.
+          "2": Moves to other work without narrowing the problem at all.
+          "3": Picks up something not blocked, and keeps narrowing the problem in the background.
+          "4": As 3, and if they solve it first, says they would post the answer so the thread closes itself.
+
+  - slug: talking-about-your-own-work
+    name: Talking about something you built
+    criteria:
+      - dimension: Concrete enough to be checkable
+        description: >-
+          What the thing did, what it was built with, what was hard — detail an interviewer could
+          ask a follow-up about. Scale is not the point; specificity is.
+        weight: 30
+        levels:
+          "0": Cannot describe anything they built.
+          "1": Names a project in terms that would fit any project ("a web app with login").
+          "2": Describes what it did, but nothing about how it was built or what was difficult.
+          "3": Describes what it did, how it was built and the part that took the longest.
+          "4": As 3, and the detail is specific enough to invite a follow-up they can answer.
+      - dimension: A real decision, not a description
+        description: A point where there were at least two options, and why they took the one they did.
+        weight: 40
+        levels:
+          "0": No decision; a tour of the finished thing.
+          "1": A choice given as the only possibility ("I used React").
+          "2": A choice with a general reason that is not about their situation ("it is popular").
+          "3": A choice with an alternative named, and a reason grounded in what they were building.
+          "4": As 3, and says what the choice cost them — the thing that got harder because of it.
+      - dimension: What they would change
+        description: Something specific they would do differently, and why they did not know it then.
+        weight: 30
+        levels:
+          "0": Nothing they would change.
+          "1": The answer everyone gives — "cleaner code", "tests earlier" — with nothing from this project behind it.
+          "2": Names a change with no reason behind it.
+          "3": Names a specific change and what went wrong that taught them it.
+          "4": As 3, and separates what they could reasonably have known at the time from what only experience gives.
+
+  # The two questions the frontend pass said belonged in the backend pass — the second
+  # `written-communication` question and the second `own-work` one. Both carry all four wave-1
+  # roles, so their rubrics live here rather than in one role's file.
+
+  - slug: escalating-early
+    name: Saying a date will be missed, before it is
+    criteria:
+      - dimension: What the message contains
+        description: >-
+          Where it is, what is left, the new date — and the cause, plainly, whether or not it is
+          phrased in the first person.
+        weight: 40
+        levels:
+          "0": No message written; would explain it in person or at standup.
+          "1": A message that is mostly apology, or mostly explanation, with no new date in it.
+          "2": Says it will be late and by roughly how long, without what is done and what is left.
+          "3": What is finished, what remains, and the date they now believe, with the reason stated.
+          "4": As 3, and the cause named is the real one rather than a decorative one — "the estimate was short" and "I underestimated this part" count the same.
+      - dimension: When it goes, and to whom
+        description: >-
+          Wednesday, not Friday, and to whoever depends on the date. Scored on what the notice is
+          worth to the reader, never on willingness to raise it — a workplace where an early slip
+          marks you as unreliable is a fact about that workplace, not a fault in the candidate.
+        weight: 30
+        levels:
+          "0": Would tell someone on Friday, or when asked.
+          "1": Cannot say what earlier notice would have been worth to anyone.
+          "2": Says to tell someone soon without saying who — or would wait for certainty, and can say what that costs the reader.
+          "3": Sends it as soon as they are sure, to the people whose own work depends on the date, and says why the notice is the point.
+          "4": As 3, and offers something to decide — cut this part, take help, move the date — so the reader has a choice rather than an announcement.
+      - dimension: A time they did it, or did not
+        description: >-
+          One occasion — a job, a client, a school project, an issue they said they would finish.
+          Leaving it too late counts, and counts well with what they learned. A candidate who has
+          never owned such a date says so, reasons it through, and is not capped for it.
+        weight: 30
+        levels:
+          "0": Neither an occasion nor a position — answers about how they generally communicate.
+          "1": A situation with no detail that fixes it in time or place — or a specific one in which nobody was told, offered as the right outcome.
+          "2": One occasion, with what happened but not what they did about it — or says plainly they have never owned such a date, with nothing about what they would do.
+          "3": One occasion, what they said and when, and how it landed — including plainly saying they left it too long. A candidate with no such occasion reaches 3 by saying so and reasoning it through.
+          "4": As 3, and something specific they changed afterwards about how they estimate or when they raise it.
+
+  - slug: unfamiliar-code-approach
+    name: Working on code you did not write
+    criteria:
+      - dimension: A way in that is not reading it all
+        description: Running it, following one path through, changing something to see what moves — and a specific piece of code to point at.
+        weight: 35
+        levels:
+          "0": No specific code; answers about how they would approach it in general.
+          "1": A method that is not a way in — reading it top to bottom with nothing tried, asking someone to explain the whole thing before touching it.
+          "2": Names the code and one thing they did, without saying what it told them.
+          "3": A specific piece of code and a way in that produced information — running it, following one request, putting a log in and watching what happens.
+          "4": As 3, and worked out what the code was *for* before deciding what it was doing wrong.
+      - dimension: How they decided a change was safe
+        description: >-
+          Something told them — a test, a small experiment, a person, a way to undo it — rather than
+          a feeling that it would be fine. Scored on what told them, never on what there was to
+          tell them.
+        weight: 35
+        levels:
+          "0": Changed it and it worked, which is the whole account of why it was safe — or nothing was changed, so nothing had to be judged.
+          "1": Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
+          "2": Names one safeguard without saying what it would have caught.
+          "3": Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
+          "4": As 3, and says what it did not cover, so they knew what they were still taking a chance on.
+      - dimension: The change they made
+        description: Smaller than it was tempting to make, and they can say why.
+        weight: 30
+        levels:
+          "0": Cannot say what they changed.
+          "1": A rewrite, or a refactor of code they had just met, described as the obvious improvement.
+          "2": Describes the change without a reason for its size.
+          "3": A change narrow enough to reason about, and they can say what they deliberately did not touch.
+          "4": As 3, and says what they wrote down for whoever reads it next, themselves in six months included — what they were still unsure of, and what they left alone because they did not understand it yet.
+
+  # `incident-you-contributed-to` used `behavioural-answer-quality` until 2026-09-22, when two
+  # critique passes said independently that it could not score what the question asks — owning a
+  # share of the fault, telling someone early, a change that outlived the incident — and the stress
+  # test then proved it mechanically: a polished story about diagnosing **somebody else's** outage
+  # scored identically to the candidate's own break, 3.70 against 3.70. Same treatment as
+  # `help-seeking-judgement` and `handling-review-feedback`: the middle criterion stays close to the
+  # shared one, and the first and last become what this question is actually about.
+  - slug: incident-ownership
+    name: A break you had a hand in causing
+    criteria:
+      - dimension: A break that was theirs
+        description: >-
+          One occasion, and their own part in it established — not a story about diagnosing
+          somebody else's. A personal project that broke for real users counts the same as
+          production.
+        weight: 30
+        levels:
+          "0": No occasion, or one where nothing was theirs.
+          "1": A specific, well-told incident in which their own part is never established — including an account of diagnosing or resolving one somebody else caused.
+          "2": Their own change, with nothing about what was wrong with it.
+          "3": Their own change, what it did, and who it reached.
+          "4": As 3, and says what they had not thought of, rather than only what went wrong.
+      - dimension: What they did once it was known
+        description: What the candidate personally did, in what order, in enough detail to judge.
+        weight: 35
+        levels:
+          "0": No action attributable to the candidate, even after the interviewer asks which part was theirs.
+          "1": Actions are generic ("I fixed it") and could describe anyone.
+          "2": Some of their own actions, but the sequence or the reasoning is missing.
+          "3": What they did and in what order is recoverable — including stopping it before understanding it, where that was the cheaper move.
+          "4": As 3, including a decision they weighed under time pressure and what they gave up by taking it.
+      - dimension: Who knew, and what outlived it
+        description: >-
+          How it was found, how long it ran before anyone knew, and one change that is still there.
+          Scored on the disclosure, not on who they were able to disclose to.
+        weight: 35
+        levels:
+          "0": Neither how it was found nor anything that changed.
+          "1": Says it was fixed, with nothing about who knew or what changed afterwards.
+          "2": One of the two — somebody was told, or something changed — but not both.
+          "3": Says how it was found and names a durable change; a candidate with no colleagues says who they would have told and why.
+          "4": As 3, and says plainly how long it ran before anyone knew, and what would shorten that next time.
+
+  # The two questions added on 2026-09-23. Both are asked of every wave-1 role, so their rubrics
+  # live here.
+
+  - slug: ambiguous-work-judgement
+    name: Working from a brief nobody can explain
+    criteria:
+      - dimension: Works out what is actually unclear
+        description: >-
+          Reads what already exists before asking, and narrows the unknowns to the ones that change
+          what gets built.
+        weight: 30
+        levels:
+          "0": Starts building on the first reading, or waits without looking at anything.
+          "1": Treats the whole ticket as unanswerable, or settles on one reading and never tests it against what is there.
+          "2": Says they would "look into it" without saying what they would look at.
+          "3": Looks at the page, the data and anything similar already built, and comes out with a short list of real unknowns.
+          "4": As 3, and separates the questions that change the work from the ones they can decide themselves.
+      - dimension: Writes something that can be answered asleep
+        description: >-
+          One message, the specific decisions needed, what will be assumed without a reply, and by
+          when the answer still helps.
+        weight: 35
+        levels:
+          "0": Waits to ask in person, or sends "are you around?".
+          "1": Asks nothing — the ambiguity is resolved alone and nobody is told, or the message is a list of everything they could possibly ask.
+          "2": Asks, but so broadly that the reply will be another question.
+          "3": Names the specific decisions, and says what they will assume if there is no answer.
+          "4": As 3, and says when the answer stops being useful, so the reader can judge it against their own morning.
+      - dimension: Does not lose the eight hours
+        description: Builds the part that is not in doubt, and does not build the part that is.
+        weight: 35
+        levels:
+          "0": Stops until somebody replies.
+          "1": Builds the whole thing on a guess and presents it as done, or justifies stopping as the professional move.
+          "2": Says they would "start on something else" with no account of what is safe to build here.
+          "3": Builds what is not in doubt — the shape of the page, the query, the tests — and leaves the ambiguous half until the answer comes.
+          "4": As 3, and builds it so the answer is cheap to apply either way, rather than betting on one reading.
+
+  - slug: review-you-give
+    name: Reviewing a change you are not sure about
+    criteria:
+      - dimension: Says what the concern rests on
+        description: >-
+          The worry, and the fact that it has not been measured, stated rather than hidden behind a
+          question.
+        weight: 35
+        levels:
+          "0": Says nothing, or approves without raising it.
+          "1": States the concern as settled fact, with the uncertainty deliberately left out because hedging is thought to weaken it.
+          "2": Raises it as a bare question — "have you thought about performance?" — leaving the author to guess what is meant.
+          "3": Names the concern and says plainly that it is a hunch they have not measured.
+          "4": As 3, and says why the uncertainty is worth stating — it tells the author how much weight to give the comment.
+      - dimension: Writes it so it can be acted on
+        description: Specific, on the change, and with what would settle it.
+        weight: 35
+        levels:
+          "0": Nothing the author could do anything with.
+          "1": A review of the person rather than the change, or a demand for a rewrite in the same change.
+          "2": Specific about the worry, with nothing about what would resolve it.
+          "3": Names what would settle it — the row count it starts to hurt at, or a plan against realistic data.
+          "4": As 3, and says plainly whether it blocks the change or is a note for later.
+      - dimension: Knows what would change their mind
+        description: >-
+          Approving is a real outcome. A review that can only be satisfied one way is a blocker with
+          a question mark on it.
+        weight: 30
+        levels:
+          "0": Nothing would; the change waits until the concern is gone.
+          "1": Holds the merge on the unmeasured hunch, or waves it through to avoid the conversation.
+          "2": Says they "might approve it" without saying on what.
+          "3": Names the conditions — a small table today, a ticket filed — under which they would approve it now.
+          "4": As 3, and pairs approving with something that would tell us when it starts to matter, so the concern is not simply dropped.
+
+  # Moved here from `frontend/rubrics.yaml` on 2026-09-23, when `it-works-for-me` gained the `qa`
+  # role — turning a report into a reproduction is the same skill whichever role is doing it, and
+  # this file is where a rubric with more than one role's questions belongs. The stress set stays at
+  # `evals/datasets/synthetic/frontend/reproducing-a-report.yaml`, because that is where the answers
+  # were written; nothing about them is frontend-specific either.
+
+  - slug: reproducing-a-report
+    name: Turning a vague report into something you can work on
+    criteria:
+      - dimension: Asks for what is missing
+        description: Specific questions — which screen, what they tapped, what they expected — rather than "can you give more detail".
+        weight: 40
+        levels:
+          "0": Asks nothing — starts on the code, closes the report, or declares the cause already known from what is written.
+          "1": Asks for "more information" without saying what.
+          "2": Asks one or two questions, missing the conditions the failure depends on.
+          "3": Asks what they did, what happened, what they expected, and on what device and connection.
+          "4": As 3, and the questions avoid jargon the reporter would not have — they ask about what the person saw, not about the system.
+      - dimension: Looks before spending the reporter's time
+        description: >-
+          What signals already exist gets checked first — logs, other reports, what changed recently.
+          A candidate with none of those available scores on naming what they would look at if they had it.
+        weight: 30
+        levels:
+          "0": Checks nothing that already exists — waits for the reporter, or settles on a cause and goes straight to the code.
+          "1": Says they would "check the logs" with no idea what for.
+          "2": Names one source to check.
+          "3": Names what would already know something — errors being recorded, other reports, what shipped recently — and what each would tell them.
+          "4": As 3, and uses what they find to narrow the questions rather than asking everything.
+      - dimension: Reproduces under their conditions
+        description: The user's device, connection and data — not a laptop on office wifi.
+        weight: 30
+        levels:
+          "0": Does not reproduce it — cannot, so treats it as not real, or would not spend the time because the fix is already decided.
+          "1": Tries once on their own machine and stops.
+          "2": Tries a narrow screen, but not the connection or the account.
+          "3": Reproduces with a throttled connection and a comparable device, on the same data if possible.
+          "4": As 3, and says what they would do if it still does not reproduce, rather than closing it.

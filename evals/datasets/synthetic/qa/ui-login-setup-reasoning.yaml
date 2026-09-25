@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: ui-login-setup-reasoning
+question: cypress-login-in-every-test
+answers:
+  - kind: strong
+    text: |
+      So what's on screen is a beforeEach that visits /login, types the email, types the password out
+      of Cypress.env, clicks submit and waits for the URL to include /dashboard. 140 times six seconds
+      is fourteen of the twenty-two minutes, so yes — but you said beyond the minutes. The real cost
+      is that all 140 tests now depend on the login screen. Somebody renames that submit testid, or
+      login is slow that morning, and the whole suite goes red — you're staring at 140 failures that
+      tell you nothing about what you were actually testing. And a developer who waits twenty-two
+      minutes stops running it, and a suite nobody runs isn't a suite. What I'd do instead is log in
+      through the API — cy.request to the login endpoint, take the session cookie, and wrap it in
+      cy.session() so it's cached and restored instead of re-run every time. That takes login off the
+      critical path. What I lose: I'm not exercising the real sign-in anymore, so the login page could
+      break and my suite stays green. And I'm coupled to an endpoint that can drift from what the UI
+      actually does. So I keep a small set going through the screen — valid login, wrong password, the
+      lockout, and where it redirects you afterwards. Five, six tests, not 140.
+    expected:
+      - dimension: "What it costs besides time"
+        score: 4
+        because: "Descriptor 4 — '140 times six seconds is fourteen of the twenty-two minutes', and then the coupling: all 140 tests depend on the login screen, so a renamed testid gives '140 failures that tell you nothing about what you were actually testing'."
+      - dimension: "What replaces it"
+        score: 3
+        because: "Descriptor 3 — cy.request to the login endpoint, the session cookie, wrapped in cy.session() so it is cached and restored rather than re-run. Not 4: nothing about a restored session being dead and needing a cheap re-establishing check, nor about per-file caching leaving one sign-in per file."
+      - dimension: "What still needs the screen"
+        score: 3
+        because: "Descriptor 3 — 'valid login, wrong password, the lockout, and where it redirects you afterwards. Five, six tests, not 140.' Not 4: it names endpoint drift as a risk but not what would catch it."
+  - kind: weak
+    text: |
+      Okay, so it's logging in before every test — visit login, type the email, type the password,
+      click submit, check the URL. The cost is the time, six seconds times 140, so that's a big chunk
+      of the 22 minutes. But the main thing I'd fix is the repetition, because this same block is
+      probably copy-pasted in all thirty spec files, so if the login page changes you have to go and
+      edit thirty files. I'd move it into a custom command, cy.login(), in commands.js, and then every
+      file just calls cy.login(). That way it's in one place, it's much cleaner and easier to
+      maintain. I'd also check if there are hard waits inside there, because sometimes the six seconds
+      is just waiting for things to load, so maybe we can cut that down. What do I lose? I don't think
+      you really lose anything, it's the same steps, just tidier. And obviously the login tests
+      themselves stay going through the screen, because that's the thing they're testing. Yeah, that's
+      what I'd do.
+    expected:
+      - dimension: "What it costs besides time"
+        score: 1
+        because: "Descriptor 1 — prices it in minutes ('six seconds times 140, so that's a big chunk of the 22 minutes') and then diagnoses copy-paste duplication; every test is still left dependent on sign-in working."
+      - dimension: "What replaces it"
+        score: 1
+        because: "Descriptor 1 — makes the screen route tidier and faster rather than removing it: a cy.login() custom command, plus trimming hard waits, treated as the fix."
+      - dimension: "What still needs the screen"
+        score: 2
+        because: "Descriptor 2 — 'the login tests themselves stay going through the screen, because that's the thing they're testing', with no saying which tests."
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, I've had this exact problem. The mistake here is the hook — that's `beforeEach`, so it's
+      paying for a login on every single test, and it doesn't need to. The session lives in a cookie,
+      and the cookie lives for the browser session, so once you've signed in you stay signed in for
+      the rest of that spec file. So change it to `before` instead of `beforeEach` and you log in once
+      per file. Thirty spec files times six seconds is three minutes instead of fourteen — eleven
+      minutes back for a one-word change, no API calls, no tokens, nothing extra to maintain. And
+      you're still going through the real UI, which is the honest way to do it. What you give up is a
+      bit of isolation, in the sense that the tests in a file now share one session, so if one of them
+      logs out you have to watch the ordering — I'd just put any logout test in its own file. But the
+      login itself is still real, you're not faking anything. Where I'd keep it per test is anywhere
+      the account state matters, and obviously the auth specs themselves, wrong password, lockout,
+      those have to drive the form.
+    expected:
+      - dimension: "What it costs besides time"
+        score: 1
+        because: "Descriptor 1 — the whole cost is minutes: 'three minutes instead of fourteen — eleven minutes back for a one-word change'. That every test depends on sign-in is never raised; the isolation it discusses is tests sharing one session."
+      - dimension: "What replaces it"
+        score: 1
+        because: "Descriptor 1 — keeps the screen route and makes it cheaper, once per spec file, on the wrong belief that the cookie survives between tests; the session is never established without the screen."
+      - dimension: "What still needs the screen"
+        score: 3
+        because: "Descriptor 3 — keeps the auth specs on the form, 'wrong password, lockout, those have to drive the form', plus anywhere account state matters."
+  - kind: correct-poorly-explained
+    text: |
+      So this is signing in on the screen before every test, visit /login, type, type, click, wait for
+      dashboard. Six seconds each, 140 tests, that's fourteen out of twenty-two minutes, most of the
+      run. But the time isn't the worst part. The worst part is — okay, every test now depends on
+      login. So login breaks, or the testid changes, everything is red, 140 failures, and none of them
+      is about what the test was testing, so you spend your morning triaging noise. And people stop
+      running it when it's twenty-two minutes, which is, honestly, that's the real damage. So instead,
+      cy.request to the login endpoint, take the cookie, and put it inside cy.session so it caches it.
+      What do I lose. That one — the login page itself is no longer covered, so it can break and the
+      suite is still green, which is dangerous, and also the endpoint isn't what the user does, so the
+      two can drift apart. Which is why you keep some going through the screen. Wrong password, valid
+      login, the lock, where it sends you after. Small number of them. Not 140. Sorry, I jumped around
+      a bit there.
+    expected:
+      - dimension: "What it costs besides time"
+        score: 4
+        because: "Descriptor 4 — 'fourteen out of twenty-two minutes, most of the run', then the coupling: 'every test now depends on login ... 140 failures, and none of them is about what the test was testing'."
+      - dimension: "What replaces it"
+        score: 3
+        because: "Descriptor 3 — cy.request to the login endpoint, take the cookie, put it inside cy.session so it caches. Not 4 for the same reason as `strong`."
+      - dimension: "What still needs the screen"
+        score: 3
+        because: "Descriptor 3 — 'Wrong password, valid login, the lock, where it sends you after. Small number of them. Not 140.'"
+  - kind: nigerian-english
+    text: |
+      So this `beforeEach` will visit /login, type the email, the password from Cypress.env, click
+      submit, then wait for the URL to show /dashboard. 140 tests times six seconds, that is fourteen
+      minutes out of twenty-two. But you said beyond the minutes. The bigger thing is that all 140
+      tests are now hanging on that login screen. Somebody go change that submit testid, or login is
+      slow that morning, everything will turn red — now you're looking at 140 failures and none of
+      them is telling you what you were testing. And if the suite is taking twenty-two minutes,
+      developers will stop running it, and a suite nobody is running, is it still a suite? So instead,
+      I'll log in through the API. cy.request to the login endpoint, collect the session cookie, and
+      wrap it inside cy.session() so it caches it. Login is now off the road. What I'm losing: I'm no
+      longer touching the real sign-in, so the login page can break and my suite is still green, and
+      that one is dangerous. And I'm tied to an endpoint that can drift from what the UI is doing. So
+      I'll keep small number going through the screen — correct login, wrong password, the lockout,
+      and where it carries you after sign-in. Five or six, no be 140.
+    expected:
+      - dimension: "What it costs besides time"
+        score: 4
+        because: "Same as `strong`, descriptor 4 — fourteen minutes out of twenty-two, and 'all 140 tests are now hanging on that login screen ... none of them is telling you what you were testing'."
+      - dimension: "What replaces it"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — cy.request to the login endpoint, collect the session cookie, wrap it inside cy.session() so it caches."
+      - dimension: "What still needs the screen"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — 'correct login, wrong password, the lockout, and where it carries you after sign-in. Like five or six, no be 140.'"

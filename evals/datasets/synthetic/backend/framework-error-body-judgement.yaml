@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: framework-error-body-judgement
+question: spring-default-error-body
+# `fluent-but-wrong` identifies the body as RFC 7807 problem details, says `message` is
+# MessageSource-localised and stable across versions so the app can display and parse it, and
+# concludes that turning the stack trace off makes the response production-ready. It is the most
+# plausible wrong answer available and it leaves the client exactly where it started. 1/2/1
+# against `strong`'s 4/4/3.
+answers:
+  - kind: strong
+    text: |
+      So the first thing is the trace — that shouldn't be leaving the server at all. It tells
+      anyone who pokes the endpoint what framework we're on, what version, our package names,
+      sometimes the file paths on the box. That's free reconnaissance for somebody who wants to
+      find a known CVE. And it's a big payload to a phone on mobile data for one bad email
+      address. Then the message — "Validation failed for object signUpRequest, error count one" —
+      the client can't do anything with that. It doesn't say which field, it doesn't say what was
+      wrong with it, so the app can't highlight the email box, and it's English prose from Spring,
+      so you can't show it to a user either. If the app ever did parse it, a Spring upgrade would
+      silently break it. What I'd send instead is a stable machine-readable code, like
+      validation_failed, and a list of the fields with a reason per field — field email, code
+      invalid_format — and let the app map those to its own copy. Keep the stack trace in the logs
+      with a correlation id.
+    expected:
+      - dimension: Says what the client cannot do with it
+        score: 4
+        because: The client cannot mark the email field, and branching on `message` is not an option either — it is prose, and a Spring upgrade would silently break it.
+      - dimension: Sees what is being given away
+        score: 4
+        because: Names what the trace gives away and where it belongs instead — the log, with a correlation id in the response.
+      - dimension: Says what to send instead
+        score: 3
+        because: A stable code plus a list of fields with a reason each; does not say what stops the next exception escaping as the default again.
+  - kind: weak
+    text: |
+      Yeah, that doesn't look good. The stack trace especially — you don't want to send a stack
+      trace to the client, that's a security thing, people always say don't expose your internals.
+      So I'd turn that off in the properties file. The rest of it looks okay to me, honestly —
+      you've got the status, you've got the timestamp, you've got the path, so the client knows
+      the request failed and knows which endpoint. The message tells them validation failed, which
+      is true, that is what happened. Maybe I'd make the message nicer so the user can read it,
+      like "Please enter a valid email address", so the app can just show the message in a toast
+      and that's less work for the mobile team. And a 400 is the right status code for a bad
+      request, so that part's fine. I think mainly it's just the stack trace that needs to go.
+    expected:
+      - dimension: Says what the client cannot do with it
+        score: 1
+        because: Names the wrong deficiency — that the message is not friendly enough — and would show it to the user.
+      - dimension: Sees what is being given away
+        score: 2
+        because: '"You don''t want to send a stack trace to the client, that''s a security thing", with nothing that follows from it.'
+      - dimension: Says what to send instead
+        score: 1
+        because: Turns the trace off in the properties file and leaves a body the client still cannot branch on.
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so the structure here is actually fine — this is the RFC 7807 problem-details shape,
+      which is the standard error contract, so any client library that speaks problem+json already
+      knows how to read timestamp, status, error, message and path without us writing anything.
+      The one thing that's wrong is the trace, and that's a single property: server.error.include-
+      stacktrace set to never. Do that and this response is production-ready. On the client side,
+      message is the field to use. Spring builds it through MessageSource, so it's already
+      localised to the Accept-Language header the phone sent, and it's stable across Spring
+      versions because it comes from the validation annotation's message template, not from the
+      exception class. So the mobile app can display it directly, and for field highlighting it
+      can read the object name — signUpRequest — and the error count. If we later want per-field
+      detail, we don't need a custom body, we just add the messages to messages.properties and
+      Spring folds them into that same message string.
+    expected:
+      - dimension: Says what the client cannot do with it
+        score: 1
+        because: "`message` offered as the field the app should display and parse, localised and stable — the exact opposite of what it is."
+      - dimension: Sees what is being given away
+        score: 2
+        because: The trace turned off by configuration, with no account of what it was costing.
+      - dimension: Says what to send instead
+        score: 1
+        because: "Configuration alone: nothing is added that a client could branch on, and per-field detail is left to `messages.properties`."
+  - kind: correct-poorly-explained
+    text: |
+      The trace goes, obviously — that's telling the internet what version of Spring we're running
+      and, yeah, you don't want that, plus it's huge and the person's on mobile data. But the
+      bigger one, actually, is that the client can't do anything, because — right, so the user
+      typed a bad email, and what the app wants to do is put the red outline on the email field,
+      and nothing in this tells it that it was the email. "Error count one" is not a field name.
+      And you can't show that message to a human either, it's Spring's English, so the app can't
+      translate it and it can't display it. So it's a big response that's also useless, which is a
+      bad combination. What you'd want is a code, something like validation_failed, that doesn't
+      change when we upgrade anything, and then per field — email, invalid_format — and the app
+      owns the wording. The trace stays in our logs, with an id in the response so support can
+      find it.
+    expected:
+      - dimension: Says what the client cannot do with it
+        score: 4
+        because: '"Error count one is not a field name" — and Spring''s English cannot be shown to a human either.'
+      - dimension: Sees what is being given away
+        score: 4
+        because: The version given away and the payload size, and the trace kept in the logs with an id in the response.
+      - dimension: Says what to send instead
+        score: 3
+        because: A code that does not change when we upgrade, and per-field detail with the app owning the wording.
+  - kind: nigerian-english
+    text: |
+      The trace, first of all — that one no suppose comot from the server at all. E dey tell
+      anybody wey hit the endpoint say na Spring we dey use, which version, our package names,
+      sometimes the path for the machine. Na free information for person wey dey find something to
+      attack. And the thing big, the person dey on mobile data, all that payload just because of
+      one bad email. Then the message — "Validation failed for object signUpRequest, error count
+      one" — wetin the app go do with am? E no talk which field, e no talk wetin wrong with am, so
+      the app no fit put red line for the email box. And na Spring English, so you no fit show am
+      to user, and if you try parse am, the day we upgrade Spring the thing go just break quietly.
+      Wetin I go send instead na one stable code, like validation_failed, plus a list of the
+      fields with reason each — field email, code invalid_format — make the app map am to him own
+      copy. The stack trace go stay for our log with correlation id.
+    expected:
+      - dimension: Says what the client cannot do with it
+        score: 4
+        because: "Same as `strong`: nothing says which field, and parsing the message breaks quietly on the next upgrade."
+      - dimension: Sees what is being given away
+        score: 4
+        because: "Same: free information for an attacker, and a large payload on mobile data."
+      - dimension: Says what to send instead
+        score: 3
+        because: "Same: a stable code plus field and reason, with the trace kept in our log against a correlation id."

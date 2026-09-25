@@ -6,7 +6,13 @@ import {
   QUESTION_TYPES,
   SLUG_PATTERN,
 } from "../constants.js";
-import { QuestionType, RubricCriterionInput, weightsTotalCorrectly } from "./content.js";
+import {
+  PlannedFollowUp,
+  QuestionType,
+  RubricCriterionInput,
+  followUpsWithinPerCriterionCap,
+  weightsTotalCorrectly,
+} from "./content.js";
 import { Slug, distinctSlugs } from "./slug.js";
 
 /**
@@ -145,6 +151,23 @@ export const SeedQuestion = z
       .array(z.string().trim().min(1).max(CONTENT_LIMITS.idealPointMaxLength))
       .min(1)
       .max(CONTENT_LIMITS.idealPoints),
+    /**
+     * ANSWER KEY — a probe per criterion the opening prompt does not ask for, so that nothing
+     * charges for something the candidate was never asked while the prompt still sounds like a
+     * person (owner's decision, 2026-09-23). `criterion` is the criterion's position in the
+     * rubric this question names, counting from 0.
+     *
+     * Defaulted, because a bank written before the decision has none and imports unchanged.
+     * `check-bank.mjs` is what enforces the house rule — it can see a question's prompt and its
+     * rubric's criteria together, which neither this contract nor the importer can.
+     */
+    planned_follow_ups: z
+      .array(PlannedFollowUp)
+      .max(CONTENT_LIMITS.plannedFollowUps)
+      .refine(followUpsWithinPerCriterionCap, {
+        message: `a criterion may have at most ${CONTENT_LIMITS.followUpsPerCriterion} planned follow-ups`,
+      })
+      .default([]),
     /**
      * What the drafter is unsure about, addressed to the reviewing expert: a claim that may have
      * aged, a level that may be wrong, a rubric weight that was a judgement call. Required, and

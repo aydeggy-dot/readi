@@ -100,6 +100,7 @@ pnpm --filter @readi/api admin:grant -- --email <your-email> --role admin   # gr
 pnpm --filter @readi/api admin:cancel-deletion -- --email <their-email>      # keep an account during its 7-day grace period (audited, ADR-0011)
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
+node .claude/skills/question-bank/scripts/check-bank.mjs   # offline checks on the question banks: house style, slugs, blueprint targets
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
@@ -166,10 +167,23 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   and client components take their options as props from their server page. Publishing a role is refused
   unless it offers a **published** level; retiring anything a published track, question or profile still
   points at is refused (`role_in_use` / `level_in_use` / `stack_in_use`).
-- **Candidate-facing content responses never contain rubrics, criteria, level descriptors or ideal points.**
-  The candidate schemas are separate, smaller shapes — never an admin shape with fields omitted — and
+- **Candidate-facing content responses never contain rubrics, criteria, level descriptors, ideal points
+  or planned follow-ups.** The candidate schemas are separate, smaller shapes — never an admin shape with
+  fields omitted — and
   `apps/api/test/content-no-answer-key.int.spec.ts` enforces it over the raw JSON of every `/api/content/`
   GET route, with the endpoint list read from the OpenAPI document. Never weaken that test to make another pass.
+- **A question's `planned_follow_ups` are where the criteria its prompt does not ask for get asked**
+  (owner's decision, 2026-09-23; `docs/progress/2026-09-23-planned-follow-ups.md`). The opening prompt
+  asks one thing, the way an interviewer does; each remaining criterion carries `{ criterion, probe }`,
+  where `criterion` is its position in the rubric and `probe` is one spoken sentence. A criterion that
+  scores two separable things may carry **two** probes and never three — a third means it should have
+  been two criteria — and the first listed for a criterion is the one the engine reaches for. They are a **menu,
+  not a script** — from M3 the engine asks a probe only for a criterion the answer has not already
+  covered, which is why there is no condition field. They are answer key: never in a candidate shape, and
+  from M3 in the session-question `snapshot` that does not leave the API. The consequence worth knowing
+  is that **the rubric never reaches the interviewer model** — a follow-up call needs the probes and the
+  coverage flags, not the criteria, the weights or the descriptors. `check-bank.mjs` holds a seed bank to
+  "every criterion is asked for by the prompt or by a probe", as an error.
 - Only `published` content reaches a candidate, and dependencies count: a lesson also needs its track
   published, a question its rubric (ADR-0014).
 - **A question with no stack tags is general to its role; with tags it is offered only to candidates
@@ -194,11 +208,26 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - `EMBEDDING_PROVIDER=fake` (the default) derives a vector from the text, so only identical questions
   ever match. Duplicate detection means something only on the real provider —
   `docs/runbooks/embeddings-switchover.md` is the path from one to the other.
+- **A role's review page is the questions that role is offered, not the questions in its directory.**
+  `buildReviewDoc` selects by the question's `roles` (ADR-0015), so a behavioural question written in
+  `content/seed/frontend/` appears on all four pages and names its file beside it; `content:review-doc`
+  writes a page for every catalogue role any question carries, including `fullstack`, which has no
+  directory. Selecting by path meant a QA reviewer signed off 35 questions while QA candidates were
+  offered 45. `review-doc.spec.ts` holds the real corpus to it, per role.
 - Seed files in `/content/seed` refer to each other by **slug**, may declare only `status: draft`
   (publishing is an admin's decision in the CMS, never a line in a file), and carry `author` and a
   required `reviewer_notes` per question for the experts who review them. The importer writes through
   `ContentService` as the system, skips anything unchanged — no version, no audit row — and never
   deletes, publishes or embeds. `content/seed/REVIEW.md` is the guide the reviewers are given.
+- **A question bank is written from a blueprint**, not from whatever the drafter found interesting:
+  `content/seed/blueprints/<role>.md` states the levels, the variants that justify their own
+  questions, the core topics and the target counts, derived topic by topic — the floor is **two
+  questions per core topic at each level the role offers**. `.claude/skills/question-bank` is the
+  method (house style, the four critique passes, the rubric stress test), and its
+  `scripts/check-bank.mjs` enforces offline what the seed contract cannot: 3–5 criteria, five
+  distinguishable descriptors, a question's `type` against every listed role's
+  `supported_question_types`, its levels and stacks against what those roles offer, and the bank
+  against its blueprint's `targets` block.
 - **The files create; the CMS owns** (ADR-0014 decision 5). Every content row carries `seed_managed`:
   true while `/content/seed` is the source of its content, false from the first save in the CMS. The
   importer updates only `seed_managed` rows and **names** the rest in its report; `pnpm db:seed --

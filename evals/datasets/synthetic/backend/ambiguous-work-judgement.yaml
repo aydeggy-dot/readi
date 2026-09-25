@@ -1,0 +1,123 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: ambiguous-work-judgement
+question: the-ticket-nobody-can-explain
+# `fluent-but-wrong` refuses to write to anyone at all — "a question with no proposal attached is
+# just handing your work to somebody else" — and builds filtering on every column, plus saved
+# views and indexes, on a guessed reading. It is argued as the professional move, and it is the
+# failure mode the question exists for: a day spent building the wrong thing because nobody asked.
+# 1/1/1 against `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      Okay so — first thing, I wouldn't message them straight away. I'd go and look first, because
+      half the questions I'd ask, I can probably answer myself. So I'd open the vendors page, see
+      what columns are actually on it, look at the vendors table, and then check whether we've got
+      filtering anywhere else in the app already — if the products page has a filter bar, that's
+      the pattern, that's probably what they're expecting. Then I write to them. Not "what do you
+      mean", that's useless when they're offline for eight hours — I'd write, "I'm assuming status
+      and category, defaulting to active, multi-select, no date range. Tell me which of those is
+      wrong." So they can answer it in one line from their phone. And then while I'm waiting I'd
+      build the bits that are true whichever way they answer — the filter bar, the filters in the
+      URL so it's shareable, the backend query taking a list of fields. The actual field list I'd
+      keep in one place, so swapping it is five minutes and not a rewrite.
+    expected:
+      - dimension: Works out what is actually unclear
+        score: 4
+        because: Looks at the page, the table and how filtering was built elsewhere first — "half the questions I'd ask, I can probably answer myself".
+      - dimension: Writes something that can be answered asleep
+        score: 3
+        because: A message answerable in one line from a phone, with the assumptions stated; does not say when the answer stops being useful.
+      - dimension: Does not lose the eight hours
+        score: 4
+        because: Builds the bar, the URL state and the backend that takes a list, and keeps the field list in one place so swapping it is five minutes.
+  - kind: weak
+    text: |
+      Um. Okay. So — filtering on the vendors page. I think first I'd message the person and ask
+      them what they want, and then... yeah, if they're offline I'd just have to wait for them
+      really. I don't want to build the wrong thing and then throw it away, that's a wasted day.
+      Maybe I could start on the styling? Like, get the boxes onto the page even if I don't know
+      what goes in them. Filtering is normally just a search box isn't it, so maybe I'd do a
+      search box and then they can tell me tomorrow if they wanted something else. Sorry — I
+      haven't really had a ticket like this before, most of mine have been pretty clear about what
+      to do. I'd probably ask my team lead as well, see what they say. And then tomorrow when the
+      person's back we can sort out the rest of it. Yeah. I think that's what I'd do.
+    expected:
+      - dimension: Works out what is actually unclear
+        score: 1
+        because: Settles on one reading — "filtering is normally just a search box isn't it" — without looking at anything.
+      - dimension: Writes something that can be answered asleep
+        score: 2
+        because: Would ask what they want, which is the question that returns another question.
+      - dimension: Does not lose the eight hours
+        score: 1
+        because: '"I''d just have to wait for them really" — stopping justified as not wanting to build the wrong thing.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so my view on this is that the worst thing you can do as an engineer is push the
+      ambiguity back up the chain. The ticket's vague, fine — resolving that is the job, that's
+      what I'm paid for. So I wouldn't write to them at all, honestly, not until I've got
+      something to show. A question with no proposal attached is just handing your work to
+      somebody else, and it makes you look like you can't operate without hand-holding. What I'd
+      do is take the most sensible reading and build it properly and completely. Vendors page,
+      filtering — so I'd do it on every column, all of them: name, status, category, region, date
+      created, plus saved filter views so people can keep their combinations, plus the indexes to
+      support it. Then tomorrow it's finished, they open it, and if one field's wrong it's one
+      field. Eight hours is plenty of time. I'd much rather over-deliver on the wrong guess than
+      sit there half-built waiting on a reply.
+    expected:
+      - dimension: Works out what is actually unclear
+        score: 1
+        because: One reading taken as settled, on the principle that resolving ambiguity alone is the job.
+      - dimension: Writes something that can be answered asleep
+        score: 1
+        because: Writes to nobody, deliberately, because a question without a proposal looks like hand-holding.
+      - dimension: Does not lose the eight hours
+        score: 1
+        because: Builds every column, saved views and indexes on the guess, and presents it as finished.
+  - kind: correct-poorly-explained
+    text: |
+      So... okay, the thing I'd build — sorry, I'll come back to that — the message, right, the
+      message matters more than, because they're offline, so if I ask them something open like
+      "what fields do you want", that's, you get nothing back, or you get it in eight hours and by
+      then it's too late anyway. So it has to be answerable with a yes. I'd say, here's what I'm
+      assuming, status and category, tell me which one's wrong, and — sorry, before that, actually
+      first I'd go and look at the page and the table, and whether there's a filter somewhere else
+      in the app already, because that answers a lot of it without asking anybody. And then what I
+      build is, it's the parts that don't depend on the answer. The bar, the URL thing so the
+      filters are in the URL, the backend taking a list. And the fields themselves, I'd just make
+      that a list in one file. So it's cheap to change. Yeah.
+    expected:
+      - dimension: Works out what is actually unclear
+        score: 3
+        because: Would look at the page, the table and whether a filter exists elsewhere — said after the message, and said.
+      - dimension: Writes something that can be answered asleep
+        score: 4
+        because: An open question returns nothing in eight hours "and by then it's too late anyway", so it has to be answerable with a yes.
+      - dimension: Does not lose the eight hours
+        score: 4
+        because: Builds only the parts that do not depend on the answer, and puts the field list in one file so it is cheap to change.
+  - kind: nigerian-english
+    text: |
+      Okay, so first thing, before I go and disturb anybody — the thing no clear, yes, but half of
+      the questions I want to ask, I fit answer them myself. So make I first open the vendors
+      page, see the columns wey dey there, check the vendors table, and check if filtering dey
+      anywhere else for the app already — if the products page get filter bar, na that pattern be
+      the answer. Then I go write the person. Not "what do you mean" — that one no go help, the
+      person don go for eight hours. I go write am like this: I'm assuming status and category,
+      default to active, no date range — tell me which one is wrong. So the person fit reply am
+      one line from phone. Then while I dey wait, I go build the part wey go stand whichever way
+      the person answer — the filter bar, the filters inside the URL so you fit share am, the
+      backend wey dey collect list of fields. The field list self, I go keep am for one place, so
+      changing am no go be rewrite.
+    expected:
+      - dimension: Works out what is actually unclear
+        score: 4
+        because: "Same as `strong`: look at the page and the table first, because half the questions answer themselves."
+      - dimension: Writes something that can be answered asleep
+        score: 3
+        because: "Same: assumptions stated, answerable in one line from a phone."
+      - dimension: Does not lose the eight hours
+        score: 4
+        because: "Same: the bar, the URL, the backend taking a list, and the field list in one place."

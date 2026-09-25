@@ -1,0 +1,141 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: load-test-validity
+question: load-test-that-proved-nothing
+answers:
+  - kind: strong
+    text: |
+      The conclusion is the opposite of what the run shows. Ninety-five percent failed —
+      it didn't handle a thousand users, it fell over at a thousand. And the 240
+      milliseconds is the average of the 920 that survived. That's a survivors' average;
+      the seventeen thousand that timed out were slow, they just aren't in it. Then the
+      bigger problem: the load came from one laptop on a shared connection. A thousand
+      threads from one machine runs out of CPU and sockets before the API breaks a sweat,
+      and connection reset and timeout are exactly what a saturated client and a saturated
+      uplink look like. So I can't even say the failures were the server's. And two
+      minutes, all starting at once, no ramp, no steady state, so you can't see where it
+      broke. Before re-running: generate the load from a machine with headroom, more than
+      one if we can, and calibrate first against a trivial endpoint to prove the harness
+      isn't the bottleneck. Then ramp in steps, hold each step, add think time, and watch
+      the server — CPU, memory, DB connections — not just the client. Agree the pass
+      criterion first. And report percentiles: p50, p95, p99 and max, plus the error rate,
+      the actual throughput, and the highest step where errors stayed near zero. That's
+      the capacity.
+    expected:
+      - dimension: Reads the run against the conclusion
+        score: 4
+        because: Level 4 — ninety-five percent failed so it fell over at a thousand, the 240 ms is the survivors' average, and the resets and timeouts are read as a saturated client and uplink dropping connections before the API is reached.
+      - dimension: What is wrong with the setup
+        score: 4
+        because: Level 4 — the one laptop and its shared connection, a thousand users starting at once with no ramp and no steady state, two minutes with no think time, and a calibration run against a trivial endpoint to prove the harness is not the bottleneck.
+      - dimension: What to report instead
+        score: 4
+        because: Level 4 — the error rate, p50, p95, p99 and max, the throughput actually achieved, and the highest step where errors stayed near zero named as the capacity rather than a pass mark at one number.
+  - kind: weak
+    text: |
+      Erm, so from the run, 95% failed, so the test failed. I don't think you can say it
+      handles a thousand users, because most of them didn't even succeed. The 240ms looks
+      okay but only 920 requests actually got through. What I'd change — I'd reduce the
+      number of users, maybe start with a hundred instead of a thousand, see if it passes,
+      then increase gradually. Because a thousand at once is too much, and it's one
+      laptop, one laptop cannot carry a thousand people. Also the run is only two minutes,
+      so maybe run it longer, like ten minutes, so you get more data. And the connection
+      is shared, so the network might be part of the problem — maybe use a better network,
+      or run it at night when nobody is using it. And instead of the average, erm, I'd
+      report the number that passed and the number that failed, and the highest response
+      time and the lowest one, so people can see the range. And maybe a graph. I'd also
+      write in the report that this test is not reliable, so nobody should use it to make
+      a decision, and then we run it again properly.
+    expected:
+      - dimension: Reads the run against the conclusion
+        score: 3
+        because: Level 3 — 95% failed so it did not handle a thousand users, and the 240 ms is tied to the 920 that actually got through; nothing about what the resets and timeouts themselves suggest.
+      - dimension: What is wrong with the setup
+        score: 1
+        because: "Level 1 — corrects the scale rather than the design: a hundred users instead of a thousand, ten minutes instead of two, a better network or a quieter time, still from one laptop with everything still starting at once."
+      - dimension: What to report instead
+        score: 1
+        because: "Level 1 — more numbers of the same kind: the passed and failed counts, the highest and lowest response time as a range, and maybe a graph; no percentiles and no point of degradation."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so the run is salvageable, the conclusion just needs correcting. Connection
+      reset and timeout aren't server failures — the server accepted those connections and
+      is still working on them, they're sitting in the accept queue. What failed is the
+      client giving up. The tool's default socket timeout is a few seconds, and under a
+      thousand concurrent users the queue is naturally deeper than that, so the tool
+      abandons requests the API would have answered. Those are false negatives, not
+      errors. So the fix is on the harness: raise the socket timeout to sixty seconds,
+      increase the connection pool, and those seventeen thousand become successes with
+      long-but-valid response times. Then the average is honest, because it's over the
+      full population instead of a subset. Second correction, on capacity: with a 5%
+      success rate at a thousand users, supported concurrency is 5% of that, so about
+      fifty users. That's the number I'd publish, and it's a straight read of the
+      arithmetic. One laptop is fine, by the way — a load generator barely touches CPU,
+      it's all waiting on I/O, which is why one machine can drive thousands of virtual
+      users. So: same run, longer timeouts, report the average over everything, plus the
+      fifty-user figure.
+    expected:
+      - dimension: Reads the run against the conclusion
+        score: 1
+        because: "Level 1 — questions the average for the wrong reason: the subset is admitted, but the 17,480 are called false negatives from a short socket timeout, so the run is read as a capacity rather than a failure and 5% of a thousand is published as fifty users."
+      - dimension: What is wrong with the setup
+        score: 0
+        because: "Level 0 — nothing wrong with the setup: one laptop is fine, the instant start, the two minutes and the absent think time are all left standing, and the only change is to the tool's socket timeout and connection pool."
+      - dimension: What to report instead
+        score: 1
+        because: "Level 1 — more numbers of the same kind: the same average taken over everything, plus a derived fifty-user figure; no error rate, no percentiles and no point of degradation."
+  - kind: correct-poorly-explained
+    text: |
+      So the conclusion is just... backwards, basically. Ninety-five percent failed, so
+      the thing did not handle a thousand users, it died at a thousand. And the 240ms —
+      that average is only over the 920 that came back, so it's the survivors, the slow
+      ones are not inside it at all, of course it looks nice. And, erm, actually the
+      bigger thing, sorry — one laptop. One laptop on a shared connection driving a
+      thousand users — that laptop probably broke, not the API. Connection reset, timeout,
+      that's what you get when the client runs out of sockets or the uplink is full. So we
+      don't even know whose failures those are — the run tells us nothing either way. Two
+      minutes, everybody starting together, no ramp — you also can't see where it turned
+      bad. So, re-running: load from a machine with room, or a few machines, and first run
+      something trivial to prove the generator can do it. Ramp in steps, hold each one,
+      think time, and watch the server side, CPU, DB connections, not only the client
+      numbers. And decide the pass mark before you start. Report — percentiles, 50, 95,
+      99, the max, the error rate, the throughput, and the highest step where errors were
+      basically zero. That last one is the answer.
+    expected:
+      - dimension: Reads the run against the conclusion
+        score: 4
+        because: Level 4 — the conclusion is backwards, ninety-five percent failed, the 240 ms covers only the 920 that came back, and connection reset and timeout are what you get when the client runs out of sockets or the uplink is full.
+      - dimension: What is wrong with the setup
+        score: 4
+        because: Level 4 — one laptop on a shared connection, everybody starting together with no ramp, two minutes, think time missing, and something trivial run first to prove the generator can do it.
+      - dimension: What to report instead
+        score: 4
+        because: Level 4 — percentiles at 50, 95 and 99, the max, the error rate, the throughput, and the highest step where errors were basically zero named as the answer.
+  - kind: nigerian-english
+    text: |
+      The conclusion is saying the opposite of what happened. 95% failed — so the API did
+      not handle one thousand users, it collapsed at one thousand. And that 240
+      milliseconds, na the 920 that survived they calculated am with. The ones that timed
+      out were slow, but they are not inside, so the average is lying. Then the bigger
+      one: one laptop, on shared connection. One thousand threads on one laptop — it will
+      finish its CPU and sockets before the API will even sweat, and connection reset and
+      timeout na exactly how a choked laptop behaves. So we cannot even say na the server
+      fail. Two minutes, everybody starting at once, no ramp — you cannot see where it
+      started breaking. Before we run it again: use a machine with headroom, better still
+      two or three, and first run one small endpoint to confirm the tool itself can carry
+      the load. Then ramp it in steps, hold each step, add think time, and monitor the
+      server too — CPU, memory, DB connections — not only what the tool shows. And agree
+      the pass mark before you start. Then instead of average, report percentiles, p50,
+      p95, p99, the max, the error rate, the real throughput, and the highest step where
+      errors stayed near zero. That one na the capacity.
+    expected:
+      - dimension: Reads the run against the conclusion
+        score: 4
+        because: "Level 4 — the opposite of what happened: 95% failed so it collapsed at a thousand, the 240 ms was calculated with the 920 that survived, and reset and timeout are exactly how a choked laptop behaves."
+      - dimension: What is wrong with the setup
+        score: 4
+        because: Level 4 — one laptop on a shared connection, a thousand threads finishing its CPU and sockets first, everybody starting at once with no ramp, two minutes, think time missing, and one small endpoint run first to confirm the tool can carry the load.
+      - dimension: What to report instead
+        score: 4
+        because: Level 4 — percentiles p50, p95, p99, the max, the error rate, the real throughput, and the highest step where errors stayed near zero named as the capacity.

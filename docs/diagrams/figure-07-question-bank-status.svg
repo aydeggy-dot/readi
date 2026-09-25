@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="500" viewBox="0 0 1240 500" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">The question banks — what exists, and what is still owed</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">104 questions and 102 rubrics are written, critiqued and fact-checked. Every one of them is still a draft, and no human expert has reviewed any of it.</text></g><g transform="translate(0,50)"><text x="40" y="34" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Questions written</text>
+<text x="560" y="34" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">Planned follow-up probes</text>
+<text x="40" y="78" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">Frontend engineer</text>
+<rect x="210" y="60" width="300" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="210" y="60" width="262.5" height="24" rx="3" fill="#C2410C"></rect>
+<text x="524" y="77" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#374151">35</text>
+<rect x="740" y="60" width="245" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="740" y="60" width="1" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="740" y="60" width="245" height="24" rx="3" fill="none" stroke="#B45309" stroke-width="1.3" stroke-dasharray="4 3"></rect>
+<text x="999" y="77" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#B45309">0 of 70 — retrofit outstanding</text>
+<text x="40" y="130" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">Backend engineer</text>
+<rect x="210" y="112" width="300" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="210" y="112" width="255" height="24" rx="3" fill="#C2410C"></rect>
+<text x="524" y="129" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#374151">34</text>
+<rect x="740" y="112" width="238" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="740" y="112" width="1" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="740" y="112" width="238" height="24" rx="3" fill="none" stroke="#B45309" stroke-width="1.3" stroke-dasharray="4 3"></rect>
+<text x="992" y="129" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#B45309">0 of 68 — retrofit outstanding</text>
+<text x="40" y="182" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">QA engineer</text>
+<rect x="210" y="164" width="300" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="210" y="164" width="262.5" height="24" rx="3" fill="#C2410C"></rect>
+<text x="524" y="181" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#374151">35</text>
+<rect x="740" y="164" width="259" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="740" y="164" width="259" height="24" rx="3" fill="#15803D"></rect>
+<text x="1013" y="181" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#15803D">74 of 74 — done</text>
+<text x="40" y="234" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">Full-stack engineer</text>
+<rect x="210" y="216" width="300" height="24" rx="3" fill="#F3F4F6"></rect>
+<rect x="210" y="216" width="2" height="24" rx="3" fill="#E5E7EB"></rect>
+<text x="524" y="233" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">none of its own — 62 borrowed from other roles</text>
+<rect x="30" y="276" width="580" height="160" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="42" y="295" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">ALSO IN THE CATALOGUE</text>
+<circle cx="52" cy="302" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="306" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">4 roles</text>
+<text x="130.4" y="306" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">frontend, backend, QA, full-stack</text>
+<circle cx="52" cy="334" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="338" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">3 levels</text>
+<text x="137.6" y="338" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">intern/junior, mid, and a senior level no role offers yet</text>
+<circle cx="52" cy="366" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="370" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">23 stack variants</text>
+<text x="202.4" y="370" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">a question with no tags is general to its role</text>
+<circle cx="52" cy="398" r="3.5" fill="#C2410C"></circle>
+<text x="68" y="402" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">29 topics · 102 rubrics</text>
+<text x="245.6" y="402" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">each rubric has 3–5 weighted criteria and five descriptors</text>
+<rect x="630" y="276" width="580" height="160" rx="6" fill="none" stroke="#E5E7EB" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+<text x="642" y="295" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" letter-spacing="1.1" fill="#6B7280">WHAT IS STILL OWED</text>
+<circle cx="652" cy="302" r="3.5" fill="#B45309"></circle>
+<text x="668" y="306" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">No human review</text>
+<text x="668" y="321" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#6B7280">all 104 questions are marked as a model’s draft</text>
+<circle cx="652" cy="334" r="3.5" fill="#B45309"></circle>
+<text x="668" y="338" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">138 probes to retrofit</text>
+<text x="668" y="353" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#6B7280">frontend and backend, to the shape the QA pilot settled</text>
+<circle cx="652" cy="366" r="3.5" fill="#B45309"></circle>
+<text x="668" y="370" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">3 tracks for 8 role-level pairs</text>
+<text x="668" y="385" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#6B7280">five combinations return "no track" — lessons work, M7</text>
+<circle cx="652" cy="398" r="3.5" fill="#B45309"></circle>
+<text x="668" y="402" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="700" fill="#374151">16 of 94 blueprint targets unmet</text>
+<text x="668" y="417" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#6B7280">reported by the offline checker on every run</text></g></svg>

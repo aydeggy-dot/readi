@@ -1,0 +1,124 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: escalating-early
+question: the-estimate-that-slipped
+# `fluent-but-wrong` tells a specific, well-told story about cutting scope silently, shipping on
+# Friday as promised, and ending with "my manager didn't have to hear about it, which is honestly
+# the outcome she wanted". It answers "tell me about a time you protected a deadline" and draws
+# the lesson that the failure was estimating rather than not telling anyone. 1/0/1 against
+# `strong`'s 4/4/3.
+answers:
+  - kind: strong
+    text: |
+      Wednesday morning, so I write it Wednesday morning. Not Wednesday evening, not Thursday. The
+      person I write to first is whoever committed to Friday on my behalf — usually my lead, and
+      if there's someone downstream waiting, like QA or the person doing the launch post, they
+      hear the same day. I don't send it only to my lead and hope it travels. The message itself,
+      I keep it short and I put the new date in it. Something like: the payments webhook work
+      won't be done Friday, I'm expecting Tuesday; the reason is the provider's sandbox doesn't
+      fire refund events, so I'm building a fake one; and if Friday is hard, I can ship the charge
+      path Friday and refunds the week after. So, the bad news, the new date, the reason, and a
+      choice. I had this on the reconciliation job earlier this year, and I'll be honest, I sat on
+      it for a day telling myself I'd catch up over the weekend. I didn't. Telling them on the
+      Tuesday would have cost nothing; telling them on the Thursday cost someone else a plan.
+    expected:
+      - dimension: What the message contains
+        score: 4
+        because: What is left, the new date, the real cause — the provider's sandbox not firing refund events — and an option to take instead.
+      - dimension: When it goes, and to whom
+        score: 4
+        because: Wednesday morning, to whoever committed to Friday and to whoever is waiting downstream, with a choice rather than an announcement.
+      - dimension: A time they did it, or did not
+        score: 3
+        because: Says plainly they sat on one for a day and it cost somebody else a plan; no specific change to how they estimate or raise it.
+  - kind: weak
+    text: |
+      Um, okay. So I'd tell my manager, definitely, you should tell them. I'd probably message
+      them and say, I'm not going to finish by Friday, I'm sorry, I'm still working on it, and I'd
+      explain what's been hard about it. I think being honest is the main thing, people appreciate
+      honesty more than excuses. And I'd say when I think it will be done, although sometimes it's
+      hard to know, so maybe I'd say I'll update them again tomorrow. When would I send it — I
+      think as soon as I'm sure, so Wednesday, yeah. Have I done it before... Not really, to be
+      honest. Most of my work so far has been on my own projects or school, so there wasn't really
+      anybody I was reporting to with a deadline like that. But I understand why it matters, and
+      I'd definitely communicate early rather than leave someone waiting. I'm quite a
+      communicative person generally.
+    expected:
+      - dimension: What the message contains
+        score: 1
+        because: Honest and apologetic, with no new date — "maybe I'd say I'll update them again tomorrow".
+      - dimension: When it goes, and to whom
+        score: 2
+        because: Wednesday, and to the manager only; nothing about anyone else waiting on the date.
+      - dimension: A time they did it, or did not
+        score: 2
+        because: Says plainly they have never owned such a date, with nothing about what they would write.
+  - kind: fluent-but-wrong
+    text: |
+      Yes, I've been in exactly that position. We were building a bulk upload feature and I'd
+      estimated three days. By day two I could see the CSV parsing was going to eat the whole
+      budget, so I got specific about it: I sat down Wednesday and cut the scope myself. I dropped
+      the progress bar, I dropped the per-row error report, and I shipped the core upload on
+      Friday as promised. Then I wrote up what I'd cut and why, and we put it in the next sprint.
+      The lesson I took is that a deadline is a commitment and an estimate is a guess, so when the
+      guess is wrong the deadline shouldn't move — the scope should. Since then I pad my estimates
+      by about forty percent, because the real failure was estimating badly in the first place,
+      and I break work into half-day chunks so I can see the slip on day one. I'd rather solve the
+      problem than announce it. My manager didn't have to hear about it, which is honestly the
+      outcome she wanted.
+    expected:
+      - dimension: What the message contains
+        score: 1
+        because: A write-up after the fact of what was cut, with no notice and no new date — because there was never going to be one.
+      - dimension: When it goes, and to whom
+        score: 0
+        because: Nobody is told; not telling is presented as the outcome the manager wanted.
+      - dimension: A time they did it, or did not
+        score: 1
+        because: A specific occasion in which nobody was told, offered as the right outcome, with the lesson drawn about estimating.
+  - kind: correct-poorly-explained
+    text: |
+      So, Wednesday. You send it Wednesday, that's — that's the whole thing really, the timing is
+      the answer. Because on Wednesday they can still do something about it, on Friday they can
+      only be annoyed. Who — my lead, but also, and people forget this, whoever is waiting on it
+      downstream, like if QA blocked out Monday, or someone's writing the announcement, they need
+      it from me, not from my lead three days later. What's in it: new date. You have to give a
+      new date, "it's going to be late" with no date is worse than useless. Reason, short one. And
+      an option if there is one, like, I can give you half of it on Friday if Friday is the thing
+      that matters. And yeah, I've done the other version — I sat on one for a day, told myself
+      I'd make it up at the weekend, I didn't make it up at the weekend, nobody ever does. The day
+      I lost was free to give away on Tuesday and expensive on Thursday.
+    expected:
+      - dimension: What the message contains
+        score: 3
+        because: New date, short reason, and an option — "'it's going to be late' with no date is worse than useless".
+      - dimension: When it goes, and to whom
+        score: 4
+        because: Wednesday because they can still do something about it, and to whoever is blocked downstream rather than via the lead three days later.
+      - dimension: A time they did it, or did not
+        score: 3
+        because: '"I sat on one for a day, told myself I''d make it up at the weekend, I didn''t make it up at the weekend, nobody ever does."'
+  - kind: nigerian-english
+    text: |
+      Wednesday morning — na Wednesday morning I go write am. No be Wednesday evening, no be
+      Thursday. The person wey I go tell first na whoever promise Friday on my behalf, usually my
+      lead; and if anybody dey wait for me downstream, like QA or the person wey go write the
+      launch post, make them hear same day. I no go tell my lead alone and expect say the message
+      go travel. The message itself I go keep am short, and the new date must dey inside.
+      Something like: the payments webhook no go finish Friday, I dey expect Tuesday; the reason
+      na say the provider sandbox no dey fire refund events, so I dey build fake one; and if
+      Friday na the thing wey matter, I fit ship the charge path Friday, refunds the following
+      week. So: bad news, new date, reason, one option. I do am for the reconciliation job — to be
+      honest I sit on am one day, telling myself say I go catch up for weekend. I no catch up.
+      Tuesday e for cost nothing; by Thursday e don spoil another person plan.
+    expected:
+      - dimension: What the message contains
+        score: 4
+        because: "Same as `strong`: what is left, the new date, the real reason, and one option."
+      - dimension: When it goes, and to whom
+        score: 4
+        because: "Same: Wednesday morning, to the person who promised Friday and to anyone waiting downstream."
+      - dimension: A time they did it, or did not
+        score: 3
+        because: "Same: sat on one for a day, and by Thursday it had spoiled someone else's plan."

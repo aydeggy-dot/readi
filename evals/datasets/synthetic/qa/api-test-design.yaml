@@ -1,0 +1,71 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: api-test-design
+question: testing-an-endpoint-without-a-ui
+answers:
+  - kind: strong
+    text: |
+      Okay, so with no screen the cases come from the contract itself, what's written there. For job_id: a valid uuid for a job that exists, a uuid that's valid but isn't a job, a malformed one, the field missing completely, null, empty string. Cover note is optional and up to two thousand, so — leave it out entirely, send it empty, send exactly two thousand, send two thousand and one. Then the 409. Apply once, get my 201, apply again with the same job_id, I should get 409 — and this is the part I care about, there should still be one application, not two with a nice message on the second one. And 401: no token, expired token, somebody else's token. Beyond the status code I'd check the body. It says application_id is a uuid, so is it actually a uuid and not null, is the content type JSON, and does the 400 tell the front-end which field failed, because right now it just says "validation failed", which nobody can build a screen against. And the things a screen could never reach — two thousand and one characters when the textarea stops you at two thousand, a missing field, the wrong method, and two requests at exactly the same moment to see if I end up with two applications.
+    expected:
+      - dimension: Cases come from the contract
+        score: 3
+        because: Lands on 3 — every documented response is produced and the cases come off the request's own fields (uuid, the 2000-character limit, the optional note); the document's silences are noted once, as the 400 not naming a field, rather than raised as questions.
+      - dimension: What is checked about a response
+        score: 4
+        because: Lands on 4 — past the reply to the effect, there should still be one application after the second apply, not two with a nice message on the second.
+      - dimension: What only this route can reach
+        score: 4
+        because: Lands on 4 — the same request twice for the documented 409 with a check that only one application exists, plus two requests at the same moment; extra fields are the one item of 3 it misses.
+  - kind: weak
+    text: |
+      Um, okay. So even though the screen isn't there, I can still test it with Postman — I'd use Postman. First the happy path: put in the job_id, put a cover note, send it, and check I get 201 back. Then the negative ones, so I'd put in a wrong job_id, something that isn't correct, and check it gives me 400. Then the 409 — if I apply for the same job again it should tell me I already applied. And the 401 is if I'm not signed in, so I'd log out, or remove the token, and try it again. Beyond the status code... I mean, I'd check that the application_id comes back and it's not empty. And maybe how long it takes, if it's very slow. Honestly, without the screen it's a bit hard to know whether the whole thing really worked, because I can't see whether it saved anywhere, so I'd probably ask the developer to check the database for me, or wait until the screen is built and then test it properly from end to end.
+    expected:
+      - dimension: Cases come from the contract
+        score: 2
+        because: Lands on 2 — the success case and failures picked loosely off the summary, with nothing derived from the field rules, no uuid format and no 2000-character boundary.
+      - dimension: What is checked about a response
+        score: 2
+        because: Lands on 2 — status and that a body came back, application_id not empty, and otherwise it would ask a developer to look in the database.
+      - dimension: What only this route can reach
+        score: 2
+        because: Lands on 2 — names no token as a case, and a wrong job_id, but nothing over the limit, no extra fields and no second identical request.
+  - kind: fluent-but-wrong
+    text: |
+      Right. So I'd take the contract and split it by the four documented responses, and drive it from a Postman collection with an environment so the token and the job id aren't hardcoded. Happy path first, assert 201, then the validation cases straight off the field rules — the uuid format, the two thousand character limit on the cover note. Now, the 409. I'd actually flag that as a bug in the documentation before I write a test for it. This is a REST endpoint, and the rule for REST is that the same request against the same resource is idempotent: if I POST the same job_id twice, the correct behaviour is 201 again with the same application_id, because the server should see the resource already exists and hand me back the one it has. That's the whole point — it's what makes the call safe to retry. If a candidate's network drops on a slow connection and the phone resends the request, a 409 breaks them for something that actually succeeded. So my test is: POST twice, assert both are 201, assert the application_id is identical the second time. If it really returns 409 I'd raise it as a defect, because the endpoint isn't idempotent and it will fail under retry.
+    expected:
+      - dimension: Cases come from the contract
+        score: 1
+        because: Lands on 1 exactly — contradicts the document from a general principle, deciding the documented 409 is a mistake and testing for a second 201 with the same application_id instead.
+      - dimension: What is checked about a response
+        score: 2
+        because: Lands on 2 — response checking stops at the status and the presence of an id; the one value compared across calls encodes the wrong rule rather than the right one for this request.
+      - dimension: What only this route can reach
+        score: 2
+        because: Lands on 2 — the over-limit note and the bad uuid are cases a screen could not send, but authorisation never appears as a case and the repeated request is sent to prove the conflict away.
+  - kind: correct-poorly-explained
+    text: |
+      So the thing is, like, you don't actually need the screen, because the cases are — I mean the body tells you, so cover note is up to two thousand, so two thousand, two thousand and one, and also nothing at all because it says optional, and job_id has to be a uuid so a bad uuid, and... sorry, let me start again. Postman. I'd check the 201 first. Then the ones a screen can't do, which is really the main thing here, because the textarea would cut you off at two thousand but the API won't, so that's where the bug lives, and also two at once, like if someone double taps the button, do you get two applications — that's the 409 one, and you have to actually go and look that there's only one row, not just that the second call says 409. Body-wise, um, the application_id should be a real uuid, not null, and the content type, and the 400 doesn't say which field, which it should. And no token, expired token, that's the 401. Yeah. And the double submit one, that's honestly the one I'd write first. I should have said that at the beginning.
+    expected:
+      - dimension: Cases come from the contract
+        score: 3
+        because: Lands on 3 — the same derivation as strong arrived at sideways, the 2000 and 2001 boundary, the optional note, a bad uuid, and every documented response including the 401 pair.
+      - dimension: What is checked about a response
+        score: 4
+        because: Lands on 4 — you have to actually go and look that there is only one row, not just that the second call says 409, plus the uuid and the content type on the reply.
+      - dimension: What only this route can reach
+        score: 4
+        because: Lands on 4 — the double submit named as the case to write first, with the check that it left one application and not two.
+  - kind: nigerian-english
+    text: |
+      Okay, so me I will start from the contract itself, because that thing on the screen is all that I have — no screen to click, so the paper is my test cases. For job_id: correct uuid for a job that is there, then uuid that is correct format but the job is not there, then one that is not even uuid, then I remove the field completely and see what it will do. Cover note, they said optional, up to two thousand, so I will not send it at all, then I send empty, then exactly two thousand, then two thousand and one. Then the 409: I apply once, it gives me 201, I apply again, it should say 409 — but me I will now go and check am, is it one application that is there, or two? Because sometimes the message is correct but the record doubled. For the response, not only the status. Is the application_id a real uuid or it's null, is it JSON, and that 400 is not telling you which field is wrong, so I will report that one. And the thing the screen can never do: two thousand and one characters, no token at all, and two requests entering at the same time.
+    expected:
+      - dimension: Cases come from the contract
+        score: 3
+        because: Lands on 3 — same as strong, the paper is the case list, every documented response produced and the cases taken off the fields, with the document's silences not raised as questions.
+      - dimension: What is checked about a response
+        score: 4
+        because: Lands on 4 — me I will now go and check am, is it one application that is there, or two, because sometimes the message is correct but the record doubled.
+      - dimension: What only this route can reach
+        score: 4
+        because: Lands on 4 — the field removed completely, two thousand and one characters, no token at all, and two requests entering at the same time with the record checked.

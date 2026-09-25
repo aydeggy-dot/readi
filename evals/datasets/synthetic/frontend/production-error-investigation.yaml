@@ -1,0 +1,108 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: production-error-investigation
+question: error-only-in-production
+answers:
+  - kind: strong
+    text: |
+      First thing, that trace is useless as it stands — main dot four-f-two-a, that's the minified
+      bundle, one line, column eighty-four thousand. So I'd check whether we're uploading source
+      maps on build, because that's what turns it back into a file and a function I can actually
+      read. Second, the error itself: reading 'name' off undefined means we assumed some object
+      was there and it wasn't — and on /jobs/:id that smells like the job fetch came back empty,
+      or a 404, or a field that isn't on every record. A deleted job that's still linked
+      somewhere, maybe. Third, forty-one events and twelve users — I'd want that against how many
+      sessions that page gets, because that's what decides how loud I am about it. Then guard the
+      case, fix why the data was missing, and watch the rate afterwards.
+    expected:
+      - dimension: "Makes the trace readable"
+        score: 3
+        because: "Source maps are what turn the hashed bundle back into a file and a function; does not mention that they must match the deployed build."
+      - dimension: "Uses the rest of the report"
+        score: 4
+        because: "Puts forty-one events and twelve users against how many sessions that page gets before deciding how loud to be."
+      - dimension: "Fixes the cause, not the symptom"
+        score: 3
+        because: "Guards the case, then pursues why the data was missing — a deleted job, a field not on every record — and watches the rate."
+  - kind: weak
+    text: |
+      Hmm, okay. So it says cannot read properties of undefined, and it's in main dot something
+      dot js, which is the built file, so I can't really tell where it is from here. I'd pull the
+      code and try it on my machine, and if it doesn't happen then… maybe it's a caching thing
+      where people are stuck on an old bundle, so I'd do a fresh deploy and see if it goes away.
+      I could also wrap that area in a try-catch so it stops throwing for people. First seen three
+      days ago — I'd ask around whether anyone deployed three days ago. Otherwise I'd leave it a
+      bit and see whether it keeps happening.
+    expected:
+      - dimension: "Makes the trace readable"
+        score: 2
+        because: "Knows it is the built file and cannot tell where it is, without naming what would undo that."
+      - dimension: "Uses the rest of the report"
+        score: 2
+        because: 'Uses "first seen three days ago" and nothing else.'
+      - dimension: "Fixes the cause, not the symptom"
+        score: 1
+        because: "A try/catch so it stops throwing, then leave it and see."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, I've seen this one. The give-away is that it's production-only and the file is hashed
+      and minified — that's a build artefact problem, not a runtime data problem. The minifier
+      mangles identifiers, so a property lookup that was written against a named export gets
+      renamed underneath you and the reference resolves to undefined at runtime. Locally you run
+      unminified, so it never shows. The fix is in the terser config: turn on keep_classnames and
+      keep_fnames, or exclude that module from mangling, then redeploy and watch it drop. I
+      wouldn't chase the data angle — if a response were coming back empty you'd see it on every
+      device, and this is skewed to Samsung Internet and Android, which is exactly where the
+      older parser bites. Source maps would only confirm what we already know.
+    expected:
+      - dimension: "Makes the trace readable"
+        score: 1
+        because: "Dismisses source maps as confirming what is already known, having decided the minifier is the cause."
+      - dimension: "Uses the rest of the report"
+        score: 2
+        because: "Uses the browser skew, and only to support a conclusion already reached."
+      - dimension: "Fixes the cause, not the symptom"
+        score: 1
+        because: "A terser configuration change — a fix aimed at a cause that is not there, shipped without checking the data hypothesis."
+  - kind: correct-poorly-explained
+    text: |
+      So, erm, it only happens for real people and not for me, which, yeah, that's the annoying
+      part. Forty-one in a day sounds like a lot but I'd need to know out of how many people
+      opened that page before I panic, so I'd get that number first. And the page is /jobs/:id,
+      and it's mostly Android, mid-range, so maybe slower, maybe the request times out. I'd put a
+      guard in so it stops throwing at people, but a guard isn't the fix, the fix is why the thing
+      wasn't there. Oh — and I can't even read that trace properly, it's minified, so honestly the
+      actual first job is source maps so it points at real code. And 'reading name of undefined'
+      just means the object we expected never arrived.
+    expected:
+      - dimension: "Makes the trace readable"
+        score: 3
+        because: '"The actual first job is source maps so it points at real code" — said last, but said.'
+      - dimension: "Uses the rest of the report"
+        score: 4
+        because: "Forty-one out of how many people opened that page, before panicking."
+      - dimension: "Fixes the cause, not the symptom"
+        score: 3
+        because: '"A guard isn''t the fix, the fix is why the thing wasn''t there."'
+  - kind: nigerian-english
+    text: |
+      First thing, that trace no dey useful like that — main dot four-f-two-a, na the minified
+      bundle, one long line. So I go check whether we dey upload source maps when we build.
+      Without am I'm just staring at column eighty-four thousand; with am I go see the real
+      function. Then the error itself: 'reading name of undefined' means we assumed say the object
+      dey and e no dey — and for /jobs/:id that one is telling me the job fetch either came back
+      empty, or 404, or one field no dey on every record. Maybe na job wey dem don delete.
+      Then forty-one events, twelve users — I need am against how many people dey open that page
+      sef, na that one go decide how loud I go shout. Guard the case, fix why the data no come,
+      then watch the rate after.
+    expected:
+      - dimension: "Makes the trace readable"
+        score: 3
+        because: "Same: no source maps, no readable frame."
+      - dimension: "Uses the rest of the report"
+        score: 4
+        because: "Same ratio, same reason for wanting it."
+      - dimension: "Fixes the cause, not the symptom"
+        score: 3
+        because: "Same guard-then-cause order, and the same suspects for the missing object."

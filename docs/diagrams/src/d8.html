@@ -1,0 +1,52 @@
+<script>
+render('d8', 1240, 470, 'Voice mode and its latency budget (milestone M5)', 'The same state machine, a different transport. Nothing in this diagram exists yet: no speech-to-text, text-to-speech or LiveKit code is written, and the local LiveKit server in docker-compose has no consumer.', () => {
+  const y = 48;
+  const nodes = [
+    ['Candidate','speaks · Opus, low bitrate',30,180],
+    ['LiveKit room','real-time media',236,160],
+    ['Worker agent','LiveKit Agents host',422,170],
+    ['Speech-to-text','Deepgram + custom vocabulary',614,200],
+    ['The same engine','state machine + LLM turn',846,200],
+    ['Text-to-speech','ElevenLabs or Cartesia',1078,162],
+  ];
+  const boxes = nodes.map(([t,s,x,w]) => box({x,y,w,h:74,title:t,lines:[s.length>30?s.slice(0,30):s, s.length>30?s.slice(30):''],state:'planned',ts:13}));
+  for (let i=0;i<boxes.length-1;i++) arrow(boxes[i].right, y+37, boxes[i+1].left, y+37, {color:'mute'});
+  push(`<path d="M 1160 ${y+74} L 1160 ${y+112} L 120 ${y+112} L 120 ${y+74}" fill="none" stroke="${P.muted}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ag)"/>`);
+  push(`<rect x="560" y="${y+104}" width="160" height="16" fill="#fff"/>`);
+  label(640, y+116, 'the reply, spoken back', {size:11});
+
+  band(30, 206, 580, 232, 'the latency budget');
+  label(52, 238, 'Target: the interviewer starts replying under ~1 second after the', {anchor:'start', size:11.5, fill:P.ink});
+  label(52, 255, 'candidate stops speaking (p50), and under 2 seconds at p95.', {anchor:'start', size:11.5, fill:P.ink});
+  const bars = [['speech-to-text final',0.35,'#C2410C'],['LLM first token',0.35,'#EA580C'],['text-to-speech first byte',0.30,'#F97316']];
+  let bx = 52;
+  bars.forEach(([t,f,c])=>{
+    const w = 520 * f;
+    push(`<rect x="${bx}" y="276" width="${w}" height="26" rx="3" fill="${c}" opacity="0.85"/>`);
+    push(`<text x="${bx + w/2}" y="293" text-anchor="middle" font-family="${P.sans}" font-size="10.5" fill="#fff">${esc(t)}</text>`);
+    bx += w;
+  });
+  push(`<line x1="52" y1="310" x2="572" y2="310" stroke="${P.frame}" stroke-width="1"/>`);
+  label(52, 324, '0 s', {anchor:'start', size:10.5});
+  label(572, 324, '≈ 1 s', {anchor:'end', size:10.5});
+  label(52, 352, 'Each stage is logged separately, so a slow session can be attributed rather than guessed at.', {anchor:'start', size:11.5});
+  label(52, 372, 'Voice minutes are metered against the candidate’s allowance before the session starts and settled after.', {anchor:'start', size:11.5});
+  label(52, 392, 'If the connection degrades the session falls back to text rather than failing — the engine does not care which', {anchor:'start', size:11.5});
+  label(52, 409, 'transport it is on.', {anchor:'start', size:11.5});
+  label(52, 430, 'Captions and the transcript stay visible throughout (accessibility, and low-bandwidth insurance).', {anchor:'start', size:11.5});
+
+  band(630, 206, 580, 232, 'what still has to be decided or collected');
+  const o = [
+    ['A speech-to-text provider must be benchmarked on Nigerian-accented speech','before it is chosen — word error rate overall and on technical terms.'],
+    ['Consented Nigerian-accented audio samples do not exist yet','collecting them is a task with its own lead time, not a configuration step.'],
+    ['Real voice latency from Nigeria has never been measured','the <1 s target is a target, not an observation.'],
+    ['LiveKit Cloud region, Deepgram and a text-to-speech vendor','three accounts, all billed per minute or per character.'],
+  ];
+  o.forEach(([h,b],i)=>{
+    const yy = 240 + i*48;
+    push(`<circle cx="652" cy="${yy-4}" r="3.5" fill="${P.warn}"/>`);
+    label(668, yy, h, {anchor:'start', size:11.5, weight:700, fill:P.ink});
+    label(668, yy+17, b, {anchor:'start', size:11.5});
+  });
+});
+</script>

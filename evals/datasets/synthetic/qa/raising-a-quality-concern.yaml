@@ -1,0 +1,137 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: raising-a-quality-concern
+question: pushing-back-on-a-release
+# **The rubric separates the behavioural `fluent-but-wrong` cleanly: 0.40 against 2.75, a gap of
+# 2.35.** The answer is a polished, specific, numerate story in which Ifeoma finds the bug, makes the
+# case, argues it in standup and wins, and the candidate's own part is that it made an impression on
+# him. Criterion 1's level 1 was written for it word for word ("a well-told account in which the case
+# was somebody else's to make and the candidate's own part is that they admired it"), and criteria 2
+# and 3 fall to 0 because he told nobody and the outcome follows from what she did. This is the defect
+# the same exercise found in the backend bank's behavioural rubric, and here it does not reproduce.
+#
+# **Criterion 3 has no rung for a specific reflection that is not a practice.** Level 3 wants "one
+# specific thing they now do because of it" and level 2 wants "a lesson that is a platitude";
+# `strong`/`nigerian-english` end on "nobody minded — less than I expected" and
+# `correct-poorly-explained` on "which I didn't know you could even do", both specific, neither a
+# practice and neither a platitude. All three are scored 2 as the nearest number.
+answers:
+  - kind: strong
+    text: |
+      Okay so — this was a group project at the end of my bootcamp. We built a small e-commerce
+      thing and we were demoing it to the cohort and some guests on the Friday. Thursday night I
+      was going through it and I found that if you changed the quantity on the cart page to a
+      negative number, the total went negative. So the order would go through as a credit. And
+      nothing was stopping it, not on the page and not on the server. I messaged the guy who wrote
+      the cart, on WhatsApp, and I sent the steps and a screenshot so he could see it himself —
+      because the first time I reported something without steps he couldn't reproduce it and it
+      just died there. Then I told our team lead and I said it plainly: I don't think we should
+      demo checkout with this in it. He asked how long to fix, the guy said an hour, so they fixed
+      it that night — a check on the server, not just on the input box, because I asked whether
+      hiding it in the UI was enough and it wasn't. We demoed on the Friday. I did feel awkward
+      raising it the night before, like I was the one creating problems. But nobody minded — less
+      than I expected.
+    expected:
+      - dimension: What the case rested on
+        score: 3
+        because: "Level 3: a negative quantity makes the total negative so the order goes through as a credit, found by going through the app the night before, and nothing stopping it on the page or the server."
+      - dimension: Who they told, in what form, and when
+        score: 3
+        because: "Level 3: the developer on WhatsApp with steps and a screenshot, then the team lead, plainly, the night before the demo; the ask and the cost were spoken rather than in what he sent, so not 4."
+      - dimension: How it ended, and what is different now
+        score: 2
+        because: "Nearest number: it ends with the fix on the night and the demo, and with a real reflection — nobody minded, less than he expected — but no specific thing he now does because of it. See the note above."
+  - kind: weak
+    text: |
+      Um. Something close to a release... I haven't worked at a company yet, so — let me think. On
+      my own project I had a bug where the form would submit twice if you clicked fast, and you'd
+      get two entries. I found it the day before I was going to show it to somebody. What did I do,
+      I fixed it. It was my project so I just fixed it, there was nobody to tell. I disabled the
+      button after the first click. Took maybe twenty minutes. If it was at a job, I think I would
+      tell my manager, and if they said ship it anyway then okay, they're the manager, they know
+      things I don't, like maybe there's a deadline with a client. I'd write it down somewhere so
+      at least it's recorded. Sorry, I know that's not really a strong example. I haven't been in a
+      situation where I disagreed with someone senior about a release. I'd like to say I'd push
+      back, but I don't actually know how I'd handle it and I don't want to pretend.
+    expected:
+      - dimension: What the case rested on
+        score: 2
+        because: "Level 2: the risk is named — a double submit makes two entries — with nothing about who it would reach or what it would cost."
+      - dimension: Who they told, in what form, and when
+        score: 2
+        because: "Nearest number: a solo project he fixed himself, and 'I think I would tell my manager' names a person but not what he would have sent, which is what level 3 asks of a candidate with nobody to tell."
+      - dimension: How it ended, and what is different now
+        score: 1
+        because: "Level 1: it ends with him having been right and having fixed it in twenty minutes, with nothing he would do again or differently."
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, I've got a good one. At my internship we were shipping a payments integration on a
+      Friday — the whole thing was built around a partner launch, so the date was fixed. On the
+      Wednesday our QA lead, Ifeoma, found that a failed card payment was still marking the order
+      as paid. Silent failure, no error shown to the customer, order goes straight to fulfilment.
+      She took it to the product manager and she was very clear: she said we are not shipping this,
+      if we ship it we're sending out goods for money we never collected. And she put a number on
+      it, she worked out roughly how many orders a day that would be. There was a real argument in
+      standup, the PM wanted to ship it with a manual reconciliation every morning as a workaround,
+      and she said no, manual checks fail on the second day. In the end she won and the launch
+      moved to the Tuesday. It made a big impression on me — the way she never made it personal,
+      she just made the cost of the bug impossible to ignore. That's how I'd want to handle it.
+    expected:
+      - dimension: What the case rested on
+        score: 1
+        because: "Level 1's second clause word for word: a well-told account in which the case was Ifeoma's to make, and his own part is that it made a big impression on him."
+      - dimension: Who they told, in what form, and when
+        score: 0
+        because: "Level 0: he told nobody — every act in the story is hers — and the answer never says who he would have told or what he would have sent."
+      - dimension: How it ended, and what is different now
+        score: 0
+        because: "Level 0: there is an outcome, the launch moving to Tuesday, and it does not follow from anything he did."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so there was a thing — at the place I was doing my internship. We had a release going
+      out and... sorry, let me start again. I was testing password reset, and the reset link, it
+      didn't expire. So an old email, from weeks before, you could still use it to get into the
+      account. I found it on the day, like the afternoon before. Um. So what I did. I told the
+      developer first. Actually no — I checked it again first, because I've reported things before
+      that turned out to be me using it wrong, so I did it twice on two accounts to be sure. Then I
+      told the developer, then I put it in the group chat with the steps, because the developer said
+      it was probably fine. And the lead saw it and he asked how bad, and I said, somebody can
+      enter an account they don't own. Then it became serious quickly. They — yeah. They held it.
+      Not the whole release, they took that one feature out and shipped the rest, which I didn't
+      know you could even do. So it went out, but without that part. That was the ending.
+    expected:
+      - dimension: What the case rested on
+        score: 4
+        because: "Level 4: a reset link that never expires lets a weeks-old email into the account, and he names what he was unsure about and how he closed it — 'I've reported things before that turned out to be me using it wrong, so I did it twice on two accounts'."
+      - dimension: Who they told, in what form, and when
+        score: 3
+        because: "Level 3: the developer first, then the group chat with the steps when the developer said it was probably fine, on the afternoon before the release; 'the lead asked how bad' shows it still needed a conversation, so not 4."
+      - dimension: How it ended, and what is different now
+        score: 2
+        because: "Nearest number: the ending is specific — one feature pulled, the rest shipped — but what is different now is knowledge rather than a practice. See the note above."
+  - kind: nigerian-english
+    text: |
+      Okay. This one was a group project, the last one at my bootcamp. We built a small e-commerce
+      thing and we were supposed to demo am to the cohort and some guests on Friday. So Thursday
+      night, I was going through the app, and I saw that if you change the quantity
+      on the cart page to a negative number, the total will now become negative. Meaning the order
+      will pass and the person gets credit. And nothing was stopping it — not on the page, not on
+      the server. So I message the guy that wrote the cart on WhatsApp, and I send am
+      the steps and screenshot so he can see am himself — the first time I reported something
+      without steps, he could not reproduce am and the thing just died. Then I told
+      our team lead, and I said it plain: me I don't think we should demo checkout with this thing
+      inside. He asked how long, the guy said one hour, so they fixed it that night — a check on
+      the server, not only the input box, because I asked am, hiding it on the UI is not enough. We
+      demoed on Friday. Honestly I felt somehow raising it that night, like I am the one bringing
+      problem. But nobody vexed — less than I was expecting.
+    expected:
+      - dimension: What the case rested on
+        score: 3
+        because: "Level 3, as strong: negative quantity, negative total, the person gets credit, and nothing stopping it on the page or the server."
+      - dimension: Who they told, in what form, and when
+        score: 3
+        because: "Level 3, as strong: the developer on WhatsApp with steps and a screenshot, then the team lead, said plain, the night before the demo."
+      - dimension: How it ended, and what is different now
+        score: 2
+        because: "Nearest number, as strong: fixed that night and demoed on Friday, and 'nobody vexed — less than I was expecting', which is a reflection rather than a practice."

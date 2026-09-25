@@ -1,0 +1,129 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: assertion-strength
+question: the-test-that-always-passes
+# **The separation between `correct-poorly-explained` and `weak` is only +0.60 and fails the check.**
+# Criterion 1 carries 40 of the weight and the context line — "`#app-header` is the bar across the
+# top of every page, including the login page" — hands it over: the `weak` answer, which cannot say
+# what to assert instead and keeps using fixed waits, still reaches 3 on it by reading that line back
+# ("the header will be there anyway... so it's not really checking the login at all"). The question's
+# own `reviewer_notes` already flags that line as giving the first criterion away. The scores below are
+# honest; the fix is the question or criterion 1's rungs, not these numbers.
+answers:
+  - kind: strong
+    text: |
+      Okay so — it's checking that the app header exists. And you said the header is on every page,
+      including the login page. So this test would pass even if the click did nothing at all. The
+      browser never left the login page and it still found the header — that's why it's green while
+      sign-in is broken. It isn't checking sign-in, it's checking that a page loaded. What it should
+      check is something that can only exist when you're actually signed in. So — the URL changed
+      to the dashboard, or there's a sign-out button, or the user's name in the corner. Something
+      that can't be true for a stranger. I'd assert the URL and one element, both. The other thing
+      I don't like is the three-second wait. That's a guess. If the server is slow one morning it
+      fails for no reason, and if it's fast you've burned three seconds on every single run. Wait
+      for the thing itself to appear instead of waiting for time. And the password sitting there
+      in the file — I'd pull that out into config. Yeah.
+    expected:
+      - dimension: Says what the assertion proves
+        score: 3
+        because: "Level 3: the header is found without the browser ever leaving the login page, so the test is green while sign-in is broken; it does not add that a test which cannot fail is counted as coverage."
+      - dimension: An assertion tied to what the feature is for
+        score: 3
+        because: "Level 3: a sign-out button or the user's name in the corner — things a stranger cannot see — alongside the URL; no failure-path assertion, so not 4."
+      - dimension: The fixed wait
+        score: 3
+        because: "Level 3: waits for the thing itself to appear rather than for a number of seconds; the password in the file is noticed but not as a failure that has nothing to do with the product."
+  - kind: weak
+    text: |
+      Hmm. Okay, it opens the login page, types the email, types the password, clicks submit, waits
+      three seconds, and then checks the app header is there. And it passed... um. Maybe three
+      seconds isn't enough? If sign-in is slow then... no, then it would fail, not pass. Sorry, let
+      me look again. It's checking the header. And you said the header is on every page. So — so
+      the header will be there anyway. Okay, so then it's not really checking the login at all. I'd
+      have to check something else instead, but I'm not sure exactly what — maybe check that the
+      login form is gone? Or check the page. Honestly I'd have to open the app and see what's on
+      the dashboard to know what to look for. The other thing I'd change, I'd add more tests, like
+      wrong password, empty email, those ones. I know a fixed wait isn't great, people say don't
+      use them, but I do use them because they work when I'm still learning. That's about all I
+      can see.
+    expected:
+      - dimension: Says what the assertion proves
+        score: 2
+        because: Level 2 — reads the premise back ("you said the header is on every page... so it's not really checking the login") without saying what the assertion is actually true of.
+      - dimension: An assertion tied to what the feature is for
+        score: 2
+        because: "Level 2: 'check the page', 'I'd have to open the app and see what's on the dashboard' — nothing about what makes an element specific to a signed-in user."
+      - dimension: The fixed wait
+        score: 2
+        because: "Level 2: says a fixed wait is bad practice and keeps using it, with nothing to wait for instead."
+  - kind: fluent-but-wrong
+    text: |
+      Yeah, I've seen this exact thing before. The problem is `exists`. An existence check only asks
+      whether the element is in the DOM — it doesn't ask whether the user can see it. Modern apps
+      render the whole shell up front and then hide the parts you're not entitled to, with display
+      none or a zero-height container, so `#app-header` is sitting in the DOM from the moment the
+      page loads, whether sign-in worked or not. The assertion passes on a node nobody can see. So
+      the fix is a visibility assertion instead of a presence one — assert the header is visible,
+      and ideally that it's rendered with an actual size, because that's the difference between
+      "the markup is there" and "the user is signed in." That one change turns it into a real test.
+      What else I'd change — the three-second sleep obviously, replace it with a wait on that same
+      visibility condition, it's really the same fix. And the credentials should come from
+      environment variables, not be typed into the spec. But the core bug is presence versus
+      visibility. People write `exists` because it's the first thing in the docs.
+    expected:
+      - dimension: Says what the assertion proves
+        score: 1
+        because: "Level 1 verbatim: reads it as presence against visibility, holding that the header is rendered and hidden until the user is entitled to it, which the context contradicts."
+      - dimension: An assertion tied to what the feature is for
+        score: 1
+        because: "Level 1 verbatim: asserts the same element is visible rather than present, which does not differ between a working sign-in and a broken one."
+      - dimension: The fixed wait
+        score: 3
+        because: "Level 3: replaces the sleep with a wait on the condition it asserts on — the mechanism is right even though the condition it picked is the wrong one."
+  - kind: correct-poorly-explained
+    text: |
+      So this one will pass no matter what, basically. Because — okay. The header. You said the
+      header is on the login page too. So. Yeah. It's there before you even click submit, so the
+      assertion doesn't... it doesn't tell you anything about the login. It's testing that the
+      browser opened a page. That's all it's testing. To fix it you need a thing that is only there
+      after login, that's the point, something only a signed-in person gets. Like the logout button.
+      Or the URL — actually the URL is the easiest one, check you're on slash dashboard, because on
+      a failed login you stay sitting on slash login. Both, maybe. Um, what else in it — the wait.
+      Three seconds. I don't like it, everybody says don't, and the reason is it's either too long
+      or too short and you don't know which day it's going to be. Wait for the element. And the
+      password there in plain text, that one too. Sorry, going back — the main thing is the
+      assertion, the rest is tidying.
+    expected:
+      - dimension: Says what the assertion proves
+        score: 3
+        because: "Level 3: the header is there before submit is clicked, so the assertion says only that the browser opened a page."
+      - dimension: An assertion tied to what the feature is for
+        score: 3
+        because: "Level 3: the logout button, something only a signed-in person gets, with the URL as the easiest second check."
+      - dimension: The fixed wait
+        score: 3
+        because: "Level 3: 'wait for the element', because a fixed number is either too long or too short and you do not know which day it will be."
+  - kind: nigerian-english
+    text: |
+      Okay. The thing it is checking is the app header. But you said am, the header is on every
+      page, even the login page itself. So this test, even if the click did nothing, even if nothing
+      at all happened, it will still see the header and say pass. The browser did not even leave the
+      login page and the test is still green. So it is not testing sign-in, it is testing that a
+      page opened, that is all. What it should check is something that can only be there when you
+      have entered — like the URL now become slash dashboard, or the logout button, or your name at
+      the corner. Something a stranger cannot see. Me I will check the URL and one element, the two
+      of them. Then that three seconds wait, I don't like am. It is guessing. If the server is slow
+      that morning, the test will fail and nothing is even wrong with the app, and if it is fast,
+      you are wasting three seconds every single run. Better make it wait for the thing itself to
+      show. And the password lying there inside the file — that one should go into config.
+    expected:
+      - dimension: Says what the assertion proves
+        score: 3
+        because: "Level 3, as strong: the browser never left the login page and the test is still green, so it tests that a page opened."
+      - dimension: An assertion tied to what the feature is for
+        score: 3
+        because: "Level 3, as strong: the URL and one element — the logout button or the name in the corner, which a stranger cannot see."
+      - dimension: The fixed wait
+        score: 3
+        because: "Level 3, as strong: make it wait for the thing itself to show, and move the password out of the file."

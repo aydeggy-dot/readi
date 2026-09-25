@@ -1,0 +1,114 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: performance-investigation
+question: slow-page-on-3g
+# `fluent-but-wrong` is the most dangerous answer in this set: every individual recommendation
+# (gzip, CDN, cache headers, lazy loading) is a real optimisation, and the method is backwards. The
+# rubric catches it on criterion 1, which is what criterion 1 is for.
+answers:
+  - kind: strong
+    text: |
+      First I'd go back to them, because "the site" isn't enough — which page, what phone, were
+      they on data or wifi, is it every time or was it the once. That alone sometimes solves
+      it. Then I'd reproduce under their conditions instead of mine: dev tools, network
+      throttled to Slow 4G, and throttle the CPU as well, four or six times, because a cheap
+      Android is nothing like my laptop and it's often the CPU rather than the pipe. Then
+      record a load. The waterfall tells me if I'm shipping too many bytes or too many round
+      trips — a huge JS bundle, uncompressed images, fonts blocking. The main thread track
+      tells me if it all arrived fine but the phone can't execute it. Whichever budget is
+      blown, that's what I change, then I record again to see if it actually moved.
+    expected:
+      - dimension: "Measures before changing"
+        score: 4
+        because: "Gathers what the report is missing before touching anything, then reproduces with both throttles."
+      - dimension: "Separates network from CPU"
+        score: 4
+        because: "Reads the waterfall against the main thread, and knows the cheap phone's CPU is often the binding one."
+      - dimension: "Chooses a proportionate change"
+        score: 3
+        because: "Changes whichever budget is blown and measures again; does not say what they would not bother with."
+  - kind: weak
+    text: |
+      I'd run Lighthouse on it and see what score it gives, then work through whatever it puts
+      in the list — usually it says compress your images and remove unused JavaScript. So I'd
+      compress the images, maybe convert them to webp, and add lazy loading on the ones below
+      the fold. If it's still slow I'd look at caching things better. To be honest, if it
+      works on my machine and on everyone else's here, it might just be their network, 3G is
+      slow and there's only so much you can do about that. I'd ask them to try it on wifi and
+      see. I haven't really used the performance tab, I mostly just look at the network tab
+      for a slow request.
+    expected:
+      - dimension: "Measures before changing"
+        score: 2
+        because: "Runs Lighthouse without reproducing the user's conditions."
+      - dimension: "Separates network from CPU"
+        score: 1
+        because: "Concludes it may just be their network, without checking."
+      - dimension: "Chooses a proportionate change"
+        score: 1
+        because: "A list of general best practices — compress, convert, lazy-load — unrelated to any finding."
+  - kind: fluent-but-wrong
+    text: |
+      Right. On mobile the binding constraint is always latency, not the client, so I'd go
+      straight at TTFB. I'd run Lighthouse on my laptop first — if the score is green there,
+      the code is fine, and what's left is the network path, so the answer is CDN and caching
+      rather than anything in the bundle. CPU throttling I'd skip: modern phones have four or
+      eight cores, so parse and execute is negligible next to a 3G round trip. So the order
+      is: turn on gzip, put a CDN in front, set long cache headers, then lazy-load the images
+      below the fold. Those are the known wins, so I'd ship them together rather than spend a
+      day in the Performance panel — throttling in dev tools is simulated anyway, so the
+      recording isn't representative.
+    expected:
+      - dimension: "Measures before changing"
+        score: 2
+        because: "Runs Lighthouse on a laptop and treats a green score as proof, explicitly declining to reproduce."
+      - dimension: "Separates network from CPU"
+        score: 1
+        because: "Asserts latency is always the binding constraint and skips CPU throttling on principle."
+      - dimension: "Chooses a proportionate change"
+        score: 1
+        because: "Ships a batch of reflex fixes together rather than the one the measurement pointed to."
+  - kind: correct-poorly-explained
+    text: |
+      So I wouldn't change anything yet, that's the main thing, because you can burn a week
+      optimising the wrong half of it. I'd ask which page, what phone, data or wifi, every
+      time or the once. Then, you can't test it on your laptop, obviously, your laptop is the
+      problem, so throttle it, Slow 4G, and the CPU too, times four or six, people forget the
+      CPU one and on a cheap Android that's often the actual thing. Then record the load.
+      Waterfall for how many bytes and how many round trips, main thread track for where it's
+      just stuck executing. And whichever of those two is blown, that's the one you fix, and
+      — this is the bit I always forget to say — you record it again afterwards to see
+      whether the number really moved.
+    expected:
+      - dimension: "Measures before changing"
+        score: 4
+        because: "Asks the four missing questions first, then throttles network and CPU and records."
+      - dimension: "Separates network from CPU"
+        score: 4
+        because: "Waterfall for bytes and round trips, main thread for execution, and names the CPU as the forgotten one."
+      - dimension: "Chooses a proportionate change"
+        score: 3
+        because: "Fixes whichever is blown and re-records — remembered at the end, with an apology."
+  - kind: nigerian-english
+    text: |
+      First, I'll go back and ask them more question, because "the site is slow" is not enough
+      — which page, which phone, were you on data or wifi, is it every time or na once.
+      Sometimes that one alone will show you the thing. Then I'll reproduce am under their own
+      condition, not my own: dev tools, throttle network to Slow 4G, and throttle the CPU too,
+      four or six times, because the cheap Android wey them dey use is not my laptop at all.
+      Then I record the load. The waterfall will tell me whether the bytes are too much or the
+      round trips are too many — big bundle, images wey nobody compress, font blocking. The
+      main thread one will tell me whether everything arrived but the phone cannot execute it
+      fast enough. Whichever budget don blow, na that one I go fix. Then I measure again,
+      otherwise I'm just guessing twice.
+    expected:
+      - dimension: "Measures before changing"
+        score: 4
+        because: "Same: the questions first, then both throttles, then a recording."
+      - dimension: "Separates network from CPU"
+        score: 4
+        because: "Same split, and the same point about the cheap Android."
+      - dimension: "Chooses a proportionate change"
+        score: 3
+        because: "Same, including measuring again rather than guessing twice."

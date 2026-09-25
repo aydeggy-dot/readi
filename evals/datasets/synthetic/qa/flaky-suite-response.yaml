@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: flaky-suite-response
+question: the-suite-nobody-trusts
+answers:
+  - kind: strong
+    text: |
+      First thing, I'd stop treating the fifteen as one problem. I'd want the history — which test
+      failed on which run, over the last couple of weeks — and rank them by how often. Without
+      that we're guessing. Then I'd pull them out of the run that gates a change, into a separate
+      list, so the other hundred and five mean something again. Not forever, though — each one
+      gets a name against it and a date, otherwise quarantine is just a graveyard. Then I'd go
+      through them one at a time. Usually it's a fixed sleep instead of waiting for the actual
+      thing to appear, or two tests sharing one record, or a test depending on what ran before it,
+      or a date. And the fix is the cause, not a longer wait. On the rerunning — the rerunning
+      isn't the crime, doing it silently is. If we retry, the report should say this passed on the
+      second attempt, and we should count that. What they've lost is the ability to notice a real
+      bug. A genuine regression now looks exactly like the fifteen, so it gets rerun till green
+      and shipped. They've kept the suite and lost the signal.
+    expected:
+      - dimension: "Treats the unreliability as information"
+        score: 4
+        because: "Level 4: wants the per-run history and ranks the fifteen by rate, and names what the habit has already hidden — a genuine regression now looks like the fifteen, so it is rerun till green and shipped."
+      - dimension: "What happens to each one"
+        score: 3
+        because: "Level 3: taken out of the gating run onto a separate list, each with a name and a date against it, then fixed one at a time at the cause; it does not argue that a blanket retry is the worst option."
+      - dimension: "Why the suite lost its credibility"
+        score: 3
+        because: "Level 3: the lost thing is the ability to notice a real bug, and counting retries in the report is what would keep it honest; nothing it would give up to get the signal back."
+  - kind: weak
+    text: |
+      Okay. So fifteen failing but not the same ones... that sounds like something is not stable.
+      I'd rerun them first, to see, because maybe it was just that one time, and then whichever
+      ones fail again I'd run them one by one myself and watch what happens. My guess is the tests
+      are going too fast for the app, so I'd add waits — like make it wait a few seconds before it
+      checks — because sometimes the page hasn't loaded and the test already checked. It could
+      also be the network, our internet here is not always stable. Then I'd report it to the lead
+      and to the developers so they know. If some test keeps failing and nobody can fix it, maybe
+      we remove it, or we mark it to skip, so the suite can be green. On the rerunning... I mean,
+      I understand why they're doing it, if you rerun and it passes then it passed. It's not
+      ideal, but. What have they lost? Time, mostly, rerunning takes long. And confidence in the
+      tests, people stop believing them. That's what I can say.
+    expected:
+      - dimension: "Treats the unreliability as information"
+        score: 1
+        because: 'Level 1: explains the unreliability by one named cause before measuring — "the tests are going too fast for the app" — and starts adding waits.'
+      - dimension: "What happens to each one"
+        score: 1
+        because: 'Level 1: one remedy for all of them, waits or skipping the ones nobody can fix, "so the suite can be green".'
+      - dimension: "Why the suite lost its credibility"
+        score: 2
+        because: "Level 2: says people stop believing the tests, with nothing about what follows from that."
+  - kind: fluent-but-wrong
+    text: |
+      So let's be precise about what intermittent failure tells us. A real product defect is
+      deterministic — same input, same code, same result. That's what a defect is. So a test that
+      fails on one run and passes on the next, with nothing changed, cannot be reporting a product
+      defect. By definition it's reporting itself. Which means all fifteen are test defects, and I
+      can say that before opening a single one. That actually simplifies the work a lot. The
+      dominant cause is timing — the test moving faster than the application — so I'd raise the
+      implicit wait globally, say from two seconds to ten, and put explicit sleeps around the
+      slower screens. That one change usually takes most of a flaky set green. On the rerunning, I
+      wouldn't stop it, I'd formalise it — automatic retry, capped at two attempts, which is
+      standard practice everywhere. And it's safe precisely because of the first point: if a test
+      passes on retry, we've proven the application was fine, because a broken application would
+      have failed both times. What the team lost is time and morale. The coverage itself is intact.
+    expected:
+      - dimension: "Treats the unreliability as information"
+        score: 1
+        because: "Level 1: names one cause — timing — before opening a single failure, and declares all fifteen test defects by definition, then fixes that."
+      - dimension: "What happens to each one"
+        score: 1
+        because: "Level 1: one remedy applied to all — a global implicit wait raised to ten seconds plus a capped automatic retry — with a green run as the outcome."
+      - dimension: "Why the suite lost its credibility"
+        score: 1
+        because: Level 1 — denies anything was lost. A pass on the rerun is taken as proof the application was fine, so the only costs named are time and morale and the coverage is called intact.
+  - kind: correct-poorly-explained
+    text: |
+      Right so the fifteen — I'd take them out. Out of the main run, I mean, not delete them,
+      because if fifteen are noisy then all hundred and twenty are noisy, that's the actual
+      problem, one bad test poisons the report. And then look at them individually, which is slow,
+      there's no shortcut, but usually it's sleeps, or two tests using the same data, or ordering.
+      Sorry — before that, the history. I'd want to know which ones and how often, because
+      somebody's memory of "these fifteen" is probably not the real fifteen, and some fail once a
+      month and some fail every other run and those are not the same job. The rerunning, um. I
+      wouldn't ban it outright because they'd just do it locally, but it has to be recorded, like
+      the report should say it passed on attempt two, otherwise it's invisible. And the loss is...
+      they can't tell a real failure from the noise anymore, so a real one gets rerun until it
+      passes and goes out, which is worse than having no tests, arguably, because no tests at
+      least you know you're not covered.
+    expected:
+      - dimension: "Treats the unreliability as information"
+        score: 4
+        because: 'Level 4: wants which ones and how often first because "somebody''s memory of ''these fifteen'' is probably not the real fifteen", and says a real failure now gets rerun until it passes and goes out.'
+      - dimension: "What happens to each one"
+        score: 3
+        because: "Level 3: out of the main run rather than deleted, then looked at individually with the cause fixed; no argument that a blanket retry is the worst option."
+      - dimension: "Why the suite lost its credibility"
+        score: 3
+        because: "Level 3: they cannot tell a real failure from the noise, so real ones ship, and recording that a test passed on attempt two is what would keep it honest."
+  - kind: nigerian-english
+    text: |
+      First thing, I will not treat the fifteen like one thing. Me I want the history first —
+      which test failed which run, for the past two weeks — and arrange them by how many times.
+      If not, we are just guessing. Then I will remove them from the run that is holding
+      the change, put them on their own list, so that the remaining hundred and five can mean
+      something again. But not forever o — every one of them must carry somebody's name and a
+      date, otherwise that quarantine will become cemetery. Then I will enter them one by
+      one. Most times it is that the test is sleeping for fixed time instead of waiting for the
+      thing to show, or two tests are using the same record, or one test is depending on the one
+      that ran before it. And you fix the cause, not to add more waiting. For the
+      rerunning — rerunning is not the offence, it is that they are doing it quietly. If we rerun,
+      the report should say say this one passed on second attempt, and we should count it.
+      What they have lost is that they cannot see a real bug again. Real bug will look exactly
+      like the fifteen, so they will rerun am till it green, and push am.
+    expected:
+      - dimension: "Treats the unreliability as information"
+        score: 4
+        because: "Level 4, as `strong`: the history first, arranged by how many times, and the hidden defect named — a real bug will look exactly like the fifteen and be rerun till it is green."
+      - dimension: "What happens to each one"
+        score: 3
+        because: "Level 3, as `strong`: off the gating run onto their own list, each carrying somebody's name and a date, then fixed at the cause."
+      - dimension: "Why the suite lost its credibility"
+        score: 3
+        because: "Level 3, as `strong`: what is lost is seeing a real bug, and the report saying a test passed on the second attempt, counted, is what keeps it honest."

@@ -1,0 +1,125 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: worker-deploy-diagnosis
+question: laravel-worker-running-old-code
+# `fluent-but-wrong` builds two compounding mechanisms, both false: that the serialised job
+# payload carries the job's *code*, and that the workers held stale OPcache bytecode the FPM
+# reload never reached. It prescribes draining the queue, `opcache_reset` in a post-deploy hook
+# and maintenance mode — and never restarts the resident workers, which is the one thing that
+# would have fixed it. 1/0/0 against `strong`'s 4/4/3.
+answers:
+  - kind: strong
+    text: |
+      That's the worker being a long-running process. queue:work boots Laravel once and then
+      loops, so the classes it loaded at boot stay in memory — the new code is on disk, the worker
+      never reads it again. The web side was right immediately because every request boots fresh.
+      So the deploy changed the files and nobody told the workers. The fix is queue:restart in the
+      deploy, after the code is live — it writes a timestamp into the cache, each worker checks it
+      between jobs, exits gracefully, and Supervisor brings it back on the new code. Two things
+      that trip people up: queue:restart has to use the same cache the workers can see, so a file
+      cache inside a per-release directory never reaches them, and it only takes effect after the
+      job currently running finishes. I'd also run the workers with --max-time or --max-jobs so
+      they recycle anyway, and log the release sha from inside the job, so if a worker is on a sha
+      that isn't the current release you get an alert instead of finding out hours later.
+    expected:
+      - dimension: Says why the worker kept the old code
+        score: 4
+        because: "`queue:work` boots once and loops, so the classes stay in memory — and contrasts it with the web side booting fresh per request."
+      - dimension: Restarts it as part of deploying
+        score: 4
+        because: "`queue:restart` in the deploy after the code is live, graceful between jobs, with Supervisor bringing it back — and the cache has to be one the workers can see."
+      - dimension: Makes the running version visible
+        score: 3
+        because: Logs the release sha from inside the job so a stale worker raises an alert; does not reach the payloads already queued.
+  - kind: weak
+    text: |
+      Ah, I've had this one. I think it's caching — Laravel caches a lot, config cache, route
+      cache, views. So the deploy probably didn't clear the cache on the queue side. I'd run php
+      artisan cache:clear and config:clear after deploying, that usually sorts it. Or restart the
+      server. Why the web was fine and the queue wasn't, I'm honestly not sure, maybe the web has
+      its own cache that the deploy clears for you. To stop it happening again I'd put the clear
+      commands into the deploy script, and probably just restart the whole box after each deploy
+      to be safe, so everything comes up fresh. And I'd test it — after deploying, push one job
+      through and check the output before I walk away, because that's how you catch it in five
+      minutes instead of five hours.
+    expected:
+      - dimension: Says why the worker kept the old code
+        score: 1
+        because: A specific wrong cause — the config and view caches not being cleared on the queue side.
+      - dimension: Restarts it as part of deploying
+        score: 1
+        because: "`cache:clear` and `config:clear`, or restarting the whole box, in place of restarting the workers."
+      - dimension: Makes the running version visible
+        score: 1
+        because: Would push one job through after deploying and check the output before walking away.
+  - kind: fluent-but-wrong
+    text: |
+      Two things happened and they compound. First, the queued payload. When you dispatch a job
+      Laravel serialises it into the jobs table, and that payload is a snapshot of the job as it
+      was when it was queued — so everything already sitting on the queue at deploy time carries
+      the old implementation with it and will run the old logic whatever is on disk. Second,
+      OPcache. In production you run opcache.validate_timestamps=0 for speed, so PHP never re-
+      stats the files. Your deploy reloaded PHP-FPM, which cleared the web pool's cache — that's
+      exactly why the web was correct straight away — but the Supervisor-managed workers are
+      separate processes with their own OPcache and nothing signalled them. So the fix, in order:
+      drain or flush the queue before you cut over so there are no stale payloads left; then call
+      opcache_reset from a post-deploy hook so the workers pick up the new bytecode; and hold the
+      site in maintenance mode while you do it so nothing new is dispatched against the old code.
+      That makes deploys deterministic.
+    expected:
+      - dimension: Says why the worker kept the old code
+        score: 1
+        because: The queued payload believed to carry the code, and the workers believed to hold stale OPcache bytecode.
+      - dimension: Restarts it as part of deploying
+        score: 0
+        because: Drains the queue and resets OPcache behind maintenance mode; the resident workers are never restarted.
+      - dimension: Makes the running version visible
+        score: 0
+        because: Nothing would make a stale worker visible; the claim is that the deploy is now deterministic.
+  - kind: correct-poorly-explained
+    text: |
+      So the web was fine because — right, the worker. The worker's a daemon, that's the whole
+      thing. It boots the framework one time and then it just sits in a loop pulling jobs, so
+      whatever classes it loaded when it started, that's what it keeps running, forever, until
+      somebody kills it. Deploying only changes files on disk and nothing rereads them. Web is
+      per-request so it's new code on the very next request, obviously. So you have to restart it,
+      and the Laravel way is queue:restart, which doesn't actually kill anything, it drops a flag
+      in the cache and the worker sees it after whatever job it's on and exits, and Supervisor
+      starts it again — which means, yeah, it has to be a cache the workers actually share, a per-
+      release file cache won't reach them, that bit catches people out. Put it in the deploy after
+      the code goes live. And max-time so they die on their own anyway, and log the release sha
+      from inside a job so you can see which worker is stale.
+    expected:
+      - dimension: Says why the worker kept the old code
+        score: 4
+        because: '"It boots the framework one time and then it just sits in a loop" — and web is per-request so it is new code on the next one.'
+      - dimension: Restarts it as part of deploying
+        score: 4
+        because: "`queue:restart` drops a flag the worker sees after its current job, Supervisor restarts it, and a per-release file cache will not reach it."
+      - dimension: Makes the running version visible
+        score: 3
+        because: "`--max-time` so they recycle anyway, and the release sha logged from inside a job."
+  - kind: nigerian-english
+    text: |
+      Na because the worker na long-running process. When you run queue:work, e go boot Laravel
+      one time, then e just dey loop dey collect jobs — so na the classes wey e load that first
+      time e dey use. Your new code dey on disk but the worker no go read am again. Web side
+      correct sharp sharp because every request dey boot fresh. So the deploy change the files,
+      but nobody tell the workers. The fix na to add queue:restart for the deploy, after the code
+      don go live — e go write timestamp inside cache, every worker go check am after each job, e
+      go exit quietly and Supervisor go bring am back on the new code. Two things wey dey catch
+      people: queue:restart must use the same cache wey the workers dey see, so if na file cache
+      inside per-release folder, the signal no go reach them; and e only work after the current
+      job finish. I go still run them with --max-time so dem dey recycle, and log the release sha
+      inside every job so alert go fire if one worker still dey old code.
+    expected:
+      - dimension: Says why the worker kept the old code
+        score: 4
+        because: "Same as `strong`: booted once and looping, while every web request boots fresh."
+      - dimension: Restarts it as part of deploying
+        score: 4
+        because: "Same: `queue:restart` after the code is live, the same cache the workers see, graceful after the current job."
+      - dimension: Makes the running version visible
+        score: 3
+        because: "Same: `--max-time` to recycle, and the release sha logged so an alert fires on a stale worker."

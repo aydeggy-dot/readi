@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: automation-selection
+question: what-to-automate-first
+answers:
+  - kind: strong
+    text: |
+      Thirty out of two hundred — so I'm not really picking the important ones, I'm picking the ones
+      that pay me back every single release. My filter is: how often does this case get run, what
+      breaks if it's broken, and is the feature stable enough that I won't be rewriting the script
+      next sprint. So top of the list is the regression set we run for every release — login, sign-up,
+      the core money path, checkout, the report the business actually looks at. Somebody runs those by
+      hand twenty times a year; a script pays for itself in two releases. Then the boring ones with
+      many inputs: one form, fifteen combinations, that's one script and a data table. What I'd leave
+      manual — anything where you have to look at it and judge, exploratory sessions, anything on a
+      feature they're still designing, and anything needing a real OTP or a real card. And in three
+      months, how do I know: is the suite still running on every build or has somebody quietly
+      switched it off, out of the failures how many were real bugs versus the script breaking, and did
+      the regression round go from two days to half a day. If nobody trusts the results, it didn't
+      work, whatever the pass rate says.
+    expected:
+      - dimension: "What makes a case worth automating"
+        score: 4
+        because: "Descriptor 4 — the filter is how often it runs, what breaks if it breaks, and 'is the feature stable enough that I won't be rewriting the script next sprint', with 'a script pays for itself in two releases': the cost of keeping it working, not only of writing it."
+      - dimension: "What stays manual"
+        score: 3
+        because: "Descriptor 3 — exploratory sessions and 'anything where you have to look at it and judge' stay with a person, with the judgement itself as the reason. Not 4: nothing named that is automated badly and would be better manual than wrong."
+      - dimension: "How they would know it paid off"
+        score: 4
+        because: "Descriptor 4 — real bugs versus the script breaking, whether the suite is still running on every build, regression time from two days to half a day, and the stop signal: 'If nobody trusts the results, it didn't work, whatever the pass rate says.'"
+  - kind: weak
+    text: |
+      So, two hundred cases and I can do thirty. I'd go through the list and pick the most important
+      thirty — the ones on the main features, login, registration, the dashboard, because those are
+      what every user touches. I'd probably start with the easy ones actually, the ones that are
+      straightforward to write, so I can finish thirty in the time and have something to show. The
+      hard ones I'd leave manual, like file upload or payment, those are difficult to automate.
+      Anything that changes a lot I'd also wait for it to settle first. To know if it was worth it
+      after three months, I would check if the tests are passing. If they're all passing then the
+      application is stable, so the automation is doing its job. And the team is not doing those
+      thirty by hand anymore, so we've saved that time. I'd also probably count how many we have now —
+      if we started with thirty and now it's eighty, that's progress, that shows the automation is
+      growing. That's how I'd look at it.
+    expected:
+      - dimension: "What makes a case worth automating"
+        score: 1
+        because: "Descriptor 1 — selects by difficulty: 'I'd probably start with the easy ones actually, the ones that are straightforward to write, so I can finish thirty in the time and have something to show.'"
+      - dimension: "What stays manual"
+        score: 1
+        because: "Descriptor 1 — keeps the wrong things manual for a stated reason: file upload and payment stay with a person because they are 'difficult to automate'."
+      - dimension: "How they would know it paid off"
+        score: 1
+        because: "Descriptor 1 — measures the output: everything passing is read as the application being stable, and 'if we started with thirty and now it's eighty, that's progress'."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so my selection criterion is defect density. Automation earns its place by finding bugs,
+      so the thirty should sit wherever the bugs actually live. What I'd do is pull the last six
+      months out of the bug tracker, group the defects by module, and whichever three or four modules
+      have the most defects, that's where my thirty cases come from. That's where the code is weakest,
+      so that's where a script catches the most. The stable modules I'd leave manual — nothing has
+      been wrong there in six months, so automating them is spending effort watching something that
+      doesn't move. Same for the cases that pass every single time; those are dead weight, they just
+      make the run slow. And then the three-month measure is simple and it's a number I can put in
+      front of a manager: how many new defects did the automation find that a human didn't find first.
+      If the suite has found twenty-five bugs in three months, it paid for itself. If it found two, we
+      automated the wrong thirty and I'd go back to the tracker and re-pick. Pass rate on its own
+      tells you nothing — a suite that's always green is a suite that isn't working.
+    expected:
+      - dimension: "What makes a case worth automating"
+        score: 1
+        because: "Descriptor 1 — a stated basis that is not what running a case repeatedly is worth: six months of the bug tracker grouped by module, thirty cases drawn from the three or four modules with the most defects. Frequency, stability and upkeep never enter it."
+      - dimension: "What stays manual"
+        score: 1
+        because: "Descriptor 1 — keeps the wrong things manual for a stated reason: the stable modules stay manual because 'nothing has been wrong there in six months', and the cases that always pass are 'dead weight'. Exploratory work and judgement calls are never mentioned."
+      - dimension: "How they would know it paid off"
+        score: 1
+        because: Level 1 — measures the wrong effect. It judges the suite by the new defects it finds and calls an always-green suite one that is not working, which inverts the point of regression automation.
+  - kind: correct-poorly-explained
+    text: |
+      Thirty, okay. So — the ones that run every time. That's really the main thing, because if a case
+      runs once a year, automating it is a waste, but if it runs every release, that's twenty times a
+      year, so. Login, the payment path, the main reports. And risk obviously, so money and access
+      first. And — sorry, one more — the ones with plenty of inputs, same steps different data, one
+      script, fifteen rows, that's cheap. What I'd leave: exploratory, and the look-and-feel ones,
+      because a script can't tell you a page looks wrong, and anything where the feature is still
+      moving, because you'll spend your time repairing scripts instead of testing. OTP and real card
+      payments too, too much wahala for what you get. Three months... I'd look at whether people are
+      still running it. That's really the test. A suite everybody skips is worse than nothing. And
+      whether the failures were real, because if it fails ten times and nine were the script's own
+      fault, nobody will trust it again. And regression time, before and after. And is it passing —
+      no, I said that already, the trust one, that's the real one.
+    expected:
+      - dimension: "What makes a case worth automating"
+        score: 3
+        because: "Descriptor 3 — the basis is run frequency ('if it runs every release, that's twenty times a year') plus risk, 'so money and access first', on the paths that are not moving. Not 4: the upkeep reasoning appears only as a reason to leave things manual."
+      - dimension: "What stays manual"
+        score: 4
+        because: "Descriptor 4 — names the thing automated badly: 'the look-and-feel ones, because a script can't tell you a page looks wrong', plus a feature still moving, 'because you'll spend your time repairing scripts instead of testing'."
+      - dimension: "How they would know it paid off"
+        score: 4
+        because: "Descriptor 4 — whether people still run it, real failures versus the script's own fault, regression time before and after, and the stop signal: 'A suite everybody skips is worse than nothing.'"
+  - kind: nigerian-english
+    text: |
+      Thirty out of two hundred. Me, I'm not looking for the important ones, I'm looking for the ones
+      that will pay me back every release. My question is: how many times do we run this case, what
+      will happen if it breaks, and is that feature still changing. So first, the regression ones we
+      must run before every release — login, sign up, the payment flow, the report that management is
+      looking at. Somebody is doing those by hand twenty times in a year, so one script pays for
+      itself by the second release. Then the ones with plenty inputs: one form, fifteen combinations,
+      that is one script and one data table. What I will leave manual — anything you have to look with
+      your own eye and judge, exploratory, and anything on a feature they are still designing, because
+      you will just be repairing script every week. Real OTP, real card, I'll leave am. Then after
+      three months: is the suite still running on every build, or somebody has switched it off? Out of
+      the failures, how many were real bug and how many were the script itself? And that regression
+      that was taking two days, is it now taking half a day? If nobody trusts the result, then it
+      didn't work, no matter the pass rate.
+    expected:
+      - dimension: "What makes a case worth automating"
+        score: 4
+        because: "Same as `strong`, descriptor 4 — how many times we run it, what happens if it breaks, whether the feature has settled, and 'one script pays for itself by the second release'."
+      - dimension: "What stays manual"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — 'anything you have to look with your own eye and judge', exploratory, and a feature still being designed stay manual."
+      - dimension: "How they would know it paid off"
+        score: 4
+        because: "Same as `strong`, descriptor 4 — still running on every build, real bug versus the script itself, two days of regression down to half a day, and 'If nobody trusts the result, then it didn't work, no matter the pass rate.'"

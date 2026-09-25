@@ -1,0 +1,149 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: performance-requirements-reasoning
+question: performance-what-to-ask-first
+answers:
+  - kind: strong
+    text: |
+      "Hold up" doesn't mean anything yet, so first I'd ask what the campaign actually is.
+      Radio advert, bulk SMS to fifty thousand people, influencers? Because that decides
+      the shape of the traffic — fifty thousand SMS at once means everybody arrives in ten
+      minutes; a month-long thing is different. So: how many people, when, over how long,
+      and which journeys — signing up, browsing, uploading a CV, paying? Those don't cost
+      the same.
+
+      Then today's numbers, from analytics or the logs: current peak hour, current
+      response times. And whether the SMS provider or Paystack have rate limits, because
+      it's usually a third party that falls over first, not us.
+
+      The pass mark has to be a sentence with numbers: this many people at the same time,
+      for this long, sign-in and the job list under so many seconds at the 95th
+      percentile, errors under one percent. Not "it should be fast". And it's agreed by
+      whoever owns the campaign and the tech lead who'd have to fix it, with me, in
+      writing.
+
+      If nobody answers, I don't stop. Take today's peak, scale it by what the campaign
+      reaches, write it down as my assumption, and go and find where it breaks. Then
+      report that number: it degrades at 300 concurrent, the SMS goes to 50,000 — let them
+      decide.
+    expected:
+      - dimension: "What has to be known"
+        score: 3
+        because: "Level 3: how many, when, over how long, whether it arrives in ten minutes or over a month, and which journeys — sign-up, browsing, CV upload, paying; the users' connections and devices are never asked about."
+      - dimension: "A pass mark that can be judged"
+        score: 3
+        because: "Level 3: a load, a duration, named screens under a time at the 95th percentile and errors under one percent, agreed in writing with the campaign owner and the tech lead — but no environment is named."
+      - dimension: "When nobody can answer"
+        score: 4
+        because: 'Level 4: today''s peak scaled by the campaign''s reach, written down as an assumption, and with no target the output is the degradation point — "it degrades at 300 concurrent" — for them to decide on.'
+  - kind: weak
+    text: |
+      Okay, so for a campaign like that, I would need to know how many users are expected.
+      That's the main thing. If they can tell me the number of users then I can plan the
+      test around it. Then I would do performance testing. I'd use JMeter, create a test
+      plan with that number of users, and run it and see whether the system can handle it.
+      If the response times are okay then we can say it will hold up. What the pass mark
+      should state — it should say the response time should be acceptable, and the system
+      shouldn't crash. Users don't like waiting, so if pages are loading fast and nothing
+      is breaking, then we pass. And it should be agreed with the manager, or the project
+      manager, whoever is in charge. And if there's no answer to any of that... then I'd
+      escalate it. I'd send a mail and explain that without the information I can't do the
+      testing properly, and let them know the risk is on them. Because if I just guess and
+      then it fails during the campaign, they'll come back to me. So I'd rather get it in
+      writing before I start.
+    expected:
+      - dimension: "What has to be known"
+        score: 2
+        because: 'Level 2: asks how many users are expected and nothing else — "That''s the main thing" — then goes straight to a JMeter plan.'
+      - dimension: "A pass mark that can be judged"
+        score: 1
+        because: 'Level 1: a target that cannot be failed — response time "acceptable", the system shouldn''t crash, pages loading fast — recorded as agreed with the manager.'
+      - dimension: "When nobody can answer"
+        score: 0
+        because: 'Level 0: refuses to test without the requirements — a mail explaining it cannot be done properly and that the risk is theirs, "in writing before I start".'
+  - kind: fluent-but-wrong
+    text: |
+      Honestly, you can plan this without waiting on anybody. Pull the number of
+      registered users from the database — say it's forty thousand — and that's your load.
+      Use forty thousand threads in JMeter with a ramp-up, because worst case is everybody
+      comes in together, and if it survives the worst case, anything smaller is covered.
+      That's the whole point of load testing, you test the ceiling. And you run it against
+      production. People are nervous about that, but it's the only environment that's real
+      — same database size, same server. You just do it at night, like 1 a.m. when nobody
+      is on, so real users aren't affected and your numbers aren't polluted by their
+      traffic. For the pass mark, the industry standard is average response time under two
+      seconds, and under three for anything heavy like a search. That's well established,
+      so I don't really need the business to agree a number with me — they'd just be
+      guessing anyway. What I'd take to them is the report afterwards. So if nobody
+      answers my questions, it doesn't block me. I run the forty thousand against
+      production overnight, check the averages against the two-second standard, and if the
+      average is under two seconds, I sign it off and say we're good for the campaign.
+    expected:
+      - dimension: "What has to be known"
+        score: 0
+        because: "Level 0: would start writing the test — pull the registered-user count from the database and use it as the load, asking nobody anything."
+      - dimension: "A pass mark that can be judged"
+        score: 1
+        because: "Level 1: an average under two seconds with no load and no percentile, taken as an industry standard and explicitly needing nobody's agreement."
+      - dimension: "When nobody can answer"
+        score: 1
+        because: "Level 1: invents the requirement and proceeds — forty thousand threads against production overnight, checked against the two-second average, and signed off as good for the campaign."
+  - kind: correct-poorly-explained
+    text: |
+      So the question is not answerable as it is, "hold up" is not a target, so — okay,
+      the things I'd ask. How many people and over what time, that's the main one, because
+      fifty thousand SMS at once is not the same as fifty thousand in a month; the shape
+      matters more than the total. And what they'll be doing, because browsing jobs is
+      cheap and uploading a CV or paying is not. And what we're doing now — I'd get the
+      current peak hour and response times from analytics or the logs, because without
+      that I've got no baseline, I can't tell you whether five hundred is a lot or
+      nothing. Oh, and the third parties, SMS and Paystack, they have rate limits, and
+      that's normally what dies first, not us. Pass mark has to be numbers — this many at
+      the same time, for this long, these screens under this many seconds, 95th percentile
+      not average, and errors under some percent. Agreed with the person who owns the
+      campaign and the tech lead, and written down. And if nobody answers, I'd still go
+      and test. Take today's peak, scale it by the campaign, say that's my assumption,
+      find the point where it breaks, and give them that number so they decide instead of
+      me deciding.
+    expected:
+      - dimension: "What has to be known"
+        score: 3
+        because: "Level 3: how many and over what time, the shape mattering more than the total, which journeys are expensive, plus today's peak and third-party rate limits; nothing about connections or devices."
+      - dimension: "A pass mark that can be judged"
+        score: 3
+        because: "Level 3: a load, a duration, named screens under a time at the 95th percentile rather than the average, an error ceiling, agreed with the campaign owner and tech lead and written down; no environment named."
+      - dimension: "When nobody can answer"
+        score: 4
+        because: 'Level 4: today''s peak scaled by the campaign, stated as an assumption, and the breaking point given to them as the output — "so they decide instead of me deciding".'
+  - kind: nigerian-english
+    text: |
+      "Will it hold up" is not meaning anything yet, so me I will ask them: this campaign,
+      what is it? Radio advert, bulk SMS to fifty thousand people, influencers? Because
+      that is what decides how the traffic will come. Fifty thousand SMS at once means
+      everybody lands inside ten minutes; one month spread is different. So: how many
+      people, what day, for how long, and what will they be doing — registering, browsing,
+      uploading CV, paying? All are not the same cost.
+
+      Then I want today's numbers, from analytics or the logs — our peak hour now, and
+      response time now. And whether SMS provider and Paystack have rate limit, because
+      most times na third party will fall first, not our own.
+
+      The pass mark must be a sentence with number inside: this many people at once, for
+      this long, sign-in and job list under this many seconds at 95th percentile, error
+      not passing one percent. And the person that owns the campaign, and the tech lead
+      that will fix it — they will agree it with me, in writing.
+
+      If nobody is answering, I won't fold my hand. Take today's peak, times what the
+      campaign is reaching, write am down as assumption, then go and find where the thing
+      breaks. Then I report that number and they will decide.
+    expected:
+      - dimension: "What has to be known"
+        score: 3
+        because: "Level 3, same as `strong`: what the campaign actually is, how many people, what day, for how long, and which journeys; the users' connections and devices are not asked about."
+      - dimension: "A pass mark that can be judged"
+        score: 3
+        because: "Level 3, same as `strong`: a number of people, a duration, sign-in and the job list under a time at the 95th percentile, errors under one percent, agreed with the campaign owner and tech lead and written down; no environment."
+      - dimension: "When nobody can answer"
+        score: 4
+        because: "Level 4, same as `strong`: today's peak times the campaign's reach as a written assumption, then the degradation point reported as the output."

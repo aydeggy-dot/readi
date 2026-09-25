@@ -38,9 +38,6 @@ career_roles:
       - { stack: java-spring, default: false }
       - { stack: python-backend, default: false }
       - { stack: php-laravel, default: false }
-      - { stack: golang, default: false }
-      - { stack: dotnet, default: false }
-      - { stack: ruby-rails, default: false }
 
   - slug: qa
     name: QA engineer

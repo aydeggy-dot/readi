@@ -1,0 +1,137 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: test-case-selection
+question: test-design-signup-form
+answers:
+  - kind: strong
+    text: |
+      Okay so, first thing, I'd split it into the three fields and then the form as a
+      whole. Phone number — a valid Nigerian number, the 0803 one and the +234 version,
+      then the ones that should fail: too short, too long, letters inside, spaces, and a
+      number that has already registered. Password — I'd actually ask first what the rule
+      is, minimum length, does it need a capital letter, because I can't test a rule
+      nobody has told me. Then the empty one, one character under the minimum, exactly the
+      minimum. Date of birth, that's the risky one, because eighteen is a product rule.
+      So: exactly eighteen today, one day short of eighteen, one day over, a date in the
+      future, and a leap-year birthday, 29 February. Then the things that aren't about the
+      values — submit twice quickly, refresh halfway, press back after submitting, kill
+      the data while it's submitting, use it on a small phone, paste into the fields
+      instead of typing. And whether the password is showing in plain text. How do I know
+      it's enough — every field should have a valid, an invalid and a boundary case, and I
+      put the most cases where the risk is, which is the eighteen rule. When new cases
+      stop telling me anything new, I stop.
+    expected:
+      - dimension: Covers the obvious ground economically
+        score: 3
+        because: Level 3 — splits each field into the values that would be treated the same and takes one from each (a valid 0803 and the +234 version, then too short, too long, letters, spaces, already registered), without naming the technique; nothing is named as deliberately out of scope.
+      - dimension: Tests the edges
+        score: 4
+        because: "Level 4 — each boundary and its neighbours (exactly eighteen today, a day short, a day over) plus the edges that are easy to forget: empty, spaces, a number that has already registered, and both the 0803 and +234 forms."
+      - dimension: Thinks past the happy path, and says where the list stops
+        score: 3
+        because: Level 3 — behaviour as well as input (submit twice, refresh halfway, back after submitting, data killed mid-request) and how it will really be used, small phone and paste; a stopping rule is given but nothing is put out of scope.
+  - kind: weak
+    text: |
+      Right, so for the sign-up form I would test the phone number, the password and the
+      date of birth. For the phone number I'll put a correct number and check it accepts,
+      then I put a wrong number and check it rejects. Same for the password, correct
+      password, wrong password. For the date of birth I'll put a date and make sure the
+      person is eighteen. Then, erm, I will also test that all the fields are working and
+      the submit button is working, and that the form is not accepting empty. The things
+      that are not about the values — I'm not sure I understand that one, maybe like the
+      colours, the alignment, whether the font is correct, whether the page loads fast?
+      I'd check that the design matches. And how do I know my list is enough — I think
+      when I have tested all the fields and there's no bug remaining, then it's enough.
+      Ideally you'd want to test every possible combination, but that's plenty, so I'd
+      test as many as I can in the time I have, and if I find nothing then the form is
+      good. If I'm not sure, I'd take my list to a senior and let them look at it.
+    expected:
+      - dimension: Covers the obvious ground economically
+        score: 2
+        because: Level 2 — a valid and an invalid case per field (correct number then wrong number, correct password then wrong password) with no reason given for the selection.
+      - dimension: Tests the edges
+        score: 2
+        because: Level 2 — the only edge is that the form should not accept empty; the age case picks a date and checks the person is eighteen, so the values either side of the rule are missing.
+      - dimension: Thinks past the happy path, and says where the list stops
+        score: 2
+        because: Level 2 — several error cases and all of them input validation; the not-about-the-values part is answered with colours, alignment and fonts, and the stopping rule is that no bug remains.
+  - kind: fluent-but-wrong
+    text: |
+      So I'd start with equivalence partitioning and boundary value analysis. Date of
+      birth has two partitions — under eighteen and eighteen or over — and the boundary is
+      the date exactly eighteen years back. Now here's the thing. The date of birth is a
+      date picker, and the right design is for the picker to disable every date inside the
+      last eighteen years. Once it does that, the under-eighteen partition is unreachable
+      through the interface, so there's nothing to test there. I'd mark that case not
+      applicable and take it off the list, because a case you cannot execute through the
+      UI is not a valid test case. So all my age testing becomes: can I pick the boundary
+      date. Yes. Done. Same logic on the phone — if the field only accepts digits and caps
+      at eleven characters, then too long and letters are impossible, so those come off
+      too. And on how much is enough: equivalence partitioning says one value from a
+      partition is equivalent to all of them, so two values per field is full coverage by
+      definition. Three fields, two each, plus the happy path — seven cases, and that's
+      mathematically complete. Anything past that is duplicate coverage.
+    expected:
+      - dimension: Covers the obvious ground economically
+        score: 1
+        because: "Level 1 — the technique is named and applied to the wrong thing: equivalence partitioning used to delete the under-eighteen partition and to declare two values per field full coverage by definition."
+      - dimension: Tests the edges
+        score: 2
+        because: Level 2 — the boundary is correctly placed (the date exactly eighteen years back) and then tested on its own; the values either side are struck off as not applicable, along with too long and letters.
+      - dimension: Thinks past the happy path, and says where the list stops
+        score: 1
+        because: Level 1 — the seven input-validation cases are presented as the whole list, mathematically complete, so the second tap, the back button and the dropped request never become cases at all.
+  - kind: correct-poorly-explained
+    text: |
+      Okay so — the date of birth, that's, that's the main one, because of the eighteen
+      thing. So I'd do eighteen exactly, and then one day less, and one day more, and a
+      date in the future which shouldn't even be allowed, and also the February 29 people,
+      those ones break things sometimes. Sorry, let me go back — the phone number too,
+      wrong length, letters inside, the +234 one and the 0803 one, and a number that has
+      signed up before. Password, I don't know the rule yet so I'd ask, but short one,
+      empty one, the exact minimum. And, erm, the other kind of thing, not the values —
+      like clicking submit twice, or your network cutting in the middle, refreshing,
+      pressing back. Small screen too. Oh and pasting, I forgot pasting. How do I know
+      it's enough, that one is... I mean you can never be fully sure, but basically every
+      field should have a good one, a bad one and a borderline one, and then extra on the
+      age part because that's the rule the business actually cares about. And once the new
+      cases I'm writing are just the same thing again in a different colour, that's
+      enough, I stop there.
+    expected:
+      - dimension: Covers the obvious ground economically
+        score: 3
+        because: "Level 3 — the same grouping as strong, arrived at out of order: the +234 and 0803 forms, wrong length, letters, a number that signed up before, and the password rule asked for before testing it."
+      - dimension: Tests the edges
+        score: 4
+        because: Level 4 — eighteen exactly, one day less, one day more, a future date and 29 February, plus empty, the exact minimum, a duplicate number and both phone formats.
+      - dimension: Thinks past the happy path, and says where the list stops
+        score: 3
+        because: Level 3 — submit twice, the network cutting mid-request, refreshing, pressing back, small screen and pasting, with a stated stopping rule and nothing named as out of scope.
+  - kind: nigerian-english
+    text: |
+      Okay. So me I will start from the three fields one by one, then the form itself.
+      Phone number — I'll enter a correct one, 0803 like that, and the +234 own, then the
+      ones that are supposed to fail: too short, too long, letters inside, and a number
+      that has registered before. Password — first I'll ask them, what is the rule, is it
+      six characters, does it need capital letter, because if nobody tells me the rule I
+      cannot test it. Then empty one, one character short, and exactly the minimum. Date
+      of birth is the serious one, because eighteen is the product's own rule. So: person
+      that is exactly eighteen today, person that is one day remaining, person that has
+      passed by one day, a date in future, and 29 February people. Then the part that is
+      not about typing — I'll submit two times sharp sharp, refresh in the middle, press
+      back after it has submitted, off my data while it's submitting, open it on small
+      phone, and paste instead of typing. Also, is the password showing plain? Then to
+      know if my list is enough: every field should have good, bad and borderline, and
+      I'll put more on the eighteen side. When my new cases are just repeating, I stop
+      there.
+    expected:
+      - dimension: Covers the obvious ground economically
+        score: 3
+        because: "Level 3 — same grouping as strong: a correct 0803 and the +234 own, then the ones supposed to fail, and the password rule asked for before it can be tested."
+      - dimension: Tests the edges
+        score: 4
+        because: Level 4 — exactly eighteen today, one day remaining, one day passed, a date in future and 29 February, plus empty, one character short, the exact minimum and a number that has registered before.
+      - dimension: Thinks past the happy path, and says where the list stops
+        score: 3
+        because: Level 3 — submit two times, refresh in the middle, back after submitting, data off mid-submit, small phone and paste, with the same stopping rule.

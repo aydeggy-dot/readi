@@ -1,0 +1,118 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: async-unblocking
+question: the-overnight-blocker
+# The result this question was written for. `fluent-but-wrong` opens with a genuinely good account
+# of async-first communication and then writes a message nobody could act on, to one person, and
+# stops working. It scores 0.7 — the same as the candidate who says they would Google it and rest.
+answers:
+  - kind: strong
+    text: |
+      I wouldn't sit on it till tomorrow, I'd write it straight away while I still remember what
+      I tried. And I'd put it in the team channel, not a DM, because the one person I'd pick
+      might be on leave. Something like: "Hi all — I'm blocked on the payout screen. I'm trying
+      to load the transactions list for a user, and the endpoint is returning 403 for my staging
+      token but 200 in Postman with the same token. I've checked the header is actually going
+      out in the network tab, and I've tried a fresh token. My guess is the gateway is stripping
+      the Authorization header on the preflight. My specific question is: is there a staging
+      origin I need to be added to, and who can add me? This is blocking the payout screen,
+      which I'd wanted to have up for Thursday." Then while I wait I'd carry on with the parts
+      that don't touch that endpoint — the empty and loading states, the table — and keep poking
+      at it to narrow it down.
+    expected:
+      - dimension: "Writes enough for someone to answer while they sleep"
+        score: 4
+        because: "The message carries the endpoint, both status codes, what was already checked and a theory — it can be answered without a follow-up."
+      - dimension: "Asks something specific, and says what it holds up"
+        score: 4
+        because: "One specific question — which staging origin and who can add me — and says it blocks the payout screen wanted for Thursday."
+      - dimension: "Does not stop"
+        score: 3
+        because: "Picks up the unblocked parts and keeps narrowing; does not say they would post the answer if they got there first."
+  - kind: weak
+    text: |
+      I think first I'd try to solve it myself, you know, because you shouldn't disturb people
+      for everything. So I'd Google it, check Stack Overflow, maybe ask ChatGPT, and try a few
+      things. If by evening it's still not working, then I'd message my team lead — I'd send him
+      a DM saying I'm stuck on the task he gave me and please can he assist when he's around.
+      And then honestly at that point there's not much to do, so I'd probably stop for the day
+      and rest, and pick it back up in the morning when he's replied. Maybe I'd look at some
+      documentation while waiting. But the main thing is I'd let him know so he doesn't think I
+      was just idle.
+    expected:
+      - dimension: "Writes enough for someone to answer while they sleep"
+        score: 1
+        because: '"I''m stuck on the task he gave me, please assist" — the symptom, with nothing that was tried.'
+      - dimension: "Asks something specific, and says what it holds up"
+        score: 1
+        because: "Asks for help in general terms."
+      - dimension: "Does not stop"
+        score: 0
+        because: "Stops for the day and waits for the reply."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so the principle here is async-first communication — you write once, you write it
+      where it can be picked up in their morning, and you don't burn a whole overlap window on
+      something that could have been read offline. Concretely: I'd go to my tech lead directly,
+      because he owns this area and a channel post just gets lost in the noise, and I'd keep it
+      tight and respectful of his time. Something like: "Hey, sorry to drop this on you — I'm
+      blocked on the integration, it's not behaving the way I expected and I've been at it a few
+      hours. Could you take a look when you're online tomorrow? Happy to hop on a call." Short,
+      no wall of text, gives him the shape of it. And then I'd genuinely stop, because
+      continuing to push on a blocked task is how you create rework. I'd pick it up fresh once
+      he's replied.
+    expected:
+      - dimension: "Writes enough for someone to answer while they sleep"
+        score: 1
+        because: '"It''s not behaving the way I expected and I''ve been at it a few hours" — no error, no attempts, no theory, and nothing to act on overnight.'
+      - dimension: "Asks something specific, and says what it holds up"
+        score: 1
+        because: '"Could you take a look when you''re online tomorrow?" — and a DM to one person, who may be on leave.'
+      - dimension: "Does not stop"
+        score: 0
+        because: "Explicitly stops, on the grounds that continuing on a blocked task creates rework."
+  - kind: correct-poorly-explained
+    text: |
+      So, okay, the waiting part first — I wouldn't just sit, like I'd do the bits that aren't
+      blocked, the loading state, the table, that kind of thing, and keep trying to narrow it
+      down myself, um, and I'd send it now rather than waiting to explain it live tomorrow
+      because by tomorrow I've forgotten half of what I tried. Channel, not a DM, that's the
+      other thing, people go on leave. And, sorry, the message — it's got to say what I was
+      doing, what I tried, what actually happened, and what I think is going on, and then, this
+      is the bit I always used to get wrong, an actual question at the end. Like a yes-or-no
+      one. Because if I just say "I'm stuck", they reply "what's the error" and I've lost
+      another whole day.
+    expected:
+      - dimension: "Writes enough for someone to answer while they sleep"
+        score: 3
+        because: "Names all four parts the message needs — what I was doing, what I tried, what happened, what I think is going on."
+      - dimension: "Asks something specific, and says what it holds up"
+        score: 2
+        because: "Insists on an actual question at the end, and never says what the blockage holds up."
+      - dimension: "Does not stop"
+        score: 3
+        because: "The unblocked work, and still narrowing it down in the background."
+  - kind: nigerian-english
+    text: |
+      I won't keep it till tomorrow o, I'll write it now now while I still remember everything I
+      tried. And I'll put it for the team channel, not DM one person, because that person can be
+      on leave. I'll write something like: "Hi all — I'm blocked on the payout screen. I'm
+      trying to load a user's transactions and the endpoint is giving me 403 with my staging
+      token, but the same token is giving 200 in Postman. I've confirmed the header is going
+      out, I check am for the network tab, and I tried a fresh token. My guess is that the
+      gateway is stripping the Authorization header on the preflight. So my question is: is
+      there a staging origin they need to add me to, and who can add me? This is what is
+      blocking the payout screen, and I wanted it up by Thursday." Then while I'm waiting, I'll
+      face the parts that are not blocked — the loading state, the empty state, the table — and
+      still dey narrow the thing down.
+    expected:
+      - dimension: "Writes enough for someone to answer while they sleep"
+        score: 4
+        because: "Same message, same detail, same theory about the preflight."
+      - dimension: "Asks something specific, and says what it holds up"
+        score: 4
+        because: "Same question, same Thursday."
+      - dimension: "Does not stop"
+        score: 3
+        because: "Same: the loading and empty states, and still narrowing."

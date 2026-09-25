@@ -1,0 +1,106 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: list-identity-diagnosis
+question: react-list-key-mixup
+answers:
+  - kind: strong
+    text: |
+      Ah, okay — it's the key. They're passing the index, so the key on the second row is one,
+      whether that row is Ibrahim or Ada. When Chioma gets removed everything shifts up, and React
+      looks at the keys and goes, key one is still here, same component, I'll keep it and just
+      hand it new props. So the DOM node survives and, the important bit, the useState inside that
+      row survives with it — and the note that was typed against Ibrahim is now sitting in the row
+      that's rendering Ada. The data is completely fine by the way, nothing is wrong with the
+      applications array, nobody wrote the note onto Ada; it's React's own state for that row that
+      went astray. Fix is key equals application.id — something that identifies the item itself,
+      not where it happens to be standing.
+    expected:
+      - dimension: "Connects the key to the symptom"
+        score: 4
+        because: "The index shifts, React sees key one still present, reuses the component — and its `useState` comes with it."
+      - dimension: "Knows where the wrong value was living"
+        score: 4
+        because: "Says plainly that nothing in the data was ever wrong, which is why it looks so strange."
+      - dimension: "Fixes it and knows the boundary"
+        score: 3
+        because: "`application.id` — something that identifies the item rather than where it stands."
+  - kind: weak
+    text: |
+      Erm. So the note is showing on the wrong person. I think the state is in the wrong place —
+      each row keeping its own useState is the problem, so I'd lift it up to the parent and keep
+      the notes in an object there. Or maybe add a useEffect in the row that clears the note when
+      the application prop changes, that would at least reset it. The key thing with the index, I
+      think that's just for the warning React gives you in the console, so it probably isn't that.
+      It could also be that the list isn't re-rendering properly after the delete, so maybe I'd
+      refetch the list from the server after removing someone.
+    expected:
+      - dimension: "Connects the key to the symptom"
+        score: 1
+        because: "Dismisses the key as only a console warning and looks at where the state lives instead."
+      - dimension: "Knows where the wrong value was living"
+        score: 1
+        because: "Proposes refetching the list from the server — looking for the bug in the data."
+      - dimension: "Fixes it and knows the boundary"
+        score: 0
+        because: "No fix that changes the key; an effect to clear the note on prop change would hide it."
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a reconciliation question. The thing people get wrong is blaming the key —
+      but keys are only a hint to the diffing algorithm, they're a performance affordance. React
+      state is positional: it's keyed by the component's place in the element tree, not by the key
+      prop. So swapping index for application.id changes nothing here, the second row is still the
+      second row and it still holds that note. The real defect is that ApplicationRow owns
+      transient state that outlives the item it describes. So the fix is to lift the note into the
+      parent, store it in a map by application id, and make ApplicationRow fully controlled. I'd
+      tidy the keys too, but purely for render cost, not for correctness.
+    expected:
+      - dimension: "Connects the key to the symptom"
+        score: 1
+        because: 'Denies the key is the cause: "keys are only a hint to the diffing algorithm". Position among siblings is defined by the key, which is the whole mechanism.'
+      - dimension: "Knows where the wrong value was living"
+        score: 2
+        because: "Identifies that the row owns transient state, and then says swapping to an id would change nothing."
+      - dimension: "Fixes it and knows the boundary"
+        score: 0
+        because: "Explicitly leaves the key as it is and rewrites the component instead."
+  - kind: correct-poorly-explained
+    text: |
+      So… it's showing on Ada, the note, which is obviously wrong. And the array is fine, I want
+      to say that first, the data didn't move, like nobody wrote the note onto Ada's object. It's,
+      erm, the row component, the one that's got the useState in it, that thing survived. Because
+      when Chioma goes everything moves up one, and the key is the index, so index one used to be
+      Ibrahim and now index one is Ada, but React sees one and one and thinks same row, so it
+      keeps the component and its state and just gives it different props. Which is — yeah. Put
+      the application's id as the key. That's the fix.
+    expected:
+      - dimension: "Connects the key to the symptom"
+        score: 4
+        because: "Same mechanism — key one was Ibrahim and is now Ada, React sees one and one and keeps the component."
+      - dimension: "Knows where the wrong value was living"
+        score: 4
+        because: "Leads with it: the array is fine, nobody wrote the note onto Ada's object."
+      - dimension: "Fixes it and knows the boundary"
+        score: 3
+        because: "Put the application's id as the key."
+  - kind: nigerian-english
+    text: |
+      Ah, na the key. Dem dey pass index, so the key for the second row na one, whether na Ibrahim
+      or na Ada dey there. Once dem remove Chioma, everything shift up one, and React go look the
+      keys, e go say, key one still dey, na the same component, make I keep am and just give am
+      new props. So the DOM node survive, and — this na the main thing — the useState wey dey
+      inside that row survive join am, and the note wey the person type for Ibrahim is now sitting
+      inside the row wey dey render Ada. The data no do anything o, nothing spoil for the
+      applications array. Na React's own state for that row wey waka go where e no suppose dey.
+      So the fix na key equals application.id — something wey identify the item itself, not where
+      e just happen to stand.
+    expected:
+      - dimension: "Connects the key to the symptom"
+        score: 4
+        because: "Same, including the component surviving with its state."
+      - dimension: "Knows where the wrong value was living"
+        score: 4
+        because: "Same: nothing spoiled in the applications array."
+      - dimension: "Fixes it and knows the boundary"
+        score: 3
+        because: "Same fix, same reason."

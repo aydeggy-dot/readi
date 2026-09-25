@@ -1,0 +1,131 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: severity-judgement
+question: two-bugs-one-slot
+answers:
+  - kind: strong
+    text: |
+      Okay. A, for me. It's money, it's on every order, and — this is the part — the receipt
+      shows the same wrong total, so nothing on screen disagrees. That means nobody reports it.
+      The customer is happy, the tester who isn't sitting down adding up the items is happy, and
+      every order goes out fifty naira short. It's quiet, and quiet is what makes it dangerous,
+      because it's been going the whole time and somebody only finds it when they reconcile at
+      month end. B is a crash, yes, but it's one the user can get out of — reopen the app — and
+      it's when you're offline, so there's a way round it, and two out of six, both on 2G, means
+      we don't even know the conditions properly yet.
+      What I'd write — not "A is worse". Something they can check without me: the build, the
+      actual order, each item and its price, what they add up to, what was charged, screenshot of
+      the receipt beside it, and that I got it ten times out of ten. Then orders per day times
+      fifty naira, so it's an amount, not my opinion.
+      And B stays open. What we know, the offline and 2G part, into known issues so support can
+      answer people, and I retest it next build.
+    expected:
+      - dimension: "Judges by what it does to a user"
+        score: 4
+        because: 'Level 4 — compares them on reach, visibility and recovery (every order; the receipt agreeing so nobody reports it; the crash escapable by reopening) and weighs the quiet failure against the visible one: "quiet is what makes it dangerous".'
+      - dimension: "Keeps severity and priority apart"
+        score: 3
+        because: 'Level 3 — the verdict is given as their own ("A, for me") with a write-up built so the person choosing can check it rather than take their word; it never asks what severity means here, which is what 4 adds.'
+      - dimension: "What happens to the one that waits"
+        score: 4
+        because: "Level 4 — names what happens now (B stays open, the offline and 2G conditions into known issues so support can answer people) and what more they would learn: a retest next build."
+  - kind: weak
+    text: |
+      Hmm. Both of them are bad, honestly. Ehm... I think I'd say B, because when the app closes
+      on you, you can't do anything at all, that's a very bad experience for the user. But then A
+      is money, and money is always sensitive... sorry, let me start again. A. Because it's every
+      order, and B is only two testers out of six. Yeah. A.
+      What makes it serious is, the total is just not correct. So the customer is being charged
+      the wrong thing, and that's not right, especially for money.
+      For what I'd write, I'd log it in the bug tracker properly — title, steps to reproduce,
+      expected result, actual result, and attach the screenshot. And I'd set severity to high,
+      and then also tell my team lead directly so he knows before the release.
+      And the second one... I think it goes to the next release? I'd leave it in the tracker so
+      it doesn't get lost. And maybe ask the two testers to try it again, to see whether it's
+      still happening on this build.
+    expected:
+      - dimension: "Judges by what it does to a user"
+        score: 2
+        because: "Level 2 — after starting from the symptom it compares them on reach alone, every order against two testers of six, with nothing about visibility or whether the user can recover."
+      - dimension: "Keeps severity and priority apart"
+        score: 0
+        because: "Level 0 — the two are one thing: setting severity to high and telling the lead before the release is one act, with no line drawn between their judgement and the release decision."
+      - dimension: "What happens to the one that waits"
+        score: 3
+        because: "Level 3 — names what happens now, left in the tracker so it does not get lost, and asks the two testers to retry on this build; nothing for support or the release note."
+  - kind: fluent-but-wrong
+    text: |
+      Right, so I'd separate severity from priority. Severity is technical impact, priority is
+      the business call. On severity, B is a one — the application terminates. There's no
+      workaround for a crash, the session is gone, and if it's showing up on 2G, that's most of
+      our users in Nigeria. So it's two of six today, but that's a third of the testers, which is
+      a higher hit rate than people give it credit for.
+      A I'd put at two, maybe three, and the reason is the consistency. The charge and the
+      receipt agree. When the stored value and the displayed value match, you're looking at a
+      presentation-layer issue, not data corruption — that fifty naira is almost certainly a
+      rounding rule or a VAT or discount setting, not a code defect, and configuration isn't a
+      release blocker, you change it from the back office.
+      So B takes tomorrow's slot. For A I'd write it up as a calculation query for the business
+      analyst to confirm the expected rule first, because you can't call it a defect until
+      somebody tells you what the total is supposed to be. And whichever one misses the release
+      gets closed as deferred, and we reopen it if production sees it.
+    expected:
+      - dimension: "Judges by what it does to a user"
+        score: 1
+        because: 'Level 1 — ranks by the symptom: the crash is severity one because a crash has no workaround, and a wrong total on every receipt is "a presentation-layer issue" and a configuration setting.'
+      - dimension: "Keeps severity and priority apart"
+        score: 1
+        because: 'Level 1 — states the distinction correctly and then inflates B (severity one, no workaround) to win the slot and awards tomorrow''s slot itself, calling A "not a release blocker".'
+      - dimension: "What happens to the one that waits"
+        score: 1
+        because: 'Level 1 — treats the deferral as the end of it: "whichever one misses the release gets closed as deferred, and we reopen it if production sees it".'
+  - kind: correct-poorly-explained
+    text: |
+      A. Sorry — the money one. Because... okay let me back up. The thing with A is that nobody
+      will see it, that's the part, because the receipt is also wrong, so the two of them agree,
+      and when they agree nobody catches it, so it just keeps going and going. Whereas the crash,
+      somebody will report the crash, you know, straight away. So — yeah. A.
+      And it's every order. I should have said that first. Every order, so it's not a small
+      thing, versus two out of six.
+      For the write-up, ehm, the build, the steps, and put the numbers in — the items, what it
+      should be, what it actually charged — because if I just say "the total is wrong" then
+      somebody has to go and check me, and they shouldn't have to. Screenshot too. And how many
+      orders a day, so the money side is visible.
+      The other one, it's still there. You don't close it. It's still there, with the 2G thing
+      written down, and support should know about it, and then we look at it again on the next
+      build. That's it, really.
+    expected:
+      - dimension: "Judges by what it does to a user"
+        score: 3
+        because: "Level 3 — compares them on reach and visibility and says which is worse on that basis (the receipt agrees so nobody catches it, against a crash somebody reports straight away); whether the user can recover is never mentioned, which keeps it off 4."
+      - dimension: "Keeps severity and priority apart"
+        score: 3
+        because: 'Level 3 — their own judgement plus a write-up with the numbers in it, "because if I just say the total is wrong then somebody has to go and check me, and they shouldn''t have to"; no scale imported.'
+      - dimension: "What happens to the one that waits"
+        score: 4
+        because: 'Level 4 — "You don''t close it", the 2G condition written down, support told, and they look at it again on the next build.'
+  - kind: nigerian-english
+    text: |
+      Okay, so me I will start from A, because that one is money. Fifty naira less than the items, and
+      it is happening on every order — not one or two, every order. And the receipt is showing the same
+      wrong total, so nothing is disagreeing. So nobody will report it — the customer sees the receipt,
+      it agrees with what they paid, they just go. The money is going small small until month end, when
+      they reconcile and the thing is not balancing.
+      B now — the app is closing, yes, but the person can open it again, and it is when they are
+      offline, and it is two out of six testers, both on 2G, so we don't even know the full condition.
+      So I will not just tell them say A is worse. I will put the build, the order, each item and its
+      price, what it should add to, what it charged, screenshot of the receipt, and say I tried it ten
+      times, ten times it happened. Then orders per day times fifty naira, so them go see the amount.
+      And B, we are not closing it — it stays open with the 2G part, it goes into known issues so
+      support can answer people, and I check am again on the next build.
+    expected:
+      - dimension: "Judges by what it does to a user"
+        score: 4
+        because: 'Level 4 — same substance as `strong`: every order, the receipt agreeing so nobody reports it, the app reopenable, and the quiet loss weighed against the visible one ("the money is going small small until month end").'
+      - dimension: "Keeps severity and priority apart"
+        score: 3
+        because: 'Level 3 — "I will not just tell them say A is worse": the judgement is theirs and the write-up is for the person choosing, with the amount rather than an opinion.'
+      - dimension: "What happens to the one that waits"
+        score: 4
+        because: "Level 4 — same as `strong`: B stays open with the 2G part, into known issues so support can answer people, and checked again next build."

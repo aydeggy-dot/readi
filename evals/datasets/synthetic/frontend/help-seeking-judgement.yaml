@@ -1,0 +1,120 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: help-seeking-judgement
+question: stuck-and-asked-for-help
+# This set found a defect and the rubric changed because of it. Criterion 3 used to require the
+# candidate to say whether asking was easy or hard on their team — which the prompt no longer asks,
+# since "how long did you spend" was removed from it. `strong` scored 2 on the heaviest criterion for
+# answering the question as asked. The criterion now scores the judgement visible in the story, and
+# keeps the workplace-norm point at level 4.
+answers:
+  - kind: strong
+    text: |
+      So there was this time when... sorry, let me start again. Last year I was building a
+      signup form for a group project, and after submitting, the API kept giving me 401.
+      Before I asked anybody I did about three things. I logged the token right before the
+      fetch and it was there, so it wasn't missing. Then I copied the same request into
+      Postman with that token and it worked fine, so the token was good, which told me it was
+      about how the browser was sending it. Then I read our fetch wrapper line by line and I
+      couldn't see it. That was maybe two hours. So I messaged the guy who wrote the wrapper
+      and I put all three of those in the message. He got it in a minute, the wrapper was
+      overwriting headers. Now I always ask that way, and honestly sometimes writing the
+      message solves it before I send it.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 3
+        because: "One occasion with the context to follow it; does not say what made it hard beyond the bug itself."
+      - dimension: "What they tried before asking"
+        score: 4
+        because: "Three attempts, each ruling something out, and the narrowing made the question a small one — who owns the wrapper."
+      - dimension: "Judgement about when to ask"
+        score: 3
+        because: "Asked at the point they had run out of things to rule out, not at a fixed hour."
+  - kind: weak
+    text: |
+      Honestly I don't really get stuck for too long. Like, if something isn't working I just
+      keep trying different things until it works, you know. Google, Stack Overflow, sometimes
+      I ask the AI. There was a time a page just wasn't loading and I think I deleted
+      node_modules and reinstalled and then it started working. I didn't really ask anybody,
+      because I didn't want to disturb people over something small, and also I felt like I
+      should be able to figure it out myself. What do I do differently now? I think I'm just
+      more patient with it. And I take breaks, because sometimes you come back to it and you
+      see it immediately.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 1
+        because: '"I don''t really get stuck for too long" — a habit, and one deleted node_modules, with nothing that fixes it in time or place.'
+      - dimension: "What they tried before asking"
+        score: 1
+        because: "Google, Stack Overflow and an AI, with nothing learned from any of them."
+      - dimension: "Judgement about when to ask"
+        score: 1
+        because: '"I didn''t want to disturb people" and "I should be able to figure it out myself" — a rule, with nothing weighed.'
+  - kind: fluent-but-wrong
+    text: |
+      Sure. The clearest example I have is from my internship, on a payments dashboard. One of
+      the other interns had been blocked for two days on a chart that wouldn't render, and you
+      could feel it in the team, so I sat down with him. I asked him to just show me what he
+      was seeing rather than explain it, we narrowed it to the shape of the data coming back
+      from the endpoint, and within about forty minutes we had it. The API was sending strings
+      where the chart wanted numbers. What I took from that is that being stuck is usually a
+      communication problem more than a technical one, and that no team should let someone sit
+      with a blocker for two days. So since then I always make sure blockers get their own
+      slot in standup, not just a status update.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 3
+        because: "A specific occasion with real detail — and it is somebody else's blocker, which criteria 2 and 3 then catch."
+      - dimension: "What they tried before asking"
+        score: 0
+        because: "No attempt of their own is described, because they were never the one who was stuck."
+      - dimension: "Judgement about when to ask"
+        score: 0
+        because: "No decision about their own asking; the lesson is a team-process one about standups."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so, um, the thing I do now is I write everything down before I ask, which — sorry,
+      I should say what actually happened. There was a bug in a table, the rows were
+      duplicating, and I was on it for like a day and a half, which was too long, I kept
+      thinking I was nearly there. I did try things, I mean I checked the API response and it
+      was fine, only one of each, and I checked the map, and the key, and I even rewrote the
+      component from scratch. I'm self-taught, so there was nobody at a desk to turn to, it was
+      just me and the laptop. So in the end I put it in the WhatsApp group from my cohort, and
+      somebody who'd had the same thing answered me, and the first thing he asked was what have
+      you tried, and I couldn't really answer him properly because none of it was written down.
+      So, yeah. That's the thing that changed — now I keep a running note of everything I've
+      ruled out while I'm still debugging, and I paste that in when I ask.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 3
+        because: "A duplicating-rows bug, a day and a half, told out of order but with the detail to follow it."
+      - dimension: "What they tried before asking"
+        score: 3
+        because: "Checked the API response, the map, the key, rewrote the component — each ruling something out."
+      - dimension: "Judgement about when to ask"
+        score: 3
+        because: "Says plainly it was too long, and why: they kept thinking they were nearly there. Asking a cohort group chat is asking — this answer is what the 2026-09-24 widening exists for, and it is scored on the judgement, not on the absence of a colleague."
+  - kind: nigerian-english
+    text: |
+      So there was this signup form I was building for our group project, and after I submit,
+      the API will just be returning 401, 401. Before I asked anybody, I did like three
+      things. First I console.logged the token just before the fetch — the token dey there, so
+      e no miss. Then I now copied that same request into Postman with the same token, and it
+      worked. So I know say the token is correct, na how the browser dey send am be the
+      problem. Then I opened our fetch wrapper, read am line by line, I no see anything. That
+      one was like two hours. So I messaged the guy that wrote the wrapper, and I put
+      everything inside the message — what I tried, what I expected, and what happened
+      instead, with the exact request. Within one minute he saw it, the wrapper was
+      overwriting headers. Sometimes sef, as I'm typing that kind message, I go see the answer
+      myself.
+    expected:
+      - dimension: "A specific, real situation"
+        score: 3
+        because: "Same occasion and detail as `strong`."
+      - dimension: "What they tried before asking"
+        score: 4
+        because: "Same three attempts, same narrowing, same small question at the end."
+      - dimension: "Judgement about when to ask"
+        score: 3
+        because: "Same: asked once the wrapper was the only thing left."

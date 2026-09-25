@@ -1,0 +1,127 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: repeatable-test-data
+question: the-test-that-cannot-run-twice
+answers:
+  - kind: strong
+    text: |
+      So the email is hardcoded — "tester@example.com" — and the first run registered it. Second
+      run, createUser tries the same email again and the app correctly says that one is already
+      taken, so it fails on line one. Which is right, actually. The app is fine, the test is what's
+      wrong. The test only works on a database where that email doesn't exist yet, and after the
+      first run, that's no longer true. So the fix is to make the email different every time.
+      Something like tester plus a timestamp at example dot com, or a random string, so every run
+      has its own user that nothing else has claimed. And the nice thing is the last line still
+      works, because it counts by that same email — I'd just pass the generated one through
+      instead of the literal. I could also delete the user at the end, but I prefer unique,
+      because if the test crashes in the middle, the delete never runs and I'm stuck again.
+      Emptying the database before every run — it's slow, and I'd lose the job. "the-lagos-one"
+      lives in the database too, so I'd wipe the thing I'm applying to and have to put it back
+      every time.
+    expected:
+      - dimension: "Names what cannot be repeated"
+        score: 4
+        because: 'Level 4: the hardcoded email collides with the user the first run made, and the test was never repeatable — "it only works on a database where that email doesn''t exist yet, and after the first run, that''s no longer true".'
+      - dimension: "The fix"
+        score: 3
+        because: "Level 3: generates the email per run and passes the generated one to the final count; it rejects cleanup rather than adding it, so the test still leaves a user behind."
+      - dimension: "The shortcut, and what it costs"
+        score: 3
+        because: "Level 3: clearing costs the job it applies to, which lives in the database too and would have to be put back every run — more than changing one value; it does not say where clearing would be right."
+  - kind: weak
+    text: |
+      Okay, so it failed at createUser the second time because the email is already registered. So
+      the user is still there from the first run. I think the issue is the user wasn't removed. So
+      before running the test again, someone should go and delete that user, or... yeah, I would
+      delete it from the database, or from the admin panel if there's one. Then it would work
+      again. For running it many times, hmm. Maybe the test should check first if the user exists,
+      and if it exists then skip the createUser and go straight to sign in? That could work I
+      think, because you only need to create it once. Or we use a different email each time, but
+      then you'd have plenty users. Emptying the database every run — I think that's actually the
+      cleanest, you start fresh every time so you know exactly what's inside. The cost is it takes
+      time, and if there's data somebody needs, it's gone. So maybe only do it on the test
+      database, not anywhere real.
+    expected:
+      - dimension: "Names what cannot be repeated"
+        score: 2
+        because: "Level 2: says the user is still there from the first run, and blames the missing removal rather than the fixed email written into the test."
+      - dimension: "The fix"
+        score: 1
+        because: 'Level 1: cleans up instead of generating — someone deletes the user, or the test skips createUser — and argues against a generated value because "you''d have plenty users".'
+      - dimension: "The shortcut, and what it costs"
+        score: 2
+        because: Level 2 — recommends clearing the database and names a cost it is content to pay ("it takes time, and if there's data somebody needs, it's gone"), without weighing that against making the test own its data.
+  - kind: fluent-but-wrong
+    text: |
+      So this is a teardown problem, not a data problem. The test creates a user and never removes
+      it — it leaves the system dirtier than it found it, and the second run walks into its own
+      mess. The rule is: whatever a test creates, the test destroys. So I'd add a cleanup step at
+      the end, deleteUser for that email, and now the test is repeatable indefinitely, because
+      every run starts from the same clean state it started from the first time. And I'd
+      specifically not go the random-email route, even though people suggest it, for two reasons.
+      One, you're generating junk — run it a thousand times in CI and you've got a thousand
+      abandoned accounts, and eventually somebody's cleaning that up by hand. Two, and this is the
+      real one, you lose reproducibility. With a fixed email I can open the database after a
+      failure and look at exactly the row the test touched. With a random one I don't know which
+      of a thousand rows was mine. Fixed data plus proper teardown is the disciplined version.
+      Emptying the whole database is that same idea taken too far — same benefit, much slower.
+    expected:
+      - dimension: "Names what cannot be repeated"
+        score: 2
+        because: 'Level 2: the user already exists, but the cause is declared "a teardown problem, not a data problem", so it is never connected to the fixed email in the test.'
+      - dimension: "The fix"
+        score: 1
+        because: "Level 1: deleteUser at the end instead of generating, argued against a random email precisely on the grounds that a fixed one is easier to find in the database afterwards."
+      - dimension: "The shortcut, and what it costs"
+        score: 2
+        because: 'Level 2: mentions clearing the database only as "that same idea taken too far — same benefit, much slower", with no cost beyond duration.'
+  - kind: correct-poorly-explained
+    text: |
+      It's the email. It's written there, tester at example dot com, and it's the same one every
+      time, so the first run created it and the second run is trying to create a person who
+      already exists, so the app says no, which is — the app is correct, that's the thing, the app
+      is doing the right thing, the test is the one that's wrong because it assumed nobody had
+      that email. So change it so it's not the same one. Timestamp, or random numbers at the end,
+      whatever, tester one two three four at example dot com but the number is different each run.
+      And then the last line, the count one, that also uses the email, so it has to use the new
+      generated one too, not the old written one, otherwise it's counting a different person.
+      Sorry. Um, and emptying the database, the cost — it's slow, obviously, but the real thing is
+      the job. The Lagos job is data as well, it's in there, so if you empty everything you've
+      emptied the job you're applying to, and now you have to load it back before every run, which
+      is more work than just changing an email.
+    expected:
+      - dimension: "Names what cannot be repeated"
+        score: 3
+        because: 'Level 3: the email is written into the test and the same every run, so the second run tries to create someone who already exists — "the app is doing the right thing, the test is the one that''s wrong".'
+      - dimension: "The fix"
+        score: 3
+        because: "Level 3: generates it per run, timestamp or trailing numbers, and carries the generated value into the final count so it is not counting a different person."
+      - dimension: "The shortcut, and what it costs"
+        score: 3
+        because: 'Level 3: the real cost is the Lagos job, which is data too, so clearing means loading it back before every run — "more work than just changing an email".'
+  - kind: nigerian-english
+    text: |
+      See, the email is hardcoded — "tester@example.com" — and the first run registered am. So
+      second run, createUser go try that same email, and the app will say this one is
+      already taken, so it will fail on the first line. And the app is correct o — it is doing
+      the right thing, the test is the one that is wrong. It can only work on a database where
+      that email is not there yet, and after the first run, that one has finished. So the fix is
+      to make the email different every time. Something like tester plus the timestamp at example
+      dot com, so every run will have its own user that nobody has collected.
+      And the last line will still work, because it is counting by that
+      same email — I will just pass the generated one there instead of the one they wrote. I could
+      also delete the user at the end, but me I prefer unique, because if the test break in the
+      middle, that delete will not run, and I am back to the same wahala. Emptying the database
+      — it is slow, and I will lose the job. "the-lagos-one" is inside the
+      database too, so I will wipe the very thing I want to apply to, and put am back every time.
+    expected:
+      - dimension: "Names what cannot be repeated"
+        score: 4
+        because: 'Level 4, as `strong`: the hardcoded email was registered by the first run, and the test "can only work on a database where that email is not there yet".'
+      - dimension: "The fix"
+        score: 3
+        because: "Level 3, as `strong`: a generated email per run, passed to the final count; the delete-at-the-end option is rejected rather than added."
+      - dimension: "The shortcut, and what it costs"
+        score: 3
+        because: 'Level 3, as `strong`: clearing loses the job — "the-lagos-one" is in the database too — and it would have to be put back every time.'

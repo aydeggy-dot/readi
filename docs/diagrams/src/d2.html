@@ -1,0 +1,26 @@
+<script>
+render('d2', 1240, 470, 'Delivery map — where the build stands', 'Five milestones are merged to main. The content programme is in flight on a branch. Everything from the interview engine onward is specified in detail but not started.', () => {
+  const rows = [
+    [['M0','Monorepo, infrastructure, CI','done'],['M1','Auth, profile, consent, CV','done'],['D1','The Margin design system','done'],['M2','Content model + admin CMS','done'],['M2.5','Roles/levels/stacks as content','done']],
+    [['Question banks','104 questions from blueprints','wip'],['M3','Interview engine (text) + diagnostic','next'],['M4','Evaluation, report, eval harness','todo'],['M5','Voice mode + STT benchmark','todo'],['M6','Delivery metrics, readiness, dashboard','todo']],
+    [['M7','Study plan & lessons experience','todo'],['M8','Billing: Paystack, Stripe, entitlements','todo'],['M9','Feedback, analytics, admin ops','todo'],['M10','Hardening & launch readiness','todo'],['Phase 2','Mobile · coding · camera · orgs','todo']],
+  ];
+  rows.forEach((row, r) => {
+    const y = 34 + r * 128;
+    row.forEach((m, c) => {
+      const x = 22 + c * 244;
+      const st = m[2] === 'done' ? 'accent' : m[2] === 'wip' ? 'pen' : 'planned';
+      const tag = m[2] === 'done' ? 'MERGED' : m[2] === 'wip' ? 'IN FLIGHT' : m[2] === 'next' ? 'NEXT UP' : 'PLANNED';
+      const tc = m[2] === 'done' ? P.ok : m[2] === 'wip' ? P.pen : m[2] === 'next' ? P.warn : P.muted;
+      const words = m[1].split(' ');
+      let l1 = '', l2 = '';
+      words.forEach(w => { if (!l2 && (l1 + ' ' + w).trim().length <= 28) l1 = (l1 + ' ' + w).trim(); else l2 = (l2 + ' ' + w).trim(); });
+      box({x, y, w:220, h:80, title:m[0], lines: l2 ? [l1, l2] : [l1], ts:15, state:st, tag, tagColor:tc});
+      if (c < 4) arrow(x + 220, y + 40, x + 244, y + 40, {color:'mute', w:1.2});
+    });
+    if (r < 2) arrow(1214, 34 + r*128 + 80, 1224, 34 + r*128 + 102, {color:'mute', w:1.2});
+  });
+  label(22, 432, 'Merged to main: M0 · M1 · D1 · M2 · M2.5, as five reviewed pull requests.  In flight: the question-bank branch — 15 commits, 104 questions, unmerged.', {anchor:'start', size:12, fill:P.ink});
+  label(22, 452, '689 automated tests were green at the last milestone review; 635 TypeScript and 77 Python tests plus the end-to-end suite are green on the current branch.', {anchor:'start', size:11.5});
+});
+</script>

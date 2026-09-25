@@ -1,31 +1,24 @@
+# The backend question bank: 34 questions for an intern/junior or mid-level interview — 25 general
+# and 9 written for a particular stack. A backend candidate is offered 38, because four role-general
+# questions live in the frontend bank and carry this role too; stack tagging means any one candidate
+# actually sees about 28. **Ten of the general questions are offered at intern-junior and the rest
+# are mid only** (owner's decision, 2026-09-23) — the level tag was doing almost no work when twenty
+# of twenty-five carried both, and several core topics are now deliberately short at intern-junior
+# rather than padded. `check-bank.mjs` reports each shortfall every run. Built to `content/seed/blueprints/backend.md`, which says
+# how many questions each core topic earns and why.
+#
+# One instruction for whoever asks these, which the seed format has nowhere to put: **an answer
+# drawn from a personal project, or a hypothetical, or "where I worked we did not have that, but I
+# would…", is scored on the same terms as one drawn from a job.** Much of this audience is
+# self-taught and has never had a code reviewer, a staging environment or a test suite.
+#
+# Draft, written by a model. `reviewer_notes` on each question says what the drafter is unsure
+# about — read those first, and see content/seed/REVIEW.md for what we are asking you to check.
 version: 1
 author: ai_draft
 status: draft
 
 questions:
-  - slug: api-error-shape
-    roles: [backend, fullstack]
-    levels: [mid]
-    type: technical
-    topic: api-design
-    subtopic: error handling
-    difficulty: 3
-    prompt: >-
-      You are designing the error responses for an API that a mobile app and a web app both use.
-      What does an error look like, and how does the client know what to do with it?
-    context: null
-    rubric: api-error-contract
-    ideal_points:
-      - A stable machine-readable code per error, separate from the human message.
-      - Status codes used by category, including the difference between 401, 403 and 404.
-      - Validation failures name the offending fields so the client can mark them.
-      - Nothing internal in the body — no stack traces, no SQL — and a request id for support.
-      - One shape, the same across every endpoint, written down.
-    reviewer_notes: >-
-      Marked mid rather than junior because the interesting part is the contract, not the syntax.
-      Is 409 versus 422 (in the top descriptor of criterion 2) a reasonable thing to expect, or is
-      it the kind of distinction that only reads as knowledge because it is obscure?
-
   - slug: n-plus-one-diagnosis
     roles: [backend, fullstack]
     levels: [mid]
@@ -35,7 +28,8 @@ questions:
     difficulty: 3
     prompt: >-
       An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your
-      machine. Nothing in the code looks expensive. How do you find out what is happening?
+      machine. Nothing in the code looks expensive. How do you find out what is happening? Take me
+      through it.
     context: null
     rubric: query-performance-diagnosis
     ideal_points:
@@ -44,6 +38,13 @@ questions:
       - Round trips dominate when the database is across a network, which is why the laptop lies.
       - "`EXPLAIN ANALYZE` the worst query; check for a sequential scan and the real row count."
       - Fetch related rows in one query, or add the index the plan asks for — then re-measure.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you expect to see in there?
+      - criterion: 2
+        probe: >-
+          What would you change on the strength of that?
     reviewer_notes: >-
       The "fast locally, slow in production" framing is meant to push towards round trips rather
       than raw query time. It may be too strong a hint. Would you rather the question said nothing
@@ -57,17 +58,1378 @@ questions:
     subtopic: incidents
     difficulty: 3
     prompt: >-
-      Tell me about a production problem you had a hand in causing. What happened, what did you do
-      at the time, and what changed afterwards?
+      Tell me about something you shipped that broke for real users — in production, or in a
+      project of your own. Take me through it.
     context: null
-    rubric: behavioural-answer-quality
+    rubric: incident-ownership
     ideal_points:
       - A specific incident, with their own part in it stated plainly.
       - What they did during it — and whether they told anyone early.
       - How it was resolved, including what was rolled back or hot-fixed.
       - "A change that outlived the incident: a test, an alert, a check in the deploy."
       - No blaming of a colleague or of "the process" without owning their share.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What did you do once you knew?
+      - criterion: 2
+        probe: >-
+          What is still different because of it?
+      - criterion: 2
+        probe: >-
+          How did anyone find out?
     reviewer_notes: >-
-      Candidates often arrive coached to avoid admitting fault, so the answers may be evasive
-      regardless of the person. Is this worth asking at mid level, or does it mostly measure
-      interview training? If it stays, should the rubric explicitly reward admitting a mistake?
+      **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It
+      used to say the question needed its own rubric instead of the generic
+      `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the
+      generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished
+      story about diagnosing *somebody else's* outage scored 3.70 against the candidate's own break
+      at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require
+      production, so a candidate whose only deployment is a personal project can answer. What to
+      check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it
+      carries two probes because it asks two things — is that one criterion or two?
+
+  # ---------------------------------------------------------------------------------------------
+  # Added 2026-09-22, the backend pass. Built to `content/seed/blueprints/backend.md`, which says
+  # how many questions each core topic earns and why. General questions first (rounds one and two
+  # of the skill's order of work are in one file here, as they were for frontend).
+
+  - slug: api-status-code-choice
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: api-design
+    subtopic: status codes
+    difficulty: 2
+    prompt: >-
+      A mobile app team says their error handling does not work against your API. This is what your
+      create-account endpoint sends back when the email is already taken. Tell me what the app has
+      to do to detect that failure. Walk me through it.
+    context: |
+      ```
+      HTTP/1.1 200 OK
+      Content-Type: application/json
+
+      { "success": false, "message": "Email already registered" }
+      ```
+    rubric: status-code-honesty
+    ideal_points:
+      - The app has to read the body to find out it failed, because the status line says it worked.
+      - Anything between the two — a proxy, a cache, a retry, an error tracker — reads the 200 and agrees.
+      - A failure the caller caused is a 4xx; this one is a conflict with data that already exists.
+      - The machine-readable part is the status plus a stable code, not the English sentence.
+      - Being consistent across every endpoint matters more than which 4xx is picked.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you send instead?
+      - criterion: 2
+        probe: >-
+          What else, between you and that phone, ever looks at that response?
+    reviewer_notes: >-
+      Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of
+      tutorials in this market teach, so a junior may have shipped it and be defending it rather
+      than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure
+      of is how hard to press on *which* 4xx: the answer key says a conflict, and the rubric puts
+      409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s
+      own note about 409 versus 422. Too soft?
+
+  - slug: api-list-that-grew
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: api-design
+    subtopic: collections
+    difficulty: 2
+    prompt: >-
+      Your `GET /jobs` endpoint returns every job as one array — it is called by your website and by
+      an Android app that is on twenty thousand phones. It was fine at two hundred jobs and there
+      are now forty thousand. What is going wrong, and for whom? Take me through it.
+    context: null
+    rubric: collection-endpoint-design
+    ideal_points:
+      - The response is megabytes; on mobile data that is slow, expensive and may simply fail.
+      - The server holds all of it in memory to build it, and the database reads all of it to answer.
+      - Return a page at a time, with a way to ask for the next one.
+      - The client needs to know there is more — a cursor, or a link — not to guess from the length.
+      - Existing callers break if the shape changes, so it needs a default, a version or a new path.
+      - Filtering and sorting belong on the server too, or every client downloads everything to find one row.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you change the endpoint?
+      - criterion: 2
+        probe: >-
+          You ship that on Monday morning — what happens to the app that is already out there?
+    reviewer_notes: >-
+      This is the question I would most want a junior to have met before their first job, and it is
+      here rather than at mid for that reason. Two things for you. The migration clause ("the apps
+      already calling it") adds 30% of the score for something a self-taught candidate may never have
+      had to do — the rubric accepts "I would keep the old shape working while the apps update" in any
+      form, but is asking it at intern-junior fair at all? And should the answer key insist on cursors
+      over offsets, or is that a mid distinction? It currently rewards either with a reason.
+
+  - slug: db-money-as-a-float
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: technical
+    topic: databases
+    subtopic: data types
+    difficulty: 2
+    prompt: >-
+      A handful of invoices stay marked unpaid although the customer has paid in full. This is the
+      column and this is the check — it is in JavaScript, but the idea is the same wherever you
+      work. Finance can see the two figures match and the check says they do not. Which of them is
+      wrong? Walk me through it.
+    context: |
+      ```sql
+      CREATE TABLE payments (
+        id          uuid PRIMARY KEY,
+        amount      double precision NOT NULL,   -- naira, e.g. 1500.10
+        created_at  timestamptz      NOT NULL
+      );
+      ```
+
+      ```js
+      const paid = await sumPayments(invoiceId);   // 45200.100000000006
+      if (paid === invoice.total) {                // invoice.total is 45200.10
+        await markPaid(invoiceId);
+      }
+      ```
+    rubric: money-storage-reasoning
+    ideal_points:
+      - A binary floating-point number cannot hold most decimal fractions exactly, so 45200.10 is not the value that was stored.
+      - The two numbers were never equal; the screen rounds them to two places and hides the difference.
+      - Comparing floats for equality is the wrong operation — a tolerance would work and is a patch, not a fix.
+      - Store an exact type — an integer number of kobo, or `numeric` with a fixed scale — and the comparison becomes exact.
+      - The currency belongs with the amount; the number alone does not say what it is.
+      - Changing the column means converting the rows already there, and checking the conversion before dropping anything.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Why does that make the check fail, rather than the two just being a little bit off?
+      - criterion: 2
+        probe: >-
+          What would you store instead?
+      - criterion: 2
+        probe: >-
+          And the rows that are already in that column?
+    reviewer_notes: >-
+      **Rewritten on 2026-09-22 after a critique pass showed the first version's premise was
+      arithmetically false.** It described daily naira totals drifting a few kobo and getting worse
+      over a month; `double precision` carries fifteen to sixteen significant digits, so a total
+      would have to reach about ₦10^14 before losing a kobo, and float errors are signed and largely
+      cancel rather than accumulating — the question was scoring an explanation that is not true. It
+      now turns on an equality comparison, which is what binary floats actually break, and the
+      failing criterion was replaced. Our own convention is integer minor units (CLAUDE.md §5), so
+      the answer key leads with kobo and accepts `numeric` equally — a Postgres or Java candidate
+      will reach for `numeric`/`BigDecimal` and is not wrong. Is the tolerance answer (compare within
+      a kobo) fairly placed at level 2, or is it good enough for a junior to score higher?
+
+  - slug: db-half-finished-transfer
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: technical
+    topic: databases
+    subtopic: transactions
+    difficulty: 3
+    prompt: >-
+      Support have found accounts where money left one and never arrived in the other. This is the
+      code that moves it, in JavaScript — the idea is the same wherever you work. Walk me through
+      how that state comes about.
+    context: |
+      ```js
+      async function transfer(fromId, toId, amountKobo) {
+        await db.query("UPDATE accounts SET balance = balance - $1 WHERE id = $2", [amountKobo, fromId]);
+        await notify(fromId, "Transfer sent");
+        await db.query("UPDATE accounts SET balance = balance + $1 WHERE id = $2", [amountKobo, toId]);
+      }
+      ```
+    rubric: transaction-boundary-reasoning
+    ideal_points:
+      - The two updates are separate; anything that stops the process between them leaves the money nowhere.
+      - The notification in the middle makes the window larger and can fail on its own.
+      - Both updates belong in one transaction, so either both happen or neither does.
+      - The notification belongs outside it — it is not something a database can roll back.
+      - The existing wrong rows need finding and correcting, not just a fix for the next one.
+      - A check that the balance does not go below zero belongs in the same transaction, not before it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change?
+      - criterion: 2
+        probe: >-
+          And the accounts that are already in that state?
+    reviewer_notes: >-
+      The snippet is deliberately readable without knowing the library — it is two SQL statements
+      and an await. My worry is the third criterion: asking what to do about the rows that are
+      already wrong is the part that separates someone who has been on call from someone who has
+      not, and it carries 25%. Since 2026-09-25 a probe asks it, which means it is put to exactly
+      the candidate who did not volunteer it. The rubric's level 1 there is "would fix the code and move on", which is an
+      honest junior answer — is 1 too harsh for it, or right? Also: is it fair to expect a candidate
+      to say the notification should move out, or is that a mid-only point?
+
+  - slug: cache-key-that-leaked
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: technical
+    topic: caching
+    subtopic: cache keys
+    difficulty: 3
+    prompt: >-
+      Users are reporting that they sometimes see someone else's dashboard — the wrong name, the
+      wrong figures — and refreshing fixes it. This is the caching that was added last week, in
+      JavaScript — the idea is the same wherever you work. Tell me what is happening. Walk me
+      through it.
+    context: |
+      ```js
+      app.get("/api/dashboard", auth, async (req, res) => {
+        const cached = await redis.get("dashboard");
+        if (cached) return res.json(JSON.parse(cached));
+
+        const data = await buildDashboard(req.user.id);
+        await redis.set("dashboard", JSON.stringify(data), "EX", 300);   // kept for 5 minutes
+        res.json(data);
+      });
+      ```
+    rubric: cache-key-diagnosis
+    ideal_points:
+      - The key is the same for every user, so the first user's dashboard is served to everyone.
+      - It is intermittent because it only shows while an entry is live, and the five minutes then expire.
+      - The key has to include whatever the response depends on — here, the user.
+      - "This is a data-exposure incident, not a bug: the first thing is to clear the cache and turn it off."
+      - Afterwards, work out who saw what, because someone's figures were shown to someone else.
+      - A per-user cache is worth much less than it looks, which is a reason to ask what is being cached at all.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Why does it come and go, rather than happening every time?
+      - criterion: 2
+        probe: >-
+          That fix takes you an hour to write and ship — what happens in that hour?
+    reviewer_notes: >-
+      The strongest answer treats this as an incident before it treats it as a bug, and criterion 3
+      is built around that — 30% for turning it off and working out who saw what, rather than for
+      the one-line key fix. I think that is right and it is the sort of thing a reviewer should
+      challenge, because it means a candidate who gives a perfect technical answer and never says
+      "tell someone" is capped at about 70%. Is that the judgement we want to make?
+
+  - slug: what-to-cache-and-for-how-long
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: caching
+    subtopic: what to cache
+    difficulty: 3
+    prompt: >-
+      A jobs board makes the same three database queries on every page load — the list of open
+      jobs, the categories, and the signed-in user's saved jobs — and the database is struggling
+      at peak. Which of those would you cache, and which would you leave alone?
+    context: null
+    rubric: caching-judgement
+    ideal_points:
+      - The categories barely change and are the same for everyone — the cheapest and safest to hold.
+      - The jobs list changes, but a minute or two of staleness is usually acceptable, and that is a product question.
+      - The user's saved jobs are per-user and change because of something that user just did, so it is the worst candidate.
+      - Each cached thing needs a way to stop being wrong — a short life, or being dropped when the underlying data is written.
+      - Caching hides a slow query rather than fixing it, so it is worth knowing why the queries are slow first.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          For whichever you would cache — what stops a stale copy staying around?
+      - criterion: 2
+        probe: >-
+          The database is comfortable again — what have you fixed?
+    reviewer_notes: >-
+      Deliberately three things rather than one, so the answer has to discriminate rather than
+      recite "cache the hot path". The risk is that it rewards talkers — there is no code and no
+      single right answer — so the rubric puts 40% on the discrimination itself and level 4 asks
+      the candidate to name what would change their mind. Does it still leave room for a good
+      candidate who would simply say "I would fix the queries first"? I have made that a level-4
+      point on criterion 3 rather than a wrong answer.
+
+  - slug: email-in-the-request
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: async-work
+    subtopic: moving work out of the request
+    difficulty: 2
+    prompt: >-
+      Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user
+      gets an error and no account. This is the handler, in JavaScript — the idea is the same
+      wherever you work. What is the person signing up waiting four seconds for? Walk me through it.
+    context: |
+      ```js
+      app.post("/api/signup", async (req, res) => {
+        const user = await createUser(req.body);
+        await sendWelcomeEmail(user.email);   // calls the provider's API
+        res.status(201).json({ id: user.id });
+      });
+      ```
+    rubric: background-work-reasoning
+    ideal_points:
+      - The user waits for something they did not ask for and cannot benefit from.
+      - A failure in the email fails the sign-up, although the account was already created.
+      - The email is not part of the thing being asked for, so it belongs outside the request — a queue, or a job.
+      - The response then returns as soon as the account exists, which is the thing the user wanted.
+      - Moving it out means it can be retried when the provider recovers, which it cannot be now.
+      - The user should be told the email is coming, not left wondering — and there needs to be a way to resend it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change?
+      - criterion: 2
+        probe: >-
+          What does that person see and get told — including if the email never arrives?
+    reviewer_notes: >-
+      The most common wrong answer here is to remove the `await` and leave the call in the handler,
+      which looks like it works and loses every failure silently — the rubric has a descriptor for
+      it at level 1 of criterion 2 rather than treating it as vagueness, because a candidate who
+      does it says so confidently. Worth checking whether "put it on a queue" is a reasonable thing
+      to expect from a candidate who has only ever deployed to one machine; the rubric accepts any
+      mechanism that gets the work out of the request, including a cron job over a table — is that the right floor, or should the answer key expect a
+      real queue?
+
+  - slug: the-job-that-ran-twice
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: async-work
+    subtopic: retries and duplicates
+    difficulty: 3
+    prompt: >-
+      A background job that pays out to a vendor ran twice for the same payout, and the vendor was
+      paid twice. The logs show the worker was restarted in the middle of the first run. Why does a
+      queue do that? Take me through it.
+    context: null
+    rubric: duplicate-job-reasoning
+    ideal_points:
+      - A queue that guarantees delivery has to re-deliver anything it cannot confirm was finished.
+      - A worker that dies mid-job never confirms, so the job comes back — that is the queue working, not failing.
+      - The job has to be safe to run twice, rather than the queue being asked to promise it will not.
+      - Record that this payout was made, in the same transaction as making it, and check that record first.
+      - A natural key the payment provider will also recognise is better than a flag only we can see.
+      - The vendor is told, and the money is recovered through the provider rather than quietly.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change so it cannot cost money next time?
+      - criterion: 2
+        probe: >-
+          And the payment that has already gone out twice?
+    reviewer_notes: >-
+      This is the backend half of the frontend bank's `retry-and-the-double-charge` and they are
+      deliberately different questions — that one is about what the interface does while a request
+      is in flight, this one is about a worker that has already died. A reviewer should confirm they
+      do not feel like the same question to a full-stack candidate, who is offered both. The third
+      criterion — the probe about the payment that has already gone out twice — is 25% and is not a
+      technical point: it is there
+      because the honest answer to a double payment is not only a code change. Is scoring that fair, or
+      is it a test of confidence rather than of engineering?
+
+  - slug: passwords-in-the-database
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: auth
+    subtopic: credential storage
+    difficulty: 2
+    prompt: >-
+      You have joined a team and this is how sign-in works. It is in JavaScript; the idea is the
+      same wherever you work. Tell me what is wrong with the way that password is stored. Walk me
+      through it.
+    context: |
+      ```js
+      // on sign-up
+      const hash = crypto.createHash("md5").update(password).digest("hex");
+      await db.query("INSERT INTO users (email, password_hash) VALUES ($1, $2)", [email, hash]);
+
+      // on sign-in
+      const hash = crypto.createHash("md5").update(password).digest("hex");
+      const user = await db.query("SELECT * FROM users WHERE email = $1 AND password_hash = $2", [email, hash]);
+      ```
+    rubric: credential-storage-reasoning
+    ideal_points:
+      - MD5 is fast by design, which is exactly what a password hash must not be.
+      - The same password gives the same hash for every user, so one leaked table reveals the repeats.
+      - Use a slow hash built for passwords — bcrypt, scrypt or Argon2 — which salts each one itself.
+      - Existing hashes cannot be converted, because the password is not recoverable from them.
+      - Re-hash each password at the user's next successful sign-in, and expire the rest.
+      - Comparing in SQL means the comparison is not constant-time and the hash is in the query log.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change it to?
+      - criterion: 2
+        probe: >-
+          What has to happen to the accounts that already exist?
+    reviewer_notes: >-
+      Kept at intern-junior because it is the most important thing on this list and because the
+      answer does not depend on having had a job. The migration clause is the part I am unsure of —
+      "you cannot convert them, so re-hash on next sign-in" is a genuinely non-obvious answer and it
+      carries 25%. The rubric gives level 2 to "force everyone to reset their password", which works
+      and is worse, and level 3 to re-hashing on sign-in. Is that ordering right, or is a forced
+      reset the responsible answer after a suspected leak?
+
+  - slug: who-is-allowed-to-see-this
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: auth
+    subtopic: authorisation
+    difficulty: 3
+    prompt: >-
+      A tester signed in as an ordinary user, changed the number in the address bar, and read
+      somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever
+      you work. Explain what the check that is there does, and what it does not do.
+    context: |
+      ```js
+      app.get("/api/invoices/:id", requireSignIn, async (req, res) => {
+        const invoice = await db.invoices.findById(req.params.id);
+        if (!invoice) return res.status(404).json({ code: "not_found" });
+        res.json(invoice);
+      });
+      ```
+    rubric: authorisation-reasoning
+    ideal_points:
+      - The check proves who the user is; nothing checks whether this invoice is theirs.
+      - Knowing someone is signed in says nothing about what they may see.
+      - Ask for the invoice by id *and* owner, so a mismatch cannot return a row at all.
+      - Doing it in the query rather than after the fetch means there is no gap to forget.
+      - It belongs somewhere every route inherits, not copied into each handler where one will be missed.
+      - Returning 404 rather than 403 avoids confirming that the other invoice exists.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you write the one that is missing?
+      - criterion: 2
+        probe: >-
+          There are forty other routes like this one. What do you do?
+    reviewer_notes: >-
+      This is the bug I would most expect to find in a real codebase here, and the prompt supplies
+      the whole scenario so it needs no employer. The 404-versus-403 point is level 4 of criterion 3
+      rather than an expectation, because it is a genuine trade-off and reasonable people write it
+      the other way. What I would like a reviewer to weigh is whether "put it in the query" should
+      really outrank "fetch, then compare and throw" — they are equally correct, and I ranked the query
+      version higher on the grounds that it cannot be forgotten halfway. Is that defensible?
+
+  - slug: two-people-bought-the-last-one
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: concurrency
+    subtopic: check-then-act
+    difficulty: 3
+    prompt: >-
+      There was one unit left and two customers both got a confirmation. It happens perhaps once a
+      week, always at peak. The code is JavaScript; the idea is the same wherever you work. Talk
+      me through how both requests got past that check.
+    context: |
+      ```js
+      const item = await db.items.findById(id);
+      if (item.stock < 1) {
+        return res.status(409).json({ code: "out_of_stock" });
+      }
+      await db.items.update(id, { stock: item.stock - 1 });
+      await createOrder(userId, id);
+      ```
+    rubric: race-condition-reasoning
+    ideal_points:
+      - Two requests can both read a stock of 1 before either has written, so both pass the check.
+      - It is rare because the two have to land inside the same short window, which peak traffic makes likelier.
+      - Writing `stock = stock - 1` back from a value read earlier overwrites whatever happened in between.
+      - Let the database do the check and the decrement in one statement, and use what it reports.
+      - A condition in the write — only decrement where stock is still above zero — means the loser gets nothing to update.
+      - A constraint that forbids negative stock makes it impossible rather than unlikely.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Why once a week rather than every time?
+      - criterion: 2
+        probe: >-
+          What would you change?
+    reviewer_notes: >-
+      The blueprint named this as the one concurrency question that is fair at intern-junior, and I
+      have written it so the whole answer is available from the snippet without the words "race
+      condition" or "isolation level". The middle clause — why it is rare rather than constant — is
+      there because a candidate who cannot say why has usually recognised the pattern rather than
+      understood it. Is that separation real, or am I rewarding a particular way of explaining?
+
+  - slug: the-dependency-that-got-slow
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: backend-reliability
+    subtopic: timeouts
+    difficulty: 3
+    prompt: >-
+      Your payment provider started taking thirty seconds to answer instead of half a second. They
+      did not go down — they got slow. Within a few minutes your whole API was unreachable,
+      including the pages that have nothing to do with payments. Explain how one slow dependency
+      took the whole service with it.
+    context: null
+    rubric: slow-dependency-reasoning
+    ideal_points:
+      - Each waiting request is holding something — a connection, a worker, a thread — for thirty seconds instead of half of one.
+      - Those run out, so requests that never touch payments queue behind the ones that do.
+      - A call to someone else's service needs a deadline, and the deadline has to be shorter than your own.
+      - When the deadline passes, the request fails cleanly rather than waiting to be killed.
+      - After enough failures, stop calling for a while rather than sending every request into the same wall.
+      - Work that can wait — the receipt, the ledger entry — should not be in the request at all.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change about how that call is made?
+      - criterion: 2
+        probe: >-
+          Say it is still answering slowly ten minutes later — what should your service be doing
+          by then?
+    reviewer_notes: >-
+      Written so it can be answered without the words "circuit breaker" or "bulkhead": the rubric
+      scores stopping calling for a while, by any name, and names the pattern only in a level-4
+      descriptor. The part I am least sure of is what they would have had in place, which is now
+      the second probe — it is phrased in the past because asking "what would you do now" pulls
+      candidates into incident response, which is a different question. Does the past tense read as a trap to a nervous
+      candidate?
+
+  - slug: what-happens-when-it-is-down
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: backend-reliability
+    subtopic: degrading
+    difficulty: 2
+    prompt: >-
+      Your sign-in sends a one-time code by SMS, and the provider is returning errors for
+      everybody. You cannot tell whether any particular code was sent or not. What does that
+      person see on screen? Give me the words.
+    context: null
+    rubric: degradation-reasoning
+    ideal_points:
+      - The message does not say the code was sent, because we do not know that it was.
+      - It says the failure is ours, so the person does not conclude they mistyped their number.
+      - It says roughly what to do — wait and try again shortly — rather than only apologising.
+      - A second route in (email, or an existing session) turns a dead end into an inconvenience.
+      - A vague "something went wrong" costs us — the person retypes and retries, adding load to a failing provider.
+      - Whatever is on screen, the sign-in itself fails closed — no code, no session.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          They have typed their number, tapped the button and got that — what do they think just
+          happened?
+      - criterion: 2
+        probe: >-
+          What do you give them to do next?
+    reviewer_notes: >-
+      **Narrowed on 2026-09-23 (owner's decision).** It used to ask what the code does with the
+      failure, what the person sees, and what you would want to be true next time — and a critique
+      pass was right that the middle of that overlapped `the-dependency-that-got-slow` and that
+      its strongest answer (a second SMS provider) is a product decision the candidate does not
+      own. What is left is the one thing nothing else in the bank asks: what a user is told when
+      we do not know what happened. The rubric is now three facets of that. **The stress answers
+      predate the narrowing** and were written to the wider prompt, so they carry unscored
+      material about alerting; they still cover the message and the separations hold, but rewrite
+      the set when this question is next touched. Is one question about a message worth a slot, or
+      is this now too small to ask?
+
+  - slug: tests-that-share-a-database
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: technical
+    topic: backend-testing
+    subtopic: test isolation
+    difficulty: 3
+    prompt: >-
+      The backend test suite passes when you run one file and fails when you run all of them, and
+      the failures move around. It fails on CI more often than locally. The test is in JavaScript;
+      the idea is the same wherever you work. Tell me what you think is going on. Walk me through
+      it.
+    context: |
+      ```js
+      test("lists active vendors", async () => {
+        await db.vendors.insert({ name: "Adaeze Foods", active: true });
+        const result = await listVendors();
+        expect(result).toHaveLength(1);
+      });
+      ```
+    rubric: test-isolation-diagnosis
+    ideal_points:
+      - The test asserts on the whole table, so any row another test left behind breaks it.
+      - Tests that share a database are not independent, and the order they run in decides the result.
+      - CI is worse because it runs them differently — in parallel, or in a different order, or on a database that was not fresh.
+      - Confirm it by running the failing test alone, and by running the suite in a different order.
+      - Each test should set up what it needs and leave nothing — a transaction rolled back, or a truncate between tests.
+      - Assert on the row it created rather than on the size of the table, so a stray row cannot fail it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you know you were right?
+      - criterion: 2
+        probe: >-
+          How would you make the suite trustworthy again?
+    reviewer_notes: >-
+      The snippet is the smallest thing that shows the defect, and the fix has two halves that are
+      worth different things — isolating the data (35%) and not asserting on global state (35%) —
+      so a candidate who only says "truncate between tests" cannot reach the top. That may be
+      harsh: truncating does fix the symptom. I have put it at level 3 of criterion 3 and reserved 4
+      for noticing the assertion. Is that split right, and is the whole question simply too hard at
+      intern-junior?
+
+  - slug: mocking-what-you-do-not-own
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: backend-testing
+    subtopic: test doubles
+    difficulty: 3
+    prompt: >-
+      Every test of your payment code passes, and a live payment has been failing for two days. The
+      tests stand in for the provider with a fake that returns a successful response. What did those
+      passing tests prove? Take me through it.
+    context: null
+    rubric: test-double-judgement
+    ideal_points:
+      - The tests prove your code handles the response you wrote down, not the one the provider sends.
+      - A stand-in drifts as soon as the real thing changes, and nothing tells you it has.
+      - Stand in for it anyway — tests that call a live payment provider are worse — but stand in for its failures too.
+      - Base the fake on a real recorded response rather than on what the documentation implies.
+      - "Something has to touch the real provider on a schedule: a sandbox test, or a real low-value transaction."
+      - A failure rate you can see is what actually catches this, not another test.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change about the tests themselves?
+      - criterion: 2
+        probe: >-
+          Two days went by before anyone knew — what would have shortened that?
+    reviewer_notes: >-
+      The point of this question is that the honest answer is "no test would have caught this", and
+      the rubric is built so a candidate who says so scores well rather than appearing to give up —
+      criterion 3 is about what you put in place *instead of* a test. That is an unusual shape — does it read as a
+      trick? And it assumes the candidate has integrated a third-party API at all: common enough here
+      in agency work, and the prompt supplies the situation, but is that assumption safe for a
+      self-taught candidate who has only read about it?
+
+  - slug: it-failed-and-we-do-not-know-why
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    type: technical
+    topic: observability
+    subtopic: logging
+    difficulty: 2
+    prompt: >-
+      A user says their transfer failed yesterday at about two in the afternoon. This is every
+      line your service wrote about it. Tell me what you can and cannot find out from this.
+    context: |
+      ```
+      2026-09-21T13:58:04Z  error
+      2026-09-21T14:02:11Z  error
+      2026-09-21T14:02:11Z  something went wrong
+      ```
+    rubric: log-usefulness-reasoning
+    ideal_points:
+      - There is no way to tell which user, which transfer, or what failed — only that something did.
+      - Nothing ties these lines to one request, so two users failing at once are indistinguishable.
+      - Log an identifier for the request and for the user, the operation, and what actually failed.
+      - The error itself — the message and where it came from — rather than the word "error".
+      - "Enough to answer the question without a deployment: which step, and what the inputs were in outline."
+      - Not the account number, the phone number, the token or the amount in plain text — an id stands in for the person.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you have logged instead?
+      - criterion: 2
+        probe: >-
+          Who reads those lines besides you?
+    reviewer_notes: >-
+      The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts,
+      CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so
+      it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It
+      carries 25%. Two things
+      to check: is asking a junior what they would keep *out* of a log fair, and is the Nigerian
+      framing right — I have made the phone number the thing most worth keeping out, because it is the
+      account identifier for much of this market — is that the right emphasis?
+
+  - slug: how-would-you-know-it-broke
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: observability
+    subtopic: alerting
+    difficulty: 3
+    prompt: >-
+      Your checkout endpoint has been failing for about one request in twelve for three days, and
+      the first anyone heard of it was a customer complaint this morning. What would you want
+      measured, so that a week from now the same failure reaches you first?
+    context: null
+    rubric: alerting-judgement
+    ideal_points:
+      - The rate of failures matters, not the count — one in twelve of a small number is invisible in a total.
+      - "Measure it where the user is affected: responses by status, per endpoint, over time."
+      - The measure has to have a normal, or there is nothing for "worse than usual" to mean.
+      - An alert nobody is responsible for is not an alert; somebody has to receive it and be able to act.
+      - An alert that fires often and means nothing gets ignored, which is how three days happen.
+      - Latency and volume belong beside errors — a checkout that has stopped being called is also broken.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What makes it fire?
+      - criterion: 2
+        probe: >-
+          Who gets that, and what do they do next?
+    reviewer_notes: >-
+      This is the question in the bank most likely to be unfair to a self-taught candidate, because
+      "what would have to be true for anyone to act on it" describes a team. I have written the
+      rubric so that an answer about one person — themselves — being paged and knowing what to do
+      scores the same as an answer about a rota, and criterion 3's level 0 is reserved for treating
+      an alert as done once it is configured. Does that actually hold? It is the difference between
+      scoring judgement and scoring employment.
+
+  - slug: the-feature-that-needs-a-queue
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: system-design-basics
+    subtopic: long-running work
+    difficulty: 3
+    prompt: >-
+      Product want a button that exports everything a user has ever done as a PDF. On a heavy
+      account it takes about forty seconds to build. What does your endpoint do when somebody
+      presses that button?
+    context: null
+    rubric: long-running-work-design
+    ideal_points:
+      - Forty seconds is far past what a request should hold, so the work leaves the request.
+      - The button accepts the job and returns immediately with something that identifies it.
+      - The user is told it is being prepared and is told again when it is ready — a page that updates, an email, a notification.
+      - The finished file goes to object storage and the user gets a link, rather than the file coming back through the API.
+      - Under load the queue absorbs the burst; what has to be sized is the number of workers, not the endpoint.
+      - Failures need a route back to the user, and a second press should not start a second export.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What does the user see from there on?
+      - criterion: 2
+        probe: >-
+          A hundred people press it in the same minute — where does that pile up?
+    reviewer_notes: >-
+      Mid only. This is as close to a system-design round as the engine can get without a drawing
+      surface, and it is written as one user-visible feature rather than "design a system" for that
+      reason. The hundred people at once — now the second probe — is what stops it being answered
+      purely as a queue tutorial. My worry used to be length, and the 2026-09-25 retrofit answered
+      it: the opening asks one thing and the rest arrives only if the answer has not covered it.
+      Are the three parts still one question, or two?
+
+  - slug: one-server-to-two
+    roles: [backend, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: system-design-basics
+    subtopic: scaling out
+    difficulty: 3
+    prompt: >-
+      Everything runs on one machine — the API, the database, the uploaded files — and traffic has
+      tripled since a radio advert. You are thinking of adding a second machine behind a load
+      balancer. Tell me what breaks the moment you do that.
+    context: null
+    rubric: scaling-out-reasoning
+    ideal_points:
+      - Anything held in the machine's memory stops working — sessions, in-process caches, scheduled jobs that now run twice.
+      - Files written to local disk exist on one machine and not the other.
+      - The database is still one thing, so adding a second API machine does not help if the database is the constraint.
+      - "Measure first: what is actually saturated — CPU, memory, connections, disk — before moving anything."
+      - Move state out before adding the machine, rather than adding it and chasing the failures.
+      - Some of the gain is cheaper than the second machine — a slow query, a missing index, a cache.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What do you know right now about where the time is going?
+      - criterion: 2
+        probe: >-
+          What order would you do it in?
+    reviewer_notes: >-
+      Written to be answerable by someone who has only ever run one box, because that describes a
+      lot of this audience and the question is precisely about what they have not had to think about
+      yet. The scheduled-jobs-run-twice point is the one I would expect almost nobody to volunteer, so it is
+      level 4 rather than an expectation. And is "a radio advert" the right framing — a real way
+      traffic arrives here, or does it read as unserious?
+
+  - slug: the-estimate-that-slipped
+    roles: [backend, frontend, qa, fullstack]
+    levels: [intern-junior, mid]
+    type: behavioral
+    topic: written-communication
+    subtopic: escalating early
+    difficulty: 2
+    prompt: >-
+      You said a piece of work would be done by Friday. It is Wednesday morning and you are now
+      sure it will not be. Tell me what you write.
+    context: null
+    rubric: escalating-early
+    ideal_points:
+      - It goes out on Wednesday, not on Friday — the value of the message is the notice it gives.
+      - It says what is done, what is left, and what the new date is, rather than apologising.
+      - It names the cause plainly, including when the cause was their own estimate.
+      - It offers something the reader can decide — cut this part, take this help, move the date.
+      - It goes to whoever is depending on the date, not only to the person who asked for it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Friday is when everyone would have found out anyway — what does telling them on
+          Wednesday buy them?
+      - criterion: 2
+        probe: >-
+          Has there been a time you had to do that for real — and if there has not, what would you
+          do?
+    reviewer_notes: >-
+      The second question the frontend blueprint said belonged in this pass, and the second
+      `written-communication` question for every wave-1 role. The message is asked first and the
+      story last, deliberately — the opening asks what they would write, and the story is the final
+      probe: a candidate who has never had a deadline slip in a job can still answer the first half
+      completely, and the rubric splits 70/30 that way so nobody is capped by not having had it. Is 30% still too much to hang on having had it?
+
+  - slug: the-part-you-did-not-write
+    roles: [backend, frontend, qa, fullstack]
+    levels: [intern-junior, mid]
+    type: behavioral
+    topic: own-work
+    subtopic: unfamiliar code
+    difficulty: 3
+    prompt: >-
+      Tell me about a time you had to work on code you did not write and did not understand — a
+      tutorial project, a library, something at work, anything. How did you get your bearings?
+    context: null
+    rubric: unfamiliar-code-approach
+    ideal_points:
+      - A specific piece of code, named concretely enough to ask a follow-up about.
+      - A way in that is not reading it top to bottom — running it, following one request, changing something to see what moves.
+      - Working out what the code is for before deciding what it does wrong.
+      - Something that told them a change was safe — a test, a small experiment, someone to ask, a way to undo it.
+      - A change that is smaller than it was tempting to make, and why they kept it small.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How did you decide it was safe to change?
+      - criterion: 2
+        probe: >-
+          What did you end up changing?
+    reviewer_notes: >-
+      The second `own-work` question, and the bank's answer to the gap a remote hiring manager named
+      as the thing that actually predicts month six — every other question hands the candidate a
+      small, complete snippet they own. The prompt says "a tutorial project, a library, something at
+      work, anything" so it cannot require an employer. What a reviewer should check is whether the
+      question survives being asked of a candidate whose honest answer is "I have only ever worked
+      on my own code" — my view is that anyone who has used a library they had to read has an answer — am I assuming too
+      much?
+
+  # ---------------------------------------------------------------------------------------------
+  # The stack-tagged questions. The rule (ADR-0015): these are the things that would be unfair or
+  # meaningless to ask a candidate on another variant — a Spring proxy, a Laravel model, an
+  # ASP.NET thread pool. Anything a Go candidate and a Rails candidate would both answer the same
+  # way is in the general set above instead.
+
+  - slug: node-blocked-event-loop
+    roles: [backend, fullstack]
+    levels: [mid]
+    stacks: [nodejs, react-node, nextjs]
+    type: technical
+    topic: concurrency
+    subtopic: the event loop
+    difficulty: 3
+    prompt: >-
+      This export endpoint works. But while anyone is downloading an export, every other request
+      to the service — health checks included — takes seconds instead of milliseconds, and the
+      service gets restarted for failing its health check. Explain why one request is able to do
+      that.
+    context: |
+      ```js
+      app.get("/api/export", async (req, res) => {
+        const rows = await db.orders.findAll();          // ~80,000 rows
+        const csv = rows.map(toCsvLine).join("\n");
+        res.type("text/csv").send(csv);
+      });
+      ```
+    rubric: event-loop-blocking-diagnosis
+    ideal_points:
+      - One thread runs every request's JavaScript, so work that does not pause holds all of them.
+      - The `await` is not the problem — waiting on the database yields; the mapping and joining do not.
+      - The health check is behind the same queue, so the service looks dead and is restarted mid-export.
+      - Move the work off the thread — a worker thread, a separate process, or a job the request only starts.
+      - Streaming the rows out as they arrive avoids building the whole string at all.
+      - Measure it rather than guess — the event loop delay is a number you can watch.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          The service also got restarted. Why?
+      - criterion: 2
+        probe: >-
+          What would you change?
+    reviewer_notes: >-
+      **Version-sensitive: checked against nodejs.org on 2026-09-22 (Node v26).** `worker_threads`
+      is stable and the API docs call Workers useful for CPU-intensive JavaScript — but Node's own
+      "Don't Block the Event Loop" guide is stale and never names it, still pointing at C++ addons,
+      an abandoned npm package, child processes and cluster. **Credit a worker thread or a separate
+      process equally**; partitioning and the stream APIs are recommended on both pages. A full-stack candidate is also offered `js-async-ordering`, which is the same
+      single thread seen from the browser — please check the two do not feel like one question
+      asked twice. I think they do not: that one is about a frame that never paints, this one is
+      about other people's requests, and the fix is different in kind. The other thing to weigh: is the health-check detail
+      a gift or the point? I have made it the point, because "and then it gets restarted" is what
+      turns this from slow into an outage.
+
+  - slug: node-async-error-never-caught
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    stacks: [nodejs, react-node, nextjs]
+    type: technical
+    topic: backend-reliability
+    subtopic: error handling
+    difficulty: 2
+    prompt: >-
+      When the database is unavailable this route does not return the 500 it looks like it should.
+      The whole service goes down instead — every request in flight dies with it — and the process
+      is restarted. Talk me through what happens to that error.
+    context: |
+      ```js
+      app.post("/api/orders", (req, res) => {
+        try {
+          createOrder(req.body).then((order) => res.status(201).json(order));
+        } catch (err) {
+          res.status(500).json({ code: "order_failed" });
+        }
+      });
+      ```
+    rubric: async-error-path-diagnosis
+    ideal_points:
+      - "`createOrder` returns immediately; the `try` block has already finished before the work fails."
+      - A rejected promise is not an exception the surrounding `try` can see.
+      - An unhandled rejection is treated as an uncaught exception, and the default is to terminate the process.
+      - "`await` inside an `async` handler puts the failure back where the `catch` can see it."
+      - A `.catch` on the chain does the same thing without `async`.
+      - An error handler at the framework level is what stops the next route having the same hole.
+      - One request's unhandled rejection killing every other request in flight is the reason this matters more than the missing 500.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Why does that take the whole service with it?
+      - criterion: 2
+        probe: >-
+          How would you write it?
+    reviewer_notes: >-
+      **Version-sensitive: Node's unhandled-rejection default, not yet checked against nodejs.org —
+      please verify before this ships.** A critique pass pointed out the first version was wrong:
+      it said the request hangs until it times out, but since Node 15 the default mode is `throw`,
+      so an unhandled rejection is an uncaught exception and the **process exits**. The prompt now
+      says the service goes down, which is the better question anyway — one missing `catch` taking
+      down every other request in flight is a much larger fact than a missing 500. Kept at
+      intern-junior because it is a shape a self-taught Node developer writes early and keeps
+      writing. Does the crash framing make the answer too easy to guess?
+
+  - slug: node-state-between-requests
+    roles: [backend, fullstack]
+    levels: [mid]
+    stacks: [nodejs, react-node, nextjs]
+    type: technical
+    topic: concurrency
+    subtopic: request-scoped state
+    difficulty: 3
+    prompt: >-
+      This works perfectly in development and, in production, users occasionally get an email
+      addressed to somebody else. Tell me how that happens. Walk me through it.
+    context: |
+      ```js
+      let currentUser = null;
+
+      app.use(async (req, res, next) => {
+        currentUser = await loadUser(req.headers.authorization);
+        next();
+      });
+
+      app.post("/api/invite", async (req, res) => {
+        await sendInvite(req.body.email, currentUser.name);
+        res.status(204).end();
+      });
+      ```
+    rubric: request-state-diagnosis
+    ideal_points:
+      - The variable belongs to the module, not to the request, so every request shares one.
+      - A request that pauses at an `await` can be overtaken, and the value it comes back to is someone else's.
+      - Testing by hand sends one request at a time, so nothing ever overlaps.
+      - The user belongs on the request — `req.user` — and travels with it.
+      - Passing it as an argument to whatever needs it is the version that cannot be got wrong.
+      - If something deep in the stack genuinely needs it, that is what request-scoped storage is for, and it is a last resort.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Why would testing this by hand almost never show it?
+      - criterion: 2
+        probe: >-
+          What would you change?
+    reviewer_notes: >-
+      This is the Node bug I would most want a mid candidate to recognise, because the single thread
+      makes it feel impossible until you think about the `await`. The "why would testing by hand not
+      show it" clause carries 25% and is the part that shows whether the candidate understands the
+      interleaving or has recognised the shape. Is it too subtle even at mid? A reviewer who hires Node
+      engineers here will know better than I do.
+
+  - slug: spring-transaction-did-not-roll-back
+    roles: [backend]
+    levels: [mid]
+    stacks: [java-spring]
+    type: technical
+    topic: databases
+    subtopic: transactions
+    difficulty: 3
+    prompt: >-
+      The order is saved even when the payment record fails, although the method that does both is
+      annotated to be transactional. Tell me why the annotation is not doing what it looks like it
+      does here. Walk me through it.
+    context: |
+      ```java
+      @Service
+      public class OrderService {
+
+        public void placeOrder(OrderRequest request) {
+          validate(request);
+          saveOrderAndPayment(request);
+        }
+
+        @Transactional
+        public void saveOrderAndPayment(OrderRequest request) {
+          orderRepository.save(toOrder(request));
+          paymentRepository.save(toPayment(request));   // throws DataIntegrityViolationException
+        }
+      }
+      ```
+    rubric: spring-transaction-diagnosis
+    ideal_points:
+      - The annotation is applied by a proxy wrapped around the bean, not by the method itself.
+      - A call from inside the same object goes straight to the method and never passes through the proxy.
+      - So no transaction is started, and each save commits on its own.
+      - Move the transactional boundary to the method that is called from outside, or put it in another bean.
+      - The boundary belongs where the unit of work is, which is usually the entry point rather than the inner method.
+      - Injecting a self reference so the call goes through the proxy also works, and is worth asking where the unit of work really begins.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you fix it?
+      - criterion: 2
+        probe: >-
+          Say you move the annotation up to `placeOrder`, so the whole request is one transaction
+          — happy with that?
+    reviewer_notes: >-
+      **Version-sensitive: Spring's proxy-based `@Transactional`, checked against docs.spring.io
+      on 2026-09-22 (Spring Framework 7.0).** Self-invocation bypassing the proxy still holds —
+      "only external method calls coming in through the proxy are intercepted". **A correction for
+      graders:** the documentation ranks three fixes, and self-injection is one it documents as an
+      alternative, not one it warns against; only `AopContext.currentProxy()` is "highly
+      discouraged", and the `@Transactional` page itself points at AspectJ mode. A candidate who
+      reaches for a self reference is not wrong, and the rubric credits it. This is the
+      single most common Spring bug in code I would expect to see here, and it is unfair to ask any
+      other variant, which is why it is tagged. Is a mid candidate in this market likely to have met
+      it, or does it belong at a level we do not offer?
+
+  - slug: spring-default-error-body
+    roles: [backend]
+    levels: [intern-junior, mid]
+    stacks: [java-spring]
+    type: technical
+    topic: api-design
+    subtopic: error responses
+    difficulty: 2
+    prompt: >-
+      This is what a mobile client receives when it posts a sign-up with a bad email address, from a
+      service that has switched on Spring Boot's message and stack-trace settings. What can the
+      client do with this? Walk me through it.
+    context: |
+      ```json
+      {
+        "timestamp": "2026-09-21T14:02:11.332+00:00",
+        "status": 400,
+        "error": "Bad Request",
+        "trace": "org.springframework.web.bind.MethodArgumentNotValidException: Validation failed for argument [0] in public...",
+        "message": "Validation failed for object='signUpRequest'. Error count: 1",
+        "path": "/api/signup"
+      }
+      ```
+    rubric: framework-error-body-judgement
+    ideal_points:
+      - The status is right and nothing else in it is for a client.
+      - The client cannot tell which field was wrong, so it cannot mark the field.
+      - The stack trace names internal classes and the framework version, which is information we are giving away.
+      - "`message` is English prose that will be rewritten by the next upgrade — nothing should branch on it."
+      - Send a stable code, and a list of the fields that failed with what was wrong about each.
+      - The shape should be the same for every error in the API, not whatever each layer happens to throw.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What is each of those fields for?
+      - criterion: 2
+        probe: >-
+          What would you send instead?
+    reviewer_notes: >-
+      **Version-sensitive: Spring Boot's error body, checked against docs.spring.io on 2026-09-22
+      (Spring Boot 4.1).** The `{timestamp, status, error, path}` shape holds, but `trace`, `message`
+      and `errors` are **off by default** and the keys are omitted entirely — so this is what a
+      service that switched them on returns, not an out-of-the-box body, and the prompt now says so.
+      In Boot 4.0 those properties also moved from `server.error.*` to `spring.web.error.*`. Tagged
+      `java-spring` because the body is recognisably Spring's and a candidate on another stack would
+      be reading unfamiliar output for no reason; the general version is `api-error-shape`. Is a
+      service with those settings on realistic enough to build a question round, or would you rather
+      it used the real default and asked only what is missing from it?
+
+  - slug: python-blocking-call-in-async
+    roles: [backend]
+    levels: [mid]
+    stacks: [python-backend]
+    type: technical
+    topic: concurrency
+    subtopic: async and blocking calls
+    difficulty: 3
+    prompt: >-
+      This endpoint is declared async, and under any real load the whole service slows down —
+      including endpoints that do nothing at all. Explain what the `async` there is and is not
+      doing for you.
+    context: |
+      ```python
+      @app.get("/api/rates")
+      async def rates() -> dict[str, float]:
+          response = requests.get("https://provider.example/rates", timeout=5)
+          return response.json()
+      ```
+    rubric: async-blocking-diagnosis
+    ideal_points:
+      - "`async def` puts the function on the event loop; it does not make what is inside it asynchronous."
+      - "`requests` blocks the thread, so the loop cannot run anything else until it returns."
+      - Five seconds of that and every other request waits, whatever it was going to do.
+      - Use a client that awaits — `httpx`, `aiohttp` — so the loop is free while the call is in flight.
+      - Or keep the blocking call and run it in a thread, which is the right answer for a library that has no async version.
+      - A plain `def` endpoint would have been safer than a lying `async def`, because the framework would have used a thread.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you change?
+      - criterion: 2
+        probe: >-
+          What would the framework do with this endpoint if it were a plain `def`?
+    reviewer_notes: >-
+      **Version-sensitive: FastAPI's handling of `def` versus `async def` endpoints, checked
+      against fastapi.tiangolo.com on 2026-09-22.** A plain `def` path operation is still run in a
+      threadpool, which is what makes the last answer key point true and is the part most candidates
+      have not internalised. The snippet is FastAPI-shaped; a Django candidate on this variant would
+      still recognise the mistake, but is `python-backend` covering both Django and FastAPI in
+      one variant stretching it? That is a `roles.yaml` question as much as a question-bank one.
+
+  - slug: django-save-overwrote-a-change
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    stacks: [python-backend, django-react]
+    type: technical
+    topic: concurrency
+    subtopic: lost updates
+    difficulty: 3
+    prompt: >-
+      Support update a customer's phone number, and a minute later it is back to the old one. The
+      only other thing touching that record is this view, which marks the account as verified.
+      Explain how this code could be putting the old number back.
+    context: |
+      ```python
+      def verify(request, pk):
+          customer = Customer.objects.get(pk=pk)
+          # ... a slow call to the verification provider ...
+          customer.is_verified = True
+          customer.save()
+          return redirect("customers")
+      ```
+    rubric: stale-write-diagnosis
+    ideal_points:
+      - "`save()` writes every field on the instance, not only the one that changed."
+      - The instance holds the values as they were when it was read, a minute before.
+      - So the phone number changed in between is written back to what it was.
+      - Save only the field that changed, or update the row directly without reading it first.
+      - The slow call in the middle is what makes the window wide enough to hit.
+      - Reading it again after the slow call narrows the window and does not close it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          Why is the gap a whole minute rather than a millisecond?
+      - criterion: 2
+        probe: >-
+          What would you write instead?
+    reviewer_notes: >-
+      **Version-sensitive: Django's `Model.save()` and `update_fields`, checked against
+      docs.djangoproject.com on 2026-09-22.** Saving all fields by default still holds. Tagged
+      rather than general because the behaviour is a property of this ORM — a Spring or Rails
+      candidate would answer a different question about the same symptom, and the general version
+      is `the-counter-that-lost-updates`. Are those two far enough apart for a candidate offered
+      both?
+
+  - slug: laravel-mass-assignment
+    roles: [backend, fullstack]
+    levels: [intern-junior, mid]
+    stacks: [php-laravel, laravel-vue]
+    type: technical
+    topic: auth
+    subtopic: input handling
+    difficulty: 3
+    prompt: >-
+      A user has given themselves an administrator account through the public sign-up form, and the
+      form on the website has only three fields. Tell me how that was possible. Walk me through what
+      you see.
+    context: |
+      ```php
+      class User extends Model
+      {
+          protected $guarded = [];
+      }
+
+      // RegisterController
+      public function store(Request $request)
+      {
+          $user = User::create($request->all());
+          return redirect()->route('dashboard');
+      }
+      ```
+    rubric: mass-assignment-diagnosis
+    ideal_points:
+      - The request is whatever was posted, not whatever the form shows — anyone can add a field.
+      - An unguarded model — `$guarded = []`, or `#[Unguarded]` in current Laravel — means every column may be written, including the role.
+      - Validate and take only the fields the action is allowed to set, rather than passing the request through.
+      - Name what may be filled on the model as well, so the next caller cannot do it either.
+      - Anything that decides permissions should not be settable from a request at all.
+      - Then look for every other place the same pattern was used, because it is rarely only one.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What is the fix?
+      - criterion: 2
+        probe: >-
+          You have fixed the sign-up form. Are you done?
+    reviewer_notes: >-
+      **Version-sensitive: Eloquent mass assignment, checked against laravel.com on 2026-09-22
+      (Laravel 13). The behaviour holds and the documented syntax has moved:** Laravel 13 documents
+      PHP attributes — `#[Fillable([...])]`, `#[Guarded]`, `#[Unguarded]` — and no longer shows the
+      `$fillable`/`$guarded` properties, though the upgrade guide lists no breaking change, so they
+      still work. The snippet is deliberately left in the property form, which is what an existing
+      codebase looks like; a candidate who answers in the attribute form is right and is credited
+      equally. Laravel is very widely used in agency and product work here and the blueprint
+      warned this is the variant a JavaScript drafter neglects, so this is the most important of
+      the two. Kept at intern-junior because the mechanism — the request is not the form — is the
+      single most valuable thing a junior PHP developer can be told. Is `$guarded = []` a fair
+      thing to put in front of them, or is it too obviously wrong to discriminate?
+
+  - slug: laravel-worker-running-old-code
+    roles: [backend, fullstack]
+    levels: [mid]
+    stacks: [php-laravel, laravel-vue]
+    type: scenario
+    topic: async-work
+    subtopic: deploying workers
+    difficulty: 3
+    prompt: >-
+      You fixed a bug in a queued job, deployed it, and the queue kept producing the old wrong
+      result for hours. The web side of the same deploy was correct immediately. Tell me what was
+      happening. Take me through it.
+    context: null
+    rubric: worker-deploy-diagnosis
+    ideal_points:
+      - The worker is a long-running process that loaded the code once, when it started.
+      - A deploy replaces the files; it does not replace a process that is already running.
+      - The web side is correct because each request is served by a process that picks up the new code.
+      - Restart the workers as part of the deploy — that is what `queue:restart` is for.
+      - Jobs already queued carry the old payload, which is a separate problem from the old code.
+      - Something should show which version each worker is running, or the next person debugs the same thing.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          What would you put in place so it cannot happen again?
+      - criterion: 2
+        probe: >-
+          How would anyone notice if it did?
+    reviewer_notes: >-
+      **Version-sensitive: `php artisan queue:restart` and worker lifecycle, checked against
+      laravel.com on 2026-09-22.** This is an operations question as much as a Laravel one, and that
+      is deliberate — a Laravel developer here is usually the one deploying. The risk is that it
+      needs a candidate who has deployed a queue worker at all; the prompt supplies the whole
+      situation, and criterion 1 can be answered from "a process that started before the deploy" without ever having
+      run one — does that hold?
+
+  # Added 2026-09-23 (owner's decision). The two of the four questions a remote hiring-manager
+  # critique pass would add that the bank most lacked: it covers receiving a code review and had
+  # nothing on giving one, and nothing at all on a ticket nobody can explain — which is the failure
+  # mode remote work actually produces. Both carry all four wave-1 roles and neither needs code, a
+  # diagram or an employer, so their rubrics live in `rubrics.shared.yaml`.
+
+  - slug: the-ticket-nobody-can-explain
+    roles: [backend, frontend, qa, fullstack]
+    levels: [intern-junior, mid]
+    type: scenario
+    topic: collaboration
+    subtopic: working from an ambiguous brief
+    difficulty: 3
+    prompt: >-
+      A ticket says "add filtering to the vendors page". There is no design, nothing about which
+      fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow.
+      Write me the message you would send them.
+    context: null
+    rubric: ambiguous-work-judgement
+    ideal_points:
+      - Look at what already exists first — the page, the data, how anything similar was built here.
+      - Narrow the unknowns to the few that actually change what gets built, not every question they could ask.
+      - Write once, with the specific decisions needed, and say what will be assumed if there is no reply.
+      - Say when the answer stops being useful, because the reader is asleep and the date is tomorrow.
+      - Build the part that is not in doubt, so the eight hours are not lost either way.
+      - Do not build the ambiguous half on a guess and present it as done.
+    planned_follow_ups:
+      - criterion: 0
+        probe: >-
+          What did you go and look at before you wrote that?
+      - criterion: 2
+        probe: >-
+          What would you build while you wait?
+    reviewer_notes: >-
+      A remote hiring manager named this as the single biggest remote failure mode — a week spent
+      building the wrong thing because nobody asked — and nothing in either bank went near it. It
+      needs no employer: a ticket, a person who is not there, and a date is a situation a candidate
+      can reason about without ever having had one. **The opening asks for the message itself**
+      (owner's decision, 2026-09-25): it is the one artefact in this bank that predicts remote work,
+      so it should not be conditional on the candidate having missed something first. What I am least
+      sure of is the eight hours — it is there to force a choice between waiting and guessing, but a
+      candidate whose whole experience is same-room work may read it as an odd detail rather than the
+      constraint. Does it land, or should it just say "you will not hear back today"?
+
+  - slug: a-change-you-are-not-sure-about
+    roles: [backend, frontend, qa, fullstack]
+    levels: [mid]
+    type: scenario
+    topic: collaboration
+    subtopic: reviewing someone else's work
+    difficulty: 3
+    prompt: >-
+      A teammate opens a change adding a new endpoint that lists every order for a customer. You
+      think it will be slow once there is real data in that table, and you are not certain — you
+      have not measured it. What do you say about the part you are not sure of?
+    context: null
+    rubric: review-you-give
+    ideal_points:
+      - Say the concern and say what it rests on, including that it has not been measured.
+      - Owning the uncertainty is not weakness — it tells the author how much weight to give the comment.
+      - Name what would settle it — the row count it starts to hurt at, or a plan against realistic data.
+      - Say plainly whether it blocks the change or is a note for later; a reviewer who never says is the bottleneck.
+      - Approving is a real outcome — a small table today, a ticket filed, and something that would tell us when it matters.
+      - Comment on the change, not on the person who wrote it.
+    planned_follow_ups:
+      - criterion: 1
+        probe: >-
+          How would you word the comment itself, so the author can act on it?
+      - criterion: 2
+        probe: >-
+          What would make you approve it anyway?
+    reviewer_notes: >-
+      The bank covers having your own work reviewed (`feedback-on-your-code`) and had nothing on
+      giving a review, which for a remote hire is the main written trace they leave. Mid only,
+      because a junior is rarely the reviewer of record — though they do comment, so a reviewer may
+      think it belongs at both. The clause I am least sure of is "what would make you approve it
+      anyway": it is there because a review that can only be satisfied one way is a blocker wearing a
+      question mark, and it is the part of the answer I would most want to hear. Is it too leading —
+      does it tell the candidate that approving is the expected answer?

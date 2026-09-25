@@ -1,0 +1,113 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: derived-list-diagnosis
+question: vue-list-drifts-from-its-source
+answers:
+  - kind: strong
+    text: |
+      So the giveaway is "it comes right as soon as they type another letter" — that tells you the
+      recalculation is tied to the term and only to the term. visible is stored state, and the only
+      thing that writes to it is that watcher on term. So when reload runs and jobs changes, nobody
+      recomputes visible, you're still looking at the filtered version of the old jobs. Next
+      keystroke fires the watcher, it filters the fresh array, and it looks fine again. The real
+      issue is that visible is derived from two things — jobs and term — but it's being stored as
+      if it were its own state. So I'd make it a computed: const visible = computed(() =>
+      jobs.value.filter(j => j.title.includes(term.value))). Then it re-runs when either changes
+      and there's only one list to reason about. Watchers I'd keep for side effects, saving a
+      draft, firing analytics, that kind of thing.
+    expected:
+      - dimension: "Finds why it goes stale"
+        score: 4
+        because: "Reads the symptom as the evidence: the next keystroke fixes it because the term is the only thing that triggers a rebuild."
+      - dimension: "Recognises it as derived"
+        score: 3
+        because: "Makes it a `computed` over both dependencies so there is one list; does not say why that removes the class of bug."
+      - dimension: "Knows what a watcher is still for"
+        score: 3
+        because: "Keeps watchers for things that must happen — saving a draft, firing analytics."
+  - kind: weak
+    text: |
+      Hmm, okay. It sounds like a timing issue to me — fetchJobs is async, so probably the user
+      types, the request is still in flight, and the old response lands after the new one. A race
+      condition basically. So I'd add a loading flag, set it true before fetchJobs and false after,
+      and hide the list while it's loading so they don't see the wrong thing. Maybe also debounce
+      the typing so you're not filtering on every keystroke, like a 300ms debounce, that usually
+      smooths these things out. I'd also add a try/catch around the fetch. I haven't used watch
+      that much to be honest, we mostly just filter inline in the template with v-for, so I'm
+      going off the symptom more than the code.
+    expected:
+      - dimension: "Finds why it goes stale"
+        score: 1
+        because: "Diagnoses a race between responses; never says what the stored list fails to react to."
+      - dimension: "Recognises it as derived"
+        score: 0
+        because: "Keeps the stored list and adds a loading flag and a debounce around it."
+      - dimension: "Knows what a watcher is still for"
+        score: 0
+        because: "Does not reach what a watcher is for."
+  - kind: fluent-but-wrong
+    text: |
+      Right — so this is watcher configuration. Vue's watch on a ref only fires on reassignment at
+      the top level, and it doesn't run at all on setup unless you tell it to. Two consequences
+      here: first, visible starts empty because the watcher never ran the first time, and second,
+      when reload replaces the jobs the watcher doesn't see it because the watch isn't deep, so
+      mutations and nested changes inside the array go unnoticed. So the fix is to configure it
+      properly: watch(term, handler, { immediate: true, deep: true }). immediate gives you the
+      first pass so the list is populated on load, deep makes it track changes inside the jobs
+      array so a reload propagates. Once the watcher is set up right the list stays in
+      step. I'd keep visible as a ref — computed would
+      re-run the filter on every render, which on a big job list is wasted work.
+    expected:
+      - dimension: "Finds why it goes stale"
+        score: 2
+        because: "Identifies the watcher, and blames its configuration rather than what it fails to watch — `deep` and `immediate` do not make it watch `jobs`."
+      - dimension: "Recognises it as derived"
+        score: 1
+        because: "Keeps `visible` as a ref and argues against `computed` on invented performance grounds."
+      - dimension: "Knows what a watcher is still for"
+        score: 1
+        because: "The rule given — watchers with the right options — is a restatement of the wrong fix."
+  - kind: correct-poorly-explained
+    text: |
+      So, right, there's a watcher, and the watcher is on term, only on term, and that's, like,
+      that's the whole thing really, because visible is a ref, it's just sitting there holding
+      whatever the last run put in it, and then reload comes along and swaps out jobs underneath
+      it and — nothing happens, nothing tells visible to run again, so you're looking at yesterday's
+      filter, and then the user types one more letter and the watcher fires and suddenly it's
+      correct again which is why they said it fixes itself. So, yeah. What you actually want, I
+      think, is not to store it at all — the list is a function of jobs and term, both of them, so
+      it should be computed, and then it doesn't matter which one moves, it recalculates, and
+      there's one source of truth instead of two things you have to keep in step by hand.
+    expected:
+      - dimension: "Finds why it goes stale"
+        score: 4
+        because: "Same reading of the self-fixing symptom, arrived at aloud."
+      - dimension: "Recognises it as derived"
+        score: 4
+        because: '"It doesn''t matter which one moves, it recalculates, and there''s one source of truth instead of two things you have to keep in step by hand."'
+      - dimension: "Knows what a watcher is still for"
+        score: 0
+        because: "Never says what a watcher would still be right for."
+  - kind: nigerian-english
+    text: |
+      The part wey give am away na "it comes right as soon as they type another letter" — that one
+      is telling you say na only the term dey trigger the recalculation. See am: visible is stored,
+      and na only that watcher on term dey write inside am. So when reload runs and jobs change,
+      nobody go recompute visible, you are still looking at the filtered version of the old jobs.
+      The person type one more letter, the watcher fire, e filter the array, and e look
+      correct. The real problem be say visible is derived from two things, jobs and term, but
+      dem store am like say na state of him own. So I go make am computed — computed(() =>
+      jobs.value.filter(j => j.title.includes(term.value))) — then whichever one change, e go
+      recalculate, and na one list you dey reason about. Watcher, I go keep am for things wey must
+      happen, like saving a draft or firing analytics.
+    expected:
+      - dimension: "Finds why it goes stale"
+        score: 4
+        because: "Same use of the giveaway."
+      - dimension: "Recognises it as derived"
+        score: 3
+        because: "Same `computed` over both, same omission."
+      - dimension: "Knows what a watcher is still for"
+        score: 3
+        because: "Same examples of work that has to happen."

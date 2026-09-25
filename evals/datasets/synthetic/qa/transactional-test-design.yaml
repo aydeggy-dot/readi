@@ -1,0 +1,126 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: transactional-test-design
+question: test-design-money-transfer
+answers:
+  - kind: strong
+    text: |
+      Okay so — the first thing I'd test is the plain successful transfer, and not because it's the
+      easy one. It's because that's where the money is. If the amount that leaves is wrong, or it
+      lands in the wrong account, or it debits twice, that's real money and you can't just reverse it
+      with a code fix. So: valid account, valid amount, correct PIN, and then I'm checking three
+      things — sender debited exactly once and exactly that amount, recipient credited the same, and
+      the reference on the receipt matching the record. On the limit, I'd do 199,999, then 200,000
+      itself, then 200,001, because "the limit is two hundred thousand" doesn't tell me whether two
+      hundred thousand passes. And then the part people forget: it's a daily limit, so it's
+      cumulative. 150k, then 60k — the second one should be refused. And when does the day reset,
+      midnight on whose clock? And does a failed transfer still eat into it? PIN: wrong PIN, how many
+      wrong ones before it locks, and the PIN not turning up in any log. For the timed-out one, or the
+      double tap — before I touch anything I'd go to the transaction history and the sender's balance,
+      and get the backend reference, so we can see whether one request hit the server or two.
+    expected:
+      - dimension: "Orders the work by what cannot be undone"
+        score: 3
+        because: "Descriptor 3 — starts with the plain successful transfer and gives the cost as the reason: 'that's where the money is ... you can't just reverse it with a code fix'. Not 4: nothing separates what a user can undo themselves from what needs somebody at a bank."
+      - dimension: "The cases where the outcome is unknown, and where the money is checked"
+        score: 3
+        because: "Descriptor 3 — for the timeout and the double tap it goes to transaction history, the sender's balance and the backend reference to see whether one request hit the server or two, rather than reading the success message. Not 4: nothing on how the app should behave when it genuinely cannot tell."
+      - dimension: "Covers the rules the money follows"
+        score: 3
+        because: "Descriptor 3 — 199,999 / 200,000 / 200,001 with the reason that the stated limit does not say whether 200,000 itself passes, 150k then 60k as the cumulative case, and a wrong PIN against the attempt counter. Not 4: never asks which rules the screen enforces and which the server does."
+  - kind: weak
+    text: |
+      Right, so for a transfer screen I'd start with the fields. The account number — I'd enter
+      letters and see if it rejects it, enter a short one, leave it empty, check the error message is
+      showing. Amount: zero, negative, something with a comma in it. PIN should be four digits, so
+      three digits, five digits, letters, and it should be hidden, like showing dots not the numbers.
+      For the limit I'd enter 250,000 and it should give me an error saying you have passed your daily
+      limit. That's the main limit test. Then a successful transfer, maybe 1,000 naira, and check the
+      success message comes up and the receipt shows. For the timeout — if it times out I'd just try
+      it again, and if it goes through the second time then, you know, it was just network, so that's
+      fine. The double tap one, I'd check the app doesn't crash or freeze. And then whatever I see I'd
+      report it. I'd also test on slow network because most people here are on data. That's... yeah,
+      that's roughly how I'd go.
+    expected:
+      - dimension: "Orders the work by what cannot be undone"
+        score: 0
+        because: "Descriptor 0 — 'for a transfer screen I'd start with the fields', then account number, amount, PIN in screen order; the successful transfer arrives after the field validation."
+      - dimension: "The cases where the outcome is unknown, and where the money is checked"
+        score: 1
+        because: "Descriptor 1 — the unknown outcome is a display problem: 'if it times out I'd just try it again ... so that's fine', and the double tap is checked for the app not crashing. The money is never read anywhere."
+      - dimension: "Covers the rules the money follows"
+        score: 1
+        because: "Descriptor 1 — the limit is one round number (250,000) treated as the whole limit test, with nothing about the smallest step the field accepts. The PIN is tested as field validation (three digits, five digits, letters, masking), never against the attempt counter, and there is no cumulative case."
+  - kind: fluent-but-wrong
+    text: |
+      Sure. My first priority is the happy path and then the boundaries on the limit, that's standard.
+      But let me go to the timeout and the double tap, because that part is really a front-end concern
+      and I think people overcomplicate it. A timeout means the request never completed — the
+      connection dropped before the server could finish, so no debit happened. That's what a timeout
+      is. If the money had actually left, we'd have got a response back. So what I'd test is that the
+      app either retries by itself or tells the user to try again, and the balance is untouched. Then
+      the double tap: the only reason a double tap charges you twice is that the UI let the second tap
+      through. So the test case is, tap Send twice as fast as you can, and assert the button goes
+      disabled and a spinner shows after the first tap. Once that button is disabled the second
+      request cannot exist, so there's nothing to duplicate — the server just processes what it
+      receives, policing that isn't its job. Get the disable plus a debounce right and you've closed
+      that whole class of bug. I'd write it up as a P1 case.
+    expected:
+      - dimension: "Orders the work by what cannot be undone"
+        score: 2
+        because: "Descriptor 2 — 'my first priority is the happy path and then the boundaries on the limit, that's standard' names the important cases and gives 'that's standard' as the reason rather than what a mistake would cost."
+      - dimension: "The cases where the outcome is unknown, and where the money is checked"
+        score: 1
+        because: "Descriptor 1 — literally the descriptor: the plan is that the button goes disabled and 'a spinner shows after the first tap', on the wrong belief that a timeout means no debit happened, so the money itself is never read."
+      - dimension: "Covers the rules the money follows"
+        score: 0
+        because: "Descriptor 0 — no case touches the limit or the PIN rule. The limit boundaries are declared 'standard' and then never given a value, and the PIN never appears."
+  - kind: correct-poorly-explained
+    text: |
+      Okay so... the first one. I'd say the successful transfer. Actually let me — no, the successful
+      one first, because it's money, and money you can't undo, so that's the reason it's first, you
+      check the amount that left is the amount you entered, and it entered the right account, and it
+      happened one time, one time only. Then the limit, 200,000, so 199,999, 200,000, 200,001, and
+      also — this is the thing — it's per day, so two transfers, 150 and then 60, the second should
+      fail even though 60 is small on its own. And when the day resets, that's a question, I'd ask.
+      PIN, wrong PIN, and it should lock after some number of tries, and it shouldn't show up in logs
+      anywhere. And the timeout, you don't retry. That's the mistake people make. You go and look
+      first — history, balance — before you do anything, because it may have gone through and you just
+      didn't see the response come back. Same with the double tap, you go and check whether there are
+      two records there or one. Sorry, that was a long one.
+    expected:
+      - dimension: "Orders the work by what cannot be undone"
+        score: 3
+        because: "Descriptor 3 — arrives at it sideways but states the cost as the reason: 'because it's money, and money you can't undo, so that's the reason it's first'. Not 4 for the same reason as `strong`."
+      - dimension: "The cases where the outcome is unknown, and where the money is checked"
+        score: 3
+        because: "Descriptor 3 — 'the timeout, you don't retry ... You go and look first — history, balance — before you do anything', and the same for the double tap: two records or one."
+      - dimension: "Covers the rules the money follows"
+        score: 3
+        because: "Descriptor 3 — the same three values either side of the limit, the 150-then-60 cumulative case, the day-reset question, and a wrong PIN against the lock counter."
+  - kind: nigerian-english
+    text: |
+      Okay. Me, the first thing I will test is the transfer that is supposed to work, the normal one.
+      And not because it is easy o — because na money. If the money enters wrong account, or it debits
+      the person two times, you cannot fix am with code, the money has gone. So correct account,
+      correct amount, correct PIN, and I will now check three things: that the sender was debited one
+      time, not two, and the exact amount, and the receiver got that same amount, and the reference on
+      the receipt is the same one. For the limit I will try 199,999, then 200,000 itself, then 200,001
+      — because they didn't tell me whether two hundred thousand itself will pass. And the one people
+      forget: it is daily. So if I send 150k and I send 60k again, that second one must fail. And when
+      does the day start again? And if a transfer failed, is it still counting? PIN, wrong PIN, how
+      many times before it locks, and the PIN must not show inside any log. Then the one that timed
+      out, or when you tap twice — before I touch anything, I'm going to transaction history and the
+      person's balance, and I'll collect the backend reference, so we can see whether one request
+      entered or two.
+    expected:
+      - dimension: "Orders the work by what cannot be undone"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — the normal transfer first, 'because na money ... you cannot fix am with code, the money has gone'."
+      - dimension: "The cases where the outcome is unknown, and where the money is checked"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — transaction history, the person's balance and the backend reference before touching anything, to see whether one request entered or two."
+      - dimension: "Covers the rules the money follows"
+        score: 3
+        because: "Same as `strong`, descriptor 3 — 199,999 / 200,000 / 200,001 with the same reason, the 150k-then-60k cumulative case, the day-reset question, and the wrong-PIN counter."

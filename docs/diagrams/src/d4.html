@@ -1,0 +1,38 @@
+<script>
+render('d4', 1240, 560, 'The interview engine — a state machine our code owns (milestone M3)', 'The model phrases questions and probes. It never decides how long a session runs, which question comes next, or when to stop. Everything in this diagram is designed and planned; none of it is written yet.', () => {
+  band(24, 6, 1192, 268, 'the state machine — pure, no input/output inside a transition');
+  const intro = box({x:48,y:60,w:150,h:58,title:'INTRO',lines:['greeting, framing'],state:'planned',ts:14});
+  const q     = box({x:268,y:60,w:170,h:58,title:'QUESTION',lines:['asked from the bank'],state:'planned',ts:14});
+  const fu    = box({x:268,y:184,w:170,h:58,title:'FOLLOW_UP',lines:['0 … 2 per question'],state:'planned',ts:14});
+  const cq    = box({x:560,y:60,w:230,h:58,title:'CANDIDATE_QUESTIONS',lines:['"any questions for me?"'],state:'planned',ts:14});
+  const wrap  = box({x:838,y:60,w:150,h:58,title:'WRAP_UP',lines:['closing line'],state:'planned',ts:14});
+  const end   = box({x:1036,y:60,w:150,h:58,title:'ENDED',lines:['transcript sealed'],state:'planned',ts:14});
+
+  arrow(intro.right, 89, q.left, 89, {color:'mute'});
+  arrow(340, q.bottom, 340, fu.top, {color:'pen', label:'a criterion the answer', lx:470, ly:135});
+  label(470, 162, 'has not covered', {size:10.5, fill:P.pen});
+  push(`<path d="M 400 242 L 190 242 L 190 89 L 268 89" fill="none" stroke="${P.muted}" stroke-width="1.5" marker-end="url(#ag)"/>`);
+  push(`<rect x="146" y="142" width="96" height="15" fill="#fff"/>`);
+  label(194, 153, 'next question', {size:10.5});
+  arrow(q.right, 89, cq.left, 89, {color:'mute', label:'budget spent', ly:80});
+  arrow(cq.right, 89, wrap.left, 89, {color:'mute'});
+  arrow(wrap.right, 89, end.left, 89, {color:'mute'});
+  label(632, 236, 'Budgets enforced in code: a time budget (15 or 30 minutes at MVP) and a question budget. Pause, resume and abandon are', {anchor:'start', size:11});
+  label(632, 252, 'lifecycle — in_progress / completed / abandoned — not states.', {anchor:'start', size:11});
+
+  band(24, 298, 584, 246, 'our code decides');
+  ['which state comes next, and when the session ends','how many questions, and which ones (seeded, reproducible selection)','which criteria a follow-up should probe, from the question’s planned probes','the time and question budget, and the follow-up cap','the exact content used, pinned by version: question, rubric, role, level, stack','every turn written to the database idempotently by (session, sequence)'].forEach((t,i)=>{
+    push(`<circle cx="50" cy="${336 + i*33}" r="3.5" fill="${P.pen}"/>`);
+    label(66, 340 + i*33, t, {anchor:'start', size:12, fill:P.ink});
+  });
+  band(632, 298, 584, 246, 'the model decides');
+  ['the wording of the question, in the interviewer’s voice','the wording of one follow-up probe from the menu it is given','the closing remarks'].forEach((t,i)=>{
+    push(`<circle cx="658" cy="${336 + i*33}" r="3.5" fill="${P.frame}"/>`);
+    label(674, 340 + i*33, t, {anchor:'start', size:12, fill:P.ink});
+  });
+  label(658, 452, 'The rubric never reaches the interviewer model.', {anchor:'start', size:12, weight:700, fill:P.pen});
+  label(658, 472, 'A follow-up call is given the probes and the coverage flags — not the criteria, the', {anchor:'start', size:11.5});
+  label(658, 489, 'weights or the level descriptors. That is cheaper, leaks less, and gives a prompt', {anchor:'start', size:11.5});
+  label(658, 506, 'injection nothing worth reaching for. Candidate answers are always wrapped as data.', {anchor:'start', size:11.5});
+});
+</script>

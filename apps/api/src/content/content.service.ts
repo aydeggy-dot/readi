@@ -1787,6 +1787,7 @@ export class ContentService {
       context: input.context,
       rubricId: input.rubric_id,
       idealPoints: input.ideal_points,
+      plannedFollowUps: input.planned_follow_ups,
     };
   }
 

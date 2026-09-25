@@ -1,0 +1,114 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: responsive-layout-diagnosis
+question: css-overflow-at-360
+# This is the answer key's own correction under test: `100vw` beside a scrollbar was removed
+# from the key because it cannot be the culprit on a phone, and `fluent-but-wrong` is built on it.
+# It now scores 1/1/1 rather than being rewarded for naming a plausible-sounding cause.
+answers:
+  - kind: strong
+    text: |
+      First thing, I'd reproduce it. Dev tools, device toolbar, set it to 360 wide, because if
+      I can't see it in front of me I'm just guessing. Then I need to find the one element
+      that's wider than the screen. I usually select body and walk down the tree in the
+      elements panel watching the highlight — whichever child sticks out past the right edge,
+      that's your culprit. You can also just toggle display none on half the page at a time to
+      bisect it. What I'd bet on is a fixed width, like a card set to 400px, or a flex child
+      that won't shrink because flex items default to min-width auto, so one long word or a
+      big image inside holds it open. Or a table. And I'd fix that element — min-width zero,
+      max-width 100%, word-break — not slap overflow-x hidden on the body, because that hides
+      it and the content is still cut off.
+    expected:
+      - dimension: "Finds the cause methodically"
+        score: 4
+        because: "A repeatable method: 360 in the device toolbar, then walking the tree watching the highlight, or bisecting."
+      - dimension: "Knows the usual suspects"
+        score: 4
+        because: "Fixed width, and the flex child that will not shrink below its content — the cause that is easy to miss."
+      - dimension: "Fixes without breaking wider screens"
+        score: 3
+        because: "Fixes the element so it holds at any width and rejects `overflow-x: hidden`; no check that it stays fixed."
+  - kind: weak
+    text: |
+      I'd add overflow-x: hidden on the body, that usually sorts it out. To find it, I'd go
+      through the CSS and see if anything has a width set on it. It looks fine on my laptop so
+      it's probably only happening on small screens, so I'd add a media query for phones and
+      make the widths smaller in there. I'd guess it's the images being too big, so I'd give
+      images width 100%. Honestly I'd probably just try a few things and see which one stops
+      the sideways scrolling. I don't really use the device toolbar much, I just drag the
+      browser window narrow and look at it that way.
+    expected:
+      - dimension: "Finds the cause methodically"
+        score: 1
+        because: "Guesses at images and applies `overflow-x: hidden` without establishing the cause."
+      - dimension: "Knows the usual suspects"
+        score: 1
+        because: "One cause, offered as the only possibility."
+      - dimension: "Fixes without breaking wider screens"
+        score: 1
+        because: "Hides the symptom, then patches one breakpoint."
+  - kind: fluent-but-wrong
+    text: |
+      Classic horizontal overflow. Nine times out of ten this is 100vw. The viewport unit
+      includes the vertical scrollbar, so a full-bleed section set to width 100vw comes out
+      about fifteen pixels wider than the actual content area, and that's your strip of empty
+      space on the right — which is also exactly why it looks fine on the laptop and breaks on
+      the phone. So I'd grep the stylesheet for vw units first. The fix is swap 100vw for
+      100%, and then put overflow-x hidden on html and body as a safety net so nothing else
+      can do it again; that's standard on basically every production site. After that I'd add
+      a media query at 480 and pull the padding in, since narrow screens need the section
+      widths recalculated anyway.
+    expected:
+      - dimension: "Finds the cause methodically"
+        score: 1
+        because: "Greps for `vw` on a hunch and never reproduces — and on a phone, where scrollbars are overlaid, the hunch cannot be the cause."
+      - dimension: "Knows the usual suspects"
+        score: 1
+        because: "`100vw` beside a scrollbar, asserted as the answer nine times out of ten."
+      - dimension: "Fixes without breaking wider screens"
+        score: 1
+        because: "Prescribes `overflow-x: hidden` on html and body as standard practice."
+  - kind: correct-poorly-explained
+    text: |
+      Right so, I wouldn't put overflow hidden on it, that's the first thing, people do that
+      and it looks fixed but something is still poking out, it's just clipped now, so you've
+      hidden a real bug — sorry, let me back up. I'd get it in front of me first, dev tools,
+      phone width, 360, because on the laptop there's nothing to look at. Then it's just
+      finding the one element that's too wide, and I click down through the DOM watching what
+      highlights outside the edge, or turn bits off until the scrolling stops. And it's
+      usually a hard width in pixels, or a flex child that won't go below its content, or a
+      really long link with no spaces in it. Then you fix that element so it holds at any
+      width, not just at one breakpoint.
+    expected:
+      - dimension: "Finds the cause methodically"
+        score: 4
+        because: "Same method as `strong` — 360 first, then narrowing by clicking or switching parts off."
+      - dimension: "Knows the usual suspects"
+        score: 4
+        because: "Fixed width, a flex child that will not go below its content, a long unbroken link."
+      - dimension: "Fixes without breaking wider screens"
+        score: 3
+        because: "Fixes the element so it holds at every width; leads with what not to do."
+  - kind: nigerian-english
+    text: |
+      First thing, make I see am myself. I'll open dev tools, put device toolbar, set it to
+      360 — because if I cannot see the thing, I'm just guessing. Then I want to find which
+      element is wider than the screen. Normally I'll select body, then I'm walking down the
+      tree, watching which one the highlight is passing the right edge; that one na the
+      culprit. Or you hide one half, then the other half, until the scrolling stop. What I'm
+      expecting? Something with fixed width, like card of 400px. Or a flex child wey refuse to
+      shrink, because flex item min-width is auto by default, so one long word or one big
+      image inside will hold it open. The fix is to fix that element — min-width zero,
+      max-width 100% — not to put overflow-x hidden on body. That one is just covering am; the
+      content is still cut.
+    expected:
+      - dimension: "Finds the cause methodically"
+        score: 4
+        because: "Same method, same order."
+      - dimension: "Knows the usual suspects"
+        score: 4
+        because: "Same suspects, including `min-width: auto` on the flex child."
+      - dimension: "Fixes without breaking wider screens"
+        score: 3
+        because: "Same fix, and the same rejection of hiding the overflow."

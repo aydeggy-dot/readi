@@ -21,20 +21,26 @@ what decides whether any of it is worth using.
 
 Please read the generated pages rather than the YAML unless you would rather not:
 
-| Role                                 | Page                                       |
-| ------------------------------------ | ------------------------------------------ |
-| Frontend (the full set — start here) | [`review/frontend.md`](review/frontend.md) |
-| Backend (skeleton)                   | [`review/backend.md`](review/backend.md)   |
-| QA (skeleton)                        | [`review/qa.md`](review/qa.md)             |
+| Role                  | Page                                         |
+| --------------------- | -------------------------------------------- |
+| Frontend (start here) | [`review/frontend.md`](review/frontend.md)   |
+| Backend               | [`review/backend.md`](review/backend.md)     |
+| QA                    | [`review/qa.md`](review/qa.md)               |
+| Full-stack            | [`review/fullstack.md`](review/fullstack.md) |
 
-There is no full-stack page, and that is not an oversight: full-stack has no bank of its own. It is
-made of eleven of the questions on the three pages above, each carrying it as a second role — so you
-review them once, where they are, and question 6 below asks the full-stack half of it.
+**A page is every question that role's candidates are asked, so the pages overlap.** A behavioural
+or communication question is usually asked of all four roles, and it appears on all four pages —
+written once, in one file, which each page names beside it. Review it where you first meet it and
+skip it after that; it is repeated so that nobody signing off a single role is signing off less
+than their candidates will be asked. Full-stack has no bank of its own yet, so **its page asks a
+different question**: every question on it is already being reviewed on the frontend or backend
+page, so its reviewer is asked about the set rather than about each question — what is missing
+between the two halves, and what would you cut. Question 6 below is the same ask in one line.
 
 Each page puts a question, the answer key and all five level descriptors of its rubric in one
 place, with tick boxes. They print, and they render on GitHub.
 
-## The six things we are asking
+## The seven things we are asking
 
 **1. Would a real interviewer ask this, at this level?**
 Not "is it a fair question" — "have you asked it, or heard it asked, of someone at this stage?" A
@@ -52,10 +58,18 @@ have not listed, add it.
 If 2 and 3 say the same thing in different words, or if the jump from 3 to 4 is "says it more
 confidently", that is a defect — tell us, and if you can, say what the real difference is.
 
-**4. Is anything factually wrong or out of date?**
+**4. Is each planned follow-up what you would actually ask next?**
+The opening question asks one thing, the way you would. Each of the remaining criteria carries a
+**planned follow-up** — the probe the AI may ask if the answer has not already covered that
+criterion — and the page prints it under the criterion it belongs to. It is a menu, not a script: a
+candidate whose first answer covers everything is asked nothing further and moves on. Two things are
+worth telling us: a probe you would never ask, and a probe a good first answer would always have
+pre-empted, which means it should have been part of the opening question instead.
+
+**5. Is anything factually wrong or out of date?**
 Tools, versions and idioms move. The lessons in each track need the same eye.
 
-**5. Where a question names a stack, is that right — and where none is named, should one be?**
+**6. Where a question names a stack, is that right — and where none is named, should one be?**
 A question can be tagged for particular stacks ("React + TypeScript", "Java / Spring"), and the
 heading says so when it is. A tag is a narrowing: only candidates interviewing for that variant are
 ever asked it, and everyone else loses the question. Two are tagged today, both React ones, because
@@ -63,16 +77,30 @@ they show React code. The mistake in both directions costs something — tagging
 shrinks what most candidates practise, and leaving a framework-specific one untagged hands a Vue
 developer a React snippet — so say which you think each one is.
 
-**6. Does this question belong to full-stack as well?**
+**7. Does this question belong to full-stack as well?**
 Full-stack is one of our four launch roles and has **no bank of its own** — it is made of the
 frontend and backend questions that genuinely transfer, each carrying `fullstack` as a second role.
-Eleven of the fourteen do today; the three QA questions do not. The heading on each question says
-which roles it is for. So, per question: would a full-stack interview ask this, or is it specialist
-enough that only a frontend or only a backend candidate should meet it? A wrong "yes" wastes a
-full-stack candidate's practice on something they will never be asked; a wrong "no" leaves the
-role thinner than it should be. The same question applies to the six full-stack variants
-(React + Node, Next.js, Django + React, Laravel + Vue, Ruby on Rails, .NET + React) wherever a
-question is stack-tagged.
+**Sixty-four of the hundred and four do today** — 31 of frontend's 35, 31 of backend's 34 and 2 of
+QA's 35. The heading on each question says which roles it is for. So, per question: would a
+full-stack interview ask this, or is it specialist enough that only a frontend or only a backend
+candidate should meet it? A wrong "yes" wastes a full-stack candidate's practice on something they
+will never be asked; a wrong "no" leaves the role thinner than it should be. The same question
+applies to the six full-stack variants (React + Node, Next.js, Django + React, Laravel + Vue,
+Ruby on Rails, .NET + React) wherever a question is stack-tagged.
+
+Two parts of that are worth knowing before you start, because they are where we are least sure:
+
+- **Every frontend and backend question that is general to its role carries `fullstack`.** The seven
+  that do not are stack-tagged for a variant full-stack does not offer — Angular, vanilla JavaScript,
+  Java + Spring — so no full-stack candidate could be asked them whatever we decide. The drafting
+  estimate was that about two thirds would transfer; in the event the only reason to say no turned
+  out to be the stack. If that is too generous — if there are questions here a full-stack interview
+  would genuinely never reach — those are the ones to mark.
+- **Only two QA questions cross over**, chosen for the testing judgement a developer who owns a
+  feature end to end needs rather than for QA craft: `what-to-test-when-there-is-no-time` and
+  `where-your-test-data-comes-from`. Everything else in that bank is about testing as a discipline —
+  automation suites, defect workflow, pipelines, test-case design — which is a specialist's round.
+  Tell us if one or two more belong, and if so which.
 
 ## How to send it back
 
@@ -80,7 +108,8 @@ Whichever is least work for you:
 
 - **Mark up the markdown page** — comments, strikethrough, anything. Send it back however you like.
   This is the normal path, and the one we expect for the first round.
-- **Edit the YAML directly** (`content/seed/<role>/questions.yaml`) and open a pull request. If you
+- **Edit the YAML directly** (`content/seed/<role>/questions.yaml` — a question shared with other
+  roles says which file it is in, beside the question) and open a pull request. If you
   do, change `author: ai_draft` to `author: human` in any file you have been through, and clear or
   replace the `reviewer_notes` you have answered.
 - **Edit it in the CMS** at `/admin/content`, if you have a Readi login with the content-expert
@@ -94,11 +123,28 @@ worth more than eight you half-trust, and cutting is the cheapest improvement av
 
 - **`reviewer_notes` on each question is the drafter saying where it is unsure.** Those are the
   places most likely to need you. Answering them is more valuable than confirming what is fine.
-- **A rubric can be shared.** Both behavioural questions use one shared rubric
-  (`behavioural-answer-quality`) on purpose, because a behavioural answer is judged the same way
-  whatever the role. If you think a question needs its own, say so.
+- **A rubric can be shared, but a behavioural one usually should not be.** Several `test_design`
+  questions share a rubric because they really do score the same three dimensions against different
+  features. Behavioural questions turned out to be the opposite: the four that started on a generic
+  situation / actions / outcome rubric all ended up needing their own, because each is about a
+  _specific_ judgement that the generic criteria had nowhere to put. If a shared rubric cannot score
+  something a question's answer key asks for, say so — that is the most useful thing you can tell us.
 - **Weights add up to 100** and are a claim about what matters most in the answer. They are easy to
   change and often wrong on a first draft.
+- **About fourteen of the follow-ups are some version of "What would you change?"**, and we have
+  deliberately left them that way. A follow-up is asked only of a candidate who has _not_ already
+  proposed a fix, and at that moment the plain question is arguably the right one — anything sharper
+  risks handing over the thing the criterion exists to see whether they reach for. But they are
+  bland, and each of those criteria has an attractive wrong answer at the low end that a better
+  follow-up would separate. **If you can think of the question you would actually ask there, it is
+  worth more to us than almost anything else on the page.**
+- **Assume the candidate has never had an employer.** A large part of this audience is self-taught:
+  no code reviewer, no staging environment, no error-reporting dashboard, no test suite, no
+  designer. Questions may describe those things — several do — but none should _require_ having had
+  them, and an answer drawn from a personal project, a hypothetical, or "where I worked we did not
+  have that, but I would…" is scored on the same terms as one drawn from a job. If you find a
+  question that a good self-taught candidate simply cannot answer, that is one of the most valuable
+  things you can tell us.
 - **The questions are meant for a Nigerian candidate** preparing for interviews here and abroad:
   mid-range Android phones, unreliable mobile data, and the kinds of teams hiring locally. Content
   that assumes a fast laptop and a stable connection is not neutral — it is wrong for the audience.

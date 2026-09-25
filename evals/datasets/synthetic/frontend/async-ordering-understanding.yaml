@@ -1,0 +1,122 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: async-ordering-understanding
+question: js-async-ordering
+# Rewritten 2026-09-22 with the question: the `console.log` ordering snippet became a click handler
+# that blocks the main thread for two seconds, so "Saving…" never paints.
+#
+# The pairing this rubric had to survive: `fluent-but-wrong` gives a detailed, correct-sounding
+# account of DOM write batching — the two assignments coalesce, the first is dropped before it
+# reaches the render tree — and prescribes a forced synchronous reflow (`status.offsetHeight`) as
+# a one-line fix. It is wrong in the same place at every criterion and scores 1/1/1 against
+# `strong`'s 3/4/3, so the rubric is not reading fluency.
+answers:
+  - kind: strong
+    text: |
+      Okay so — the line does get set. `status.textContent = "Saving…"` runs, the actual DOM node
+      changes. What never happens is a paint. JavaScript is single-threaded, and the browser only
+      gets to render between tasks, not in the middle of one. This whole click handler is one task:
+      it sets the text, it runs buildReport for two seconds, it sets the text again to "Saved", and
+      only when the handler returns does the browser get its turn to draw. By then the node already
+      says "Saved", so "Saving…" never reaches the screen. And for those two seconds the phone is
+      basically dead — taps queue up, scrolling doesn't move, because that one thread is stuck in
+      the loop. What I'd change... the cheap version is to yield before the work,
+      requestAnimationFrame or even a setTimeout, so a paint gets in first. The proper one is a Web
+      Worker — forty thousand rows has no business on the main thread.
+    expected:
+      - dimension: "Says why the first message never reaches the screen"
+        score: 3
+        because: "The text was set and the browser never painted between the two assignments; does not say what stayed on screen instead."
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 4
+        because: "One thread, no frame until the handler returns — and extends it to the taps and the scrolling that wanted the same thread."
+      - dimension: "Gets the work out of the way"
+        score: 3
+        because: "Yield so a paint gets in first, or a Worker, with the reason; no account of how they would check it worked."
+  - kind: weak
+    text: |
+      Right, so — the "Saving…" doesn't show. I think it's probably because the two lines are too
+      close together? Like it sets it and then immediately sets it again, so the second one kind of
+      overwrites the first before you can see it. Um. The two seconds is the report building, I
+      think it's fetching the rows, forty thousand is a lot, so it takes time, especially on a phone
+      with bad network. Honestly I'd have to put a console.log in there to see what's really
+      happening. What I'd change... maybe I'd make it async? Like put async on the function and
+      await the buildReport, so it doesn't block. Or a loading spinner — you'd normally use a
+      spinner for this instead of text. Sorry, I know there's a proper reason, I just — I'd have to
+      look it up.
+    expected:
+      - dimension: "Says why the first message never reaches the screen"
+        score: 1
+        because: '"Too close together", "overwrites the first before you can see it" — a story about the writes, not about painting.'
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 1
+        because: "The two seconds are a network fetch — a mechanism that is not this one, and drawing is never mentioned."
+      - dimension: "Gets the work out of the way"
+        score: 1
+        because: "`async`/`await` around synchronous work, and a spinner: no room made for a frame either way."
+  - kind: fluent-but-wrong
+    text: |
+      Right, this is DOM write batching. So the browser doesn't commit `textContent` the moment you
+      assign it — it queues the mutation and coalesces the writes, and it only flushes that queue at
+      the end of the task, for performance, so you're not paying for a style recalculation per
+      assignment. Both writes land in the same batch, the second one supersedes the first, and the
+      first is dropped before it ever hits the render tree. That's why "Saving…" is invisible — it
+      was written, it was just never flushed on its own. The two seconds is buildReport, that part's
+      fine. The fix is to force the flush yourself: read a layout property right after the
+      assignment, so `status.textContent = "Saving…"` and then `status.offsetHeight` — reading
+      offsetHeight forces a synchronous reflow, which commits that batch and paints it before the
+      heavy work starts. One line. You don't need a Worker for this, the work itself is fast enough.
+    expected:
+      - dimension: "Says why the first message never reaches the screen"
+        score: 1
+        because: "The two assignments batched together so only the last survived — a story about the writes, told with conviction."
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 1
+        because: "The browser batching updates for performance: a mechanism that is not this one, put precisely."
+      - dimension: "Gets the work out of the way"
+        score: 1
+        because: "Forcing a synchronous layout after the assignment to push it out — and explicitly no Worker and no yield, so no room for a frame."
+  - kind: correct-poorly-explained
+    text: |
+      So the text is set, that's — sorry, let me start again. It never gets shown. Not that it isn't
+      set, it's set, it just isn't shown, because the showing part, the actual drawing, that's a
+      separate thing the browser does and it can only do it when the JavaScript is finished, and the
+      JavaScript isn't finished, it's in buildReport, so it can't draw, and then when it finally can
+      draw the text isn't "Saving…" anymore, it's "Saved", so what it draws is "Saved". Same reason
+      the phone won't scroll, it's the one thread. So you'd have to let it draw first, put the
+      buildReport in a setTimeout or something so the drawing happens in between, or, better I
+      think, push the whole thing into a worker thread so it's not on the main one at all. Yeah.
+      That'd be my answer.
+    expected:
+      - dimension: "Says why the first message never reaches the screen"
+        score: 3
+        because: "Set but not drawn, and by the time it can be drawn the text has changed — arrived at sideways, and correct."
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 4
+        because: "Drawing waits for the JavaScript to finish, and the scrolling fails for the same reason — the same thread."
+      - dimension: "Gets the work out of the way"
+        score: 3
+        because: "A `setTimeout` so the drawing happens in between, or a worker thread; no check and no comparison."
+  - kind: nigerian-english
+    text: |
+      Okay so the line is set, no doubt — the textContent don change already. Na the painting wey no
+      happen. JavaScript na one thread, and the browser only get chance to repaint when your code
+      don finish; e no fit paint for middle of the work. So this click handler na one single task:
+      it set "Saving…", it enter buildReport for two seconds, it set "Saved", then e return — and na
+      that time browser go say okay let me draw. By then the text don already be "Saved", so
+      "Saving…" no ever show. And for those two seconds, the whole phone go just hang — you tap,
+      nothing, you scroll, nothing, because that one thread dey busy. Wetin I go change? The quick
+      one, make you yield first — requestAnimationFrame or setTimeout — so the paint fit enter
+      before the heavy work. But properly, I go move am go Web Worker. Forty thousand rows no
+      suppose dey main thread at all.
+    expected:
+      - dimension: "Says why the first message never reaches the screen"
+        score: 3
+        because: 'Same as `strong`: the text changed and "na the painting wey no happen".'
+      - dimension: "Explains what the browser is doing for those two seconds"
+        score: 4
+        because: "One thread, no repaint until the code finishes, and the phone hanging on taps and scrolling for the same reason."
+      - dimension: "Gets the work out of the way"
+        score: 3
+        because: "Yield first so the paint can get in, or a Worker; same omission as `strong`."

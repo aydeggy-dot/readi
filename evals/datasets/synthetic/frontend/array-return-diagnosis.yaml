@@ -1,0 +1,120 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: array-return-diagnosis
+question: js-loop-that-returns-nothing
+# New 2026-09-22 with the question, which fills the intern-junior `javascript-fundamentals` slot
+# `js-async-ordering` left when it became mid only.
+#
+# The pairing this rubric had to survive: `fluent-but-wrong` asserts that `return` inside a
+# `forEach` callback acts as a `break` and that `forEach` hands that value back as its own result,
+# the way `reduce` hands back an accumulator — so the only bug is failing to capture it. It reaches
+# the right *observation* (`openJobs` returns nothing) from an invented mechanism, which is why it
+# takes a 2 on criterion 1 and 1s on the rest, against `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      Yeah, so this returns undefined and it's kind of two bugs stacked. The inner one — `return
+      job` inside the forEach callback only returns from that callback, the arrow function. It's one
+      call per element, so returning just ends that call and forEach moves on to the next one. It's
+      basically a `continue`. And forEach throws away whatever the callback gives back; it's built
+      for side effects, it always returns undefined by design. Then the outer bug: `openJobs` itself
+      has no return statement at all, so even if forEach gave you something, nothing's passing it
+      out. Function with no return, you get undefined. What I'd write instead — `return
+      jobs.filter(job => job.isOpen)`. filter is exactly this, it keeps the elements where the
+      callback is truthy and gives you a new array. If I only wanted one, then `find`. But the name
+      says jobs, plural, so filter.
+    expected:
+      - dimension: "Says where the `undefined` comes from"
+        score: 4
+        because: "Both halves — the `return` ends the callback, `openJobs` has none — and says the loop itself runs correctly, like a `continue`."
+      - dimension: "Knows what `forEach` is for"
+        score: 3
+        because: "Throws away what the callback gives back, built for side effects; does not set it against the methods whose purpose is that value."
+      - dimension: "Writes it the way that says what it means"
+        score: 4
+        because: "`filter`, with what it gives back, and `find` named as the different question — chosen on the plural in the name."
+  - kind: weak
+    text: |
+      Okay so it gives back undefined... I think the problem might be that `isOpen` isn't set on the
+      objects? Like if job.isOpen is undefined then the if never runs and nothing gets returned, so
+      you get undefined. That would explain it. Um, or maybe it's a scope thing, because it's an
+      arrow function, and arrow functions have different `this`, so maybe `job` isn't what you think
+      inside there. How I'd write it instead — I'd probably just use a normal for loop, like `for
+      (let i = 0; i < jobs.length; i++)` and then an if, and push into an array, and return the
+      array at the end. That definitely works. I know there's a neater array way with one of the
+      methods but I always mix up which one, so I'd just do the loop.
+    expected:
+      - dimension: "Says where the `undefined` comes from"
+        score: 1
+        because: "The property not being set, or `this` in an arrow function — the fault put somewhere it is not."
+      - dimension: "Knows what `forEach` is for"
+        score: 0
+        because: '`forEach` is treated as any other loop; "I always mix up which one".'
+      - dimension: "Writes it the way that says what it means"
+        score: 2
+        because: "A correct result the long way — an index loop, an array and a `push` — and no view on which method it should be."
+  - kind: fluent-but-wrong
+    text: |
+      So the mechanism here is that `return` inside a forEach callback behaves as a break — it
+      terminates the iteration early. So the loop does stop, correctly, on the first job where
+      isOpen is true, and forEach hands that value back as its own result, the same way a reduce
+      hands back its accumulator. The bug is purely that nobody catches it. `jobs.forEach(...)` is
+      sitting there as a bare expression statement, the value is produced and immediately discarded,
+      and since `openJobs` never returns anything, the caller gets undefined. So the fix is to
+      capture it: `const result = jobs.forEach(job => { if (job.isOpen) return job; });` and then
+      `return result;`. Two words, basically. Now, that gives you the first open job, not all of
+      them — if the caller wants every one, you'd swap forEach for filter, but the undefined itself
+      is the missing assignment.
+    expected:
+      - dimension: "Says where the `undefined` comes from"
+        score: 2
+        because: "Notices `openJobs` returns nothing, and gives the inner `return` a behaviour it does not have, making the missing assignment the whole bug."
+      - dimension: "Knows what `forEach` is for"
+        score: 1
+        because: "`return` as a `break`, and `forEach` collecting what the callback gives back like `reduce` — two behaviours it does not have, asserted confidently."
+      - dimension: "Writes it the way that says what it means"
+        score: 1
+        because: "Capturing what `jobs.forEach(...)` gives back, which is `undefined`; `filter` is named in passing and is not the fix proposed."
+  - kind: correct-poorly-explained
+    text: |
+      Um. So it's — the return isn't returning from the function, it's returning from the... the
+      little function inside, the arrow one, which runs once for every job, so it just finishes that
+      one and goes to the next one, it's like a continue really, and forEach doesn't care, it throws
+      it away, it doesn't collect anything, that's not what it's for, and also — sorry, also the
+      outer function, openJobs, there's no return in it anywhere, look, the forEach is just sitting
+      there, so even ignoring everything else, it returns undefined because every function does if
+      you don't return. So. Filter. `return jobs.filter(j => j.isOpen)`, that's the whole thing, one
+      line, because filter is the one that actually builds you the new array out of the true ones.
+    expected:
+      - dimension: "Says where the `undefined` comes from"
+        score: 4
+        because: 'Both halves, and the loop running correctly — "it just finishes that one and goes to the next one" — arrived at in one tangled sentence.'
+      - dimension: "Knows what `forEach` is for"
+        score: 3
+        because: '"It throws it away, it doesn''t collect anything, that''s not what it''s for."'
+      - dimension: "Writes it the way that says what it means"
+        score: 3
+        because: "`filter`, and what it gives back; no `find`, so no account of what the other question would need."
+  - kind: nigerian-english
+    text: |
+      Ehen, so na two problems dey here. First one — that `return job`, e no dey return from
+      openJobs o, e dey return from that small arrow function wey forEach dey call for each item. So
+      e just end that one round and forEach go move to the next job. Na like `continue`. And forEach
+      sef no dey collect anything — whatever you return inside, e go just throw am away, because
+      forEach na for side effects, e dey always give you undefined. Then the second one: look
+      openJobs itself, no return statement anywhere inside am. So even if forEach bring something,
+      nobody dey carry am comot. Any function wey no return, na undefined you go get. So how I go
+      write am — `return jobs.filter(job => job.isOpen)`. Na filter be the correct one, e go build
+      new array with the ones wey true. If na only one I want, I go use find. But e say jobs,
+      plural, so filter.
+    expected:
+      - dimension: "Says where the `undefined` comes from"
+        score: 4
+        because: 'Same as `strong`: both halves, and "na like `continue`" for the loop still running correctly.'
+      - dimension: "Knows what `forEach` is for"
+        score: 3
+        because: "Same as `strong`: throws away what the callback returns, and is there for side effects."
+      - dimension: "Writes it the way that says what it means"
+        score: 4
+        because: "Same as `strong`: `filter` with what it gives back, and `find` named as the other question."

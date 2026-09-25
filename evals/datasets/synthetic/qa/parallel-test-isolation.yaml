@@ -1,0 +1,134 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: parallel-test-isolation
+question: playwright-tests-sharing-an-account
+# **Criterion 2 has no rung for the `weak` answer.** Rung 2 is "each test needs its own data, with
+# nothing about the account"; this answer is the mirror image — four accounts, one per spec, with
+# nothing about the data — and it is offered conditionally ("I'm not sure how you tell Playwright
+# which one to use"). Rung 3 requires the worker index, created data and assertions about it, none of
+# which is there; rung 0 is "run it serially", which is the answer's first instinct but not all it
+# says. 2 is the symmetric number, not a descriptor that fits.
+answers:
+  - kind: strong
+    text: |
+      Right — so with one worker the tests run in a line. Test A changes the profile name, it
+      finishes, then test B runs and changes it again, and nobody ever sees the middle. With four
+      workers they're all in there at the same time, on the same account, so test B reads the name
+      while test A is halfway through changing it. That's why it's different ones failing every run
+      — it's timing, it's whoever gets there first. The storage state isn't really the problem;
+      the problem is that all four workers are signed in as one user and three of the specs are
+      writing to that user's profile. So the fix is an account each. Ideally a fresh one per test —
+      a fixture that registers a new user over the API, signs it in, and hands that test its own
+      storageState. Or at minimum a pool, one account per worker, so worker two never touches
+      worker three's row. And each test should create what it needs rather than expecting what's
+      already there. What I'd keep serial on purpose is anything genuinely global — a test that
+      flips a system-wide setting, or one that needs a clean database. Give those their own file
+      with describe.serial instead of trying to isolate something that can't be isolated.
+    expected:
+      - dimension: Why running in parallel changes the result
+        score: 4
+        because: "Level 4: the saved session is one account and three specs write to its profile, and the serial run passed only because the order was fixed — 'nobody ever sees the middle'."
+      - dimension: The fix
+        score: 3
+        because: "Level 3: an account each, registered over the API into the test's own storageState, with a per-worker pool as the floor and each test creating what it needs; it prefers per test to per worker, so not 4."
+      - dimension: What stays serial on purpose
+        score: 3
+        because: "Level 3: a system-wide setting or a test needing a clean database, kept serial in its own file rather than serialising the suite."
+  - kind: weak
+    text: |
+      So with four workers it's running four tests at once instead of one after the other, and
+      that's faster but something is clashing. I think it's because they're all using the same
+      login. The file — the user dot json — they're all reading it, so maybe one test logs out and
+      then the others are logged out too. And the flakiness, different tests failing each time,
+      that's usually timing, so I'd add some waits. Honestly the first thing I'd try is putting
+      workers back to one, because it works at one, and it's better to have a suite that passes
+      slowly than a suite you can't trust. If they insist on parallel then... I would make more
+      accounts, like user one, user two, user three, user four, and give each spec its own one. I'm
+      not sure how you tell Playwright which one to use — I'd have to look it up, I think there's a
+      way with fixtures. What I'd keep serial, I don't really know. Maybe the login tests?
+      Because everything else depends on login working.
+    expected:
+      - dimension: Why running in parallel changes the result
+        score: 2
+        because: "Level 2: says something is clashing through the shared login, but the mechanism offered is tests logging each other out, and the flakiness is put down to timing to be fixed with waits."
+      - dimension: The fix
+        score: 2
+        because: "Nearest number, not a descriptor: an account per spec, offered conditionally and not wired up, with nothing about the data — see the note above."
+      - dimension: What stays serial on purpose
+        score: 2
+        because: "Level 2: says some tests cannot run in parallel and offers no example that holds — the login tests are a dependency, not shared state."
+  - kind: fluent-but-wrong
+    text: |
+      Okay, this is a shared-state problem and I've hit it before. The cause is the storage state
+      file. Every spec does test.use with the same path, so with four workers you've got four
+      browser contexts all touching playwright/.auth/user.json at once. Playwright writes the
+      session back into that file as cookies refresh, so worker one is writing while worker three
+      is reading, and worker three gets a half-written or stale JSON. Its context then comes up
+      without a valid session cookie, it lands on the login page instead of the app, and the
+      assertion fails — and it's a different worker each run because it's a race on the file.
+      Classic file contention. So the fix is one storage state per worker: in global setup I'd log
+      in four times and write user-0.json through user-3.json, then the fixture picks the file by
+      worker index. Same account, four files, no contention. The three specs that edit the profile
+      I'm honestly not worried about — they're separate files, and each one sets the field it needs
+      at the start, so whatever it reads back is its own value. What I'd keep serial deliberately
+      is the auth setup project itself, since everything depends on it running first.
+    expected:
+      - dimension: Why running in parallel changes the result
+        score: 1
+        because: "Level 1: 'classic file contention' on playwright/.auth/user.json rather than three tests changing one account, and the three profile specs are explicitly dismissed."
+      - dimension: The fix
+        score: 1
+        because: "Level 1 verbatim: a saved session per worker, four files, same account — the four workers now sign in separately and collide exactly as before."
+      - dimension: What stays serial on purpose
+        score: 1
+        because: "Level 1: nothing genuinely global is kept serial, only the auth setup project, which is ordering; full parallelism is treated as already reached."
+  - kind: correct-poorly-explained
+    text: |
+      Because they're sharing. Sorry — because it's one account. That's the whole thing. When it's
+      one worker, one test finishes before the next one starts, so the name being changed doesn't
+      matter, nobody's looking at it. Four workers, they're all inside the same account at the same
+      time, and three of them are editing the profile, so one test sets the phone number and
+      another one reads it and gets the first one's value and fails. And it's different ones each
+      time because it's just... whoever's faster on that run. Timing. Um. So, fix: one account per
+      test. You make the account in the test, or in a fixture, sign in, and then that test has its
+      own everything. Nobody steps on anybody. I've seen it done with a fixture that registers
+      through the API so it's fast, not through the UI. And — what do I keep serial. Things that
+      are actually shared and you can't clone. Like a global setting. If a test flips something on
+      for the whole app, that one stays serial, because giving it its own account doesn't help,
+      there's only one of the setting. Don't fight that one, just mark it.
+    expected:
+      - dimension: Why running in parallel changes the result
+        score: 4
+        because: "Level 4: one account, three specs editing the profile, and the serial pass explained away — 'the name being changed doesn't matter, nobody's looking at it'."
+      - dimension: The fix
+        score: 3
+        because: "Level 3: an account per test, made in a fixture that registers through the API, so each test has its own data rather than what it found."
+      - dimension: What stays serial on purpose
+        score: 3
+        because: "Level 3: a global setting stays serial because giving it its own account does not help — 'there's only one of the setting'."
+  - kind: nigerian-english
+    text: |
+      Okay. When it is one worker, the tests are running in a line. Test A will change the profile
+      name, finish, then test B will come and change am again — nobody sees the middle. But with
+      four workers, they are all inside at the same time on the same one account, so test B
+      will read the name while test A is still in the middle of changing am. That is why it is
+      different tests failing every time — it is timing, whoever reach there first. The storage
+      state file is not the problem. The problem is that the four workers are all one person, and
+      three of the specs are writing to that same person's profile. So the fix is, everybody should
+      get their own account. The best one is a fixture that creates a fresh user through the API
+      and gives that test its own storageState. If that is too much, a pool — one account per
+      worker, so worker two never touches worker three's row. And each test should create
+      what it needs. What I will keep serial on purpose is anything that is truly one thing for the
+      whole system — a setting for everybody, or a clean database. Put those in one file with describe.serial. You cannot isolate what is
+      not isolatable.
+    expected:
+      - dimension: Why running in parallel changes the result
+        score: 4
+        because: "Level 4, as strong: the four workers are all one person and three specs write to that profile, and the serial run passed because nobody saw the middle."
+      - dimension: The fix
+        score: 3
+        because: "Level 3, as strong: a fixture that creates a fresh user through the API, a per-worker pool as the fallback, and each test creating what it needs."
+      - dimension: What stays serial on purpose
+        score: 3
+        because: "Level 3, as strong: one setting for everybody, or a clean database, in one file with describe.serial."

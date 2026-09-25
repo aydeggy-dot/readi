@@ -66,6 +66,7 @@ describe("a question written for more than one role", () => {
       context: null,
       rubric_id: rubricId,
       ideal_points: ["Says where, and why there"],
+      planned_follow_ups: [],
     };
     const created = await http().post("/api/admin/content/questions").set(as(admin)).send(body);
     expect(created.status).toBe(201);

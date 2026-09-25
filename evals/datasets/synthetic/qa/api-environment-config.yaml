@@ -1,0 +1,132 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: api-environment-config
+question: api-testing-three-environments
+answers:
+  - kind: strong
+    text: |
+      Right, so on the screen the host is typed into the request, staging dash api dot example dot ng,
+      and the token is sitting in the file next to it, in the repo with the tests. Two problems.
+      First, the host comes out of the request — it becomes a variable, base URL slash applications, and
+      staging and test are just two values for it. And it's not only the host: any id or account number
+      baked into a request won't exist in the other environment, so the tests have to create the data
+      they need.
+      The token shouldn't be in the file at all, and that one is already burnt — it's in the git
+      history, so deleting the line doesn't help, it has to be revoked. Going forward the run logs in at
+      the start and gets a fresh token for a test service account, and that account's credentials come
+      from the runner's secrets, one set per environment. Nobody needs to read them; the pipeline needs
+      them. And I'd check they're not printed in the report or the logs.
+      Production, no. These are POSTs, they create applications — real records, real people's data, real
+      emails. If they want assurance there, that's a separate read-only check with its own account,
+      agreed with whoever owns the service.
+    expected:
+      - dimension: "Separates the collection from the environment"
+        score: 4
+        because: "Level 4 — one collection with the host as a base URL variable and staging and test as two values of it, and what else differs per environment: any id or account number baked into a request will not exist there, so the tests create the data they need."
+      - dimension: "Where the secret comes from"
+        score: 4
+        because: "Level 4 — prefers the run signing in at the start for a fresh short-lived token on a test service account, with that account's credentials from the runner's secrets, one set per environment; the committed token is treated as burnt and revoked."
+      - dimension: "Production is different"
+        score: 3
+        because: "Level 3 — refuses because these are POSTs creating real applications and real people's data, and offers instead a separate read-only check with its own account agreed with the service owner; it does not say what checking production is for."
+  - kind: weak
+    text: |
+      Okay, so, ehm, the URL is hardcoded, that's the first thing I can see on the screen. So
+      that has to change so it's not hardcoded — maybe put it in a variable, or have two files,
+      one for staging and one for the test environment, and you run whichever one you need.
+      The token — having the token in the file is not good, because anybody who opens the repo
+      will see it. So maybe we encrypt it? Or put it in a separate file and add that file to
+      gitignore so it doesn't go up with the code. And only the team should be able to see it,
+      like the QA people and the developers.
+      And production... ah, no. Nobody should be testing on production, that's the live one,
+      customers are there. I'd say no, we should use staging, that's what staging is for. And if
+      the person insists, then, ehm, I'd escalate it to my lead, because that's above my level.
+      I wouldn't just go and do it by myself.
+    expected:
+      - dimension: "Separates the collection from the environment"
+        score: 2
+        because: "Level 2 — says to put the URL in a variable, or keep one file per environment, with nothing about how the values are chosen per run."
+      - dimension: "Where the secret comes from"
+        score: 2
+        because: "Level 2 — says not to commit the secret (gitignore, maybe encryption) with nothing about where it should come from at run time."
+      - dimension: "Production is different"
+        score: 2
+        because: "Level 2 — a flat no and an escalation to the lead, with nothing about how anything could be run there safely."
+  - kind: fluent-but-wrong
+    text: |
+      Sure. So the clean way is proper environment management. I'd pull the host into a base URL
+      variable, then create three environment files — staging, test, and one for prod later —
+      checked into the repo beside the collection, each with its own base URL and its own token.
+      The runner picks the environment by name, so the same requests go anywhere.
+      And keeping the tokens in those files is fine, because the repo is private — repo access is
+      the access control. Anybody who can read that token can already read the tests and the test
+      data, so a vault or a secrets manager is a moving part for no gain on a non-production
+      token. I'd keep them long-lived deliberately, as well: fetching a fresh token inside the
+      pipeline is one more call that can fail, and that's exactly how you get flaky runs.
+      For production — it isn't automatically wrong, it depends on the verb. I'd tag the requests
+      and against production run only the GETs. Read-only can't change anything, so the risk is
+      basically zero and you get real coverage of the real system. I'd keep the prod environment
+      file in the same place, just with the write requests excluded, and run it by hand rather
+      than on every commit.
+    expected:
+      - dimension: "Separates the collection from the environment"
+        score: 3
+        because: "Level 3 — one collection, the host pulled into a base URL variable, and an environment per target selected by name when the run starts; nothing about what else differs, so it stops at 3."
+      - dimension: "Where the secret comes from"
+        score: 1
+        because: "Level 1 — moves the secret into committed environment files and calls repo access the access control, keeping the tokens long-lived on purpose."
+      - dimension: "Production is different"
+        score: 1
+        because: "Level 1 — guards production by convention: tagged GETs run by hand, with the same account, the same token and the write requests still in the collection."
+  - kind: correct-poorly-explained
+    text: |
+      Ehm, okay. So I've only ever run these from Postman on my own system, I've never had them running
+      somewhere else, so let me think it through.
+      The host is inside the request, so that's the first thing — if it's typed in there, then to hit
+      the other environment you'd be editing every single request, which, no. So it should be a
+      variable. Sorry — not in the request, in an environment, so you pick staging or test and the same
+      requests go.
+      The token... it's in the file, and the file is in the repo, so anybody with the repo has the
+      token. That's bad. And even if I delete it now, it's still in the history, so it has to be
+      cancelled on the server side, not just taken out of the file. Then where does it come from instead
+      — I think the machine that runs the tests holds it as a setting, an environment variable, so it's
+      never in the file. Better still, the test logs in itself and gets a new one.
+      Production, I'd say no. It's a POST, it's creating applications — those would be real
+      applications, real people. If they still want something there it should be reading only, and
+      somebody senior signs it off, not me.
+    expected:
+      - dimension: "Separates the collection from the environment"
+        score: 3
+        because: "Level 3 — the host comes out of the request into an environment you pick, staging or test, so the same requests go; nothing about ids or data differing per environment."
+      - dimension: "Where the secret comes from"
+        score: 4
+        because: 'Level 4 — the runner holds it as a setting so it is never in the file, and "better still, the test logs in itself and gets a new one"; the committed token has to be cancelled server-side, not deleted.'
+      - dimension: "Production is different"
+        score: 2
+        because: Level 2 — read-only plus a senior sign-off, with no account that can do nothing else behind it.
+  - kind: nigerian-english
+    text: |
+      Okay, from the screen — the host is typed inside the request, staging api example ng, and the
+      token is just sitting in the file, and the file is inside the same repo with the tests.
+      First one, the host has to come out — it becomes a variable, and then staging and test are just
+      two different values for it. And it is not only the host o. Any id that somebody typed inside the
+      request will not exist in the other environment, so the tests have to create their own data.
+      The token now — it should not be inside that file at all, and that one has already spoiled: it is
+      in the git history, so deleting the line will not save you, they have to revoke it. Going forward,
+      the test should log in when it starts and collect a fresh token with a test service account, and
+      the credentials will come from the runner's secrets, one set per environment. Nobody needs to see
+      it — it is the pipeline that needs it.
+      Production? No. These ones are POSTs, they are creating applications — real records, real people's
+      data. If they want assurance on production, that one is a separate small read-only check with its
+      own account — we no go just point this suite there.
+    expected:
+      - dimension: "Separates the collection from the environment"
+        score: 4
+        because: "Level 4 — same as `strong`: the host becomes a variable with staging and test as two values, and any id typed into a request will not exist in the other environment, so the tests create their own data."
+      - dimension: "Where the secret comes from"
+        score: 4
+        because: "Level 4 — same as `strong`: the token is already spoiled and must be revoked from the git history, and the run logs in for a fresh token on a test service account, credentials from the runner's secrets, one set per environment."
+      - dimension: "Production is different"
+        score: 3
+        because: "Level 3 — same as `strong`: no, because these are POSTs creating real records and real people's data, and production gets a separate read-only check with its own account."

@@ -13,6 +13,15 @@ import type { Prisma } from "../generated/prisma/client";
  * | `[java-spring]` | `java-spring`   | yes |
  * | `[java-spring]` | `nodejs`        | no — it would be a Spring question asked of a Node dev |
  * | `[java-spring]` | none chosen     | **no** |
+ * | `[react-typescript]` | `react-node` | **no** — a different row, and nothing infers one from the other |
+ * | `[react-typescript, react-node]` | `react-node` | yes |
+ *
+ * The last two rows are the full-stack trap. A candidate's profile holds **one** `target_stack`,
+ * and full-stack's `react-node` is not frontend's `react-typescript`, so a frontend question
+ * tagged for React reaches no full-stack candidate at all however well it transfers. There is no
+ * hierarchy between stacks and no "related variant" inference, deliberately: the second tag is the
+ * only mechanism, which is why M2.5 added `react-node` to the two React questions and why
+ * `content/seed/blueprints/fullstack.md` makes it a rule for every stack-tagged question.
  *
  * That last row is the decision worth stating. A candidate who has not chosen a variant could
  * reasonably be shown everything or shown only the general set; we show the general set. Handing

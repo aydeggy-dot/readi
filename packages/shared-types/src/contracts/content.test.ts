@@ -38,6 +38,7 @@ const questionInput = () => ({
   context: null,
   rubric_id: RUBRIC_ID,
   ideal_points: ["Measures before changing anything"],
+  planned_follow_ups: [] as { criterion: number; probe: string }[],
 });
 
 describe("slugs", () => {
@@ -137,6 +138,65 @@ describe("questions", () => {
   it("caps the answer key so a question cannot become a lesson", () => {
     const ideal_points = Array.from({ length: CONTENT_LIMITS.idealPoints + 1 }, (_, i) => `p${i}`);
     expect(QuestionInput.safeParse({ ...questionInput(), ideal_points }).success).toBe(false);
+  });
+
+  /*
+   * Planned follow-ups (owner's decision, 2026-09-23). The contract holds the shape; the house
+   * rule — every criterion asked for by the prompt or by a probe — is `check-bank.mjs`'s, because
+   * only it can see a question's prompt and its rubric's criteria together.
+   */
+  describe("planned follow-ups", () => {
+    const withFollowUps = (planned_follow_ups: unknown) =>
+      QuestionInput.safeParse({ ...questionInput(), planned_follow_ups });
+
+    it("takes a probe per criterion, by the criterion's position", () => {
+      expect(
+        withFollowUps([
+          { criterion: 1, probe: "How would you know your list was enough?" },
+          { criterion: 2, probe: "What would you leave out, and why?" },
+        ]).success,
+      ).toBe(true);
+    });
+
+    it("accepts none, which says the prompt asks for everything its rubric scores", () => {
+      expect(withFollowUps([]).success).toBe(true);
+    });
+
+    /*
+     * Two probes per criterion, not one (owner's decision, 2026-09-23, after the QA pilot): a
+     * criterion scoring two separable things needs a probe for each, or half of it is scored and
+     * never asked. A third means the criterion should have been split instead.
+     */
+    it("takes a second probe for a criterion that scores two things", () => {
+      expect(
+        withFollowUps([
+          { criterion: 0, probe: "And why that one?" },
+          { criterion: 0, probe: "What else would you look at?" },
+        ]).success,
+      ).toBe(true);
+    });
+
+    it("refuses a third on the same criterion", () => {
+      const probes = Array.from(
+        { length: CONTENT_LIMITS.followUpsPerCriterion + 1 },
+        (_, index) => ({ criterion: 0, probe: `Probe ${index}?` }),
+      );
+      expect(withFollowUps(probes).success).toBe(false);
+      // ...and the cap is per criterion, not over the whole list.
+      expect(
+        withFollowUps(probes.map((probe, index) => ({ ...probe, criterion: index }))).success,
+      ).toBe(true);
+    });
+
+    it("refuses a criterion no rubric could have", () => {
+      for (const criterion of [-1, CONTENT_LIMITS.rubricCriteria.max, 1.5]) {
+        expect(withFollowUps([{ criterion, probe: "Why?" }]).success).toBe(false);
+      }
+    });
+
+    it("refuses an empty probe", () => {
+      expect(withFollowUps([{ criterion: 0, probe: "   " }]).success).toBe(false);
+    });
   });
 });
 

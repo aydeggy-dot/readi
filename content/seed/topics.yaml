@@ -9,9 +9,13 @@ topics:
     name: JavaScript fundamentals
     description: The language itself — types, scope, closures, asynchrony, and how the runtime schedules work.
 
+  # Named for React until 2026-09-22, when the frontend bank gained general questions on it. The
+  # slug stays — slugs are permanent, and renaming one creates a second topic — but the subject is
+  # framework-neutral: a Vue, Angular or mobile candidate needs it just as much, and the
+  # framework-specific questions hang off it with stack tags.
   - slug: react-state
-    name: React state and data flow
-    description: Where state lives, how it moves between components, and when React re-renders.
+    name: Component state and data flow
+    description: Where state lives, how it moves between components, and what makes a view re-render.
 
   - slug: browser-rendering
     name: Browser rendering and performance
@@ -41,6 +45,19 @@ topics:
     name: Working with a team
     description: Code review, asking for help, disagreement, and saying what you do not know.
 
+  # Added 2026-09-22 after the critique passes. Two gaps they found are not sub-parts of
+  # `collaboration`: nothing in the bank asked a candidate to hand context to someone who is not in
+  # the room, and nothing asked them to talk about their own work — which is the round a Nigerian
+  # interviewer named as the highest-yield hour they have, because a junior CV often outruns what
+  # the person actually wrote. Both are shared across every role.
+  - slug: written-communication
+    name: Saying it in writing
+    description: Asking, escalating and handing over to someone who is not there to ask you a follow-up.
+
+  - slug: own-work
+    name: Talking about your own work
+    description: Describing something you built, the decision behind it, and what you would do differently now.
+
   - slug: api-design
     name: API design
     description: Resources, status codes, error shapes and the contract a client has to live with.
@@ -60,3 +77,66 @@ topics:
   - slug: defect-reporting
     name: Defect reporting and triage
     description: Reports a developer can act on, and judging severity honestly.
+
+  # Added 2026-09-22 with the backend bank. Seven topics the backend blueprint derived from
+  # `docs/role-catalogue.md`; five of the seven are reused by DevOps, data engineering and
+  # full-stack when those waves land, which is why they are named for the thing rather than for
+  # the role. `indexing and transactions` is deliberately *not* here — a question about an index
+  # is a question about the database, so both are subtopics of `databases`.
+  - slug: caching
+    name: Caching
+    description: What is worth holding on to, how long for, and how the held copy is replaced when the truth changes.
+
+  - slug: async-work
+    name: Background and queued work
+    description: Work taken out of the request — queues, retries, and what happens when a job runs twice.
+
+  - slug: auth
+    name: Authentication and authorisation
+    description: Proving who someone is, deciding what they may do, and storing credentials safely.
+
+  - slug: concurrency
+    name: Concurrency and race conditions
+    description: Two requests at once — lost updates, check-then-act, and the guarantees the database offers.
+
+  - slug: backend-testing
+    name: Testing backend code
+    description: What a test should own, what it should stand in for, and tests that fail for a real reason.
+
+  - slug: observability
+    name: Logging, metrics and knowing it broke
+    description: Finding out what happened after the fact, and finding out before the user tells you.
+
+  - slug: system-design-basics
+    name: Designing something that has to grow
+    description: When to add a cache, a queue or a second machine, what each one costs, and what breaks first.
+
+  # Added 2026-09-23 with the QA bank. Six topics the QA blueprint derived from
+  # `docs/role-catalogue.md`. Two notes on the naming. `testing-apis` is the *skill* — what to check
+  # about a request and a response — and is deliberately not named after a tool; the `api-testing`
+  # stack in `stacks.yaml` is Postman and RestAssured, which is the tool. And `test-automation` is
+  # about what deserves a test and why a suite is trusted, never about writing one: the engine has
+  # no code editor, so "write the test" is not a question we can ask (blueprints/qa.md).
+  - slug: risk-based-testing
+    name: Deciding what to test first
+    description: Where the risk is, what that buys, and what you are choosing not to cover.
+
+  - slug: testing-apis
+    name: Testing an API
+    description: What to check about a request and a response when there is no screen in the way.
+
+  - slug: test-automation
+    name: Automating tests, and trusting them
+    description: What earns a test, what an assertion is really checking, and why a suite stops being believed.
+
+  - slug: ci-pipelines
+    name: Tests in a pipeline
+    description: What runs when, what a red build means, and what a team does while it is red.
+
+  - slug: exploratory-testing
+    name: Exploratory testing
+    description: Finding what the cases would have missed, on purpose, and leaving something behind.
+
+  - slug: test-data
+    name: Test data
+    description: Where the data comes from, what it costs to use real data, and tests that can run twice.

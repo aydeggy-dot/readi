@@ -1,0 +1,26 @@
+<script>
+render('d11', 1240, 430, 'One source of truth for every contract', 'Zod schemas in packages/shared-types are the only place a cross-service shape is written by hand. Everything else is generated, committed, and checked for drift by CI.', () => {
+  const src = box({x:40,y:130,w:230,h:100,title:'packages/shared-types',lines:['Zod schemas — written by hand','11 contract modules','constants with no Zod, for the browser'],state:'accent',ts:14});
+
+  const js  = box({x:346,y:40,w:210,h:76,title:'JSON Schema',lines:['draft 2020-12','17 shared definitions'],ts:13});
+  const py  = box({x:622,y:40,w:230,h:76,title:'Pydantic models',lines:['generated into the Python worker','never hand-edited'],ts:13});
+
+  const dto = box({x:346,y:236,w:210,h:76,title:'NestJS DTOs',lines:['the same Zod schemas,','used at the HTTP boundary'],ts:13});
+  const oas = box({x:622,y:236,w:230,h:76,title:'OpenAPI document',lines:['40 paths, 109 components','exported without a database'],ts:13});
+  const cli = box({x:918,y:236,w:230,h:76,title:'@readi/api-client',lines:['typed client the web app uses','stable error codes, no English copy'],ts:13});
+
+  arrow(src.right, 160, 346, 78, {elbow:'h', mid:308, color:'pen'});
+  arrow(src.right, 200, 346, 274, {elbow:'h', mid:308, color:'pen'});
+  arrow(js.right, 78, py.left, 78, {color:'mute', label:'datamodel-codegen', ly:70});
+  arrow(dto.right, 274, oas.left, 274, {color:'mute', label:'nestjs-zod', ly:266});
+  arrow(oas.right, 274, cli.left, 274, {color:'mute', label:'openapi-typescript', ly:266});
+  arrow(py.right, 78, 900, 78, {color:'mute'});
+  label(910, 82, 'the worker', {anchor:'start', size:12, weight:700, fill:P.ink});
+  label(910, 100, 'speaks the same shapes', {anchor:'start', size:11.5});
+
+  band(40, 336, 1160, 84, '');
+  label(60, 366, 'pnpm check:contracts', {anchor:'start', size:12.5, weight:700, fill:P.pen});
+  label(60 + 150, 366, 'regenerates both chains and fails on any difference — so a shape cannot change in TypeScript without the Python worker and the web client', {anchor:'start', size:12, fill:P.ink});
+  label(60, 390, 'following it in the same commit. CI runs it as its own job. Every generated file is committed, so a reviewer sees the consequence of a contract change in the diff.', {anchor:'start', size:12, fill:P.ink});
+});
+</script>

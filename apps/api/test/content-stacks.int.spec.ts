@@ -11,7 +11,7 @@ import type {
 } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { SPRING, STACK_RULE } from "../src/content/question-eligibility.spec";
+import { REACT_NODE, SPRING, STACK_RULE } from "../src/content/question-eligibility.spec";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { setUserRole } from "../src/users/roles.service";
 import {
@@ -40,6 +40,13 @@ describe("the stack dimension", () => {
   /** A second published variant the same role offers, so "tagged for someone else" is reachable. */
   let otherStackId: string;
   let otherStackSlug: string;
+  /**
+   * A third, so that no row of `STACK_RULE` collapses onto another. The table's `REACT_NODE` rows
+   * stand for a variant that is neither of the first two — in the real catalogue, full-stack's
+   * `react-node` beside frontend's `react-typescript` — and with only two stacks here they would
+   * have mapped onto the `NODE` rows and asserted nothing new.
+   */
+  let thirdStackSlug: string;
 
   const questions: string[] = [];
   const http = () => request(app.getHttpServer());
@@ -61,6 +68,7 @@ describe("the stack dimension", () => {
       context: null,
       rubric_id: rubricId,
       ideal_points: ["Measures first"],
+      planned_follow_ups: [],
     };
     const created = await http().post("/api/admin/content/questions").set(as(admin)).send(body);
     expect(created.status).toBe(201);
@@ -98,6 +106,14 @@ describe("the stack dimension", () => {
     otherStackSlug = other.slug;
     await prisma.careerRoleStack.create({
       data: { roleId: pair.roleId, stackId: other.id, position: 1, isDefault: false },
+    });
+
+    const third = await prisma.stack.create({
+      data: { slug: `fixture-stack-third-${id()}`, name: "A third variant", status: "published" },
+    });
+    thirdStackSlug = third.slug;
+    await prisma.careerRoleStack.create({
+      data: { roleId: pair.roleId, stackId: third.id, position: 2, isDefault: false },
     });
 
     const adminUser = await signUpWithEmail(app, uniqueEmail());
@@ -163,12 +179,19 @@ describe("the stack dimension", () => {
      * and the claim that they cannot was only a comment until this test imported the table
      * (M2.5 review, 2026-09-22).
      *
-     * The table names two abstract stacks; here they are this spec's two real ones. A question
-     * tagged with neither is general.
+     * The table names three abstract stacks; here they are this spec's three real ones, one per
+     * distinct id, so that every row asserts something the others do not. A question tagged with
+     * none of them is general.
      */
     it("runs the whole stack rule against the database", async () => {
       const stackFor = (id: string | null): string | undefined =>
-        id === null ? undefined : id === SPRING ? pair.stackSlug : otherStackSlug;
+        id === null
+          ? undefined
+          : id === SPRING
+            ? pair.stackSlug
+            : id === REACT_NODE
+              ? thirdStackSlug
+              : otherStackSlug;
       const tagsFor = (ids: readonly string[]): string[] => ids.map((id) => stackFor(id) as string);
 
       // One published question per distinct tag set in the table, then one candidate per row.
@@ -258,6 +281,7 @@ describe("the stack dimension", () => {
           context: null,
           rubric_id: rubricId,
           ideal_points: ["Because"],
+          planned_follow_ups: [],
         });
       expect(response.status).toBe(400);
       expect(response.body).toMatchObject({ code: "stack_not_found" });

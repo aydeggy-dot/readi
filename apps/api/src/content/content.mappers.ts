@@ -121,6 +121,15 @@ const toLevels = (levels: Prisma.JsonValue): RubricInput["criteria"][number]["le
   levels as RubricInput["criteria"][number]["levels"];
 
 /**
+ * The same cast, for the same reason: the column is `Json`, and `PlannedFollowUp` is what validated
+ * it on the way in. Nothing reads it but the CMS, the reviewer's page and — from M3 — the session
+ * snapshot, all of which are answer-key surfaces.
+ */
+export const toPlannedFollowUps = (
+  followUps: Prisma.JsonValue,
+): QuestionInput["planned_follow_ups"] => followUps as QuestionInput["planned_follow_ups"];
+
+/**
  * The review state the CMS shows (ADR-0014 decision 6): whether a model drafted this and nobody
  * has vouched for it, and when a review was recorded. The reviewer's id stays server-side — the
  * audit log is where "by whom" belongs.
@@ -162,6 +171,7 @@ export const toQuestion = (row: QuestionRow): Question => ({
   context: row.context,
   rubric_id: row.rubricId,
   ideal_points: row.idealPoints,
+  planned_follow_ups: toPlannedFollowUps(row.plannedFollowUps),
   status: row.status,
   version: row.version,
   topic: toTopic(row.topic),
@@ -378,6 +388,7 @@ export const questionContent = (row: QuestionRow): QuestionInput => ({
   context: row.context,
   rubric_id: row.rubricId,
   ideal_points: row.idealPoints,
+  planned_follow_ups: toPlannedFollowUps(row.plannedFollowUps),
 });
 
 // -----------------------------------------------------------------------------------------------

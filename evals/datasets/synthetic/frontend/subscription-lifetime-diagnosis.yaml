@@ -1,0 +1,114 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: subscription-lifetime-diagnosis
+question: angular-subscription-leak
+answers:
+  - kind: strong
+    text: |
+      So nothing here ever unsubscribes. ngOnInit subscribes and there's no ngOnDestroy, so every
+      time they navigate into the list a new subscription is created and the old ones are still
+      alive. That explains both symptoms actually — it gets slower because each dead component is
+      still being held in memory by its subscription, the garbage collector can't touch it while
+      something holds a reference to the callback, and the stale results are the old subscriptions
+      still firing and writing into components from a search they ran pages ago. Fix is to tie the
+      subscription to the component's life. Cleanest is to not subscribe manually at all — keep
+      jobs$ as the observable and let the async pipe in the template handle subscribe and
+      unsubscribe for you. Or takeUntilDestroyed on the pipe if you need it in the class. The rule
+      is just: whatever a component subscribes, the component ends.
+    expected:
+      - dimension: "Connects the leak to both symptoms"
+        score: 4
+        because: "No `ngOnDestroy`, one subscription per visit, and explains both symptoms — including why the dead components cannot be collected."
+      - dimension: "Ends the work with the component"
+        score: 4
+        because: "Prefers the async pipe precisely because it cannot be forgotten on the next component someone writes."
+      - dimension: "Generalises"
+        score: 2
+        because: "Generalises to subscriptions; does not reach timers or listeners."
+  - kind: weak
+    text: |
+      Okay. So getting slower after a lot of navigation, that sounds like memory. Maybe the job
+      service is caching every search it's ever done and the cache is growing? I'd look at the
+      service first and see if it's storing results in an array. For the wrong results showing up,
+      that might be the browser caching the HTTP response — I'd add a cache-busting param or set
+      the headers to no-store. I'd also add a loading state so the old list is cleared while the
+      new one comes in, then at least the user doesn't see the stale one. I know unsubscribing is
+      a thing in Angular but I've mostly used the async pipe so I've not had to think about it
+      much.
+    expected:
+      - dimension: "Connects the leak to both symptoms"
+        score: 1
+        because: "Blames the service caching results and the browser caching responses."
+      - dimension: "Ends the work with the component"
+        score: 0
+        because: "A loading state so the stale list is hidden — nothing is ever unsubscribed."
+      - dimension: "Generalises"
+        score: 0
+        because: "Treats it as specific to this service."
+  - kind: fluent-but-wrong
+    text: |
+      So the tell for me is "a search they ran several pages ago" — that's not a memory thing,
+      that's the router reusing the component instance. Angular's default RouteReuseStrategy keeps
+      the component alive when you navigate back to the same route, so ngOnInit only ever runs
+      once, on the first visit. this.term is captured at that moment and never re-read, so every
+      subsequent visit re-renders whatever the first search produced — hence results from pages
+      ago. And the slowdown is the router holding detached views in its reuse cache. The fix is to
+      stop relying on ngOnInit for anything route-dependent: move it to ngOnChanges, or subscribe
+      to the ActivatedRoute params and rebuild jobs$ from those, and set onSameUrlNavigation to
+      reload. The subscribe call itself is fine — HttpClient observables complete after one
+      emission anyway, so there's nothing left hanging around to unsubscribe from.
+    expected:
+      - dimension: "Connects the leak to both symptoms"
+        score: 1
+        because: 'Blames the router reusing the component, and explicitly exonerates the missing unsubscribe — "HttpClient observables complete anyway", which is true of one request and not of a component subscribing on every visit.'
+      - dimension: "Ends the work with the component"
+        score: 0
+        because: "Moves the work to `ngOnChanges` and route params; nothing ends the subscriptions."
+      - dimension: "Generalises"
+        score: 0
+        because: "The rule offered is about routing, not about lifetime."
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so there's a subscribe here and, um, there's no ngOnDestroy, which — I mean the
+      component goes away when you navigate, the view is destroyed, but the subscription doesn't
+      know that, it's not connected to the component's life at all, so it just stays, and then you
+      come back and it does it again, and again, dozens of times they said, and each one is still
+      listening, so when anything emits they all run, including ones belonging to components that
+      don't exist on screen any more, which is your old search results turning up. And the slowness
+      is that none of those components can be collected because the subscription is holding them.
+      So — right — the fix is either let the template do it with the async pipe, which unsubscribes
+      for you when the view goes, or takeUntilDestroyed. Either way you're binding it to the
+      component's lifetime, which is the actual point.
+    expected:
+      - dimension: "Connects the leak to both symptoms"
+        score: 4
+        because: "Same: dozens still listening, and none of those components can be collected."
+      - dimension: "Ends the work with the component"
+        score: 4
+        because: 'Async pipe or `takeUntilDestroyed` — "either way you''re binding it to the component''s lifetime, which is the actual point".'
+      - dimension: "Generalises"
+        score: 2
+        because: "Subscriptions only."
+  - kind: nigerian-english
+    text: |
+      Nothing here is unsubscribing at all. ngOnInit go subscribe, and there is no ngOnDestroy, so
+      every single time the person enter the list page, na another subscription you don add on top,
+      and the old ones never die. That one explains the two problems sef. The slowness na because
+      each dead component is still being held by im own subscription, so garbage collector no fit
+      clear am. And the old results wey dey show, na those old subscriptions wey still dey fire,
+      dem dey write into components from a search wey the person don leave since. So the fix na to
+      tie the subscription to the component's lifetime. The cleanest one, make you no subscribe by
+      hand at all — leave jobs$ as observable, let the async pipe for the template do the subscribe
+      and unsubscribe. Or takeUntilDestroyed if you really need am for the class. Whatever a
+      component subscribe, the component must end am.
+    expected:
+      - dimension: "Connects the leak to both symptoms"
+        score: 4
+        because: "Same two symptoms from the same cause."
+      - dimension: "Ends the work with the component"
+        score: 4
+        because: "Same preference for the pipe, same reason."
+      - dimension: "Generalises"
+        score: 2
+        because: "Same scope."

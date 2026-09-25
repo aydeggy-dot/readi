@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="670" viewBox="0 0 1240 670" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">What the owner has to provide, and when</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Nothing external is needed to keep building: the default configuration reaches no paid service. The column that matters is the third — those are the items with sign-up, verification or DNS work behind them.</text></g><g transform="translate(0,50)"><rect x="24" y="8" width="268" height="280" rx="6" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"></rect>
+<rect x="24" y="8" width="268" height="4" rx="2" fill="#15803D"></rect>
+<text x="38" y="34" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="700" fill="#374151">Held or generated today</text>
+<text x="38" y="51" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#15803D">nothing to buy</text>
+<circle cx="42" cy="70" r="3" fill="#15803D"></circle>
+<text x="54" y="74" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Anthropic API key</text>
+<text x="54" y="91" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">already in the worker’s .env</text>
+<circle cx="42" cy="113" r="3" fill="#15803D"></circle>
+<text x="54" y="117" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Three local secrets</text>
+<text x="54" y="134" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">openssl rand — auth, proxy, worker</text>
+<text x="54" y="148" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">token</text>
+<circle cx="42" cy="170" r="3" fill="#15803D"></circle>
+<text x="54" y="174" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Docker services</text>
+<text x="54" y="191" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">Postgres + pgvector, Redis, S3,</text>
+<text x="54" y="205" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">LiveKit</text>
+<circle cx="42" cy="227" r="3" fill="#15803D"></circle>
+<text x="54" y="231" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Fakes that stand in</text>
+<text x="54" y="248" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">fake LLM, fake embeddings, console</text>
+<text x="54" y="262" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">email and SMS</text>
+<rect x="304" y="8" width="268" height="237" rx="6" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"></rect>
+<rect x="304" y="8" width="268" height="4" rx="2" fill="#B45309"></rect>
+<text x="318" y="34" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="700" fill="#374151">Before milestone M3 finishes</text>
+<text x="318" y="51" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#B45309">the interview engine</text>
+<circle cx="322" cy="70" r="3" fill="#B45309"></circle>
+<text x="334" y="74" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Langfuse Cloud, EU region</text>
+<text x="334" y="91" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">public key, secret key, host — and a</text>
+<text x="334" y="105" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">signed data-processing agreement</text>
+<circle cx="322" cy="127" r="3" fill="#B45309"></circle>
+<text x="334" y="131" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Approval to spend</text>
+<text x="334" y="148" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">a real end-to-end run costs roughly</text>
+<text x="334" y="162" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">2–4 cents per 30-minute mock</text>
+<circle cx="322" cy="184" r="3" fill="#B45309"></circle>
+<text x="334" y="188" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Ten minutes of your time</text>
+<text x="334" y="205" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">look at the interview screen at</text>
+<text x="334" y="219" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">360px after phase 4</text>
+<rect x="584" y="8" width="380" height="552" rx="6" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"></rect>
+<rect x="584" y="8" width="380" height="4" rx="2" fill="#B91C1C"></rect>
+<text x="598" y="34" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="700" fill="#374151">Before anything goes public</text>
+<text x="598" y="51" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#B91C1C">these gate a deployment</text>
+<circle cx="602" cy="70" r="3" fill="#B91C1C"></circle>
+<text x="614" y="74" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">A domain name</text>
+<text x="614" y="91" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">used by the app, the sending domain and every</text>
+<text x="614" y="105" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">OAuth callback</text>
+<circle cx="602" cy="127" r="3" fill="#B91C1C"></circle>
+<text x="614" y="131" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Resend + a verified sending domain</text>
+<text x="614" y="148" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">DNS records; the API refuses to start in</text>
+<text x="614" y="162" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">production on anything else</text>
+<circle cx="602" cy="184" r="3" fill="#B91C1C"></circle>
+<text x="614" y="188" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Termii: key, base URL, sender ID</text>
+<text x="614" y="205" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">the sender ID must be approved for the DND route —</text>
+<text x="614" y="219" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">an approval, not a signup</text>
+<circle cx="602" cy="241" r="3" fill="#B91C1C"></circle>
+<text x="614" y="245" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">A real support mailbox</text>
+<text x="614" y="262" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">placeholder .invalid addresses are refused in</text>
+<text x="614" y="276" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">production</text>
+<circle cx="602" cy="298" r="3" fill="#B91C1C"></circle>
+<text x="614" y="302" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Cloudflare R2</text>
+<text x="614" y="319" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">bucket, S3 token, plus the CORS rule and the</text>
+<text x="614" y="333" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">upload-expiry rule</text>
+<circle cx="602" cy="355" r="3" fill="#B91C1C"></circle>
+<text x="614" y="359" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">A hosting decision</text>
+<text x="614" y="376" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">three services, managed Postgres 16 with pgvector,</text>
+<text x="614" y="390" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">managed Redis, and an edge that sets a trustworthy</text>
+<text x="614" y="404" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">client-IP header</text>
+<circle cx="602" cy="426" r="3" fill="#B91C1C"></circle>
+<text x="614" y="430" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Voyage AI key</text>
+<text x="614" y="447" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">production refuses the fake embedding provider</text>
+<circle cx="602" cy="469" r="3" fill="#B91C1C"></circle>
+<text x="614" y="473" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Sentry projects · Google OAuth production</text>
+<text x="614" y="488" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">client</text>
+<circle cx="602" cy="513" r="3" fill="#B91C1C"></circle>
+<text x="614" y="517" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Privacy policy, terms, refund policy</text>
+<text x="614" y="534" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">the landing page has nothing to link to</text>
+<rect x="976" y="8" width="268" height="425" rx="6" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"></rect>
+<rect x="976" y="8" width="268" height="4" rx="2" fill="#6B7280"></rect>
+<text x="990" y="34" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="13" font-weight="700" fill="#374151">Later milestones</text>
+<text x="990" y="51" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11" font-weight="400" fill="#6B7280">M5, M8 and phase 2</text>
+<circle cx="994" cy="70" r="3" fill="#6B7280"></circle>
+<text x="1006" y="74" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">LiveKit Cloud, Deepgram, a</text>
+<text x="1006" y="89" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">text-to-speech vendor</text>
+<text x="1006" y="106" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">M5 — all billed per minute or per</text>
+<text x="1006" y="120" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">character</text>
+<circle cx="994" cy="142" r="3" fill="#6B7280"></circle>
+<text x="1006" y="146" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Consented Nigerian-accented</text>
+<text x="1006" y="161" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">audio</text>
+<text x="1006" y="178" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">M5 — a collection task with its own</text>
+<text x="1006" y="192" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">lead time</text>
+<circle cx="994" cy="214" r="3" fill="#6B7280"></circle>
+<text x="1006" y="218" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Paystack</text>
+<text x="1006" y="235" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">M8 — Nigerian business verification</text>
+<text x="1006" y="249" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">before live keys</text>
+<circle cx="994" cy="271" r="3" fill="#6B7280"></circle>
+<text x="1006" y="275" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Stripe</text>
+<text x="1006" y="292" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">M8 — USD only at launch</text>
+<circle cx="994" cy="314" r="3" fill="#6B7280"></circle>
+<text x="1006" y="318" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">PostHog</text>
+<text x="1006" y="335" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">M9 — analytics</text>
+<circle cx="994" cy="357" r="3" fill="#6B7280"></circle>
+<text x="1006" y="361" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">Meta WhatsApp · app store</text>
+<text x="1006" y="376" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="700" fill="#374151">accounts</text>
+<text x="1006" y="393" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">phase 2 — business verification,</text>
+<text x="1006" y="407" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="10.5" font-weight="400" fill="#6B7280">template approval</text></g></svg>

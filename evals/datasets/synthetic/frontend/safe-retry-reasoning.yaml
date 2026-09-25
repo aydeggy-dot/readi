@@ -1,0 +1,111 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: safe-retry-reasoning
+question: retry-and-the-double-charge
+answers:
+  - kind: strong
+    text: |
+      So the mistake in my head is treating a timeout like a failure. The timeout only tells you
+      you stopped waiting — the request may well have reached the server, the charge may have gone
+      through, and the response just never came back on a bad connection. So the user taps again
+      and now there are genuinely two payments. What I'd build differently: disable the button the
+      moment it's tapped and show something honest, "we're confirming your payment, don't close
+      this", so tapping again isn't the obvious move. And I'd have the client generate an id for
+      the attempt before it sends — same id on every retry of that same attempt — so from the
+      backend I'd need them to store it and return the original result instead of charging again.
+      Then after a timeout I don't retry blindly, I ask the server what the status of that
+      reference is and tell the user what it says.
+    expected:
+      - dimension: "Reads the timeout correctly"
+        score: 3
+        because: "The timeout only says we stopped waiting; the charge may have gone through and the client cannot know."
+      - dimension: "Stops the second tap being the obvious move"
+        score: 4
+        because: "Disables the button, says what is happening, and the next step is to ask the server about that reference rather than retry."
+      - dimension: "Makes a repeat safe"
+        score: 4
+        because: "An id generated before the first send and reused on retry, and reads separated from actions that move money."
+  - kind: weak
+    text: |
+      Yeah, that's bad. So the problem is they tapped twice, so I'd stop them tapping twice. What
+      I'd do is put a loading state on the button, or disable it while the request is going, and
+      maybe add a debounce so rapid taps don't register. That way the second tap never fires and
+      there's only one request. If it still happens then it's really a backend thing — they should
+      check if a payment already exists for that user before they create another one, because
+      they're the ones charging the card, we're just calling their endpoint. I'd raise it with them
+      and they'd probably add a check. On our side I think the disabled button pretty much covers
+      it.
+    expected:
+      - dimension: "Reads the timeout correctly"
+        score: 0
+        because: "Never addresses what a timeout means; treats it as two taps and nothing more."
+      - dimension: "Stops the second tap being the obvious move"
+        score: 2
+        because: "Disables the button while the request is out, with no answer for what happens after it times out."
+      - dimension: "Makes a repeat safe"
+        score: 2
+        because: '"They should check if a payment already exists" — the server''s job, with nothing the client does to help.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is a retry-semantics problem. The key thing is that a timeout is a failed
+      request — the connection was torn down before the server committed, so nothing was persisted
+      and it's safe to retry. What went wrong is that the retry was manual and unbounded. What I'd
+      build is automatic retry with exponential backoff and jitter on the client, capped at three
+      attempts, so the user never has to tap twice. To keep it idempotent I'd hash the request body
+      — amount plus user id plus endpoint — into a key and hold it in localStorage, and skip the
+      send if that key's already there, so the double charge can't happen even across a reload. The
+      backend doesn't really need to change for that; idempotency is enforceable entirely on the
+      client as long as your key is deterministic. POST is safe to retry once you've done that.
+    expected:
+      - dimension: "Reads the timeout correctly"
+        score: 0
+        because: '"The connection was torn down before the server committed, so nothing was persisted" — the exact assumption that causes the double charge.'
+      - dimension: "Stops the second tap being the obvious move"
+        score: 1
+        because: "Retries automatically with backoff so the user never taps twice, which makes the problem worse rather than visible."
+      - dimension: "Makes a repeat safe"
+        score: 1
+        because: "A body hash in localStorage is not an idempotency key the server can honour, and the claim that the backend needs no change is wrong."
+  - kind: correct-poorly-explained
+    text: |
+      Um, so, first, yes, the button — you disable it, obviously, and show a spinner, tell them
+      it's processing, that's the easy bit. And there's the thing where you send a key with it, an
+      idempotency key I think it's called, so if the same one comes twice the backend knows it's
+      the same one, though that needs them to actually implement it on their side. Also you
+      shouldn't just retry automatically for payments, reads are fine but not this. But — the thing
+      is — sorry, the actual reason it double charged. It timed out, but a timeout doesn't mean it
+      failed. The server probably finished it. We just gave up listening. So after a timeout you're
+      not supposed to retry at all really, you're supposed to go and ask what happened to that
+      payment first. That's the whole bug.
+    expected:
+      - dimension: "Reads the timeout correctly"
+        score: 3
+        because: '"A timeout doesn''t mean it failed. The server probably finished it. We just gave up listening." — arrived at last, after the fixes.'
+      - dimension: "Stops the second tap being the obvious move"
+        score: 4
+        because: 'Disable, spinner, "processing" — and after a timeout, go and ask what happened to that payment.'
+      - dimension: "Makes a repeat safe"
+        score: 4
+        because: "The idempotency key named, with the backend work it implies, and reads separated from payments."
+  - kind: nigerian-english
+    text: |
+      The mistake here be say we treat timeout like say e fail. Timeout is only telling you say you
+      don tire to wait — the request fit don reach the server, the charge fit don enter, na the
+      response no come back because network. So the person go tap again, and now na two payment we
+      get for real. Wetin I for build: the moment they tap, disable the button, and tell them
+      something honest, "we're confirming your payment, don't close this page" — so tapping again
+      no go be the obvious thing. Then the client go generate one id for that attempt before e send
+      am, same id for every retry, and wetin I need from backend is make dem store am and return
+      the first result instead of charging again. And after timeout, I no go just retry anyhow — I
+      go first ask the server, this reference, wetin happen to am?
+    expected:
+      - dimension: "Reads the timeout correctly"
+        score: 3
+        because: "Same reading of the timeout, in the same order."
+      - dimension: "Stops the second tap being the obvious move"
+        score: 4
+        because: "Same honest message, same next step — ask the server about the reference."
+      - dimension: "Makes a repeat safe"
+        score: 4
+        because: "Same id generated before the send, and the same requirement on the backend."

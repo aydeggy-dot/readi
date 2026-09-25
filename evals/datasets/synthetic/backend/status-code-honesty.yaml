@@ -1,0 +1,123 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: status-code-honesty
+question: api-status-code-choice
+# `fluent-but-wrong` gives the transport-versus-application argument: 200 describes what happened
+# to the HTTP request, so it is honest, and the app's error handling is what is broken. It adds an
+# `X-Error-Code` header and argues *against* 409 on the grounds that proxies retry 4xx. It names
+# the right other readers and draws the opposite conclusion from them. 1/1/1 against `strong`'s
+# 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      Okay so the problem is the status line. It says 200 OK. Any HTTP client — fetch, axios,
+      Retrofit, whatever they're using — looks at that first, and 200 means it goes down the
+      success path. So their catch block never runs, their interceptor never fires, and the only
+      way the app can detect this failure right now is to open the body and check `success` on
+      every single call. Which means every endpoint needs that special-casing, and if they ever
+      miss one, the app shows a "welcome" screen for a signup that didn't happen. What I'd send is
+      409 Conflict — the request was well formed, it just conflicts with a row that already
+      exists. Some people would say 422, I'd take either, but not 200. And who else reads it — the
+      load balancer and any cache sitting in front of us, because a 200 is cacheable and caching a
+      signup response is frightening. Then monitoring: our error-rate dashboard is counting this
+      as healthy traffic, so duplicate signups could run for weeks and nobody would see a spike.
+    expected:
+      - dimension: Says what the client is forced to do
+        score: 4
+        because: The client library takes the success path, so every call needs a special check — and a missed one shows a welcome screen for a signup that did not happen.
+      - dimension: Sends a status the machine can act on
+        score: 3
+        because: 409 with a reason, 422 accepted; does not separate the code the client branches on from the message a person reads.
+      - dimension: Knows who else reads the status line
+        score: 4
+        because: A cacheable 200 on a signup response, and the error-rate dashboard counting it as healthy traffic for weeks.
+  - kind: weak
+    text: |
+      Um, so the response says 200 OK but the message says the email is already registered, so I
+      think the app is confused because two things are saying different things. I'd probably make
+      the message clearer first, like "this email exists, please log in instead", so the user
+      knows what to do. For the app, maybe they can read the message text, and if it says already
+      registered, show the error there. I know there are status codes — 500 is when the server
+      breaks, 404 is when the page isn't there. This one isn't really an error error, the server
+      didn't break, nothing crashed, so 200 might be okay? Or 400 maybe, because the user sent
+      something bad. And who else reads it... the developers I guess, when they're testing in
+      Postman, and maybe the browser network tab. Sorry, I haven't really worked on the choosing-
+      the-code side, I've mostly been consuming APIs that someone else designed.
+    expected:
+      - dimension: Says what the client is forced to do
+        score: 1
+        because: Half-defends the shape — "this one isn't really an error error" — and would have the app read the message text.
+      - dimension: Sends a status the machine can act on
+        score: 1
+        because: Keeps the 200 and improves the message, or picks 400 by how it sounds.
+      - dimension: Knows who else reads the status line
+        score: 1
+        because: '"The developers I guess, when they''re testing in Postman" — nothing in the path, nothing that goes wrong.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is the classic transport-versus-application layer distinction. The status
+      line describes what happened to the HTTP request itself — it reached the server, the server
+      parsed it, the server produced a response. So 200 OK is correct and honest. The email being
+      taken is an application-level outcome, and application outcomes belong in the body. So the
+      app's error handling is what's broken here, not the API. What they should do is stop
+      branching on the status code and branch on the envelope — `success` plus a stable
+      `error_code` — and I'd add an `X-Error-Code` header so their interceptor can read it without
+      deserialising the body. And I'd actively resist 409, because 4xx puts us in the retry class:
+      most reverse proxies and mobile networking stacks treat a 4xx as a failed request and retry
+      it with backoff, so you'd turn one duplicate signup attempt into three. Who else reads the
+      status line? Mainly nginx and the CDN — and that's precisely why we keep business meaning
+      out of it.
+    expected:
+      - dimension: Says what the client is forced to do
+        score: 1
+        because: "The envelope defended as correct: the status line is transport, the outcome is application, so the app should branch on `success`."
+      - dimension: Sends a status the machine can act on
+        score: 1
+        because: Keeps the 200, adds an `X-Error-Code` header, and argues against 409 on the grounds that proxies retry it.
+      - dimension: Knows who else reads the status line
+        score: 1
+        because: Names nginx and the CDN correctly and takes them as the reason to keep meaning out of the status line.
+  - kind: correct-poorly-explained
+    text: |
+      So like — the monitoring is the bit that got me, because if you're graphing non-2xx and this
+      is a 2xx then your dashboard is just lying to you. Sorry, I should have started with the
+      app. The app can't do anything except read the JSON, because when the status is 200 the
+      library has already decided it worked, so it doesn't throw, and their normal error path is
+      dead for this case, they'd have to write a special check in every single call, which is,
+      yeah, fragile. I think 409. Or 400 — no, 409, conflict, because the thing already exists,
+      that's the one. And caching, I forgot that, a proxy can cache a 200 and this should never be
+      cached. So yeah — send 409, the app gets its normal error handling back, the graphs start
+      telling the truth, and the logs too. That's basically it.
+    expected:
+      - dimension: Says what the client is forced to do
+        score: 3
+        because: The normal error path is dead for this case, so every call needs its own check.
+      - dimension: Sends a status the machine can act on
+        score: 3
+        because: 409, conflict, because the thing already exists — arrived at after trying 400.
+      - dimension: Knows who else reads the status line
+        score: 4
+        because: The dashboard is lying, and a proxy can cache a 200 that should never be cached.
+  - kind: nigerian-english
+    text: |
+      Ah, the wahala na that status line. Na 200 OK. So any HTTP client — fetch, axios, Retrofit —
+      e go look that one first, see 200, and carry the response go the success side. Their catch
+      block no go run at all. As e be now, the only way the app fit detect this failure na to open
+      the body and check `success` for every single call, and if dem forget one endpoint, the app
+      go show the person "account created" when nothing was created. Wetin I go send na 409
+      Conflict, because the request itself was fine, na the email wey don dey already cause am.
+      Some people go say 422, I fit take am, but not 200. And who else dey read that line? First,
+      the load balancer and any cache wey dey in front — 200 na cacheable, and to cache signup
+      response fit scatter things. Then monitoring: our error dashboard dey count this one as
+      healthy traffic, so duplicate signups fit dey happen for weeks and nobody go see anything.
+    expected:
+      - dimension: Says what the client is forced to do
+        score: 4
+        because: 'Same as `strong`: the client takes the success path, and a forgotten endpoint shows "account created" when nothing was.'
+      - dimension: Sends a status the machine can act on
+        score: 3
+        because: "Same: 409 with the reason, 422 acceptable, not 200."
+      - dimension: Knows who else reads the status line
+        score: 4
+        because: "Same: the load balancer and the cache in front, and an error dashboard counting it healthy."

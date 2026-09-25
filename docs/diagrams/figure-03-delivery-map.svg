@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1240" height="520" viewBox="0 0 1240 520" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4B5563"></path></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#C2410C"></path></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B7280"></path></marker>
+  </defs><g transform="translate(0,0)"><text x="0" y="16" font-family="Georgia, " times="" new="" roman",="" serif"="" font-size="17" font-weight="600" fill="#374151">Delivery map — where the build stands</text><text x="0" y="35" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Five milestones are merged to main. The content programme is in flight on a branch. Everything from the interview engine onward is specified in detail but not started.</text></g><g transform="translate(0,50)"><rect x="22" y="34" width="220" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="132" y="55" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#374151">M0</text>
+<text x="132" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Monorepo, infrastructure, CI</text>
+<rect x="186.8" y="26" width="49.2" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="211.4" y="37.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">MERGED</text>
+<path d="M 242 74 L 266 74" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="266" y="34" width="220" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="376" y="55" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#374151">M1</text>
+<text x="376" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Auth, profile, consent, CV</text>
+<rect x="430.8" y="26" width="49.2" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="455.4" y="37.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">MERGED</text>
+<path d="M 486 74 L 510 74" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="510" y="34" width="220" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="620" y="55" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#374151">D1</text>
+<text x="620" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">The Margin design system</text>
+<rect x="674.8" y="26" width="49.2" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="699.4" y="37.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">MERGED</text>
+<path d="M 730 74 L 754 74" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="754" y="34" width="220" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="864" y="55" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#374151">M2</text>
+<text x="864" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Content model + admin CMS</text>
+<rect x="918.8" y="26" width="49.2" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="943.4" y="37.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">MERGED</text>
+<path d="M 974 74 L 998 74" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="998" y="34" width="220" height="80" rx="5" fill="#FFF7ED" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="1108" y="55" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#374151">M2.5</text>
+<text x="1108" y="71" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">Roles/levels/stacks as</text>
+<text x="1108" y="85.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">content</text>
+<rect x="1162.8" y="26" width="49.2" height="16" rx="8" fill="#FFFFFF" stroke="#15803D" stroke-width="1.2"></rect>
+<text x="1187.4" y="37.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#15803D">MERGED</text>
+<path d="M 1214 114 L 1224 136" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="22" y="162" width="220" height="80" rx="5" fill="#FFEDD5" stroke="#C2410C" stroke-width="1.6"></rect>
+<text x="132" y="183" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#374151">Question banks</text>
+<text x="132" y="199" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">104 questions from</text>
+<text x="132" y="213.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#6B7280">blueprints</text>
+<rect x="168.2" y="154" width="67.80000000000001" height="16" rx="8" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.2"></rect>
+<text x="202.1" y="165.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#C2410C">IN FLIGHT</text>
+<path d="M 242 202 L 266 202" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="266" y="162" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="376" y="183" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M3</text>
+<text x="376" y="199" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Interview engine (text) +</text>
+<text x="376" y="213.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">diagnostic</text>
+<rect x="424.6" y="154" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#B45309" stroke-width="1.2"></rect>
+<text x="452.3" y="165.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#B45309">NEXT UP</text>
+<path d="M 486 202 L 510 202" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="510" y="162" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="620" y="183" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M4</text>
+<text x="620" y="199" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Evaluation, report, eval</text>
+<text x="620" y="213.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">harness</text>
+<rect x="668.6" y="154" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="696.3" y="165.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 730 202 L 754 202" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="754" y="162" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="864" y="183" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M5</text>
+<text x="864" y="199" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Voice mode + STT benchmark</text>
+<rect x="912.6" y="154" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="940.3" y="165.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 974 202 L 998 202" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="998" y="162" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="1108" y="183" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M6</text>
+<text x="1108" y="199" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Delivery metrics, readiness,</text>
+<text x="1108" y="213.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">dashboard</text>
+<rect x="1156.6" y="154" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="1184.3" y="165.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 1214 242 L 1224 264" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="22" y="290" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="132" y="311" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M7</text>
+<text x="132" y="327" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Study plan &amp; lessons</text>
+<text x="132" y="341.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">experience</text>
+<rect x="180.6" y="282" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="208.3" y="293.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 242 330 L 266 330" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="266" y="290" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="376" y="311" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M8</text>
+<text x="376" y="327" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Billing: Paystack, Stripe,</text>
+<text x="376" y="341.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">entitlements</text>
+<rect x="424.6" y="282" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="452.3" y="293.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 486 330 L 510 330" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="510" y="290" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="620" y="311" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M9</text>
+<text x="620" y="327" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Feedback, analytics, admin</text>
+<text x="620" y="341.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">ops</text>
+<rect x="668.6" y="282" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="696.3" y="293.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 730 330 L 754 330" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="754" y="290" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="864" y="311" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">M10</text>
+<text x="864" y="327" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Hardening &amp; launch readiness</text>
+<rect x="912.6" y="282" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="940.3" y="293.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<path d="M 974 330 L 998 330" fill="none" stroke="#6B7280" stroke-width="1.2" marker-end="url(#ag)"></path>
+<rect x="998" y="290" width="220" height="80" rx="5" fill="#FAFAFA" stroke="#9CA3AF" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+<text x="1108" y="311" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="15" font-weight="650" fill="#6B7280">Phase 2</text>
+<text x="1108" y="327" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">Mobile · coding · camera ·</text>
+<text x="1108" y="341.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" fill="#9CA3AF">orgs</text>
+<rect x="1156.6" y="282" width="55.4" height="16" rx="8" fill="#FFFFFF" stroke="#6B7280" stroke-width="1.2"></rect>
+<text x="1184.3" y="293.5" text-anchor="middle" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#6B7280">PLANNED</text>
+<text x="22" y="432" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="12" font-weight="400" fill="#374151">Merged to main: M0 · M1 · D1 · M2 · M2.5, as five reviewed pull requests.  In flight: the question-bank branch — 15 commits, 104 questions, unmerged.</text>
+<text x="22" y="452" text-anchor="start" font-family="-apple-system, " segoe="" ui",="" roboto,="" helvetica,="" arial,="" sans-serif"="" font-size="11.5" font-weight="400" fill="#6B7280">689 automated tests were green at the last milestone review; 635 TypeScript and 77 Python tests plus the end-to-end suite are green on the current branch.</text></g></svg>

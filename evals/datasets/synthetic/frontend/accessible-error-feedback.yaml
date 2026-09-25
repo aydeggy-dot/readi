@@ -1,0 +1,109 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: accessible-error-feedback
+question: telling-a-user-the-form-failed
+answers:
+  - kind: strong
+    text: |
+      Okay so first, the submit shouldn't just quietly fail — something has to tell them, and it
+      can't only be a red border, because a colourblind user gets nothing from that. So every bad
+      field gets a text message sitting right under it, next to the field it belongs to, not only
+      in a block at the top. And the message has to be tied to the input properly, so when a screen
+      reader user tabs into that field it reads "Email, invalid, please enter an email address like
+      name at example dot com" — the message comes with the field rather than being orphaned text
+      the mouse users can see. I'd also mark the field invalid so it's announced as such. Then
+      focus: after the submit, move focus to the first bad field, or to a summary at the top that
+      links down to each one. And the wording tells them how to fix it, not "invalid input".
+    expected:
+      - dimension: "Puts the message where it is needed"
+        score: 4
+        because: "A message at each field, tied to the input so it is read on focus, plus a summary that links down to them."
+      - dimension: "Does not rely on sight alone"
+        score: 4
+        because: "Text as well as colour, focus moved to the first bad field, and the field marked invalid so it is announced."
+      - dimension: "Says how to fix it"
+        score: 3
+        because: "The wording says what is expected rather than that the input is invalid; does not mention keeping what was typed."
+  - kind: weak
+    text: |
+      So you'd show them what went wrong. I'd put the errors at the top of the form in a red box
+      saying "please check the highlighted fields", and turn the borders of the two wrong fields
+      red so they can see which ones. Then they fix them and submit again. For screen readers,
+      um... I think if the text is on the page the screen reader will read it, because it reads
+      everything on the page from top to bottom, so having the error message visible should be
+      enough. Maybe I'd also make the text bigger. I haven't really built anything specifically for
+      screen readers before, to be honest, so that's the bit I'd need to read up on.
+    expected:
+      - dimension: "Puts the message where it is needed"
+        score: 1
+        because: "A red box at the top and red borders; nothing at the fields for a non-visual user."
+      - dimension: "Does not rely on sight alone"
+        score: 2
+        because: 'Text is present, but the user is left where they were — "the screen reader reads everything top to bottom" is not how focus works.'
+      - dimension: "Says how to fix it"
+        score: 1
+        because: '"Please check the highlighted fields" tells the user nothing about either field.'
+  - kind: fluent-but-wrong
+    text: |
+      Right, so the pattern I'd use is a single live region at the top. I'd wrap the whole form in
+      an aria-live equals assertive container, so that any change anywhere inside it is announced
+      immediately — that's the most robust approach, because you're not relying on the user
+      navigating to each field to discover the problem. The summary at the top lists both errors,
+      and that's sufficient; duplicating the message inline is noise and gets read twice. For the
+      per-field detail I'd put it in the title attribute, which screen readers pick up on focus and
+      sighted users get as a tooltip, so it serves both. Then I'd move focus to the submit button
+      so they can retry immediately, and use HTML5 required and type equals email, because the
+      browser's native validation bubbles are accessible out of the box.
+    expected:
+      - dimension: "Puts the message where it is needed"
+        score: 1
+        because: "A summary at the top, and inline messages explicitly rejected as noise."
+      - dimension: "Does not rely on sight alone"
+        score: 2
+        because: "Text present, and focus moved to the submit button rather than to anything that needs attention; `title` is not reliably announced."
+      - dimension: "Says how to fix it"
+        score: 2
+        because: "Names the problems in a `title` attribute without saying what would satisfy them."
+  - kind: correct-poorly-explained
+    text: |
+      So, there's a summary at the top, that's normal, saying two things went wrong, and you can
+      click them to jump down, and red borders, but not only red because colour on its own isn't
+      enough for some people. And focus should go somewhere — either the first broken field or the
+      summary — not just stay on the button doing nothing. Oh and the wording, "invalid" is
+      useless, tell them what the password actually needs. But the bit I keep coming back to,
+      sorry, is that the message has to be attached to the input itself, not just sitting near it
+      looking attached — because if it's only positioned next to it visually, someone tabbing
+      straight into that field hears the label and nothing else, and they never find out why it
+      was rejected. That's the part people miss.
+    expected:
+      - dimension: "Puts the message where it is needed"
+        score: 4
+        because: "Gets to the point that matters — the message has to be attached to the input, not merely positioned beside it — plus a linking summary."
+      - dimension: "Does not rely on sight alone"
+        score: 3
+        because: "Not only red, and focus to the first broken field or the summary."
+      - dimension: "Says how to fix it"
+        score: 3
+        because: '"Invalid is useless, tell them what the password actually needs."'
+  - kind: nigerian-english
+    text: |
+      Okay, first, the submit no suppose just fail quietly — something must tell them, and e no fit
+      be only red border, because person wey no dey see colour well go collect nothing from that
+      one. So every field wey bad go get text message under am, right there where the field dey,
+      no be only one block for top. And the message must tie to the input properly, so when
+      screen reader person tab enter that field, e go read am: "Email, invalid, enter email like
+      name at example dot com" — the message go follow the field, instead of e just dey hang there
+      for only eye people. I go mark the field as invalid too so e go announce am. Then focus: after
+      they submit, carry focus go the first bad field, or go the summary wey get link to each one.
+      And the wording go tell them how to fix am, no be just "invalid input".
+    expected:
+      - dimension: "Puts the message where it is needed"
+        score: 4
+        because: "Same: message at the field, tied to the input, summary with links."
+      - dimension: "Does not rely on sight alone"
+        score: 4
+        because: "Same, including marking the field invalid so it is announced."
+      - dimension: "Says how to fix it"
+        score: 3
+        because: "Same wording point, same omission."

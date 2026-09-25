@@ -1,0 +1,114 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: cache-invalidation-diagnosis
+question: stale-after-saving
+# `correct-poorly-explained` found a hole in criterion 3: it diagnoses better than `strong` and
+# never proposes a change, and the criterion had no descriptor for saying nothing. Level 0 was
+# "would disable caching everywhere", which is a different failure. It now reads "not addressed — the
+# answer stops at the diagnosis".
+answers:
+  - kind: strong
+    text: |
+      First thing I'd establish is whether the save actually worked, because "the save succeeded"
+      is the UI's opinion. So network tab, look at the PUT, and then refetch the profile in a
+      separate tab or with curl and see whether the server has the new name. If the server's right,
+      then we're showing a stale copy and the question is which copy — and there's more than one
+      place it could be. There's whatever the page is holding in memory or in the query cache,
+      there's the browser's own HTTP cache on that GET, and if there's a service worker that's a
+      third. The "only sometimes" is the clue for me — that smells like something with a lifetime,
+      a max-age, not a plain logic bug, because a plain bug would be every time. So I'd read the
+      response headers. And the fix is that a successful save either refetches or writes the new
+      value into the cache it's holding.
+    expected:
+      - dimension: "Establishes the truth first"
+        score: 4
+        because: "Checks what the server actually returns before looking anywhere else, and says what that would rule out."
+      - dimension: "Names more than one place a copy can live"
+        score: 3
+        because: "The page's own copy, the browser's cache and a service worker, told apart by the response headers."
+      - dimension: "Fixes the write, not just the symptom"
+        score: 3
+        because: "A successful save either refetches or writes the new value into the copy the page holds."
+  - kind: weak
+    text: |
+      Okay so the page isn't updating after the save. I think what's happening is the state isn't
+      being set, so after the API call returns I'd call setState again with the new name, or just
+      force a re-render. Actually since reloading fixes it, maybe the simplest thing is to reload
+      the page after a successful save — window.location.reload — then you know for sure it's
+      showing the right thing. It's not the nicest but it works and users won't really notice. If
+      that doesn't fix it then it's probably a backend issue where the save isn't committing
+      properly, and I'd ask them to check their database.
+    expected:
+      - dimension: "Establishes the truth first"
+        score: 1
+        because: "Assumes the state was not set; never checks whether the server has the new name."
+      - dimension: "Names more than one place a copy can live"
+        score: 0
+        because: "No cache layer is named at all."
+      - dimension: "Fixes the write, not just the symptom"
+        score: 1
+        because: "Reloads the whole page after saving."
+  - kind: fluent-but-wrong
+    text: |
+      So "works after a reload" is the signature of a service worker serving a cached response, and
+      that's where I'd go straight away. The worker intercepts the fetch, sees the profile request
+      in its cache, and returns the old payload without hitting the network. The fix is to
+      unregister the service worker for authenticated routes, or drop the cache-first strategy
+      entirely — you can't reliably invalidate it from the page. Second thing, the "only sometimes"
+      points at a race: the refetch is firing before the write has committed, so it reads the old
+      row. I'd put a short delay, three, four hundred milliseconds, before the refetch, which lets
+      the write land first. And I'd add cache no-store to the save request itself so the PUT isn't
+      served from cache — that's the one people always forget with mutations.
+    expected:
+      - dimension: "Establishes the truth first"
+        score: 0
+        because: "Goes straight to unregistering the service worker."
+      - dimension: "Names more than one place a copy can live"
+        score: 1
+        because: "Names one layer and stops."
+      - dimension: "Fixes the write, not just the symptom"
+        score: 0
+        because: "Would remove the caching rather than update what is held, and adds `no-store` to a request that was never cached."
+  - kind: correct-poorly-explained
+    text: |
+      Right so there's, um, a few layers where this can go wrong, and honestly it depends on the
+      stack, like if there's a service worker that's one, and the browser has its own cache, and
+      then whatever the app's using, React Query or whatever, that's another one holding a copy.
+      And they're different things, people mix them up. I'd check the headers on the request. Also
+      reloading fixing it tells you something, because a reload clears some of those and not
+      others, so that narrows it. But actually, sorry — before any of that, I should check whether
+      the server even has the new name, because if the save didn't really save then I'd be chasing
+      a cache that's telling the truth. And the "only sometimes" bit is the real clue — that's a
+      max-age expiring, not a bug that's there every time.
+    expected:
+      - dimension: "Establishes the truth first"
+        score: 4
+        because: '"If the save didn''t really save then I''d be chasing a cache that''s telling the truth" — says what each outcome rules out.'
+      - dimension: "Names more than one place a copy can live"
+        score: 4
+        because: "Names three layers and uses what a reload does and does not clear to narrow them."
+      - dimension: "Fixes the write, not just the symptom"
+        score: 0
+        because: "Stops at the diagnosis; never says what would change."
+  - kind: nigerian-english
+    text: |
+      First thing na to confirm whether the save actually work, because "save succeeded" na wetin
+      the UI dey talk. So I go open network tab, look the PUT, then I go fetch the profile
+      again for another tab or with curl, see whether the server don get the new name. If server
+      get am, then na stale copy we dey show, and the question be which copy — because e pass one
+      place. There is the one the page dey hold for memory or query cache, the browser own HTTP
+      cache on that GET, and if service worker dey, that na number three. That "only sometimes" na
+      the clue for me sef — e smell like something with lifetime, like max-age, no be ordinary bug,
+      because ordinary bug for happen every time. So I go read the response headers. And the fix be
+      say after the save succeed, you either refetch or you update the copy the page dey hold.
+    expected:
+      - dimension: "Establishes the truth first"
+        score: 4
+        because: "Same first move, same reasoning about what it settles."
+      - dimension: "Names more than one place a copy can live"
+        score: 3
+        because: "Same three layers, same use of the headers."
+      - dimension: "Fixes the write, not just the symptom"
+        score: 3
+        because: "Same fix — refetch, or update the copy the page is holding."

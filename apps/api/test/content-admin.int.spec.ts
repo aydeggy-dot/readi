@@ -93,6 +93,7 @@ describe("admin content API", () => {
       context: null,
       rubric_id: rubricId,
       ideal_points: ["Measures before changing anything"],
+      planned_follow_ups: [],
       ...overrides,
     };
     const response = await http().post("/api/admin/content/questions").set(as(cookie)).send(body);
@@ -277,6 +278,93 @@ describe("admin content API", () => {
     });
   });
 
+  /*
+   * Planned follow-ups (owner's decision, 2026-09-23). Answer-key material stored as one JSON value,
+   * so what is worth proving over HTTP is that it survives the round trip intact, that it is part of
+   * a question's content for versioning, and that the one rule the contract owns — a criterion may
+   * carry at most two probes — is enforced by the API rather than only by `check-bank.mjs`.
+   */
+  describe("planned follow-ups", () => {
+    const followUps = [
+      { criterion: 1, probe: "Where are the edges, and which values would you try either side?" },
+      { criterion: 2, probe: "What tells you the list is long enough to stop?" },
+    ];
+
+    it("stores the probes, and treats them as part of the question's content", async () => {
+      const rubric = await createRubric(expert);
+      const question = await createQuestion(expert, rubric.id, {
+        planned_follow_ups: followUps,
+      });
+      expect(question.planned_follow_ups).toEqual(followUps);
+
+      const read = await http().get(`/api/admin/content/questions/${question.id}`).set(as(expert));
+      expect((read.body as Question).planned_follow_ups).toEqual(followUps);
+
+      const put = (planned_follow_ups: unknown) =>
+        http().put(`/api/admin/content/questions/${question.id}`).set(as(expert)).send({
+          slug: question.slug,
+          roles: question.roles,
+          levels: question.levels,
+          stacks: question.stacks,
+          type: question.type,
+          topic_id: question.topic_id,
+          subtopic: question.subtopic,
+          difficulty: question.difficulty,
+          prompt: question.prompt,
+          context: question.context,
+          rubric_id: question.rubric_id,
+          ideal_points: question.ideal_points,
+          planned_follow_ups,
+        });
+
+      // Sending them back unchanged is not a change: no version, exactly as for any other field.
+      const same = await put(followUps);
+      expect((same.body as Question).version).toBe(1);
+
+      // Rewording one probe is, and the snapshot keeps what it replaced.
+      const reworded = [followUps[0], { criterion: 2, probe: "When would you stop adding cases?" }];
+      const changed = await put(reworded);
+      expect(changed.status).toBe(200);
+      expect((changed.body as Question).version).toBe(2);
+      expect((changed.body as Question).planned_follow_ups).toEqual(reworded);
+
+      const snapshot = await http()
+        .get(`/api/admin/content/questions/${question.id}/versions/1`)
+        .set(as(expert));
+      expect((snapshot.body as ContentVersionResponse).snapshot).toMatchObject({
+        planned_follow_ups: followUps,
+      });
+    });
+
+    it("refuses a third probe on the same criterion", async () => {
+      const rubric = await createRubric(expert);
+      const response = await http()
+        .post("/api/admin/content/questions")
+        .set(as(expert))
+        .send({
+          slug: `question-${id()}`,
+          roles: [pair.roleSlug],
+          levels: [pair.levelSlug],
+          stacks: [],
+          type: "technical",
+          topic_id: topic.id,
+          subtopic: null,
+          difficulty: 3,
+          prompt: "Why?",
+          context: null,
+          rubric_id: rubric.id,
+          ideal_points: ["Because"],
+          planned_follow_ups: [
+            { criterion: 0, probe: "And why that one?" },
+            { criterion: 0, probe: "What else would you look at?" },
+            { criterion: 0, probe: "And what would you leave out?" },
+          ],
+        });
+      expect(response.status).toBe(400);
+      expect(JSON.stringify(response.body)).toContain("planned_follow_ups");
+    });
+  });
+
   describe("version history", () => {
     it("keeps what changed, and stays quiet when nothing did", async () => {
       const rubric = await createRubric(expert);
@@ -300,6 +388,7 @@ describe("admin content API", () => {
         context: source.context,
         rubric_id: source.rubric_id,
         ideal_points: source.ideal_points,
+        planned_follow_ups: source.planned_follow_ups,
       });
 
       // Saving the same content again changes nothing: no new version, no version bump.
@@ -629,6 +718,7 @@ describe("admin content API", () => {
           context: null,
           rubric_id: rubric.id,
           ideal_points: ["Because"],
+          planned_follow_ups: [],
         });
       expect(response.status).toBe(400);
       expect(JSON.stringify(response.body)).toContain("topic_id");

@@ -1,0 +1,112 @@
+version: 1
+generated_by: ai_draft
+role: frontend
+rubric: state-placement-reasoning
+question: react-state-placement
+# Note what `fluent-but-wrong` does to criterion 2: it duplicates the truth deliberately and
+# argues for it. Level 0 reads "copies the same value into several places without noticing", which
+# is the right score and the wrong words — see the systemic finding in the blueprint's Appendix B.
+answers:
+  - kind: strong
+    text: |
+      I'd put the selected job's id in the closest component that has both of them inside it,
+      so whatever renders the list and the panel — probably the page. Not a global store,
+      that's a sledgehammer for something two siblings need. And I'd keep the id, not the
+      whole job object, because once I copy the object I've got two copies of the truth and
+      they drift the moment the data refetches. The panel takes the id and reads the job out
+      of the same cache the list came from, something like TanStack Query, because that data
+      is really server state, it isn't mine. The cost is prop drilling, which is fine at two
+      levels and annoying at five, and the parent owning it means every click re-renders the
+      list too, which only matters if the list is long.
+    expected:
+      - dimension: "Chooses a defensible home for the state"
+        score: 4
+        because: "Nearest common parent, and recognises the job data as server state that belongs in a cache."
+      - dimension: "Avoids duplicating the same fact"
+        score: 4
+        because: "Keeps the id rather than the object, and says what goes wrong otherwise — the copies drift on refetch."
+      - dimension: "Names the cost of the choice"
+        score: 3
+        because: "Names prop drilling and the parent's re-render, and when each stops being acceptable."
+  - kind: weak
+    text: |
+      I'd use Redux for that. Because two different components need the same thing, and that's
+      what a store is for — you put the selected job in the store and both of them can read
+      it, so you're not passing props around everywhere. Or Context, I think Context does
+      basically the same job. Then in each component you just useSelector or whatever the hook
+      is called. What does it cost... setting it up is a bit of work, there's a lot of
+      boilerplate, but once it's there it's fine. I've mostly built small things where I kept
+      everything in the top component, so honestly I'd probably start with useState in the
+      parent and move it if it got messy.
+    expected:
+      - dimension: "Chooses a defensible home for the state"
+        score: 2
+        because: "Reaches for Redux first, then retreats to `useState` in the parent without a reason for either."
+      - dimension: "Avoids duplicating the same fact"
+        score: 0
+        because: "Does not notice that copying the job object duplicates the truth."
+      - dimension: "Names the cost of the choice"
+        score: 1
+        because: "Names boilerplate — a cost of the library, not of where the state lives."
+  - kind: fluent-but-wrong
+    text: |
+      So the right move is to lift it out of the tree entirely and put it in a global store,
+      Zustand or Context. Because if you lift to a common parent, the state sits above both
+      children, and any setState on a parent re-renders the whole subtree, so you'd be
+      re-rendering the detail panel every time anything in the list changes. A store gives you
+      fine-grained subscriptions, so nothing re-renders that didn't subscribe. I'd hold the
+      full job object rather than the id, so the detail panel doesn't need a second lookup or
+      a second request — one read, no waterfall. And I'd deliberately keep it out of the URL,
+      because putting selection in the URL forces a navigation on every click and throws away
+      your client cache. The only real cost is one extra file for the store.
+    expected:
+      - dimension: "Chooses a defensible home for the state"
+        score: 2
+        because: "Argues for a global store first, on a re-render claim that does not hold for this tree."
+      - dimension: "Avoids duplicating the same fact"
+        score: 0
+        because: "Chooses to hold the whole job object and presents the duplication as an optimisation."
+      - dimension: "Names the cost of the choice"
+        score: 1
+        because: '"The only real cost is one extra file" — acknowledges a trade-off without naming the real one.'
+  - kind: correct-poorly-explained
+    text: |
+      Um, in the parent. The one that has both of them under it. Not global, people jump to
+      global far too fast. And, well, the thing is what you actually put in there, because you
+      could put the job in it, the whole job object, but then it's in two places and when the
+      list refetches the two of them disagree, so it's the id, just the id, and the actual job
+      comes out of the query cache that both of them can read anyway because that data belongs
+      to the server, not to me, and — sorry, the cost, there is a cost. You're threading it
+      down through props, and the parent owning it means a click re-renders the list as well.
+      Oh, and the id could go in the URL, which is probably better, then a refresh keeps it.
+    expected:
+      - dimension: "Chooses a defensible home for the state"
+        score: 4
+        because: "Parent, id only, server data from the query cache, and the URL raised at the end."
+      - dimension: "Avoids duplicating the same fact"
+        score: 4
+        because: "Same duplication point as `strong`, with the same refetch example."
+      - dimension: "Names the cost of the choice"
+        score: 3
+        because: "Prop drilling and the re-render both named, out of order and with an apology."
+  - kind: nigerian-english
+    text: |
+      I will put the id of the selected job inside the closest component that is holding both
+      of them — the page itself. Not global store; for two components that are sitting side by
+      side, Redux is too much. And I will keep only the id, not the whole job object, because
+      if I copy the object, truth is now living in two places, and once the data refetch, the
+      two of them go start to disagree. The detail panel will take the id and read the job
+      from the same cache the list is reading from — that data belongs to the server, it's not
+      my own state. The cost? One, you're passing the prop down, which will tire you if the
+      tree is deep. Two, every time the person clicks, the parent re-renders, so the whole
+      list is re-rendering with it. If the list is small, no wahala.
+    expected:
+      - dimension: "Chooses a defensible home for the state"
+        score: 4
+        because: "Same as `strong`, including the cache and the server-state distinction."
+      - dimension: "Avoids duplicating the same fact"
+        score: 4
+        because: 'Same: id only, and "truth is now living in two places".'
+      - dimension: "Names the cost of the choice"
+        score: 3
+        because: "Both costs named, with the same condition on list size."

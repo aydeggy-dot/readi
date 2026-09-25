@@ -60,3 +60,9 @@ screenshots/
 
 # Local database backups (pg_dump before a risky migration): never committed
 .backups/
+
+# Word lock files: Word writes ~$name.docx beside any document it has open
+~$*
+
+# Word copies of a document whose source is the Markdown beside it: generate on demand
+docs/*.docx

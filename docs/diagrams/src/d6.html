@@ -1,0 +1,38 @@
+<script>
+render('d6', 1240, 520, 'From a finished interview to a readiness score (milestones M4 and M6)', 'Designed, specified and unit-testable — not yet written. The shape matters: the model scores one answer at a time against one rubric, and our code does all the arithmetic.', () => {
+  const y = 50;
+  const steps = [
+    ['Sealed transcript','every turn, timestamped'],
+    ['Per-answer evaluation','one call per answer, low temperature, schema-validated output'],
+    ['Evidence check','every non-zero criterion score quotes the candidate'],
+    ['Weighted score in code','criteria weights → 0–100, never asked of the model'],
+    ['Session report','assembled in code: strengths, fixes, per-question breakdown, lesson links'],
+  ];
+  steps.forEach((s,i)=>{
+    const x = 30 + i*242;
+    box({x,y,w:214,h:96,title:s[0],lines: wrapLines(s[1], 26),state:'planned',ts:13});
+    if (i<4) arrow(x+214, y+48, x+242, y+48, {color:'mute'});
+  });
+  function wrapLines(t, n){ const out=[]; let cur=''; t.split(' ').forEach(w=>{ if((cur+' '+w).trim().length<=n) cur=(cur+' '+w).trim(); else {out.push(cur); cur=w;} }); out.push(cur); return out; }
+
+  const ready = box({x:272,y:214,w:214,h:78,title:'Readiness score',lines:['technical 40% · behavioural 25%','communication 20% · coverage 15%'],state:'planned',ts:13});
+  const dash  = box({x:514,y:214,w:214,h:78,title:'Dashboard',lines:['band, trend, weak topics'],state:'planned',ts:13});
+  const plan  = box({x:756,y:214,w:214,h:78,title:'Study plan',lines:['rules-based; the model only','writes the friendly summary'],state:'planned',ts:13});
+  arrow(1030, y+96, 600, 214, {elbow:'v', mid:180, color:'mute'});
+  arrow(ready.right, 253, dash.left, 253, {color:'mute'});
+  arrow(dash.right, 253, plan.left, 253, {color:'mute'});
+
+  band(30, 320, 1180, 178, 'the guardrails that make the score defensible');
+  const g = [
+    'A score of zero may have no evidence only when the criterion was never addressed. Anything else without a quote is rejected and retried.',
+    'Invalid model output is retried at most twice. A refusal is never retried as if it were a formatting error.',
+    'The readiness formula lives in code, is versioned and unit-tested — and its unspecified constants need the owner’s sign-off before version 1 is final.',
+    'Any change to an evaluator prompt or model must pass the /evals regression: agreement with human scores may not drop.',
+    'The human-scored gold set that agreement is measured against does not exist yet. The 510 sample answers in the repository are model-written and model-scored — a rubric stress test, deliberately not a gold set.',
+  ];
+  g.forEach((t,i)=>{
+    push(`<circle cx="52" cy="${352 + i*30 - 4}" r="3.5" fill="${i===4 ? P.bad : P.pen}"/>`);
+    label(68, 352 + i*30, t, {anchor:'start', size:12, fill:P.ink});
+  });
+});
+</script>

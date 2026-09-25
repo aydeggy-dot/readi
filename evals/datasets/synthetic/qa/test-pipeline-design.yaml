@@ -1,0 +1,71 @@
+version: 1
+generated_by: ai_draft
+role: qa
+rubric: test-pipeline-design
+question: where-the-tests-run
+answers:
+  - kind: strong
+    text: |
+      First thing, I wouldn't answer until I know where the fifty minutes is going. So how many tests, what kind, and are they running one after the other or split across machines? Very often it's twenty long browser journeys eating forty of the fifty, and half of that is sleeps and creating data by clicking through signup. So before I cut anything I'd try to make it faster — run it across three or four workers, take out the fixed waits, set data up through the API. Then I'd ask what this suite has actually caught in the last two or three months,. What stays in the quick check: the unit tests, the API level tests, and a small smoke set of the flows where a break costs us money — sign in, apply for a job, pay. I'd aim for ten minutes. What moves out: the cross-browser runs, the long journeys, the heavy ones. Those run after the change is in, and overnight. And a failure that now arrives after the fact needs a name and a clock — one person looks at the overnight result every morning, and it's either reverted or fixed that day, and the flaky ones get pulled out of the set, because a suite that's red every morning is a suite nobody reads.
+    expected:
+      - dimension: Splits the suite by what the feedback is worth
+        score: 4
+        because: Lands on 4 — a ten-minute check on every change with the browser matrix and the long journeys overnight, and the line drawn on evidence, what this suite has actually caught in the last two or three months.
+      - dimension: What stays in the fast check
+        score: 3
+        because: Lands on 3 — unit, API and a thin smoke set through sign in, apply and pay, so a merge that breaks sign-in fails before it lands; nothing about what it would cut if the fast check grew.
+      - dimension: What happens to a failure found later
+        score: 3
+        because: Lands on 3 — one person looks at the overnight result every morning and it is reverted or fixed that day, with the flaky ones pulled; no measure of whether the split was right.
+  - kind: weak
+    text: |
+      Okay. Um, honestly my first reaction is they shouldn't be putting changes in without waiting, that's how things break, that's the whole reason the tests are there. But I understand fifty minutes is long, people can't sit and wait. So what I'd do is go through the tests and take out the ones that aren't really needed. Like, some of them have been passing for months without ever catching anything, so those ones can run less often. Keep the important ones — login, definitely login, and the main pages people use. What would I need to know first? I'd ask my lead which ones they consider critical, and maybe ask the developers which tests they actually find useful, because they'd know which parts they change most. And if a failure now comes after the change is already in, then we have to fix it fast — I'd tell whoever made the change so they can look at it, and I'd say we shouldn't release until it's green again. Maybe also send it to the group so everybody sees it.
+    expected:
+      - dimension: Splits the suite by what the feedback is worth
+        score: 2
+        because: Lands on 2 — opens with the developers should wait, then proposes running the tests that have not caught anything less often, with no real basis for the line.
+      - dimension: What stays in the fast check
+        score: 2
+        because: Lands on 2 — names login and the main pages as the category to keep, with the reason outsourced to the lead.
+      - dimension: What happens to a failure found later
+        score: 2
+        because: Lands on 2 — tell whoever made the change so they can look at it, and send it to the group, with no owner for the slow run and nothing about the branch.
+  - kind: fluent-but-wrong
+    text: |
+      So the diagnosis here is duplication, not speed. Fifty minutes almost always means the pyramid is upside down — too much weight at the top. And the rule of the pyramid is that a behaviour is covered at exactly one level: if a unit test already covers the validation on the application form, then the end-to-end test that fills that form in is exercising the same code path a second time, and the second one is pure cost, no new information. So what I'd do is map every end-to-end test onto the unit tests underneath it, and wherever the path is already covered, I delete the end-to-end one. In practice that's most of them, and that's fine. Once line coverage is over eighty percent, the integration and end-to-end layers aren't telling you anything the unit tests didn't — they're just adding minutes and flake. So the quick check becomes unit only, about four minutes, and the browser suite runs the night before a release. And the failure that lands after the change went in — realistically, most overnight failures are environment or flake rather than real defects, so the process is: rerun it, and if it's still red on the second run, then somebody investigates.
+    expected:
+      - dimension: Splits the suite by what the feedback is worth
+        score: 1
+        because: Lands on 1 exactly — deletes the end-to-end tests on the grounds that a behaviour need only be covered once and eighty percent line coverage proves the upper layers add nothing.
+      - dimension: What stays in the fast check
+        score: 1
+        because: Lands on 1 exactly — the fast check becomes unit only, chosen by test type, so nothing at all covers signing in before a merge.
+      - dimension: What happens to a failure found later
+        score: 1
+        because: Level 1 — presumes the slow run's reds are flake, rerunning first and investigating only a second red.
+  - kind: correct-poorly-explained
+    text: |
+      So the fifty minutes — okay, the first thing is I can't really tell them what to keep until I know where the fifty minutes is going, like is it one test taking forty of it or is it spread, and are they even running in parallel, because... sorry. Let me do it this way. Keep: unit, the API ones, and maybe five or six journeys — sign in, apply, payment, the ones where if it breaks we're in real trouble. Ten minutes, roughly. Everything else, the browser matrix, the long ones, that goes overnight. But also, before you cut anything, half of that fifty is probably sleeps and creating accounts through the UI, so make it faster first — that's actually the real answer, I should have led with that. And the failures arriving after, that's the risky part, because the change is already in, so somebody has to actually look at it in the morning — a person, with a name, not "the team" — and either you revert or you fix it that day, and the flaky ones you take out of the set, otherwise it's red every morning and nobody... yeah. Nobody reads it after a while.
+    expected:
+      - dimension: Splits the suite by what the feedback is worth
+        score: 3
+        because: Lands on 3 — the same split and the same instinct to make it faster before cutting, but the line rests on where a break would hurt rather than on what the suite has caught.
+      - dimension: What stays in the fast check
+        score: 3
+        because: Lands on 3 — unit, the API ones and five or six journeys including sign in, apply and payment, at roughly ten minutes.
+      - dimension: What happens to a failure found later
+        score: 3
+        because: Lands on 3 — a person with a name looks at it in the morning, revert or fix that day, and the flaky ones come out of the set.
+  - kind: nigerian-english
+    text: |
+      Me I will first ask questions, because I don't know where the fifty minutes is going yet. How many tests, which type, and are they running one by one or split across machines? Most times you will check and it's like twenty long browser journeys that are eating forty minutes out of the fifty, and half of that one is sleeps. So before I remove any test, let me first make it fast — split it on three, four workers, remove the fixed waits, create the data through the API. Then I will ask them, this suite, in the last two, three months, what has it actually caught, and where? What will stay in the quick check: unit, the API ones, and small smoke for the flows where money is involved — sign in, apply, payment. Ten minutes. What will move out: the cross-browser and the long ones — those ones will now run after the change has entered, and overnight. And the failure that is now coming after, you must give it a person and a time: one person will check the overnight result every morning, then either they revert it or they fix it that same day. And the flaky ones, remove them, because if it's red every morning nobody will look at it again.
+    expected:
+      - dimension: Splits the suite by what the feedback is worth
+        score: 4
+        because: Lands on 4 — same as strong, including asking what this suite has actually caught in the last two, three months, and where.
+      - dimension: What stays in the fast check
+        score: 3
+        because: Lands on 3 — unit, the API ones and a small smoke set for the flows where money is involved, at ten minutes.
+      - dimension: What happens to a failure found later
+        score: 3
+        because: Lands on 3 — one person checks the overnight result every morning and either reverts or fixes it that same day, and the flaky ones are removed.

@@ -1,0 +1,42 @@
+<script>
+render('d7', 1240, 510, 'The data model — 28 tables today, and the ones the next milestones add', 'Prisma owns the schema; twelve migrations have been applied. The dashed cluster is not written yet: it is what M3 to M8 will add.', () => {
+  function chips(x, y, w, list, built) {
+    let cx = x, cy = y;
+    list.forEach((n) => {
+      const cw = n.length * 6.6 + 16;
+      if (cx + cw > x + w) { cx = x; cy += 26; }
+      push(`<rect x="${cx}" y="${cy}" width="${cw}" height="21" rx="10.5" fill="${built?'#FFF7ED':'#FAFAFA'}" stroke="${built?'#C2410C':'#B0B6BE'}" stroke-width="1.1"${built?'':' stroke-dasharray="4 3"'}/>`);
+      push(`<text x="${cx+cw/2}" y="${cy+14.5}" text-anchor="middle" font-family="${P.sans}" font-size="10.5" fill="${built?'#C2410C':'#9CA3AF'}">${esc(n)}</text>`);
+      cx += cw + 6;
+    });
+    return cy + 21;
+  }
+  function cluster(x, y, w, h, title, sub, list, built) {
+    push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#FFFFFF" stroke="${built?P.frame:'#9CA3AF'}" stroke-width="1.5"${built?'':' stroke-dasharray="5 4"'}/>`);
+    label(x+14, y+22, title, {anchor:'start', size:13.5, weight:650, fill: built?P.ink:P.muted});
+    label(x+14, y+39, sub, {anchor:'start', size:11});
+    chips(x+14, y+50, w-28, list, built);
+  }
+  cluster(30, 20, 372, 124, 'Identity & platform', '7 tables · Better Auth owns the first four', ['User','Session','Account','Verification','UserTombstone','AuditLog','HealthCheck'], true);
+  cluster(422, 20, 372, 124, 'Candidate data', '3 tables · all erased or tombstoned on deletion', ['Profile','ConsentRecord','AiCallLog'], true);
+  cluster(814, 20, 396, 124, 'Catalogue (ADR-0015)', '5 tables · roles, levels and stacks are content', ['CareerRole','CareerLevel','Stack','CareerRoleLevel','CareerRoleStack'], true);
+  cluster(30, 164, 764, 176, 'Learning content (ADR-0014)', '13 tables · one version-history table serves every editable entity', ['Topic','Track','TrackTopic','Module','Lesson','Rubric','RubricCriterion','Question','QuestionCareerRole','QuestionCareerLevel','QuestionStack','ContentFlag','ContentVersion'], true);
+  cluster(814, 164, 396, 176, 'Planned — M3 to M8', 'not written yet', ['InterviewSession','InterviewSessionQuestion','SessionTurn','Evaluation','SessionReport','DeliveryMetrics','ReadinessSnapshot','StudyPlan','PlanItem','Subscription','Entitlement','UsageLedger','Payment','WebhookEvent'], false);
+
+  arrow(402, 82, 422, 82, {color:'mute', w:1.2});
+  arrow(794, 82, 814, 82, {color:'mute', w:1.2});
+  arrow(600, 144, 600, 164, {color:'mute', w:1.2});
+  arrow(1012, 144, 1012, 164, {color:'mute', w:1.2, dash:'4 3'});
+
+  band(30, 364, 1180, 118, 'what the schema already encodes');
+  const notes = [
+    'A question’s vector lives in a pgvector column with a hand-written HNSW index. Prisma cannot see it, so it has proposed dropping it in four separate migrations — each one deleted by hand.',
+    'Rows that must be kept after an account is erased — payments, subscriptions, webhook events, audit logs, AI call logs — reference the user by a plain uuid with no foreign key, replaced by a tombstone id.',
+    'Question.planned_follow_ups and ideal_points are answer key: they exist in the database and in the CMS, and no candidate-facing response has a field they could occupy.',
+  ];
+  notes.forEach((t,i)=>{
+    push(`<circle cx="52" cy="${394 + i*30 - 4}" r="3.5" fill="${P.pen}"/>`);
+    label(68, 394 + i*30, t, {anchor:'start', size:11.5, fill:P.ink});
+  });
+});
+</script>

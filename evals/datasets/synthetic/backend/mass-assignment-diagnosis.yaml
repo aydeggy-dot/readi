@@ -1,0 +1,131 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: mass-assignment-diagnosis
+question: laravel-mass-assignment
+# `fluent-but-wrong` inverts the fact the question turns on — it reads `$guarded = []` as the
+# *strictest* setting — and then invents a mechanism for the hole: that `create()` calls
+# `forceCreate()` inside `Model::unguarded()`. Its prescribed fix (`fill()` with `only()`) happens
+# to pass three named fields, which is why it reaches a 2 rather than a 1 on criterion 2, and
+# **+1.55 is the second-narrowest separation in the bank**. 1/2/3 against `strong`'s 4/3/3.
+answers:
+  - kind: strong
+    text: |
+      So `protected $guarded = []` means nothing is protected. The guard list is empty, so every
+      single column on the users table can be set through mass assignment. And then
+      `User::create($request->all())` takes whatever was in the POST body — not the three fields
+      on the form, whatever was posted. The form having three inputs means nothing, that form is
+      HTML on their machine, they can add a field in dev tools or just curl the endpoint. So they
+      posted `is_admin=1`, or `role=admin`, whatever the column is called, and Eloquent wrote it
+      straight in. The fix: validate first and pass only the validated data — `$validated =
+      $request->validate([...])` for name, email, password, then `User::create($validated)`. And
+      put a real `$fillable` on the model listing exactly the columns a user may set, as defence
+      in depth. Afterwards I'd grep the whole codebase for `$guarded = []` on every model, and for
+      `->all()` anywhere near a create or an update, because `update($request->all())` is the same
+      hole on the edit path. And check the users table for who else is already admin.
+    expected:
+      - dimension: Says how the extra field arrived
+        score: 4
+        because: Anyone can post any field — "that form is HTML on their machine" — and an empty guard list means Eloquent wrote it straight in.
+      - dimension: Takes only what the action may set
+        score: 3
+        because: Validate, pass the validated data, and a real `$fillable`; does not say a permissions column should not be settable at all.
+      - dimension: Assumes it is not the only one
+        score: 3
+        because: Would grep for `$guarded = []` on every model and `->all()` near a create or update, and check who else is already admin.
+  - kind: weak
+    text: |
+      Okay so someone made themselves an admin. That's bad. Um, I'd guess they found a way into
+      the admin panel, maybe the route wasn't protected by middleware, so I'd check the routes
+      file and make sure the admin routes have an auth middleware on them. Or it could be SQL
+      injection, if something wasn't escaped they could have run an update on their own row.
+      Looking at the code — `$request->all()` looks a bit loose to me, I'd probably validate the
+      request first, that's good practice anyway, you should always validate. So I'd add a form
+      request with rules for the three fields. And the `$guarded` thing, I'm not a hundred percent
+      sure what that does, I think it's something about which fields the model protects, so I'd
+      read the docs on it. Afterwards I'd change that user back to a normal account and maybe add
+      logging so we can see if it happens again.
+    expected:
+      - dimension: Says how the extra field arrived
+        score: 1
+        because: A specific wrong route in — an unprotected admin route, or SQL injection.
+      - dimension: Takes only what the action may set
+        score: 2
+        because: Names validation and a form request without saying which fields; "I'm not a hundred percent sure what `$guarded` does".
+      - dimension: Assumes it is not the only one
+        score: 1
+        because: Change the account back and add logging; nothing that would find the others.
+  - kind: fluent-but-wrong
+    text: |
+      Okay, so the misunderstanding a lot of people have is that `$guarded = []` is permissive. It
+      isn't — `$guarded` is the blocklist, and an empty blocklist is read by Eloquent as "there is
+      no attribute this model will let through unguarded", which is actually the strictest setting
+      on the model. So mass assignment isn't the hole here. The hole is `User::create()`.
+      Internally `create()` doesn't fill and save — it calls `forceCreate()` on a fresh instance,
+      and `forceCreate` runs the whole thing inside `Model::unguarded()`, which switches guarding
+      off for the duration of that call and puts it back afterwards. That's deliberate, it's there
+      so seeders and factories can set anything, and it's why the extra `is_admin` field sailed
+      through even on a locked-down model. So the fix is to stop calling `create()` on anything
+      that takes user input. Do `$user = new User;
+      $user->fill($request->only(['name','email','password'])); $user->save();` — `fill()`
+      respects the guard, `create()` bypasses it. Afterwards I'd grep for every `::create(` in the
+      app and convert the ones fed from a request, and I'd add a test that posts `is_admin=1` and
+      asserts it stayed false.
+    expected:
+      - dimension: Says how the extra field arrived
+        score: 1
+        because: "`$guarded = []` read as the strictest setting, and the hole invented in `create()` calling `forceCreate()` inside `unguarded()`."
+      - dimension: Takes only what the action may set
+        score: 2
+        because: "`fill()` with `only()` on three named fields — the right shape reached from a false account, with no validation and the guard left empty."
+      - dimension: Assumes it is not the only one
+        score: 3
+        because: Would grep every `::create(` fed from a request and add a test that posts `is_admin=1`.
+  - kind: correct-poorly-explained
+    text: |
+      Yeah so, `all()`. That's the one. Because it's the whole body, not the form, and the form —
+      the form doesn't matter, it's on their computer, they can put anything they want in there or
+      not even use it, just post directly. So they posted the admin column and it got saved. And
+      the reason it got saved is the guarded thing being empty, which sounds like it's protecting
+      nothing and it is, it's protecting nothing, every column is writable. Sorry — both of those
+      together is what did it, either one alone you'd probably be okay. So, validate, and then use
+      what validate gives you back, not the request again, that's a mistake people make, they
+      validate and then still pass `all()`. And fillable on the model with the three, four
+      columns. Then after that I'd look for the same shape everywhere else, `update` with `all()`
+      is the same thing on profile edit, that one's usually worse because nobody looks at it. And
+      find out who already has admin in the table.
+    expected:
+      - dimension: Says how the extra field arrived
+        score: 4
+        because: '"The form doesn''t matter, it''s on their computer" — and the empty guard means every column is writable.'
+      - dimension: Takes only what the action may set
+        score: 3
+        because: Validate and use what validate returns, not the request again, plus `$fillable` with the three or four columns.
+      - dimension: Assumes it is not the only one
+        score: 3
+        because: The same shape elsewhere — `update` with `all()` on profile edit, "that one's usually worse because nobody looks at it".
+  - kind: nigerian-english
+    text: |
+      `protected $guarded = []` means say nothing dey protected — the guard list is empty, so any
+      column for that users table, mass assignment fit set am. Then
+      `User::create($request->all())` go collect whatever dey inside the POST body. No be the
+      three fields for the form o — na whatever the person post. The form having three fields no
+      mean anything; that form na HTML for their own machine, dem fit open dev tools add field, or
+      dem no even use the form at all, dem just curl the endpoint. So the person post
+      `is_admin=1`, or `role=admin`, and Eloquent write am straight. The fix: validate first, then
+      pass only wetin validate give you back — name, email, password — make you no pass `all()`
+      again after you don validate. And put proper `$fillable` for the model with only the columns
+      wey user fit set, as second layer. After that, I go grep the whole codebase for `$guarded =
+      []` for every model, and for `->all()` anywhere near create or update, because
+      `update($request->all())` na the same hole for the edit side. Then check the table, see who
+      else don already be admin.
+    expected:
+      - dimension: Says how the extra field arrived
+        score: 4
+        because: "Same as `strong`: the form is theirs to change, and the empty guard let the posted column through."
+      - dimension: Takes only what the action may set
+        score: 3
+        because: "Same: validate first, pass only what validate returns, and a proper `$fillable` as the second layer."
+      - dimension: Assumes it is not the only one
+        score: 3
+        because: "Same: grep for `$guarded = []` and `->all()` near create or update, then check who else is admin."

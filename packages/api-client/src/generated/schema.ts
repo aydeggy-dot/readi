@@ -1358,6 +1358,10 @@ export interface components {
         DuplicateWarningsResponseDto_Output: {
             matches: components["schemas"]["DuplicateMatch_Output"][];
         };
+        PlannedFollowUp: {
+            criterion: number;
+            probe: string;
+        };
         QuestionInputDto: {
             slug: string;
             roles: string[];
@@ -1373,6 +1377,11 @@ export interface components {
             /** Format: uuid */
             rubric_id: string;
             ideal_points: string[];
+            planned_follow_ups: components["schemas"]["PlannedFollowUp"][];
+        };
+        PlannedFollowUp_Output: {
+            criterion: number;
+            probe: string;
         };
         QuestionDto_Output: {
             slug: string;
@@ -1389,6 +1398,7 @@ export interface components {
             /** Format: uuid */
             rubric_id: string;
             ideal_points: string[];
+            planned_follow_ups: components["schemas"]["PlannedFollowUp_Output"][];
             /** Format: uuid */
             id: string;
             status: components["schemas"]["ContentStatus_Output"];

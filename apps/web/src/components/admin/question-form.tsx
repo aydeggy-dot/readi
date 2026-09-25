@@ -12,7 +12,7 @@ import { invalidFields } from "@readi/api-client";
 import { CONTENT_LIMITS, DIFFICULTY_RANGE, QUESTION_TYPES } from "@readi/shared-types/constants";
 import { useRouter } from "next/navigation";
 import type * as React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { DuplicateWarnings } from "@/components/admin/duplicate-warnings";
 import { MarkdownField } from "@/components/admin/markdown-field";
@@ -45,6 +45,79 @@ interface Values {
   rubric_id: string;
   /** A field array needs objects, so each ideal point is `{ value }`. */
   ideal_points: { value: string }[];
+  /** `criterion` is a string because a `<select>`'s value is; it is the criterion's position. */
+  planned_follow_ups: { criterion: string; probe: string }[];
+}
+
+/**
+ * The dimensions of the rubric currently selected, so that a planned follow-up can name the
+ * criterion it probes in words rather than as a number (ADR-0015-era CMS: staff screens, not
+ * reading). The question's own rubric arrives with the page; changing the rubric in the form
+ * fetches the new one, because the list endpoint carries counts rather than criteria.
+ *
+ * Empty while a rubric is unchosen or in flight, and the form falls back to "Criterion N" — a
+ * follow-up still has to be editable when the fetch fails.
+ */
+function useRubricCriteria(rubricId: string, question: Question | null): string[] {
+  const initial = question?.rubric_id === rubricId ? (question?.rubric.criteria ?? []) : [];
+  const [criteria, setCriteria] = useState<string[]>(initial.map((c) => c.dimension));
+  const [loadedFor, setLoadedFor] = useState(initial.length > 0 ? rubricId : "");
+
+  useEffect(() => {
+    if (!rubricId || rubricId === loadedFor) return;
+    let current = true;
+    void (async () => {
+      try {
+        const { data } = await browserApi.GET("/api/admin/content/rubrics/{id}", {
+          params: { path: { id: rubricId } },
+        });
+        if (!current) return;
+        setCriteria((data?.criteria ?? []).map((criterion) => criterion.dimension));
+        setLoadedFor(rubricId);
+      } catch {
+        if (current) setCriteria([]);
+      }
+    })();
+    return () => {
+      current = false;
+    };
+  }, [rubricId, loadedFor]);
+
+  return criteria;
+}
+
+/**
+ * The criterion choices. A rubric has at most `rubricCriteria.max` criteria, and the form may be
+ * open on a question whose rubric has not loaded — so the list is the dimensions where they are
+ * known and numbered placeholders where they are not, rather than nothing to choose from.
+ */
+function criterionOptions(criteria: readonly string[]): { value: string; label: string }[] {
+  const count = criteria.length > 0 ? criteria.length : CONTENT_LIMITS.rubricCriteria.max;
+  return Array.from({ length: count }, (_, index) => ({
+    value: String(index),
+    label: criteria[index] ?? t("admin.content.question.criterionNumber", { number: index + 1 }),
+  }));
+}
+
+/**
+ * The first criterion nothing probes yet. A criterion may carry two probes, but the second is the
+ * deliberate case — a criterion that scores two separable things — so the default is a fresh one.
+ */
+function nextCriterion(fields: readonly { criterion: string }[]): string {
+  const taken = new Set(fields.map((field) => field.criterion));
+  for (let index = 0; index < CONTENT_LIMITS.rubricCriteria.max; index += 1) {
+    if (!taken.has(String(index))) return String(index);
+  }
+  return "0";
+}
+
+/** Whether any criterion has more probes than the API will take. */
+function overCap(fields: readonly { criterion: string }[]): boolean {
+  const counted = new Map<string, number>();
+  for (const field of fields) {
+    counted.set(field.criterion, (counted.get(field.criterion) ?? 0) + 1);
+  }
+  return [...counted.values()].some((count) => count > CONTENT_LIMITS.followUpsPerCriterion);
 }
 
 const DIFFICULTIES = Array.from(
@@ -104,11 +177,18 @@ export function QuestionForm({
       context: question?.context ?? "",
       rubric_id: question?.rubric_id ?? "",
       ideal_points: (question?.ideal_points ?? [""]).map((value) => ({ value })),
+      planned_follow_ups: (question?.planned_follow_ups ?? []).map((plan) => ({
+        criterion: String(plan.criterion),
+        probe: plan.probe,
+      })),
     },
   });
   const idealPoints = useFieldArray({ control, name: "ideal_points" });
+  const followUps = useFieldArray({ control, name: "planned_follow_ups" });
   const prompt = useWatch({ control, name: "prompt" });
   const context = useWatch({ control, name: "context" });
+  const rubricId = useWatch({ control, name: "rubric_id" });
+  const criteria = useRubricCriteria(rubricId, question);
   const required = t("common.errors.required");
 
   const body = (values: Values): QuestionInput => ({
@@ -124,6 +204,9 @@ export function QuestionForm({
     context: values.context.trim() || null,
     rubric_id: values.rubric_id,
     ideal_points: values.ideal_points.map((point) => point.value.trim()).filter(Boolean),
+    planned_follow_ups: values.planned_follow_ups
+      .filter((plan) => plan.probe.trim().length > 0)
+      .map((plan) => ({ criterion: Number(plan.criterion), probe: plan.probe.trim() })),
   });
 
   const checkDuplicates = async () => {
@@ -392,6 +475,79 @@ export function QuestionForm({
               onClick={() => idealPoints.append({ value: "" })}
             >
               {t("admin.content.question.addPoint")}
+            </Button>
+          )}
+        </fieldset>
+
+        {/*
+         * Planned follow-ups (owner's decision, 2026-09-23). Answer key, like the ideal points
+         * above and for the same reason: they tell a candidate what they are about to be asked
+         * next. The criterion is stored as a position, so the select shows the rubric's own
+         * dimensions where it has them and "Criterion N" where it does not.
+         */}
+        <fieldset className="flex flex-col gap-3">
+          <legend className="font-bold text-heading">
+            {t("admin.content.question.followUps")}
+          </legend>
+          <p className="-mt-1 text-base text-muted-foreground">
+            {t("admin.content.question.followUpsHint")}
+          </p>
+          {!rubricId && (
+            <p className="text-base text-muted-foreground">
+              {t("admin.content.question.followUpsNeedRubric")}
+            </p>
+          )}
+          {followUps.fields.map((item, index) => (
+            <div key={item.id} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <Select
+                className="sm:w-56"
+                aria-label={t("admin.content.question.followUpCriterion")}
+                {...register(`planned_follow_ups.${index}.criterion`)}
+              >
+                {criterionOptions(criteria).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                aria-label={t("admin.content.question.followUpProbe", { number: index + 1 })}
+                placeholder={t("admin.content.question.followUpProbePlaceholder")}
+                maxLength={CONTENT_LIMITS.followUpProbeMaxLength}
+                {...register(`planned_follow_ups.${index}.probe`)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                aria-label={t("admin.content.question.removeFollowUp", { number: index + 1 })}
+                onClick={() => followUps.remove(index)}
+              >
+                <span aria-hidden>×</span>
+              </Button>
+            </div>
+          ))}
+          {/*
+           * A criterion may carry two probes and never three, which the API refuses. Saying so here
+           * is cheaper than a 400 the editor has to work out for themselves.
+           */}
+          {overCap(followUps.fields) && (
+            <Alert variant="error">
+              {t("admin.content.question.followUpsOverCap", {
+                max: CONTENT_LIMITS.followUpsPerCriterion,
+              })}
+            </Alert>
+          )}
+          {followUps.fields.length < CONTENT_LIMITS.plannedFollowUps && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onClick={() =>
+                followUps.append({ criterion: nextCriterion(followUps.fields), probe: "" })
+              }
+            >
+              {t("admin.content.question.addFollowUp")}
             </Button>
           )}
         </fieldset>

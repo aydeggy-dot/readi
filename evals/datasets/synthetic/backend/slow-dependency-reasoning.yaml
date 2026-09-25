@@ -1,0 +1,124 @@
+version: 1
+generated_by: ai_draft
+role: backend
+rubric: slow-dependency-reasoning
+question: the-dependency-that-got-slow
+# `fluent-but-wrong` diagnoses file-descriptor exhaustion — thousands of open outbound sockets
+# hitting the ulimit so `accept()` fails — which explains the unrelated pages perfectly, and then
+# says in as many words that timeouts would not have helped. 1/0/0 against `strong`'s 4/3/4.
+answers:
+  - kind: strong
+    text: |
+      Yeah, this one is threads, basically. Your API has a fixed number of workers — say you're
+      running a pool of two hundred request threads. Normally a payment call takes half a second,
+      so a thread is busy for half a second and goes back. Now each one is held for thirty
+      seconds. So at even a handful of payment requests a second, within a minute or two every
+      single thread in the pool is sitting there blocked, waiting on a socket. And a thread that's
+      blocked can't serve the homepage, it can't serve the health check, it can't serve anything.
+      That's why the whole API went, not just payments — they were all queuing for the same pool.
+      The first thing I'd put in is an aggressive timeout on that client, like three seconds,
+      connect and read, because no timeout means the default is basically forever. Then a circuit
+      breaker, so after a run of slow calls we stop calling them for a bit and fail fast. And I'd
+      want payments on their own pool or their own queue, so when they drown, they drown alone.
+    expected:
+      - dimension: Says what the waiting requests are holding
+        score: 4
+        because: Every thread held for thirty seconds instead of half of one, and unrelated pages fail because they queue for the same pool.
+      - dimension: Gives the call a deadline
+        score: 3
+        because: A three-second connect and read timeout, because the default is effectively forever; nothing about retries multiplying the load.
+      - dimension: Stops asking for a while
+        score: 4
+        because: A circuit breaker by name and by behaviour, plus payments on their own pool so "when they drown, they drown alone".
+  - kind: weak
+    text: |
+      Okay so if the payment provider is slow then payments will be slow, that makes sense. The
+      part I'm less sure about is why the other pages died, because those don't call payments at
+      all. Maybe… the whole server just got overloaded? Like too many requests came in at once and
+      it couldn't handle it. I'd check the memory, maybe there was a memory leak and it ran out
+      and everything crashed. For fixing it, I think you'd want retries — like if payments is slow
+      you retry the request, and then hopefully the second one is fast. And I'd add monitoring so
+      we know earlier, like an alert if the payment API is slow, so somebody can look at it before
+      the users start complaining. And maybe a status page. Honestly the main thing is you'd have
+      to tell the payment provider, because it's their system that's slow, so they're the ones
+      that have to fix the actual problem.
+    expected:
+      - dimension: Says what the waiting requests are holding
+        score: 1
+        because: A specific wrong mechanism — the server being overloaded, a memory leak — and no account of why the homepage died.
+      - dimension: Gives the call a deadline
+        score: 1
+        because: Retries, with no timeout anywhere.
+      - dimension: Stops asking for a while
+        score: 0
+        because: Keeps calling; the answer is monitoring and telling the provider.
+  - kind: fluent-but-wrong
+    text: |
+      Right, so this is file descriptor exhaustion, and it's a really common cascade. When the
+      provider slowed down, your outbound HTTPS connections to them stopped closing — each one
+      stayed open for thirty seconds instead of half a second, so you went from maybe ten open
+      sockets at a time to several thousand. Every socket is a file descriptor, and the process
+      has one table for all of them, inbound and outbound together. So once you hit the ulimit — a
+      thousand and twenty-four by default on most boxes — accept() starts failing, and the server
+      can't take a new inbound connection at all. That's exactly why the unrelated pages died: it
+      was never about payments, it was the process being unable to open anything new. So the fix
+      is at the socket layer. Raise the descriptor limit to sixty-five thousand, and put the
+      payment client behind a keep-alive connection pool with a fixed maximum, so you reuse a
+      handful of sockets instead of opening one per call. Timeouts wouldn't have saved you here,
+      by the way — the connections were open and healthy, just slow.
+    expected:
+      - dimension: Says what the waiting requests are holding
+        score: 1
+        because: File descriptors running out, argued in full — a specific wrong resource, complete with the default ulimit.
+      - dimension: Gives the call a deadline
+        score: 0
+        because: No deadline at all, and timeouts explicitly dismissed as irrelevant here.
+      - dimension: Stops asking for a while
+        score: 0
+        because: A keep-alive pool so the sockets are reused; nothing ever stops calling.
+  - kind: correct-poorly-explained
+    text: |
+      So the reason everything died and not just payments is that it's the same — they share. The
+      threads, I mean. Like, the server has a pool of threads and it doesn't care what the request
+      is for, whichever thread is free takes it, so if all of them are stuck then there's nothing
+      left for the other pages, and that's what happened, they were all stuck on payments. Thirty
+      seconds each. And if there was no timeout on the HTTP client, which there probably wasn't,
+      because the default for a lot of them is no timeout, then the thread just waits, forever
+      basically. So it fills up. What you'd want — a timeout, obviously, a couple of seconds, so
+      the thread comes back. And then the circuit breaker thing, where if it keeps being slow you
+      stop calling it for a minute and just return an error straight away, which is better than
+      hanging. And ideally payments shouldn't be able to eat the threads that the rest of the site
+      uses, so separate pools.
+    expected:
+      - dimension: Says what the waiting requests are holding
+        score: 4
+        because: The threads are shared and do not care what the request is for, so when they are all stuck on payments there is nothing left.
+      - dimension: Gives the call a deadline
+        score: 3
+        because: A timeout of a couple of seconds so the thread comes back, and notes the default is often none.
+      - dimension: Stops asking for a while
+        score: 4
+        because: Stop calling for a minute and fail fast, and payments should not be able to eat the threads the rest of the site uses.
+  - kind: nigerian-english
+    text: |
+      Na thread pool cause am. See — your server get maybe two hundred worker threads, and them no
+      care whether the request na payment or na homepage, whichever one dey free go collect the
+      next request. Normally payment go take half a second, the thread go release sharp sharp. Now
+      e dey take thirty seconds. So small small, every thread go just dey hang there, dem dey wait
+      for socket wey no dey answer. And thread wey dey blocked no fit serve homepage, e no fit
+      serve health check, e no fit serve anything. Na why the whole API go quiet, no be payments
+      alone — everybody dey queue for the same pool. So first thing, put timeout on that payment
+      client, like three seconds connect and read, because if you no set am, plenty of these
+      clients default na forever. Then circuit breaker: if e slow reach some number of times, we
+      stop calling dem for one minute and we fail fast. And put payments for him own pool or him
+      own queue, so when e wan drown, make e drown by himself.
+    expected:
+      - dimension: Says what the waiting requests are holding
+        score: 4
+        because: "Same as `strong`: two hundred threads, all hanging, and a blocked thread cannot serve the health check."
+      - dimension: Gives the call a deadline
+        score: 3
+        because: "Same: three seconds connect and read, because many clients default to forever."
+      - dimension: Stops asking for a while
+        score: 4
+        because: "Same: stop calling after a run of failures, and give payments its own pool."

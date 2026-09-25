@@ -40,6 +40,15 @@ contacts; when that comes back, supersede this section with what they said.
 - **Stacks** — the variant dimension M2.5 introduced (ADR-0015). A question is either general to the
   role, and everyone preparing for it is asked it, or tagged to one or more stacks and asked only of
   candidates on one of them. A candidate who picks "Not sure yet" is offered the general set only.
+  **A stack is what a candidate *is* — Node.js, Java / Spring, React Native — not what they know**
+  (owner, 2026-09-22). Several entries below fail that test and are listed as stacks only because
+  this document was written before the distinction existed: AI/LLM's *vector stores* and *agent
+  frameworks*, DevOps's *Terraform* and *GitHub Actions / GitLab CI*, and QA's *manual / exploratory
+  testing*, which is the absence of a technology rather than one. **They become topics** — things
+  every candidate for the role is asked about — **or `technologies` on a profile, and not stacks**,
+  when their wave is written. Each blueprint under `content/seed/blueprints/` proposes the change
+  for its own role and says what overruling it costs; tagging them as variants would hide the
+  material from exactly the candidates who most need it.
 - **Interview types** — from `QUESTION_TYPES` today (`behavioral`, `technical`, `scenario`,
   `test_design`) plus the two the spec defers to P2: **coding** (Monaco + Judge0) and **system design**
   (Excalidraw + vision review).
