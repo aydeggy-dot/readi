@@ -241,7 +241,7 @@ rubrics:
           tell them.
         weight: 35
         levels:
-          "0": Not addressed; they changed it and it worked.
+          "0": Changed it and it worked, which is the whole account of why it was safe — or nothing was changed, so nothing had to be judged.
           "1": Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
           "2": Names one safeguard without saying what it would have caught.
           "3": Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.

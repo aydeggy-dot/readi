@@ -28,8 +28,7 @@ questions:
     difficulty: 3
     prompt: >-
       An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on
-      your machine. Nothing in the code looks expensive. How do you find out what is actually
-      happening?
+      your machine. Nothing in the code looks expensive. How do you find out what is happening?
     context: null
     rubric: query-performance-diagnosis
     ideal_points:
@@ -41,7 +40,7 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          And what would that tell you the code is doing?
+          What would you expect to see in there?
       - criterion: 2
         probe: >-
           What would you change on the strength of that?
@@ -59,7 +58,7 @@ questions:
     difficulty: 3
     prompt: >-
       Tell me about something you shipped that broke for real users — in production, or in a
-      project of your own.
+      project of your own. Take me through it.
     context: null
     rubric: incident-ownership
     ideal_points:
@@ -74,10 +73,10 @@ questions:
           What did you do once you knew?
       - criterion: 2
         probe: >-
-          How was it found, and how long had it been going before anyone knew?
+          What is still different because of it?
       - criterion: 2
         probe: >-
-          What is still different because of it?
+          How did anyone find out?
     reviewer_notes: >-
       **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It
       used to say the question needed its own rubric instead of the generic
@@ -125,8 +124,7 @@ questions:
           What would you send instead?
       - criterion: 2
         probe: >-
-          That response crosses a few things on its way to the phone — does any of them care what
-          it says?
+          What else, between you and that phone, ever looks at that response?
     reviewer_notes: >-
       Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of
       tutorials in this market teach, so a junior may have shipped it and be defending it rather
@@ -143,8 +141,9 @@ questions:
     subtopic: collections
     difficulty: 2
     prompt: >-
-      Your `GET /jobs` endpoint returns every job as one array. It was fine at two hundred jobs
-      and there are now forty thousand. What is going wrong, and for whom?
+      Your `GET /jobs` endpoint returns every job as one array — it is called by your website and
+      by an Android app that is on twenty thousand phones. It was fine at two hundred jobs and
+      there are now forty thousand. What is going wrong, and for whom?
     context: null
     rubric: collection-endpoint-design
     ideal_points:
@@ -160,8 +159,7 @@ questions:
           How would you change the endpoint?
       - criterion: 2
         probe: >-
-          The Android app is on twenty thousand phones and plenty of those people will never
-          update it — what do you do about them?
+          You ship that on Monday morning — what happens to the app that is already out there?
     reviewer_notes: >-
       This is the question I would most want a junior to have met before their first job, and it is
       here rather than at mid for that reason. Two things for you. The migration clause ("the apps
@@ -178,10 +176,10 @@ questions:
     subtopic: data types
     difficulty: 2
     prompt: >-
-      A handful of invoices stay marked unpaid although the customer has paid in full, and finance
-      can see the two figures are the same on screen. This is the column and this is the check —
-      it is in JavaScript, but the idea is the same wherever you work. Tell me what that column is
-      actually holding.
+      A handful of invoices stay marked unpaid although the customer has paid in full. This is the
+      column and this is the check — it is in JavaScript, but the idea is the same wherever you
+      work. Finance can see the two figures match and the check says they do not. Which of them is
+      wrong?
     context: |
       ```sql
       CREATE TABLE payments (
@@ -208,7 +206,7 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          So why does the check fail, rather than the two just being a little bit off?
+          Why does that make the check fail, rather than the two just being a little bit off?
       - criterion: 2
         probe: >-
           What would you store instead?
@@ -306,7 +304,7 @@ questions:
           Why does it come and go, rather than happening every time?
       - criterion: 2
         probe: >-
-          Before you get anywhere near the code, what do you do?
+          That fix takes you an hour to write and ship — what happens in that hour?
     reviewer_notes: >-
       The strongest answer treats this as an incident before it treats it as a bug, and criterion 3
       is built around that — 30% for turning it off and working out who saw what, rather than for
@@ -324,7 +322,7 @@ questions:
     prompt: >-
       A jobs board makes the same three database queries on every page load — the list of open
       jobs, the categories, and the signed-in user's saved jobs — and the database is struggling
-      at peak. Would you cache all three of those, some of them, or none?
+      at peak. Which of those would you cache, and which would you leave alone?
     context: null
     rubric: caching-judgement
     ideal_points:
@@ -339,8 +337,7 @@ questions:
           For whichever you would cache — what stops a stale copy staying around?
       - criterion: 2
         probe: >-
-          Say you do that and the database is comfortable again. What is still true that was true
-          before?
+          The database is comfortable again — what have you fixed?
     reviewer_notes: >-
       Deliberately three things rather than one, so the answer has to discriminate rather than
       recite "cache the hot path". The risk is that it rewards talkers — there is no code and no
@@ -359,7 +356,7 @@ questions:
     prompt: >-
       Sign-up sometimes takes four seconds, and when the email provider is having a bad day the
       user gets an error and no account. This is the handler, in JavaScript — the idea is the same
-      wherever you work. Whose work is the person signing up waiting for here?
+      wherever you work. What is the person signing up waiting four seconds for?
     context: |
       ```js
       app.post("/api/signup", async (req, res) => {
@@ -401,7 +398,7 @@ questions:
     difficulty: 3
     prompt: >-
       A background job that pays out to a vendor ran twice for the same payout, and the vendor was
-      paid twice. The logs show the worker was restarted in the middle of the first run. Why would
+      paid twice. The logs show the worker was restarted in the middle of the first run. Why does
       a queue do that?
     context: null
     rubric: duplicate-job-reasoning
@@ -505,7 +502,7 @@ questions:
           How would you write the one that is missing?
       - criterion: 2
         probe: >-
-          Where would you put it so the next route gets it too?
+          There are forty other routes like this one. What do you do?
     reviewer_notes: >-
       This is the bug I would most expect to find in a real codebase here, and the prompt supplies
       the whole scenario so it needs no employer. The 404-versus-403 point is level 4 of criterion 3
@@ -588,9 +585,9 @@ questions:
     reviewer_notes: >-
       Written so it can be answered without the words "circuit breaker" or "bulkhead": the rubric
       scores stopping calling for a while, by any name, and names the pattern only in a level-4
-      descriptor. The clause I am least sure of is "what would you have had in place" — it is
-      phrased in the past because asking "what would you do now" pulls candidates into incident
-      response, which is a different question. Does the past tense read as a trap to a nervous
+      descriptor. The part I am least sure of is what they would have had in place, which is now
+      the second probe — it is phrased in the past because asking "what would you do now" pulls
+      candidates into incident response, which is a different question. Does the past tense read as a trap to a nervous
       candidate?
 
   - slug: what-happens-when-it-is-down
@@ -602,8 +599,8 @@ questions:
     difficulty: 2
     prompt: >-
       Your sign-in sends a one-time code by SMS, and the provider is returning errors for
-      everybody. You cannot tell whether any particular code was sent or not. What do you tell the
-      person waiting for their code?
+      everybody. You cannot tell whether any particular code was sent or not. What does that
+      person see on screen? Give me the words.
     context: null
     rubric: degradation-reasoning
     ideal_points:
@@ -616,7 +613,8 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          Would they walk away from that thinking they had done something wrong?
+          They have typed their number, tapped the button and got that — what do they think just
+          happened?
       - criterion: 2
         probe: >-
           What do you give them to do next?
@@ -662,7 +660,7 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          How would you confirm that before changing anything?
+          How would you know you were right?
       - criterion: 2
         probe: >-
           How would you make the suite trustworthy again?
@@ -684,7 +682,7 @@ questions:
     prompt: >-
       Every test of your payment code passes, and a live payment has been failing for two days.
       The tests stand in for the provider with a fake that returns a successful response. What did
-      those passing tests actually prove?
+      those passing tests prove?
     context: null
     rubric: test-double-judgement
     ideal_points:
@@ -700,7 +698,7 @@ questions:
           What would you change about the tests themselves?
       - criterion: 2
         probe: >-
-          What would have caught this that is not a test?
+          Two days went by before anyone knew — what would have shortened that?
     reviewer_notes: >-
       The point of this question is that the honest answer is "no test would have caught this", and
       the rubric is built so a candidate who says so scores well rather than appearing to give up —
@@ -739,7 +737,7 @@ questions:
           What would you have logged instead?
       - criterion: 2
         probe: >-
-          Is there anything you would deliberately keep out of it?
+          Who reads those lines besides you?
     reviewer_notes: >-
       The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts,
       CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so
@@ -775,7 +773,7 @@ questions:
           What makes it fire?
       - criterion: 2
         probe: >-
-          And once it fires — what has to be true for anything to actually happen?
+          Who gets that, and what do they do next?
     reviewer_notes: >-
       This is the question in the bank most likely to be unfair to a self-taught candidate, because
       "what would have to be true for anyone to act on it" describes a team. I have written the
@@ -810,13 +808,14 @@ questions:
           What does the user see from there on?
       - criterion: 2
         probe: >-
-          What holds up when a hundred people press it at once?
+          A hundred people press it in the same minute — where does that pile up?
     reviewer_notes: >-
       Mid only. This is as close to a system-design round as the engine can get without a drawing
       surface, and it is written as one user-visible feature rather than "design a system" for that
-      reason. The clause about a hundred people at once is what stops it being answered purely as a
-      queue tutorial. My worry is length: there are three clauses and each has a lot in it, so a
-      candidate may answer the first well and run out of time. Should this be two questions?
+      reason. The hundred people at once — now the second probe — is what stops it being answered
+      purely as a queue tutorial. My worry used to be length, and the 2026-09-25 retrofit answered
+      it: the opening asks one thing and the rest arrives only if the answer has not covered it.
+      Are the three parts still one question, or two?
 
   - slug: one-server-to-two
     roles: [backend, fullstack]
@@ -827,8 +826,8 @@ questions:
     difficulty: 3
     prompt: >-
       Everything runs on one machine — the API, the database, the uploaded files — and traffic has
-      tripled since a radio advert. You are going to add a second machine behind a load balancer.
-      Tell me what breaks the moment you do that.
+      tripled since a radio advert. You are thinking of adding a second machine behind a load
+      balancer. Tell me what breaks the moment you do that.
     context: null
     rubric: scaling-out-reasoning
     ideal_points:
@@ -841,7 +840,7 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          Before you move anything, what would you want to know?
+          What do you know right now about where the time is going?
       - criterion: 2
         probe: >-
           What order would you do it in?
@@ -873,16 +872,18 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          When does that go, and who to?
+          Friday is when everyone would have found out anyway — what does telling them on
+          Wednesday buy them?
       - criterion: 2
         probe: >-
-          Has there been a time you had to do that for real — or a time you did not?
+          Has there been a time you had to do that for real — and if there has not, what would you
+          do?
     reviewer_notes: >-
       The second question the frontend blueprint said belonged in this pass, and the second
       `written-communication` question for every wave-1 role. The message is asked first and the
       story last, deliberately — the opening asks what they would write, and the story is the final
       probe: a candidate who has never had a deadline slip in a job can still answer the first half
-      completely, and the rubric splits 70/30 that way so nobody is capped by not having had it. Is 40% still too much to hang on having had it?
+      completely, and the rubric splits 70/30 that way so nobody is capped by not having had it. Is 30% still too much to hang on having had it?
 
   - slug: the-part-you-did-not-write
     roles: [backend, frontend, qa, fullstack]
@@ -956,7 +957,7 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          And why does that end with the service being restarted?
+          The service also got restarted. Why?
       - criterion: 2
         probe: >-
           What would you change?
@@ -1110,7 +1111,8 @@ questions:
           How would you fix it?
       - criterion: 2
         probe: >-
-          What belongs inside that transaction, and what does not?
+          Say you move the annotation up to `placeOrder`, so the whole request is one transaction
+          — happy with that?
     reviewer_notes: >-
       **Version-sensitive: Spring's proxy-based `@Transactional`, checked against docs.spring.io
       on 2026-09-22 (Spring Framework 7.0).** Self-invocation bypassing the proxy still holds —
@@ -1134,7 +1136,7 @@ questions:
     prompt: >-
       This is what a mobile client receives when it posts a sign-up with a bad email address, from
       a service that has switched on Spring Boot's message and stack-trace settings. What can the
-      client actually do with this?
+      client do with this?
     context: |
       ```json
       {
@@ -1157,7 +1159,7 @@ questions:
     planned_follow_ups:
       - criterion: 1
         probe: >-
-          Is there anything in there you would rather it did not have?
+          What is each of those fields for?
       - criterion: 2
         probe: >-
           What would you send instead?
@@ -1182,8 +1184,8 @@ questions:
     difficulty: 3
     prompt: >-
       This endpoint is declared async, and under any real load the whole service slows down —
-      including endpoints that do nothing at all. Explain what the `async` is and is not buying
-      here.
+      including endpoints that do nothing at all. Explain what the `async` there is and is not
+      doing for you.
     context: |
       ```python
       @app.get("/api/rates")
@@ -1205,8 +1207,7 @@ questions:
           What would you change?
       - criterion: 2
         probe: >-
-          If that line had been written without the `async`, what would the framework have done
-          with it?
+          What would the framework do with this endpoint if it were a plain `def`?
     reviewer_notes: >-
       **Version-sensitive: FastAPI's handling of `def` versus `async def` endpoints, checked
       against fastapi.tiangolo.com on 2026-09-22.** A plain `def` path operation is still run in a
@@ -1298,7 +1299,7 @@ questions:
           What is the fix?
       - criterion: 2
         probe: >-
-          What else would you go and look at afterwards?
+          You have fixed the sign-up form. Are you done?
     reviewer_notes: >-
       **Version-sensitive: Eloquent mass assignment, checked against laravel.com on 2026-09-22
       (Laravel 13). The behaviour holds and the documented syntax has moved:** Laravel 13 documents
@@ -1364,7 +1365,7 @@ questions:
     prompt: >-
       A ticket says "add filtering to the vendors page". There is no design, nothing about which
       fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow.
-      What do you do first?
+      What do you do before you write to them?
     context: null
     rubric: ambiguous-work-judgement
     ideal_points:

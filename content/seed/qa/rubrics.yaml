@@ -729,7 +729,7 @@ rubrics:
         description: No reference outliving an action, and what a blanket retry hides.
         weight: 40
         levels:
-          "0": Not addressed; fixes this line.
+          "0": Fixes this line and stops — whether the same shape is anywhere else in the suite is not a question they have.
           "1": Standardises the retry — a helper that catches the exception everywhere it occurs — and reports the suite as fixed because the failures stopped.
           "2": Says the same problem exists elsewhere, with no approach to it.
           "3": Re-finds the element at the moment of use everywhere the pattern occurs — a wrapper that keeps the locator and locates on use is the documented way — so no reference outlives an action.

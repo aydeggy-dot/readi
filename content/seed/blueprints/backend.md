@@ -374,3 +374,78 @@ What this bank still does not prepare a candidate for: a live coding round and l
 scope by the engine, stated on the role's page), a full system-design round (two conversational
 questions are not one), and an `intern-junior` track — backend's only track is at `mid`, which
 `check-bank.mjs` reports every run.
+
+## Appendix D — the planned-follow-up retrofit (2026-09-25)
+
+The shape QA piloted and frontend proved, applied to the last drafted bank. **34 prompts cut to one
+clause, 70 probes**, and the four critique passes run separately on the reshape alone: **44 findings,
+34 applied, 10 recorded or rejected.**
+
+### The mis-aim check, which ran first and earned its place
+
+Per question: name the criterion the opening asks, check it is the one left without a probe, check
+nothing else answers the opening as well. It changed **eight** openings that deleting the trailing
+clauses would have got wrong.
+
+| Question                          | The opening after a mechanical cut            | The criterion it would have stranded         |
+| --------------------------------- | --------------------------------------------- | -------------------------------------------- |
+| `db-money-as-a-float`             | "why the comparison fails" (criterion 2)      | 1 — what the column is actually holding, 35% |
+| `email-in-the-request`            | "what is wrong with doing it this way"        | 2 answers it as readily as 1                 |
+| `what-happens-when-it-is-down`    | "what the person sees"                        | all three compete                            |
+| `the-feature-that-needs-a-queue`  | "how you would build it"                      | 2 answers it as readily as 1                 |
+| `passwords-in-the-database`       | "what you would raise"                        | 2 answers it as readily as 1                 |
+| `what-to-cache-and-for-how-long`  | "would you cache anything at all"             | 1 is discrimination between three            |
+| `a-change-you-are-not-sure-about` | "what do you write on the change"             | 1 and 2 compete                              |
+| `n-plus-one-diagnosis`            | "how do you find out, and what do you change" | 2 unasked                                    |
+
+### What the four passes changed, and the two they agreed on hardest
+
+**A probe that names what its criterion scores is worse than a clause that did** — because a probe
+is asked _only_ of the candidate who missed it, so it converts a miss into a gift. Eleven probes
+rewritten on this: `mocking-what-you-do-not-own`'s "what would have caught this that is **not a
+test**" forbade its own level 0 by name; `api-list-that-grew` stated the twenty-thousand-phones fact
+the criterion exists to see whether they think of; `cache-key-that-leaked`'s "**before** you get
+anywhere near the code" told the candidate that something comes before the fix, which is the whole
+judgement. Four more read their criterion's dimension back ("Where would you put it so the next
+route gets it too?"), and three were closed yes/no questions.
+
+**A one-clause opening tells the candidate nothing about how long the answer should be.** The
+nervous-junior pass put it best: the grammar asks for one thing and the rubric charges for three.
+Fixed where the opening had become a riddle — `email-in-the-request`'s "whose work is the person
+signing up waiting for", `db-money-as-a-float`'s "what that column is actually holding" — and
+`incident-you-contributed-to` regained "Take me through it", because there the three clauses had
+been the story's shape rather than triple-barrelling. The general version is for the owner (below).
+
+### The level 0s, and the check that had missed half of them
+
+The eight bare "Not addressed." level 0s left as warnings on 2026-09-24 became errors the moment
+their criteria were probed, exactly as predicted, and were rewritten. The fairness pass then found
+that **the check had been matching whole strings only**, so "Not addressed — the answer is entirely
+about the code" escaped it on 35% and 25% criteria: the trailing clause defeated the checker without
+making the band any more reachable. `check-bank.mjs` now also errors on a level 0 that merely
+_opens_ with a non-answer when the criterion is probed, which found **nine more across all four
+files**, including one in `rubrics.shared.yaml`. Five further level 0s were rewritten where the
+probe supplied the absence they were defined by.
+
+Two of those rewrites evicted a stress answer that used to land on them and had to be widened —
+`race-condition-reasoning` 2 and `unfamiliar-code-approach` 2. That is the 2026-09-25 rule working in
+the direction it was written for.
+
+### Recorded rather than applied — all of it for the owner
+
+- **The diagnosis-first drift.** All 18 snippet questions now open on "what is happening" and none on
+  a decision; the guaranteed-asked share of the score averages **36.8%**. In nine questions the
+  heaviest criterion sits behind a probe. The remote-manager pass wants the snippet questions
+  inverted — decision first, diagnosis as the probe — and its own hedge is the reason this was not
+  done: the case rests on volunteering and being prompted scoring the same, which is already an open
+  M4 item from the QA pilot. **It is also true of the frontend and QA banks**, so it is a bank-wide
+  design decision and not this pass's to take.
+- **Fourteen probes are some form of "What would you change?"** The senior pass deliberately declined
+  to call this a defect — the probe is asked only of a candidate who has not proposed a fix, and at
+  that moment it is the right question — but flagged it for the owner's eye.
+- **`the-ticket-nobody-can-explain`**: three passes said narrow the opening onto criterion 1 (done);
+  the manager argued instead for opening with "write me the message", so the written artefact is
+  guaranteed rather than conditional. That is a different question, and the owner's call.
+- **`the-estimate-that-slipped`**: the junior pass says being asked "have you ever done this for
+  real" only at the end is an ambush; the senior pass calls the same question the best-converted in
+  the bank. Left as it is, with the probe widened so a candidate who has not is not capped.

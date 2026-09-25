@@ -28,7 +28,7 @@ _Generated from the seed files by `pnpm --filter @readi/api content:review-doc`.
 
 **The interviewer asks**
 
-> An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your machine. Nothing in the code looks expensive. How do you find out what is actually happening?
+> An endpoint that returns 20 records takes 3 seconds in production and 80 milliseconds on your machine. Nothing in the code looks expensive. How do you find out what is happening?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -64,7 +64,7 @@ Names the N+1, or whatever the real shape of the problem is.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> And what would that tell you the code is doing?
+> What would you expect to see in there?
 
 **Fixes it without creating the next problem — 25%**
 
@@ -96,7 +96,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Tell me about something you shipped that broke for real users — in production, or in a project of your own.
+> Tell me about something you shipped that broke for real users — in production, or in a project of your own. Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -146,11 +146,11 @@ How it was found, how long it ran before anyone knew, and one change that is sti
 
 _Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
 
-> How was it found, and how long had it been going before anyone knew?
-
 > What is still different because of it?
 
-> **The drafter is unsure about:** **Two passes say this needs its own rubric, and they are right.** It is scored with the generic `behavioural-answer-quality`, whose criteria are situation, actions and outcome — so its best `ideal_points` (owning a share of the fault, whether they told anyone early, a change that outlived the incident) have nowhere to be scored, and the question rewards story shape, which is coachable in an afternoon. That is the same defect `rubrics.shared.yaml`'s own header says was fixed for `stuck-and-asked-for-help` and `feedback-on-your-code`. It needs the same treatment: first two criteria in common, third being the gap between knowing and telling. Not done here because it changes a shared rubric's users. The prompt no longer requires production, so a candidate whose only deployment is a personal project can answer. Do you want the new rubric, or is one behavioural question in four already enough?
+> How did anyone find out?
+
+> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing _somebody else's_ outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -225,7 +225,7 @@ Proxies, caches, retries, load balancers and error tracking all act on it and ne
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> That response crosses a few things on its way to the phone — does any of them care what it says?
+> What else, between you and that phone, ever looks at that response?
 
 > **The drafter is unsure about:** Written at intern-junior deliberately, because the `{ success: false }` shape is what a lot of tutorials in this market teach, so a junior may have shipped it and be defending it rather than failing to know it — the rubric has a descriptor for exactly that. The part I am unsure of is how hard to press on _which_ 4xx: the answer key says a conflict, and the rubric puts 409 no higher than any defensible 4xx with a reason, on the same grounds as `api-error-shape`'s own note about 409 versus 422. Too soft?
 
@@ -243,7 +243,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Your `GET /jobs` endpoint returns every job as one array. It was fine at two hundred jobs and there are now forty thousand. What is going wrong, and for whom?
+> Your `GET /jobs` endpoint returns every job as one array — it is called by your website and by an Android app that is on twenty thousand phones. It was fine at two hundred jobs and there are now forty thousand. What is going wrong, and for whom?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -294,7 +294,7 @@ A change to a live contract needs a path that does not strand the apps on phones
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> The Android app is on twenty thousand phones and plenty of those people will never update it — what do you do about them?
+> You ship that on Monday morning — what happens to the app that is already out there?
 
 > **The drafter is unsure about:** This is the question I would most want a junior to have met before their first job, and it is here rather than at mid for that reason. Two things for you. The migration clause ("the apps already calling it") adds 30% of the score for something a self-taught candidate may never have had to do — the rubric accepts "I would keep the old shape working while the apps update" in any form, but is asking it at intern-junior fair at all? And should the answer key insist on cursors over offsets, or is that a mid distinction? It currently rewards either with a reason.
 
@@ -312,7 +312,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A handful of invoices stay marked unpaid although the customer has paid in full, and finance can see the two figures are the same on screen. This is the column and this is the check — it is in JavaScript, but the idea is the same wherever you work. Tell me what that column is actually holding.
+> A handful of invoices stay marked unpaid although the customer has paid in full. This is the column and this is the check — it is in JavaScript, but the idea is the same wherever you work. Finance can see the two figures match and the check says they do not. Which of them is wrong?
 
 **Setup the candidate is given**
 
@@ -359,7 +359,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 Equality on two approximations asks whether two errors happen to match, which is not the question being asked.
 
-- **0 (absent):** Does not address the comparison, or would print more decimal places to find out.
+- **0 (absent):** Would print more decimal places to find out, or treats the check itself as sound and the data as the only problem.
 - **1 (weak):** Blames the comparison on something else — the ORM's type, a rounding done on display, the sum needing to be rounded before the check.
 - **2 (partial):** Says to compare within a tolerance, and treats that as the fix rather than as a patch over the wrong type.
 - **3 (solid):** Says two approximations are being tested for exact equality, so the check asks whether two errors coincide — which nothing guarantees.
@@ -367,7 +367,7 @@ Equality on two approximations asks whether two errors happen to match, which is
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> So why does the check fail, rather than the two just being a little bit off?
+> Why does that make the check fail, rather than the two just being a little bit off?
 
 **Chooses a type, and moves the data into it — 35%**
 
@@ -457,7 +457,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 The accounts in that state exist now, and a code fix does not move them.
 
-- **0 (absent):** Not addressed — the answer is entirely about the code.
+- **0 (absent):** Treats the wrong rows as somebody else's to notice — finance will raise them, or the next transfer will put it right.
 - **1 (weak):** Assumes the fix covers it, or that there cannot be many.
 - **2 (partial):** Recognises the existing rows are still wrong, with no way of finding which they are.
 - **3 (solid):** Says how they would find them — the debits with no matching credit — and that they are corrected deliberately, not by rerunning the transfer.
@@ -467,7 +467,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > And the accounts that are already in that state?
 
-> **The drafter is unsure about:** The snippet is deliberately readable without knowing the library — it is two SQL statements and an await. My worry is the third clause: asking what to do about the rows that are already wrong is the part that separates someone who has been on call from someone who has not, and it carries 25%. The rubric's level 1 there is "would fix the code and move on", which is an honest junior answer — is 1 too harsh for it, or right? Also: is it fair to expect a candidate to say the notification should move out, or is that a mid-only point?
+> **The drafter is unsure about:** The snippet is deliberately readable without knowing the library — it is two SQL statements and an await. My worry is the third criterion: asking what to do about the rows that are already wrong is the part that separates someone who has been on call from someone who has not, and it carries 25%. Since 2026-09-25 a probe asks it, which means it is put to exactly the candidate who did not volunteer it. The rubric's level 1 there is "would fix the code and move on", which is an honest junior answer — is 1 too harsh for it, or right? Also: is it fair to expect a candidate to say the notification should move out, or is that a mid-only point?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -547,7 +547,7 @@ People's figures were shown to other people; the key fix is the smallest part of
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Before you get anywhere near the code, what do you do?
+> That fix takes you an hour to write and ship — what happens in that hour?
 
 > **The drafter is unsure about:** The strongest answer treats this as an incident before it treats it as a bug, and criterion 3 is built around that — 30% for turning it off and working out who saw what, rather than for the one-line key fix. I think that is right and it is the sort of thing a reviewer should challenge, because it means a candidate who gives a perfect technical answer and never says "tell someone" is capped at about 70%. Is that the judgement we want to make?
 
@@ -565,7 +565,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Would you cache all three of those, some of them, or none?
+> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Which of those would you cache, and which would you leave alone?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -593,7 +593,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 A lifetime, or being dropped when the underlying data is written — decided, not assumed.
 
-- **0 (absent):** No expiry or invalidation considered.
+- **0 (absent):** Says a cache does not need one — the data will be fresh again the next time somebody loads the page.
 - **1 (weak):** One lifetime for everything, or invalidation described as something the cache does by itself.
 - **2 (partial):** Names expiry and invalidation without saying which suits which of the three.
 - **3 (solid):** Picks a lifetime for the ones where staleness is tolerable and dropping-on-write for the ones where it is not, and says why each way round.
@@ -615,7 +615,7 @@ A cache in front of a slow query leaves the slow query there, now harder to see.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Say you do that and the database is comfortable again. What is still true that was true before?
+> The database is comfortable again — what have you fixed?
 
 > **The drafter is unsure about:** Deliberately three things rather than one, so the answer has to discriminate rather than recite "cache the hot path". The risk is that it rewards talkers — there is no code and no single right answer — so the rubric puts 40% on the discrimination itself and level 4 asks the candidate to name what would change their mind. Does it still leave room for a good candidate who would simply say "I would fix the queries first"? I have made that a level-4 point on criterion 3 rather than a wrong answer.
 
@@ -633,7 +633,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user gets an error and no account. This is the handler, in JavaScript — the idea is the same wherever you work. Whose work is the person signing up waiting for here?
+> Sign-up sometimes takes four seconds, and when the email provider is having a bad day the user gets an error and no account. This is the handler, in JavaScript — the idea is the same wherever you work. What is the person signing up waiting four seconds for?
 
 **Setup the candidate is given**
 
@@ -712,7 +712,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A background job that pays out to a vendor ran twice for the same payout, and the vendor was paid twice. The logs show the worker was restarted in the middle of the first run. Why would a queue do that?
+> A background job that pays out to a vendor ran twice for the same payout, and the vendor was paid twice. The logs show the worker was restarted in the middle of the first run. Why does a queue do that?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -755,7 +755,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 A vendor has been paid twice; a code change does not undo that.
 
-- **0 (absent):** Not addressed — the answer is entirely about the code.
+- **0 (absent):** Says the double payment is somebody else's to sort out — finance will see it, or the provider reverses it on its own.
 - **1 (weak):** Absorbs it silently — deducted from the next payout without telling anyone, or assumed the vendor will notice and return it.
 - **2 (partial):** Says someone should be told, without saying who or what happens to the money — or would net it off the next payout, agreed with the vendor rather than done quietly.
 - **3 (solid):** Says the vendor has to be told before they find out, and the money recovered openly by whoever the right person is, rather than absorbed.
@@ -765,7 +765,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > And the payment that has already gone out twice?
 
-> **The drafter is unsure about:** This is the backend half of the frontend bank's `retry-and-the-double-charge` and they are deliberately different questions — that one is about what the interface does while a request is in flight, this one is about a worker that has already died. A reviewer should confirm they do not feel like the same question to a full-stack candidate, who is offered both. The third clause ("what would you say to the vendor") is 25% and is not a technical point: it is there because the honest answer to a double payment is not only a code change. Is scoring that fair, or is it a test of confidence rather than of engineering?
+> **The drafter is unsure about:** This is the backend half of the frontend bank's `retry-and-the-double-charge` and they are deliberately different questions — that one is about what the interface does while a request is in flight, this one is about a worker that has already died. A reviewer should confirm they do not feel like the same question to a full-stack candidate, who is offered both. The third criterion — the probe about the payment that has already gone out twice — is 25% and is not a technical point: it is there because the honest answer to a double payment is not only a code change. Is scoring that fair, or is it a test of confidence rather than of engineering?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -926,7 +926,7 @@ One place every route inherits, rather than a line copied into each handler.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Where would you put it so the next route gets it too?
+> There are forty other routes like this one. What do you do?
 
 > **The drafter is unsure about:** This is the bug I would most expect to find in a real codebase here, and the prompt supplies the whole scenario so it needs no employer. The 404-versus-403 point is level 4 of criterion 3 rather than an expectation, because it is a genuine trade-off and reasonable people write it the other way. What I would like a reviewer to weigh is whether "put it in the query" should really outrank "fetch, then compare and throw" — they are equally correct, and I ranked the query version higher on the grounds that it cannot be forgotten halfway. Is that defensible?
 
@@ -984,7 +984,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 The two have to land in a window measured in milliseconds, which traffic makes likelier.
 
-- **0 (absent):** Does not address it, or treats the rarity as evidence against a race.
+- **0 (absent):** Treats the rarity as a reason not to explain it — too seldom to be worth chasing, or evidence against a race at all.
 - **1 (weak):** Explains the rarity with something else — the cache expiring, a particular customer, a specific product.
 - **2 (partial):** Says "it depends on timing" with nothing more.
 - **3 (solid):** Says the overlap has to fall between the read and the write, which is a very short window, and peak traffic supplies more attempts at it.
@@ -1077,7 +1077,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Say it is still answering slowly ten minutes later — what should your service be doing by then?
 
-> **The drafter is unsure about:** Written so it can be answered without the words "circuit breaker" or "bulkhead": the rubric scores stopping calling for a while, by any name, and names the pattern only in a level-4 descriptor. The clause I am least sure of is "what would you have had in place" — it is phrased in the past because asking "what would you do now" pulls candidates into incident response, which is a different question. Does the past tense read as a trap to a nervous candidate?
+> **The drafter is unsure about:** Written so it can be answered without the words "circuit breaker" or "bulkhead": the rubric scores stopping calling for a while, by any name, and names the pattern only in a level-4 descriptor. The part I am least sure of is what they would have had in place, which is now the second probe — it is phrased in the past because asking "what would you do now" pulls candidates into incident response, which is a different question. Does the past tense read as a trap to a nervous candidate?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1093,7 +1093,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Your sign-in sends a one-time code by SMS, and the provider is returning errors for everybody. You cannot tell whether any particular code was sent or not. What do you tell the person waiting for their code?
+> Your sign-in sends a one-time code by SMS, and the provider is returning errors for everybody. You cannot tell whether any particular code was sent or not. What does that person see on screen? Give me the words.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1130,13 +1130,13 @@ Ours, not theirs — so the person does not conclude they mistyped their own num
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Would they walk away from that thinking they had done something wrong?
+> They have typed their number, tapped the button and got that — what do they think just happened?
 
 **Gives them something to do — 30%**
 
 A next step, or another way in — not a dead end with an apology attached.
 
-- **0 (absent):** No next step; the message ends there.
+- **0 (absent):** Treats the message as the whole of it — there is nothing to offer anyone while the provider is down.
 - **1 (weak):** "Try again later" with no sense of when, or a retry button that hits the same provider immediately.
 - **2 (partial):** A next step that only works if the provider recovers, with nothing else offered.
 - **3 (solid):** Says roughly when to try again, and offers another route in where one exists — email, or an existing session.
@@ -1209,7 +1209,7 @@ Run the failing test alone; run the suite in a different order.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> How would you confirm that before changing anything?
+> How would you know you were right?
 
 **Makes the suite independent again — 40%**
 
@@ -1241,7 +1241,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Every test of your payment code passes, and a live payment has been failing for two days. The tests stand in for the provider with a fake that returns a successful response. What did those passing tests actually prove?
+> Every test of your payment code passes, and a live payment has been failing for two days. The tests stand in for the provider with a fake that returns a successful response. What did those passing tests prove?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1292,7 +1292,7 @@ Something has to touch the real provider, or watch the real failure rate.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> What would have caught this that is not a test?
+> Two days went by before anyone knew — what would have shortened that?
 
 > **The drafter is unsure about:** The point of this question is that the honest answer is "no test would have caught this", and the rubric is built so a candidate who says so scores well rather than appearing to give up — criterion 3 is about what you put in place _instead of_ a test. That is an unusual shape — does it read as a trick? And it assumes the candidate has integrated a third-party API at all: common enough here in agency work, and the prompt supplies the situation, but is that assumption safe for a self-taught candidate who has only read about it?
 
@@ -1361,7 +1361,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 The phone number, the account number, the token and the amount in plain text — an id stands in for the person.
 
-- **0 (absent):** Not addressed, or would log the whole request body.
+- **0 (absent):** Would log the whole request body, on the grounds that more is safer when you are debugging.
 - **1 (weak):** Names the wrong boundary — would keep passwords out and everything else in, or believes a private log is a safe place for it.
 - **2 (partial):** Says "no sensitive data" with no example of what that is here.
 - **3 (solid):** Names what to leave out — the phone number, the account number, the token — and logs an id that can be looked up instead.
@@ -1369,9 +1369,9 @@ The phone number, the account number, the token and the amount in plain text —
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Is there anything you would deliberately keep out of it?
+> Who reads those lines besides you?
 
-> **The drafter is unsure about:** The last clause is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so the prompt asks for it directly rather than charging for it silently. It carries 25%. Two things to check: is asking a junior what they would keep _out_ of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
+> **The drafter is unsure about:** The third criterion is the one that matters most to us (CLAUDE.md §5: never log transcripts, CVs, emails or phone numbers) and it is the one a candidate is least likely to volunteer, so it is asked outright — by a probe since 2026-09-25 — rather than charged for silently. It carries 25%. Two things to check: is asking a junior what they would keep _out_ of a log fair, and is the Nigerian framing right — I have made the phone number the thing most worth keeping out, because it is the account identifier for much of this market — is that the right emphasis?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1438,7 +1438,7 @@ An alert nobody receives, or nobody can act on, is not an alert. Scored on there
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> And once it fires — what has to be true for anything to actually happen?
+> Who gets that, and what do they do next?
 
 > **The drafter is unsure about:** This is the question in the bank most likely to be unfair to a self-taught candidate, because "what would have to be true for anyone to act on it" describes a team. I have written the rubric so that an answer about one person — themselves — being paged and knowing what to do scores the same as an answer about a rota, and criterion 3's level 0 is reserved for treating an alert as done once it is configured. Does that actually hold? It is the difference between scoring judgement and scoring employment.
 
@@ -1485,7 +1485,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 Told it is being prepared, told when it is ready, and given the file without it coming back through the API.
 
-- **0 (absent):** Not addressed; the user presses the button and waits.
+- **0 (absent):** The user presses the button and waits — forty seconds of nothing is treated as acceptable, because the file does arrive in the end.
 - **1 (weak):** Describes an experience that does not follow from the design — the file downloading when ready with no mechanism, or an email as the only route with no page state.
 - **2 (partial):** Says they would "show a status" without saying how the page learns it.
 - **3 (solid):** Describes both ends — a page or a notification that reflects progress, and somewhere the finished file can be served from without rebuilding it, such as object storage.
@@ -1499,7 +1499,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 The queue absorbs the burst; what is sized is the workers, not the endpoint.
 
-- **0 (absent):** Not addressed, or "add more servers".
+- **0 (absent):** Says to add more servers, with nothing about which part of it a hundred exports actually load.
 - **1 (weak):** Scales the part that was never the constraint — more web processes, a bigger machine, a raised rate limit — as the answer to a hundred exports.
 - **2 (partial):** Says the queue "handles it" without saying what actually has to be decided.
 - **3 (solid):** Says the queue buffers and the number of workers sets the throughput, so the queue grows and nothing falls over.
@@ -1507,9 +1507,9 @@ The queue absorbs the burst; what is sized is the workers, not the endpoint.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> What holds up when a hundred people press it at once?
+> A hundred people press it in the same minute — where does that pile up?
 
-> **The drafter is unsure about:** Mid only. This is as close to a system-design round as the engine can get without a drawing surface, and it is written as one user-visible feature rather than "design a system" for that reason. The clause about a hundred people at once is what stops it being answered purely as a queue tutorial. My worry is length: there are three clauses and each has a lot in it, so a candidate may answer the first well and run out of time. Should this be two questions?
+> **The drafter is unsure about:** Mid only. This is as close to a system-design round as the engine can get without a drawing surface, and it is written as one user-visible feature rather than "design a system" for that reason. The hundred people at once — now the second probe — is what stops it being answered purely as a queue tutorial. My worry used to be length, and the 2026-09-25 retrofit answered it: the opening asks one thing and the rest arrives only if the answer has not covered it. Are the three parts still one question, or two?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1525,7 +1525,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Everything runs on one machine — the API, the database, the uploaded files — and traffic has tripled since a radio advert. You are going to add a second machine behind a load balancer. Tell me what breaks the moment you do that.
+> Everything runs on one machine — the API, the database, the uploaded files — and traffic has tripled since a radio advert. You are thinking of adding a second machine behind a load balancer. Tell me what breaks the moment you do that.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1562,7 +1562,7 @@ Measure before moving anything; the second machine may not be what is needed.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Before you move anything, what would you want to know?
+> What do you know right now about where the time is going?
 
 **Does it in an order that works — 30%**
 
@@ -1630,7 +1630,7 @@ Wednesday, not Friday, and to whoever depends on the date. Scored on what the no
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> When does that go, and who to?
+> Friday is when everyone would have found out anyway — what does telling them on Wednesday buy them?
 
 **A time they did it, or did not — 30%**
 
@@ -1644,9 +1644,9 @@ One occasion — a job, a client, a school project, an issue they said they woul
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Has there been a time you had to do that for real — or a time you did not?
+> Has there been a time you had to do that for real — and if there has not, what would you do?
 
-> **The drafter is unsure about:** The second question the frontend blueprint said belonged in this pass, and the second `written-communication` question for every wave-1 role. The prompt asks for the message first and the story second, deliberately: a candidate who has never had a deadline slip in a job can still answer the first half completely, and the rubric splits 60/40 that way so nobody is capped by not having had the experience. Is 40% still too much to hang on having had it?
+> **The drafter is unsure about:** The second question the frontend blueprint said belonged in this pass, and the second `written-communication` question for every wave-1 role. The message is asked first and the story last, deliberately — the opening asks what they would write, and the story is the final probe: a candidate who has never had a deadline slip in a job can still answer the first half completely, and the rubric splits 70/30 that way so nobody is capped by not having had it. Is 30% still too much to hang on having had it?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -1690,7 +1690,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine. Scored on what told them, never on what there was to tell them.
 
-- **0 (absent):** Not addressed; they changed it and it worked.
+- **0 (absent):** Changed it and it worked, which is the whole account of why it was safe — or nothing was changed, so nothing had to be judged.
 - **1 (weak):** Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
 - **2 (partial):** Names one safeguard without saying what it would have caught.
 - **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
@@ -1777,7 +1777,7 @@ The health check queues behind the same work, so the service is declared dead an
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> And why does that end with the service being restarted?
+> The service also got restarted. Why?
 
 **Moves the work off the thread — 35%**
 
@@ -1851,7 +1851,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 An unhandled rejection is treated as an uncaught exception, and the default is to end the process.
 
-- **0 (absent):** Does not address why the service went down.
+- **0 (absent):** Says the restart was the platform's doing, or a deploy's, and unrelated to the error.
 - **1 (weak):** Attributes it elsewhere — a memory leak, connections not being released, the database client crashing, a deadlock.
 - **2 (partial):** Says the rejection is "unhandled" without saying what the runtime then does about it.
 - **3 (solid):** Says nothing is attached to catch it, so it surfaces as an uncaught exception and the process ends.
@@ -2046,7 +2046,7 @@ What must succeed or fail together, and what must not be inside it.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> What belongs inside that transaction, and what does not?
+> Say you move the annotation up to `placeOrder`, so the whole request is one transaction — happy with that?
 
 > **The drafter is unsure about:** **Version-sensitive: Spring's proxy-based `@Transactional`, checked against docs.spring.io on 2026-09-22 (Spring Framework 7.0).** Self-invocation bypassing the proxy still holds — "only external method calls coming in through the proxy are intercepted". **A correction for graders:** the documentation ranks three fixes, and self-injection is one it documents as an alternative, not one it warns against; only `AopContext.currentProxy()` is "highly discouraged", and the `@Transactional` page itself points at AspectJ mode. A candidate who reaches for a self reference is not wrong, and the rubric credits it. This is the single most common Spring bug in code I would expect to see here, and it is unfair to ask any other variant, which is why it is tagged. Is a mid candidate in this market likely to have met it, or does it belong at a level we do not offer?
 
@@ -2064,7 +2064,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This is what a mobile client receives when it posts a sign-up with a bad email address, from a service that has switched on Spring Boot's message and stack-trace settings. What can the client actually do with this?
+> This is what a mobile client receives when it posts a sign-up with a bad email address, from a service that has switched on Spring Boot's message and stack-trace settings. What can the client do with this?
 
 **Setup the candidate is given**
 
@@ -2114,7 +2114,7 @@ A stack trace naming internal classes and the framework is information a client 
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Is there anything in there you would rather it did not have?
+> What is each of those fields for?
 
 **Says what to send instead — 45%**
 
@@ -2146,7 +2146,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> This endpoint is declared async, and under any real load the whole service slows down — including endpoints that do nothing at all. Explain what the `async` is and is not buying here.
+> This endpoint is declared async, and under any real load the whole service slows down — including endpoints that do nothing at all. Explain what the `async` there is and is not doing for you.
 
 **Setup the candidate is given**
 
@@ -2206,7 +2206,7 @@ A plain `def` endpoint is run in a threadpool; the `async def` is what put it on
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> If that line had been written without the `async`, what would the framework have done with it?
+> What would the framework do with this endpoint if it were a plain `def`?
 
 > **The drafter is unsure about:** **Version-sensitive: FastAPI's handling of `def` versus `async def` endpoints, checked against fastapi.tiangolo.com on 2026-09-22.** A plain `def` path operation is still run in a threadpool, which is what makes the last answer key point true and is the part most candidates have not internalised. The snippet is FastAPI-shaped; a Django candidate on this variant would still recognise the mistake, but is `python-backend` covering both Django and FastAPI in one variant stretching it? That is a `roles.yaml` question as much as a question-bank one.
 
@@ -2371,7 +2371,7 @@ A pattern used once is used everywhere; the next step is finding the rest.
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> What else would you go and look at afterwards?
+> You have fixed the sign-up form. Are you done?
 
 > **The drafter is unsure about:** **Version-sensitive: Eloquent mass assignment, checked against laravel.com on 2026-09-22 (Laravel 13). The behaviour holds and the documented syntax has moved:** Laravel 13 documents PHP attributes — `#[Fillable([...])]`, `#[Guarded]`, `#[Unguarded]` — and no longer shows the `$fillable`/`$guarded` properties, though the upgrade guide lists no breaking change, so they still work. The snippet is deliberately left in the property form, which is what an existing codebase looks like; a candidate who answers in the attribute form is right and is credited equally. Laravel is very widely used in agency and product work here and the blueprint warned this is the variant a JavaScript drafter neglects, so this is the most important of the two. Kept at intern-junior because the mechanism — the request is not the form — is the single most valuable thing a junior PHP developer can be told. Is `$guarded = []` a fair thing to put in front of them, or is it too obviously wrong to discriminate?
 
@@ -2458,7 +2458,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do first?
+> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do before you write to them?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 

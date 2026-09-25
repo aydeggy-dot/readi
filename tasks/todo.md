@@ -1696,7 +1696,45 @@ full-stack page's asks, `7ea284f` the silent level 0s and the check, and the swe
 
 ### Next
 
-- [ ] **Backend (68 probes)**, opening with the mis-aim check: per question, name the criterion the
-      opening asks and check it is the one without a probe. The eight silent level 0s in
-      `backend/rubrics.yaml` become errors in that pass and are part of it.
-- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry.
+- [x] **Backend — done 2026-09-25**, `docs/progress/2026-09-25-backend-probes.md`. **34 prompts cut
+      to one clause, 70 probes**, four critique passes on the reshape (44 findings, 34 applied).
+      The mis-aim check ran first and changed **eight** openings a mechanical cut would have got
+      wrong. The eight silent level 0s became errors the moment their criteria were probed, exactly
+      as the check predicted, and were cleared as part of the pass.
+- [ ] Full-stack — still held; a tagging pass that inherits whatever the other banks carry, and
+      which is to consider whether one or two testing-mindset questions should cross over from QA.
+
+## The backend retrofit (2026-09-25, branch `content/catalogue-banks`)
+
+Handover: `docs/progress/2026-09-25-backend-probes.md`; detail in `blueprints/backend.md` Appendix D.
+Commits: `6207ee5` the mechanical retrofit, `90d93f4` the stale notes, and the critique passes.
+
+### What generalises, and is now in `SKILL.md`
+
+**A probe that names what its criterion scores is worse than the clause it replaced, not merely as
+bad.** A clause was asked of everyone; a probe is asked only of the candidate whose answer missed
+that criterion — so a leading probe converts a miss into a gift, to precisely the candidate who had
+not earned it. Eleven of seventy probes needed rewriting on this in one pass.
+
+**And the silent-level-0 check was matching half the defect.** It matched whole strings, so "Not
+addressed — the answer is entirely about the code" escaped it on 35% and 25% criteria. It now also
+errors when a level 0 merely _opens_ with a non-answer and the criterion is probed: that found nine
+more across all four rubric files, one of them in `rubrics.shared.yaml`. Twenty-two level 0s
+rewritten over the two days.
+
+### Open for the owner
+
+1. **The diagnosis-first drift, and it is bank-wide.** All 18 snippet questions open on "what is
+   happening" and none on a decision; the guaranteed-asked share of the score averages 36.8%, and in
+   nine questions the heaviest criterion is behind a probe. The remote-manager pass wants them
+   inverted. Not done, because its own case rests on volunteering and being prompted scoring the
+   same — already an open M4 item from the QA pilot — and because it is equally true of frontend and
+   QA, so it is one decision about all three banks.
+2. **A one-clause opening does not tell the candidate how much to say.** Fixed where an opening had
+   become a riddle; `incident-you-contributed-to` regained "Take me through it". Whether every
+   diagnosis opening should carry a depth cue is a house-style decision.
+3. **Fourteen probes are some form of "What would you change?"** The senior pass declined to call it
+   a defect and flagged it anyway.
+4. **`the-ticket-nobody-can-explain`** — three passes said narrow the opening onto criterion 1, which
+   was done; the manager argued for opening with "write me the message" so the one remote-predictive
+   artefact in the bank is guaranteed rather than conditional.

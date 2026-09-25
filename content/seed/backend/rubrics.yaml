@@ -119,7 +119,7 @@ rubrics:
         description: Equality on two approximations asks whether two errors happen to match, which is not the question being asked.
         weight: 30
         levels:
-          "0": Does not address the comparison, or would print more decimal places to find out.
+          "0": Would print more decimal places to find out, or treats the check itself as sound and the data as the only problem.
           "1": Blames the comparison on something else — the ORM's type, a rounding done on display, the sum needing to be rounded before the check.
           "2": Says to compare within a tolerance, and treats that as the fix rather than as a patch over the wrong type.
           "3": Says two approximations are being tested for exact equality, so the check asks whether two errors coincide — which nothing guarantees.
@@ -159,7 +159,7 @@ rubrics:
         description: The accounts in that state exist now, and a code fix does not move them.
         weight: 35
         levels:
-          "0": Not addressed — the answer is entirely about the code.
+          "0": Treats the wrong rows as somebody else's to notice — finance will raise them, or the next transfer will put it right.
           "1": Assumes the fix covers it, or that there cannot be many.
           "2": Recognises the existing rows are still wrong, with no way of finding which they are.
           "3": Says how they would find them — the debits with no matching credit — and that they are corrected deliberately, not by rerunning the transfer.
@@ -212,7 +212,7 @@ rubrics:
         description: A lifetime, or being dropped when the underlying data is written — decided, not assumed.
         weight: 35
         levels:
-          "0": No expiry or invalidation considered.
+          "0": Says a cache does not need one — the data will be fresh again the next time somebody loads the page.
           "1": One lifetime for everything, or invalidation described as something the cache does by itself.
           "2": Names expiry and invalidation without saying which suits which of the three.
           "3": Picks a lifetime for the ones where staleness is tolerable and dropping-on-write for the ones where it is not, and says why each way round.
@@ -283,7 +283,7 @@ rubrics:
         description: A vendor has been paid twice; a code change does not undo that.
         weight: 25
         levels:
-          "0": Not addressed — the answer is entirely about the code.
+          "0": Says the double payment is somebody else's to sort out — finance will see it, or the provider reverses it on its own.
           "1": Absorbs it silently — deducted from the next payout without telling anyone, or assumed the vendor will notice and return it.
           "2": Says someone should be told, without saying who or what happens to the money — or would net it off the next payout, agreed with the vendor rather than done quietly.
           "3": Says the vendor has to be told before they find out, and the money recovered openly by whoever the right person is, rather than absorbed.
@@ -367,7 +367,7 @@ rubrics:
         description: The two have to land in a window measured in milliseconds, which traffic makes likelier.
         weight: 20
         levels:
-          "0": Does not address it, or treats the rarity as evidence against a race.
+          "0": Treats the rarity as a reason not to explain it — too seldom to be worth chasing, or evidence against a race at all.
           "1": Explains the rarity with something else — the cache expiring, a particular customer, a specific product.
           "2": Says "it depends on timing" with nothing more.
           "3": Says the overlap has to fall between the read and the write, which is a very short window, and peak traffic supplies more attempts at it.
@@ -442,7 +442,7 @@ rubrics:
         description: A next step, or another way in — not a dead end with an apology attached.
         weight: 30
         levels:
-          "0": No next step; the message ends there.
+          "0": Treats the message as the whole of it — there is nothing to offer anyone while the provider is down.
           "1": '"Try again later" with no sense of when, or a retry button that hits the same provider immediately.'
           "2": A next step that only works if the provider recovers, with nothing else offered.
           "3": Says roughly when to try again, and offers another route in where one exists — email, or an existing session.
@@ -535,7 +535,7 @@ rubrics:
         description: The phone number, the account number, the token and the amount in plain text — an id stands in for the person.
         weight: 25
         levels:
-          "0": Not addressed, or would log the whole request body.
+          "0": Would log the whole request body, on the grounds that more is safer when you are debugging.
           "1": Names the wrong boundary — would keep passwords out and everything else in, or believes a private log is a safe place for it.
           "2": Says "no sensitive data" with no example of what that is here.
           "3": Names what to leave out — the phone number, the account number, the token — and logs an id that can be looked up instead.
@@ -591,7 +591,7 @@ rubrics:
         description: Told it is being prepared, told when it is ready, and given the file without it coming back through the API.
         weight: 35
         levels:
-          "0": Not addressed; the user presses the button and waits.
+          "0": The user presses the button and waits — forty seconds of nothing is treated as acceptable, because the file does arrive in the end.
           "1": Describes an experience that does not follow from the design — the file downloading when ready with no mechanism, or an email as the only route with no page state.
           "2": Says they would "show a status" without saying how the page learns it.
           "3": Describes both ends — a page or a notification that reflects progress, and somewhere the finished file can be served from without rebuilding it, such as object storage.
@@ -600,7 +600,7 @@ rubrics:
         description: The queue absorbs the burst; what is sized is the workers, not the endpoint.
         weight: 30
         levels:
-          "0": Not addressed, or "add more servers".
+          "0": Says to add more servers, with nothing about which part of it a hundred exports actually load.
           "1": Scales the part that was never the constraint — more web processes, a bigger machine, a raised rate limit — as the answer to a hundred exports.
           "2": Says the queue "handles it" without saying what actually has to be decided.
           "3": Says the queue buffers and the number of workers sets the throughput, so the queue grows and nothing falls over.
@@ -686,7 +686,7 @@ rubrics:
         description: An unhandled rejection is treated as an uncaught exception, and the default is to end the process.
         weight: 25
         levels:
-          "0": Does not address why the service went down.
+          "0": Says the restart was the platform's doing, or a deploy's, and unrelated to the error.
           "1": Attributes it elsewhere — a memory leak, connections not being released, the database client crashing, a deadlock.
           "2": Says the rejection is "unhandled" without saying what the runtime then does about it.
           "3": Says nothing is attached to catch it, so it surfaces as an uncaught exception and the process ends.

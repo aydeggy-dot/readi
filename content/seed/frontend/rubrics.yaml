@@ -522,7 +522,7 @@ rubrics:
         description: After a successful save, the held copy is refreshed or replaced rather than left to expire.
         weight: 35
         levels:
-          "0": Not addressed — the answer stops at the diagnosis, or proposes a change aimed at a layer that was never holding the value.
+          "0": Stops at the diagnosis, or proposes a change aimed at a layer that was never holding the value.
           "1": Would disable caching everywhere, or reload the whole page after saving.
           "2": Refetches, but leaves the other layers that could hold the old value.
           "3": Updates or invalidates the copy the page holds as part of the save.
@@ -557,7 +557,7 @@ rubrics:
           understanding.
         weight: 25
         levels:
-          "0": Not addressed — the answer says nothing about why a div was used or whether it had to be.
+          "0": Says nothing about why a div was used or whether it had to be — the fix is the whole of the answer.
           "1": Treats the visual design as the reason the element could not be a button — a button could not have been styled this way.
           "2": Says a button can be styled, without addressing why the div was chosen.
           "3": States that the element is chosen for what it means and then styled to match the design — including someone who says they would have had to take that up with whoever owned the design.

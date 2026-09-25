@@ -2197,7 +2197,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 No reference outliving an action, and what a blanket retry hides.
 
-- **0 (absent):** Not addressed; fixes this line.
+- **0 (absent):** Fixes this line and stops — whether the same shape is anywhere else in the suite is not a question they have.
 - **1 (weak):** Standardises the retry — a helper that catches the exception everywhere it occurs — and reports the suite as fixed because the failures stopped.
 - **2 (partial):** Says the same problem exists elsewhere, with no approach to it.
 - **3 (solid):** Re-finds the element at the moment of use everywhere the pattern occurs — a wrapper that keeps the locator and locates on use is the documented way — so no reference outlives an action.
@@ -2706,7 +2706,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Tell me about something you shipped that broke for real users — in production, or in a project of your own.
+> Tell me about something you shipped that broke for real users — in production, or in a project of your own. Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -2756,11 +2756,11 @@ How it was found, how long it ran before anyone knew, and one change that is sti
 
 _Planned follow-ups — asked only if the answer has not already covered this, and the second only if the first did not draw it out:_
 
-> How was it found, and how long had it been going before anyone knew?
-
 > What is still different because of it?
 
-> **The drafter is unsure about:** **Two passes say this needs its own rubric, and they are right.** It is scored with the generic `behavioural-answer-quality`, whose criteria are situation, actions and outcome — so its best `ideal_points` (owning a share of the fault, whether they told anyone early, a change that outlived the incident) have nowhere to be scored, and the question rewards story shape, which is coachable in an afternoon. That is the same defect `rubrics.shared.yaml`'s own header says was fixed for `stuck-and-asked-for-help` and `feedback-on-your-code`. It needs the same treatment: first two criteria in common, third being the gap between knowing and telling. Not done here because it changes a shared rubric's users. The prompt no longer requires production, so a candidate whose only deployment is a personal project can answer. Do you want the new rubric, or is one behavioural question in four already enough?
+> How did anyone find out?
+
+> **The drafter is unsure about:** **This note described a rubric that no longer exists and was corrected on 2026-09-25.** It used to say the question needed its own rubric instead of the generic `behavioural-answer-quality`; it got one — `incident-ownership`, on 2026-09-22 — and the generic rubric was deleted on 2026-09-23. The stress test is what settled it: a polished story about diagnosing _somebody else's_ outage scored 3.70 against the candidate's own break at 3.70, so criterion 1 is now "a break that was theirs". The prompt does not require production, so a candidate whose only deployment is a personal project can answer. What to check now: criterion 3 is the only place "who knew, and how long it ran" is scored, and it carries two probes because it asks two things — is that one criterion or two?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2812,7 +2812,7 @@ Wednesday, not Friday, and to whoever depends on the date. Scored on what the no
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> When does that go, and who to?
+> Friday is when everyone would have found out anyway — what does telling them on Wednesday buy them?
 
 **A time they did it, or did not — 30%**
 
@@ -2826,9 +2826,9 @@ One occasion — a job, a client, a school project, an issue they said they woul
 
 _Planned follow-up — asked only if the answer has not already covered this:_
 
-> Has there been a time you had to do that for real — or a time you did not?
+> Has there been a time you had to do that for real — and if there has not, what would you do?
 
-> **The drafter is unsure about:** The second question the frontend blueprint said belonged in this pass, and the second `written-communication` question for every wave-1 role. The prompt asks for the message first and the story second, deliberately: a candidate who has never had a deadline slip in a job can still answer the first half completely, and the rubric splits 60/40 that way so nobody is capped by not having had the experience. Is 40% still too much to hang on having had it?
+> **The drafter is unsure about:** The second question the frontend blueprint said belonged in this pass, and the second `written-communication` question for every wave-1 role. The message is asked first and the story last, deliberately — the opening asks what they would write, and the story is the final probe: a candidate who has never had a deadline slip in a job can still answer the first half completely, and the rubric splits 70/30 that way so nobody is capped by not having had it. Is 30% still too much to hang on having had it?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2872,7 +2872,7 @@ _Asked for by the opening prompt; no planned follow-up._
 
 Something told them — a test, a small experiment, a person, a way to undo it — rather than a feeling that it would be fine. Scored on what told them, never on what there was to tell them.
 
-- **0 (absent):** Not addressed; they changed it and it worked.
+- **0 (absent):** Changed it and it worked, which is the whole account of why it was safe — or nothing was changed, so nothing had to be judged.
 - **1 (weak):** Offers reassurance rather than evidence — being careful, the change being small, reading it twice, the tests passing without knowing what the tests cover.
 - **2 (partial):** Names one safeguard without saying what it would have caught.
 - **3 (solid):** Says what made them sure and what it covered — a test they checked was actually exercising that path, a way to try it and put it back, someone who knew. A candidate whose only safeguard was being able to put it back reaches 3 by that route.
@@ -2912,7 +2912,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do first?
+> A ticket says "add filtering to the vendors page". There is no design, nothing about which fields, the person who wrote it is offline for the next eight hours, and it is due tomorrow. What do you do before you write to them?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 

@@ -279,8 +279,19 @@ for (const question of questions)
  * are the house style working ("Sees nothing wrong", "Everything odd is a defect", "No fix, or a
  * longer wait") — they name what the wrong answer looks like in one breath. These do not.
  */
-const SILENT_LEVEL_ZERO =
-  /^(not addressed|not specified|not answered|no answer|does not address it|not considered)\.?$/i;
+const SILENT_PHRASE =
+  "(not addressed|not specified|not answered|no answer|not considered|does not address(?: it)?)";
+/** The whole descriptor is a non-answer: a warning anywhere, an error on a probed criterion. */
+const SILENT_LEVEL_ZERO = new RegExp(`^${SILENT_PHRASE}\\.?$`, "i");
+/*
+ * And the same words with a clause bolted on — "Not addressed — the answer is entirely about the
+ * code." The 2026-09-25 sweep fixed eleven whole-string cases and the backend fairness pass then
+ * found that two more had escaped for this reason alone, on 35% and 25% criteria: the trailing
+ * clause stopped the string matching without making the band any more reachable, because the band
+ * still opens by saying the candidate did not answer. Once a probe asks the criterion by name,
+ * "not addressed" is never the right opening words for level 0, whatever follows them.
+ */
+const SILENT_LEVEL_ZERO_OPENING = new RegExp(`^${SILENT_PHRASE}\\b`, "i");
 
 const normalise = (text) =>
   String(text ?? "")
@@ -313,11 +324,14 @@ for (const rubric of rubrics.values()) {
       );
 
     const levelZero = String(criterion.levels?.["0"] ?? "").trim();
-    if (SILENT_LEVEL_ZERO.test(levelZero)) {
-      const probed = probedCriteria.get(rubric.slug)?.has(position) ?? false;
+    const probed = probedCriteria.get(rubric.slug)?.has(position) ?? false;
+    const bare = SILENT_LEVEL_ZERO.test(levelZero);
+    if (bare || (probed && SILENT_LEVEL_ZERO_OPENING.test(levelZero))) {
+      const shown = levelZero.length > 90 ? `${levelZero.slice(0, 87)}…` : levelZero;
       const message =
-        `level 0 is "${levelZero}" and nothing else, which describes silence rather than a wrong ` +
-        `answer — write what a candidate who gets this wrong actually says` +
+        `level 0 ${bare ? `is "${shown}" and nothing else` : `opens "${shown}"`}, which describes ` +
+        "silence rather than a wrong answer — write what a candidate who gets this wrong actually " +
+        "says" +
         (probed
           ? ", and note that a planned follow-up asks this criterion by name, so the situation " +
             '"it never came up" no longer arises'

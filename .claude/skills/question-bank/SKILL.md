@@ -244,6 +244,18 @@ away that the rules interact, which was the whole of a 40% criterion; "your code
 Resend, then you type the first one — what should happen?" walks them to the same place and lets them
 find it.
 
+**And it is worse than the clause it replaced, not merely as bad.** A clause in a triple-barrelled
+prompt was asked of everyone; a probe is asked **only** of the candidate whose answer missed that
+criterion. So a leading probe does not test a miss — it converts a miss into a gift, to precisely the
+candidate who had not earned it. Eleven of the backend bank's seventy probes needed rewriting on this
+in one pass: `mocking-what-you-do-not-own` asked "what would have caught this that is _not a test_",
+which made both of its bottom bands unreachable because they are defined by reaching for another
+test; `cache-key-that-leaked` asked "_before_ you get anywhere near the code", which told the
+candidate that something comes before the fix, and that is the whole judgement. The repair is always
+the same: extend the scenario instead of narrowing the answer — "Two days went by before anyone knew
+— what would have shortened that?", "That fix takes you an hour to write and ship — what happens in
+that hour?" — so the weak answer can still arrive and be scored.
+
 **Never read a scoring constraint out loud.** "…explained without quoting a regulation at them" is an
 instruction to the evaluator that ended up in the candidate's ear, and it told the one candidate whose
 data-protection training is their strongest asset not to use it. Three of the four passes caught that
