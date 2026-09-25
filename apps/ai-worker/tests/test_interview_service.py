@@ -8,13 +8,14 @@ from datetime import datetime
 from typing import Any
 
 import pytest
+from pydantic import BaseModel
 
 from readi_worker.contracts import InterviewAdvanceRequest, InterviewSessionBundle
 from readi_worker.interview.calls import CoverageJudgement, Interviewer, ProbeVerdict, Speech
 from readi_worker.interview.fake_script import FAKE_WRAP_UP, FakeInterviewerLLMClient
 from readi_worker.interview.service import FALLBACK_WRAP_UP, InterviewService
 from readi_worker.interview.state_store import InterviewStateStore
-from readi_worker.llm.base import LLMClient
+from readi_worker.llm.base import LLMClient, LLMResult
 from readi_worker.llm.fake import FakeLLMError, FunctionLLMClient, ScriptedLLMClient, Step
 from tests.conftest import FakeRedis
 from tests.interview_fixtures import SESSION_ID, TWO_ON_ONE, at, bundle, question
@@ -414,3 +415,50 @@ async def test_skipping_and_ending_write_no_candidate_turn(action: str) -> None:
     assert all(turn.speaker == "interviewer" for turn in response.turns)
     assert response.ai_calls != []
     assert all(call.purpose != "coverage" for call in response.ai_calls)
+
+
+async def test_every_interview_call_carries_the_interviewer_deadline() -> None:
+    """A candidate is watching a spinner, so these calls are bounded far tighter than a CV parse.
+
+    `AI_WORKER_TIMEOUT_MS` on the API side is sized from two of these chained, so if this stops
+    being passed the API's own deadline stops meaning what its comment says it means.
+    """
+    deadlines: list[float | None] = []
+
+    class Timed:
+        provider = "fake"
+
+        def __init__(self) -> None:
+            self._inner = FakeInterviewerLLMClient(
+                FunctionLLMClient(lambda _s, _u: Speech(speech="x"))
+            )
+
+        async def parse[T: BaseModel](
+            self,
+            *,
+            model: str,
+            system: str,
+            user: str,
+            output_type: type[T],
+            max_tokens: int,
+            timeout_s: float | None = None,
+        ) -> LLMResult[T]:
+            deadlines.append(timeout_s)
+            return await self._inner.parse(
+                model=model,
+                system=system,
+                user=user,
+                output_type=output_type,
+                max_tokens=max_tokens,
+                timeout_s=timeout_s,
+            )
+
+    redis = FakeRedis()
+    service = InterviewService(Interviewer(Timed(), "fake", 12.5), InterviewStateStore(redis, 60))
+    deck = bundle(questions=[question(0)], question_budget=1)
+    opening = await service.advance(request("start", now=at(0), deck=deck))
+    await service.advance(
+        request("answer", now=at(1), text="Something.", snapshot=opening.engine_snapshot)
+    )
+    assert deadlines, "the engine did call a model"
+    assert set(deadlines) == {12.5}, "phrasing and coverage alike"

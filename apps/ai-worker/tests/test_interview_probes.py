@@ -105,3 +105,24 @@ def test_the_log_has_one_entry_per_criterion_whatever_the_probes_do() -> None:
                 q(criteria=criteria, probes=probes), judged=(), answered=(), chosen=None
             )
             assert [entry.criterion for entry in log] == list(range(criteria))
+
+
+def test_no_per_criterion_view_ever_loses_a_probe() -> None:
+    """The general form of the `review-doc.ts` bug, on the shape that caused it.
+
+    A criterion may carry two probes. Anything that builds a per-criterion view by *keying* on the
+    criterion keeps only the last of them, and the loss is silent: the interview still runs, it just
+    never asks one of the things the question was written to ask. So both halves are asserted —
+    every probe is reachable by selection, and the log accounts for every probe rather than for one
+    per criterion.
+    """
+    question = q(probes=TWO_ON_ONE)
+    asked: list[int] = []
+    while (chosen := choose_probe(question, asked, (), max_follow_ups=len(TWO_ON_ONE))) is not None:
+        asked.append(chosen)
+    assert sorted(asked) == list(range(len(TWO_ON_ONE))), "every probe is reachable"
+
+    log = coverage_log(question, judged=range(len(TWO_ON_ONE)), answered=(), chosen=None)
+    probed = [entry.criterion for entry in log if entry.has_probe]
+    assert probed == [1, 2], "two criteria are probed, by three probes between them"
+    assert len(log) == question.criterion_count, "one entry per criterion, never per probe"

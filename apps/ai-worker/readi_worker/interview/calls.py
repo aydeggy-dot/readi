@@ -43,6 +43,11 @@ SPEECH_MAX_LENGTH = 1_200
 MAX_SPEECH_TOKENS = 800
 MAX_COVERAGE_TOKENS = 1_500
 
+#: A candidate is watching a spinner while this runs, so it is far shorter than `LLM_TIMEOUT_S`
+#: (which is right for a CV parsed in a background job). Two of these chained is the worst case an
+#: exchange puts in front of them, and `AI_WORKER_TIMEOUT_MS` is sized from it.
+DEFAULT_TIMEOUT_S = 45.0
+
 Purpose = Literal["interviewer", "coverage", "follow_up"]
 
 
@@ -84,9 +89,10 @@ class Spoken:
 class Interviewer:
     """Every model call the engine makes, with its retries, its records and its fallbacks."""
 
-    def __init__(self, llm: LLMClient, model: str) -> None:
+    def __init__(self, llm: LLMClient, model: str, timeout_s: float = DEFAULT_TIMEOUT_S) -> None:
         self._llm = llm
         self._model = model
+        self._timeout_s = timeout_s
 
     @property
     def model_config_record(self) -> dict[str, str]:
@@ -106,6 +112,7 @@ class Interviewer:
                     user=user,
                     output_type=Speech,
                     max_tokens=MAX_SPEECH_TOKENS,
+                    timeout_s=self._timeout_s,
                 )
             except LLMError as exc:
                 calls.append(_error_record(purpose, exc))
@@ -142,6 +149,7 @@ class Interviewer:
                     user=user,
                     output_type=CoverageJudgement,
                     max_tokens=MAX_COVERAGE_TOKENS,
+                    timeout_s=self._timeout_s,
                 )
             except LLMError as exc:
                 calls.append(_error_record("coverage", exc))

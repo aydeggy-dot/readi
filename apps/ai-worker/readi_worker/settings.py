@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     #: candidate is waiting for it; the stronger evaluator model is a different call (M4).
     llm_model_interviewer: str = Field(default="claude-sonnet-5", min_length=1)
     llm_timeout_s: float = Field(default=90.0, gt=0, le=600)
+    #: Per interview call, and deliberately much shorter than `llm_timeout_s`: a CV is parsed in a
+    #: background job, an interview turn has a candidate waiting for it. Two of these chained is the
+    #: worst case one exchange puts in front of them, which is what `AI_WORKER_TIMEOUT_MS` is sized
+    #: from on the API side.
+    interview_llm_timeout_s: float = Field(default=45.0, gt=0, le=600)
 
     # The interview engine (M3). Redis caches the session bundle and the live engine state so the
     # API need not resend the pinned questions on every turn; the snapshot the API sends is always

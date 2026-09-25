@@ -145,7 +145,7 @@ def create_app(
     app.include_router(
         build_interview_router(
             InterviewService(
-                Interviewer(llm, interviewer_model),
+                Interviewer(llm, interviewer_model, settings.interview_llm_timeout_s),
                 InterviewStateStore(redis, settings.interview_state_ttl_s),
             ),
             service_token,

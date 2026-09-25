@@ -45,6 +45,13 @@ class LLMClient(Protocol):
         user: str,
         output_type: type[T],
         max_tokens: int,
+        timeout_s: float | None = None,
     ) -> LLMResult[T]:
-        """Ask for structured output validated as `output_type`."""
+        """Ask for structured output validated as `output_type`.
+
+        `timeout_s` overrides the client's own timeout for this call. It exists because the two
+        kinds of call have nothing in common in how long they may take: a CV is parsed in a
+        background job and 90 s is fine, while an interview turn has a candidate watching a spinner
+        and a minute and a half of that is a broken product, not a slow one.
+        """
         ...
