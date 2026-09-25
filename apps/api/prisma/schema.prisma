@@ -257,6 +257,11 @@ model UserTombstone {
 
 enum AiCallPurpose {
   interviewer
+  /// The judgement that decides whether a probe is still worth asking (M3, the interview engine).
+  /// Its own purpose rather than `follow_up`, so "what the follow-up machinery costs" and "what we
+  /// spent phrasing one" stay separable in `ai_call_log` — they are different calls with different
+  /// shapes and one of them is the one the latency savings skip.
+  coverage
   follow_up
   evaluator
   cv_parse

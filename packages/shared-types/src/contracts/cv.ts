@@ -110,6 +110,8 @@ export type CvResponse = z.infer<typeof CvResponse>;
 export const AiCallPurpose = z
   .enum([
     "interviewer",
+    /** The judgement that decides whether a probe is still worth asking (M3, the engine). */
+    "coverage",
     "follow_up",
     "evaluator",
     "cv_parse",

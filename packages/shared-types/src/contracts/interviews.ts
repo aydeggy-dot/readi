@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   CONTENT_LIMITS,
+  ENGINE_SNAPSHOT_VERSION,
   INTERVIEW_LENGTHS,
   INTERVIEW_LIMITS,
   INTERVIEW_MODES,
@@ -12,6 +13,7 @@ import {
   TURN_SPEAKERS,
 } from "../constants.js";
 import { PlannedFollowUp, QuestionType, Topic } from "./content.js";
+import { AiCallRecord } from "./cv.js";
 import { Slug, distinctSlugs } from "./slug.js";
 
 /**
@@ -330,19 +332,21 @@ export type InterviewCandidateContext = z.infer<typeof InterviewCandidateContext
  * The session bundle: what the API sends the worker at session start, and again after a Redis miss
  * (ADR-0004). Registered, so the worker's Pydantic models are generated from it.
  */
-export const InterviewSessionBundle = z.object({
-  session_id: z.uuid(),
-  mode: InterviewMode,
-  persona: InterviewPersona,
-  is_diagnostic: z.boolean(),
-  planned_minutes: InterviewLength,
-  /** The wall-clock deadline; the engine's time budget is checked against it, not against a tick. */
-  ends_at: z.iso.datetime(),
-  question_budget: z.int().min(1),
-  max_follow_ups: z.int().min(0).max(MAX_FOLLOW_UPS),
-  candidate: InterviewCandidateContext,
-  questions: z.array(BundleQuestion),
-});
+export const InterviewSessionBundle = z
+  .object({
+    session_id: z.uuid(),
+    mode: InterviewMode,
+    persona: InterviewPersona,
+    is_diagnostic: z.boolean(),
+    planned_minutes: InterviewLength,
+    /** The wall-clock deadline; the engine's time budget is checked against it, not against a tick. */
+    ends_at: z.iso.datetime(),
+    question_budget: z.int().min(1),
+    max_follow_ups: z.int().min(0).max(MAX_FOLLOW_UPS),
+    candidate: InterviewCandidateContext,
+    questions: z.array(BundleQuestion),
+  })
+  .meta({ id: "InterviewSessionBundle" });
 export type InterviewSessionBundle = z.infer<typeof InterviewSessionBundle>;
 
 /**
@@ -385,3 +389,162 @@ export const CriterionCoverage = z
   })
   .meta({ id: "CriterionCoverage" });
 export type CriterionCoverage = z.infer<typeof CriterionCoverage>;
+
+// -----------------------------------------------------------------------------------------------
+// API ↔ worker: one exchange. `POST /interview/advance`.
+//
+// In text mode every worker call is initiated by the API, so a whole exchange — what the candidate
+// said, what the interviewer said back, where the engine now stands and what the model calls cost —
+// rides one request and one response (the plan's "events ride the response"). M5 adds a push
+// channel for the LiveKit agent, which drives turns itself.
+
+/**
+ * A candidate's words on the wire.
+ *
+ * Named rather than inline because a *nullable* constrained string generates as a Pydantic
+ * RootModel, and an unnamed one is called `Text` — which is what `EmbedRequest.texts` is already
+ * called. Two unrelated domains would then share one generated class for as long as their limits
+ * happened to match, and diverge into `Text` and `Text1` the day one of them changed.
+ */
+export const CandidateText = text(INTERVIEW_LIMITS.answerMaxLength).meta({ id: "CandidateText" });
+export type CandidateText = z.infer<typeof CandidateText>;
+
+/** What the candidate just did. `skip` passes on the current question, or on asking one of theirs. */
+export const InterviewAction = z
+  .enum(["start", "answer", "skip", "end"])
+  .meta({ id: "InterviewAction" });
+export type InterviewAction = z.infer<typeof InterviewAction>;
+
+/**
+ * Why the session stopped. `abandoned` is not here: that is a lifecycle the sweep decides about a
+ * session nobody came back to, not something the engine ever saw happen.
+ */
+export const InterviewEndReason = z
+  .enum(["questions_done", "out_of_time", "candidate_ended"])
+  .meta({ id: "InterviewEndReason" });
+export type InterviewEndReason = z.infer<typeof InterviewEndReason>;
+
+/**
+ * Where one question stands. Both lists index `planned_follow_ups`; **neither indexes criteria**.
+ *
+ * A criterion may carry two probes, and the two are separable things ("how would you test it" and
+ * "what would you do when it fails"). Tracking coverage per criterion loses which half an answer
+ * reached, so the engine would either re-ask something already answered or drop the half that was
+ * not — and keying anything by criterion drops the second probe outright, which `review-doc.ts`
+ * really did (M3 planning item 9). Per criterion is how the **log** reads, because that is what a
+ * rubric is; per probe is how the engine decides, because that is what it asks.
+ */
+export const EngineQuestionProgress = z
+  .object({
+    position: z.int().min(0),
+    asked: z.boolean(),
+    /** Probes already put to the candidate. Its length is the follow-up count for this question. */
+    probes_asked: z.array(z.int().min(0)).max(CONTENT_LIMITS.plannedFollowUps),
+    /** Probes an answer has already covered unprompted, so nothing asks them again. */
+    probes_covered: z.array(z.int().min(0)).max(CONTENT_LIMITS.plannedFollowUps),
+  })
+  .meta({ id: "EngineQuestionProgress" });
+export type EngineQuestionProgress = z.infer<typeof EngineQuestionProgress>;
+
+/**
+ * The engine's own state, small enough to store on the session row.
+ *
+ * Redis holds the live copy with a TTL; this comes back on every response so that a Redis flush
+ * costs a round trip rather than a session (the plan's Architecture section). The API stores it and
+ * never reads inside it — which is why it carries `version`: it is the one contract here whose two
+ * ends can be different deployments of the worker, and a snapshot the running engine does not
+ * recognise is discarded in favour of starting from the bundle.
+ */
+export const InterviewEngineSnapshot = z
+  .object({
+    version: z.literal(ENGINE_SNAPSHOT_VERSION),
+    state: InterviewState,
+    /** Index into the bundle's questions, or null before the first and after the last. */
+    current_question: z.int().min(0).nullable(),
+    /** The seq the next turn will take. Turn numbering is the engine's, so retries are idempotent. */
+    next_seq: z.int().min(0),
+    questions_asked: z.int().min(0),
+    progress: z.array(EngineQuestionProgress),
+    end_reason: InterviewEndReason.nullable(),
+  })
+  .meta({ id: "InterviewEngineSnapshot" });
+export type InterviewEngineSnapshot = z.infer<typeof InterviewEngineSnapshot>;
+
+/**
+ * One line of the transcript as the worker emits it — the API persists it by `(session_id, seq)`
+ * and narrows it to `CandidateTurn` on the way to the browser.
+ *
+ * The candidate's own words come back here too, rather than being written by the API from the
+ * request: the engine owns turn numbering, so a transcript is whatever the engine said happened and
+ * a retried response cannot interleave.
+ */
+export const InterviewTurn = z
+  .object({
+    seq: z.int().min(0),
+    speaker: TurnSpeaker,
+    state: InterviewState,
+    question_position: z.int().min(0).nullable(),
+    /** Which planned probe was asked, on the interviewer turn that asked it. */
+    follow_up_index: z.int().min(0).nullable(),
+    text: text(INTERVIEW_LIMITS.answerMaxLength),
+    /** One entry per rubric criterion, on candidate turns during a question. Never a score. */
+    criteria_covered: z.array(CriterionCoverage).max(CONTENT_LIMITS.rubricCriteria.max).nullable(),
+  })
+  .meta({ id: "InterviewTurn" });
+export type InterviewTurn = z.infer<typeof InterviewTurn>;
+
+/**
+ * `POST /interview/advance` (API → worker).
+ *
+ * **The snapshot in the request is the authority.** The worker keeps the live engine state in Redis
+ * with a TTL, but what the API has stored is what has actually been persisted — so if a response
+ * reached the worker's Redis and then failed to reach the database, replaying the exchange is
+ * exactly right and skipping ahead would leave a hole in the transcript. Redis is what saves the
+ * API from resending the `bundle` every call; when it has lost it, the worker answers
+ * `bundle_required` and the API sends it again. That error is the Redis-miss signal the API cannot
+ * otherwise see.
+ *
+ * `now` comes from the API rather than the worker's clock, which makes an exchange a pure function
+ * of its request: the same request replays to the same turns, and a session's deadline is judged
+ * against one clock instead of two.
+ */
+export const InterviewAdvanceRequest = z.object({
+  session_id: z.uuid(),
+  action: InterviewAction,
+  /** The candidate's words, for `answer`; null for every other action. */
+  text: CandidateText.nullable(),
+  now: z.iso.datetime(),
+  bundle: InterviewSessionBundle.nullable(),
+  engine_snapshot: InterviewEngineSnapshot.nullable(),
+});
+export type InterviewAdvanceRequest = z.infer<typeof InterviewAdvanceRequest>;
+
+/**
+ * What one exchange produced. `turns` is what to persist and stream, `engine_snapshot` is what to
+ * store, `ai_calls` is what to bill and trace (ADR-0007), and `prompt_versions` is what to merge
+ * into `interview_sessions.prompt_versions` so that a session records which released prompt spoke.
+ */
+export const InterviewAdvanceResponse = z.object({
+  session_id: z.uuid(),
+  state: InterviewState,
+  ended: z.boolean(),
+  end_reason: InterviewEndReason.nullable(),
+  turns: z.array(InterviewTurn),
+  /** Null on an error, and only then: nothing moved, so the API keeps the snapshot it has. */
+  engine_snapshot: InterviewEngineSnapshot.nullable(),
+  prompt_versions: z.record(z.string(), z.int().meta({ id: "PromptVersion" })),
+  ai_calls: z.array(AiCallRecord),
+  /**
+   * Set when the exchange produced nothing, in which case `turns` is empty and the snapshot is
+   * unchanged: an exchange is all-or-nothing, so a retry replays it rather than resuming half of
+   * it. A model that will not answer is **not** one of these — the engine falls back to the pinned
+   * wording and the interview carries on plainer, with the failure in `ai_calls`.
+   *
+   * - `bundle_required` — nothing cached and no bundle sent; the API resends with one.
+   * - `bad_request` — the action does not fit the state, or the bundle is for another session.
+   * - `engine_error` — the snapshot does not describe this bundle.
+   * - `llm_error` — the one call with no honest fallback: answering a question the candidate asked.
+   */
+  error: z.enum(["bundle_required", "bad_request", "engine_error", "llm_error"]).nullable(),
+});
+export type InterviewAdvanceResponse = z.infer<typeof InterviewAdvanceResponse>;

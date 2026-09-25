@@ -19,6 +19,24 @@ class Context(RootModel[str]):
     root: str = Field(..., max_length=4000, min_length=1)
 
 
+class CandidateText(RootModel[str]):
+    root: str = Field(..., max_length=8000, min_length=1)
+
+
+class FollowUpIndex(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class CriterionCoverage(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    criterion: int = Field(..., ge=0, le=7)
+    has_probe: bool
+    covered: Literal["covered", "not_covered", "not_judged"]
+    follow_up_index: FollowUpIndex | None
+
+
 class StackLabel(RootModel[str]):
     root: str = Field(..., max_length=140, min_length=1)
 
@@ -72,6 +90,24 @@ class Error(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
 
+class ProbesAskedItem(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class ProbesCoveredItem(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class EngineQuestionProgress(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    position: int = Field(..., ge=0, le=9007199254740991)
+    asked: bool
+    probes_asked: list[ProbesAskedItem] = Field(..., max_length=10)
+    probes_covered: list[ProbesCoveredItem] = Field(..., max_length=10)
+
+
 class WeakTopic(RootModel[str]):
     root: str = Field(..., max_length=140, min_length=1)
 
@@ -84,6 +120,18 @@ class InterviewCandidateContext(BaseModel):
     level_label: str = Field(..., max_length=140, min_length=1)
     stack_label: StackLabel | None
     weak_topics: list[WeakTopic] = Field(..., max_length=10)
+
+
+class CurrentQuestion(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class QuestionPosition(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class CriteriaCovered(RootModel[list[CriterionCoverage]]):
+    root: list[CriterionCoverage] = Field(..., max_length=8)
 
 
 class Skill(RootModel[str]):
@@ -102,6 +150,10 @@ class PlannedFollowUp(BaseModel):
     probe: str = Field(..., max_length=300, min_length=1)
 
 
+class PromptVersion(RootModel[int]):
+    root: int = Field(..., ge=-9007199254740991, le=9007199254740991)
+
+
 class YearMonth(RootModel[str]):
     root: str = Field(..., pattern="^\\d{4}-(0[1-9]|1[0-2])$")
 
@@ -112,6 +164,7 @@ class AiCallRecord(BaseModel):
     )
     purpose: Literal[
         "interviewer",
+        "coverage",
         "follow_up",
         "evaluator",
         "cv_parse",
@@ -188,6 +241,19 @@ class HealthResponse(BaseModel):
     checks: dict[str, HealthCheckResult]
 
 
+class InterviewEngineSnapshot(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    version: Literal[1]
+    state: Literal["intro", "question", "follow_up", "candidate_questions", "wrap_up", "ended"]
+    current_question: CurrentQuestion | None
+    next_seq: int = Field(..., ge=0, le=9007199254740991)
+    questions_asked: int = Field(..., ge=0, le=9007199254740991)
+    progress: list[EngineQuestionProgress]
+    end_reason: Literal["questions_done", "out_of_time", "candidate_ended"] | None
+
+
 class InterviewSessionBundle(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -202,6 +268,19 @@ class InterviewSessionBundle(BaseModel):
     max_follow_ups: int = Field(..., ge=0, le=2)
     candidate: InterviewCandidateContext
     questions: list[BundleQuestion]
+
+
+class InterviewTurn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    seq: int = Field(..., ge=0, le=9007199254740991)
+    speaker: Literal["interviewer", "candidate"]
+    state: Literal["intro", "question", "follow_up", "candidate_questions", "wrap_up", "ended"]
+    question_position: QuestionPosition | None
+    follow_up_index: FollowUpIndex | None
+    text: str = Field(..., max_length=8000, min_length=1)
+    criteria_covered: CriteriaCovered | None
 
 
 class ParsedCv(BaseModel):
@@ -234,3 +313,30 @@ class CvParseResponse(BaseModel):
         | None
     )
     ai_calls: list[AiCallRecord]
+
+
+class InterviewAdvanceRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    session_id: UUID
+    action: Literal["start", "answer", "skip", "end"]
+    text: CandidateText | None
+    now: AwareDatetime
+    bundle: InterviewSessionBundle | None
+    engine_snapshot: InterviewEngineSnapshot | None
+
+
+class InterviewAdvanceResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    session_id: UUID
+    state: Literal["intro", "question", "follow_up", "candidate_questions", "wrap_up", "ended"]
+    ended: bool
+    end_reason: Literal["questions_done", "out_of_time", "candidate_ended"] | None
+    turns: list[InterviewTurn]
+    engine_snapshot: InterviewEngineSnapshot | None
+    prompt_versions: dict[str, PromptVersion]
+    ai_calls: list[AiCallRecord]
+    error: Literal["bundle_required", "bad_request", "engine_error", "llm_error"] | None

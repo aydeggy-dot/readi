@@ -332,6 +332,12 @@ export const INTERVIEW_LIMITS = {
   answerMaxLength: 8_000,
   /** A candidate's own question at the end, and anything else they type outside an answer. */
   utteranceMaxLength: 2_000,
+  /**
+   * One thing the interviewer says. An interviewer asks and then listens, so a turn that runs past
+   * this is the model lecturing, explaining or answering its own question; the engine truncates on
+   * a sentence boundary rather than letting it run (`normalise_speech` in the worker).
+   */
+  speechMaxLength: 1_200,
   /** Questions asked in the last N sessions are skipped before the fallback (spec §4.3). */
   recentSessionsExcluded: 3,
   /**
@@ -354,6 +360,17 @@ export const INTERVIEW_LIMITS = {
  * rather than per IP — and this is the seam M8's entitlement check goes through (see
  * `interviews.service.ts`).
  */
+/**
+ * The engine snapshot's shape version (`interview_sessions.engine_snapshot`).
+ *
+ * The snapshot is the worker's own state, written by the worker and handed back to it after a
+ * Redis miss — the API stores it and never reads inside it. That makes it the one contract here
+ * whose two ends can be different deployments of the worker, so it carries a version: a snapshot
+ * the running engine does not recognise is discarded and the session resumes from the bundle
+ * rather than being interpreted wrongly.
+ */
+export const ENGINE_SNAPSHOT_VERSION = 1;
+
 export const INTERVIEW_RATE_LIMITS = {
   perHour: { window: 3_600, max: 6 },
   perDay: { window: 86_400, max: 20 },
