@@ -2251,3 +2251,75 @@ without them, correct and disabled, and `docs/runbooks/langfuse-enable.md` is th
 takes. The paid end-to-end run and the 360px look are both done (two runs, `2026-09-25-m3-paid-run.md`
 and `2026-09-26-m3-second-paid-run.md`). What is left for the owner before phase 6 is retiring
 `api-error-shape` and `api-error-contract` in the CMS, which `pnpm db:seed -- --check` still fails on.
+
+## M4 — evaluation, the session report, the eval harness, calibration (branch `feat/m4-evaluation`, from `main` at `3c91422`)
+
+Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded there, taken
+2026-09-26 before any code was written.
+
+### Phase 0 — the blocker: staff reading transcripts
+
+- [ ] `transcript_review` in `CONSENT_TYPES` / `CONSENT_VERSIONS`; it **joins `allDecided`**, so
+      every existing account is asked once
+- [ ] `consent.types.transcript_review.v1.{title,body}` copy; both consent screens pick it up
+- [ ] `interview_intro.v3.md` — one conditional clause for a candidate who granted it;
+      `InterviewCandidateContext` gains the boolean and the bundle reads the decision
+- [ ] `docs/privacy/subprocessors.md`: the calibration reviewers, **and the stale Anthropic row**
+      (it still says CV text only; candidate answers have gone there since M3)
+- [ ] ADR-0017 — the lawful basis, and what the consent does and does not permit
+- [ ] Tests: the sampling predicate reads a granted current-version decision; a non-consenting
+      candidate is never selectable; the intro clause appears only with the grant
+
+### Phase 1 — contracts, schema, `evaluationRequest()`
+
+- [ ] `contracts/evaluations.ts` (+ `registry.ts`, or no Pydantic is generated)
+- [ ] `session-bundle.ts` gains `evaluationRequest()` — the fourth width, in the one place widths cross
+- [ ] Prisma `answer_evaluations`, `session_reports`; `--create-only`, read the SQL, `migrate deploy`
+- [ ] Erasure **deletes** them (evidence quotes are candidate text); extend the erasure test
+- [ ] `content-no-answer-key.int.spec.ts`: `idealPointMarkers`, `rubricCriterionMarkers`, asserted as a count
+
+### Phase 2 — the evaluator in the worker
+
+- [ ] `readi_worker/evaluation/` + `evaluate_answer.v1.md`; `POST /evaluate/answer`, one answer per request
+- [ ] Evidence verification: fuzzy match, drop and lower `confidence`; no evidence on a non-zero score is the retry trigger
+- [ ] ≤2 retries on invalid output, never on refusal; `status=failed` surfaced honestly
+- [ ] Prompt injection as a **gate** — the first call where a win buys a score
+- [ ] `Purpose` gains `evaluator`; a fake evaluator arm in `_build_llm` that quotes the real transcript
+- [ ] `llm_model_evaluator` in `settings.py`, `.env.example`, `turbo.json`
+
+### Phase 3 — the job, the scoring rule, the report in code
+
+- [ ] `apps/api/src/evaluations/` on the `cv-parse.queue.ts` pattern; enqueued on all three paths to `ENDED`
+- [ ] `scoring.ts`: weighted 0–100 + the 0.85 prompting adjustment under `SCORING_VERSION`, **two probes per criterion handled**
+- [ ] `report-assembly.ts`: topic and question-type aggregates, top 3 strengths / fixes, breakdown, lessons by topic
+- [ ] `weak_topics` filled (the seam `interview-advance.service.ts` left at `[]`)
+- [ ] The pinning test extended to scoring and **watched failing, both halves**
+
+### Phase 4 — the report the candidate reads
+
+- [ ] Flip `feedback_ready`; replace `interview.complete.scoringTitle` / `.scoring`
+- [ ] `(session)/interview/[id]/report/page.tsx`; 360px; Slow 4G weight; the card carries no transcript
+- [ ] Honest states: a failed answer, and a session with no published track behind it
+
+### Phase 5 — the eval harness
+
+- [ ] `readi_worker.evals.run` over the 510 synthetic answers; rubrics read from `content/seed`, no database
+- [ ] The two separations and the `nigerian-english` one-point band, measured on the **real** evaluator
+- [ ] `evals/datasets/gold/` format, `evals/thresholds.yaml`, a README that keeps synthetic and gold apart
+- [ ] `--smoke` on the fake provider inside `pnpm test`, so the harness cannot rot
+- [ ] `.github/workflows/evals.yml`, `workflow_dispatch` only, reason in the file
+
+### Phase 6 — the calibration tool
+
+- [ ] `/admin/calibration`: consent-filtered sampling, the AI score hidden, `calibration_scores`, agreement per rubric and question
+- [ ] A staff member reading a candidate's words is audited
+- [ ] Reuse `content-workflow.ts`; no second status machine
+
+### Phase 7 — measurement, one paid run, the handover
+
+- [ ] `interviews:pace` — median and p90 answer seconds and words, minutes against `planned_minutes`, how many questions fit 45; sample size on its face
+- [ ] **sonnet-5 vs opus-5 agreement, with a recommendation** (owner's decision 7; opus roughly triples session cost)
+- [ ] One paid interview → evaluation → report, with costs; a stratified ~60-answer harness run
+- [ ] e2e interview → report; the visual capture extended; `measure()` in `slow-network.spec.ts` fixed (the M3 leftover)
+- [ ] CLAUDE.md, the spec §4.4/§6.2 amendments, `docs/PROMPTS.md`'s "~20 sample cases", ADRs, handover, lessons
+- [ ] `docs/diagrams/figure-10-evaluation-to-readiness.svg` checked against what was built
