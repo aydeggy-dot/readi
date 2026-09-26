@@ -76,8 +76,15 @@ export class InterviewAdvanceService {
       stream.open();
       await this.exchange(session, request, stream);
     } finally {
-      stream.close();
+      /*
+       * **The lock goes before the response ends, not after.** Closing the stream is what tells
+       * the client the exchange is over, and a client that sends its next answer the moment it
+       * sees that — a script, a test, M5's agent — used to meet a lock this exchange had already
+       * finished with and get `interview_busy` for a perfectly sequential request. It was read as
+       * a flaky test for a while; it is the order of these two lines.
+       */
       await release();
+      stream.close();
     }
   }
 
@@ -138,9 +145,15 @@ export class InterviewAdvanceService {
       );
     }
     return async () => {
-      // Only if it is still ours: a lock that expired and was retaken belongs to that exchange now.
-      const held = await this.redis.get(key);
-      if (held === token) await this.redis.del(key);
+      try {
+        // Only if it is still ours: a lock that expired and was retaken belongs to that exchange.
+        const held = await this.redis.get(key);
+        if (held === token) await this.redis.del(key);
+      } catch {
+        // Best effort, and deliberately silent: the key carries a TTL, so an unreachable Redis
+        // costs the candidate one wait rather than their interview — and this runs in a `finally`
+        // that still has to close the stream.
+      }
     };
   }
 
