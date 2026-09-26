@@ -295,6 +295,15 @@ for (const vector of JSON.parse(readFileSync(ASK_VECTORS, "utf8")).cases) {
 //
 // A prompt that genuinely needs two halves does not get an escape hatch here: the second half is
 // what `planned_follow_ups` is for, and it reaches exactly the candidate who did not volunteer it.
+//
+// One accepted exception exists and needs no code, which is the point of recording it here (owner's
+// decision, 2026-09-26; `docs/progress/2026-09-26-m3-second-paid-run.md` §5.2). `api-list-that-grew`
+// opens "What is going wrong, and for whom? Take me through it." — one diagnosis with two sides,
+// one criterion, answered in one breath — and this rule does not flag it, because the coordinator is
+// followed by `for` rather than by an interrogative. **Do not widen the rule until it does.** The
+// exception is that shape and not a licence for a second clause asking a second criterion, which
+// stays an error. (`interview/asks.py` counts the same prompt as two asks, deliberately: that number
+// is the ceiling the phrasing guard compares a model's rephrasing against, not a house-style verdict.)
 
 const COORDINATED_ASK =
   /[,;—–]\s*(?:and|or|then)\s+(?:what|why|how|where|when|which|who|would|should|could|do|does|did|is|are|can|will|tell|walk|talk|take|explain|describe)\b/gi;

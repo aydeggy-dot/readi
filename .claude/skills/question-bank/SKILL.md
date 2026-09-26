@@ -198,6 +198,19 @@ So, writing a question:
   money left one") and existentials ("the check that **is there**"), and two passes at sharpening it
   moved 48 clean to 50. Coordination is clean on 94 of 104 with every flag genuine. So a two-part
   opening the check does not catch is still a defect; it is just one a reader has to catch.
+- **One accepted exception, and it is a shape rather than a wording** (owner's decision,
+  2026-09-26, on the evidence of the second paid run —
+  `docs/progress/2026-09-26-m3-second-paid-run.md` §5.2). `api-list-that-grew` opens "What is going
+  wrong, **and for whom**? Take me through it." That is **one diagnosis with two sides**, answered
+  in one breath and scored by one criterion — not two questions — and it produced one of the two
+  best follow-ups of that run. It stays exactly as it is. The exception licenses that shape and
+  nothing more: a second clause that asks a **second criterion** is the defect the retrofit removed
+  and remains an error. `check-bank.mjs` does not flag this prompt and **is not to be widened until
+  it does** — the coordinator here is followed by `for`, not by an interrogative, which is the
+  narrowness of the rule earning its keep rather than a gap in it. The runtime ask counter
+  (`interview/asks.py`) _does_ read it as two, and that is the right answer on that side: it sets
+  the ceiling the phrasing guard compares against, and counting `whom` is what stopped the guard
+  rejecting a faithful "who it affects" and lurching into the next question.
 - **Cutting the second half does not mean losing it.** Three places it can go, in this order of
   preference: it is usually the _same_ criterion as the first half, in which case the opening simply
   loses a clause it did not need — and a house **depth cue** restores the shape of the answer that

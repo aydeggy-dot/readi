@@ -478,3 +478,36 @@ The other ten, and why each was left:
 - **behavioural** — `the-part-you-did-not-write`. "Tell me about a time…" is a narrative directive.
 - **already two-part** — `it-failed-and-we-do-not-know-why`: "what you can **and cannot** find out"
   says how much on its own. This is the closest call in the bank and the one to look at again.
+
+## Appendix F — "What is going wrong, and for whom?" is an accepted exception (2026-09-26)
+
+The owner's decision on the second paid run's findings
+(`docs/progress/2026-09-26-m3-second-paid-run.md` §5.2). `api-list-that-grew`'s opening —
+
+> Your `GET /jobs` endpoint returns every job as one array … What is going wrong, **and for whom**?
+> Take me through it.
+
+— reads as two asks under the runtime counter and is **not** a breach of the one-ask rule. It is one
+diagnosis with two sides, scored by one criterion, and a candidate answers both in a single breath.
+On the evidence it works: it produced the Android installed-base probe, one of the two best
+follow-ups of that session. **The question stays exactly as it is, and nothing about it is to be
+"fixed" later.**
+
+What the exception does and does not cover:
+
+- **It is the shape, not the wording.** One criterion asked from two sides is allowed. A second
+  clause that asks a **second criterion** is the defect the 2026-09-25 retrofit removed from ten
+  openings and remains an error — it is the case where a complete answer covers a probe that then
+  never fires.
+- **No code changes, and none are wanted.** `check-bank.mjs`'s coordinated-ask rule does not flag
+  this prompt: it requires an explicit `and`/`or`/`then` followed by an interrogative, and here the
+  `for` intervenes. The rule is narrow on purpose (lexical ask-counting is usable as a floor and not
+  as a ceiling), and this is that narrowness earning its keep rather than a gap to close. The rule,
+  and this exception, are recorded alongside it in `.claude/skills/question-bank/SKILL.md` and in the
+  checker's own comments.
+- **The runtime counter reads it as two, and should.** `interview/asks.py` counts `whom` since
+  2026-09-26, so the ceiling for this question is two — which is what lets a model rephrase "for
+  whom" as "who it affects" without the phrasing guard rejecting it. That rejection is what cost the
+  run two transitions, and it is a different question from what house style permits.
+- **`reviewer_notes` is unchanged.** Telling the expert reviewer would be a content edit and a
+  re-import; this is a decision about a rule, so it lives here.
