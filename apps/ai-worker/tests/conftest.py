@@ -11,11 +11,17 @@ SERVICE_TOKEN = "test-service-token-0123456789abcdefghijkl"
 
 
 class FakeRedis:
-    """Stands in for redis.asyncio.Redis in unit tests."""
+    """Stands in for redis.asyncio.Redis in unit tests: a ping and an in-memory string store.
+
+    The store half is real rather than a stub, because the interview engine caches the session
+    bundle here and a test that never hits the cache never exercises the path the API uses on every
+    turn after the first.
+    """
 
     def __init__(self, *, error: Exception | None = None, delay_s: float = 0.0) -> None:
         self.error = error
         self.delay_s = delay_s
+        self.values: dict[str, str] = {}
 
     async def ping(self) -> bool:
         if self.delay_s:
@@ -23,6 +29,23 @@ class FakeRedis:
         if self.error is not None:
             raise self.error
         return True
+
+    async def get(self, name: str) -> str | None:
+        self._check()
+        return self.values.get(name)
+
+    async def set(self, name: str, value: str, ex: int | None = None) -> bool:
+        self._check()
+        self.values[name] = value
+        return True
+
+    async def delete(self, *names: str) -> int:
+        self._check()
+        return sum(self.values.pop(name, None) is not None for name in names)
+
+    def _check(self) -> None:
+        if self.error is not None:
+            raise self.error
 
 
 @pytest.fixture

@@ -58,6 +58,7 @@ describe("cv contracts", () => {
   it("requires base64 file content in worker requests", () => {
     const request = {
       request_id: "8d3f9c2e-4b1a-4c7e-9f00-1a2b3c4d5e6f",
+      user_id: "b0d1e2f3-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
       content_type: "application/pdf",
       file_base64: Buffer.from("%PDF-1.7").toString("base64"),
       target_role_label: "Frontend engineer",

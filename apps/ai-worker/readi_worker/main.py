@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Protocol
 
 import sentry_sdk
 from fastapi import FastAPI
@@ -17,11 +18,17 @@ from readi_worker.embeddings.service import EmbeddingService
 from readi_worker.embeddings.voyage import VoyageEmbeddingProvider
 from readi_worker.health import SupportsPing, build_health_router
 from readi_worker.http_limits import BodySizeLimit
+from readi_worker.interview.calls import Interviewer
+from readi_worker.interview.fake_script import FakeInterviewerLLMClient
+from readi_worker.interview.router import build_interview_router
+from readi_worker.interview.service import InterviewService
+from readi_worker.interview.state_store import InterviewStateStore, SupportsCache
 from readi_worker.llm.anthropic_client import AnthropicLLMClient
 from readi_worker.llm.base import LLMClient
 from readi_worker.llm.fake import FunctionLLMClient
 from readi_worker.logging_config import install_pii_filter
 from readi_worker.settings import Settings, load_settings
+from readi_worker.tracing import TracedLLMClient, Tracer, build_tracer, build_tracing_router
 
 
 def _init_sentry(settings: Settings) -> None:
@@ -39,16 +46,21 @@ def _init_sentry(settings: Settings) -> None:
     )
 
 
-def _build_llm(settings: Settings) -> tuple[LLMClient, str]:
-    """The configured LLM client and the model to use for CV parsing."""
+class RedisClient(SupportsPing, SupportsCache, Protocol):
+    """What the worker asks of Redis: a ping for `/health`, and a small cache for the engine."""
+
+
+def _build_llm(settings: Settings) -> tuple[LLMClient, str, str]:
+    """The configured LLM client, and the models for CV parsing and for the live interviewer."""
     if settings.llm_provider == "fake":
-        return FunctionLLMClient(keyword_extraction), "fake"
+        # One client, two stand-ins: the interviewer shapes first, the CV keyword extractor behind.
+        return FakeInterviewerLLMClient(FunctionLLMClient(keyword_extraction)), "fake", "fake"
     if settings.anthropic_api_key is None:  # guaranteed by Settings validation
         raise RuntimeError("ANTHROPIC_API_KEY missing")
     client = AnthropicLLMClient(
         settings.anthropic_api_key.get_secret_value(), timeout_s=settings.llm_timeout_s
     )
-    return client, settings.llm_model_cv_parse
+    return client, settings.llm_model_cv_parse, settings.llm_model_interviewer
 
 
 def _build_embeddings(settings: Settings) -> tuple[EmbeddingProvider, str]:
@@ -68,12 +80,13 @@ def _build_embeddings(settings: Settings) -> tuple[EmbeddingProvider, str]:
 
 def create_app(
     settings: Settings | None = None,
-    redis: SupportsPing | None = None,
+    redis: RedisClient | None = None,
     llm: LLMClient | None = None,
     embeddings: EmbeddingProvider | None = None,
+    tracer: Tracer | None = None,
 ) -> FastAPI:
-    """Build the app. Tests inject `settings`, a fake `redis`, `llm` and `embeddings`; otherwise
-    all come from the environment."""
+    """Build the app. Tests inject `settings`, a fake `redis`, `llm`, `embeddings` and `tracer`;
+    otherwise all come from the environment."""
     settings = settings if settings is not None else load_settings()
     install_pii_filter()
     _init_sentry(settings)
@@ -86,12 +99,19 @@ def create_app(
         )
         redis = owned_redis
 
+    # `NullTracer` unless both Langfuse keys are set — local development, CI and e2e (ADR-0008).
+    tracer = tracer if tracer is not None else build_tracer(settings)
+
     owned_llm: AnthropicLLMClient | None = None
     if llm is None:
-        llm, cv_model = _build_llm(settings)
+        llm, cv_model, interviewer_model = _build_llm(settings)
         owned_llm = llm if isinstance(llm, AnthropicLLMClient) else None
     else:
         cv_model = settings.llm_model_cv_parse
+        interviewer_model = settings.llm_model_interviewer
+    # Tracing goes on here, once, between the provider and everything that calls it: every model
+    # call the worker will ever make is traced by construction rather than by remembering to.
+    llm = TracedLLMClient(llm, tracer)
 
     owned_embeddings: VoyageEmbeddingProvider | None = None
     if embeddings is None:
@@ -103,6 +123,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
+        await tracer.aclose()
         if owned_redis is not None:
             await owned_redis.aclose()
         if owned_llm is not None:
@@ -123,11 +144,22 @@ def create_app(
     app.add_middleware(BodySizeLimit)
     app.include_router(build_health_router(redis, timeout_s))
     service_token = require_service_token(settings.service_token)
-    app.include_router(build_cv_router(CvParser(llm, cv_model), service_token))
+    app.include_router(build_cv_router(CvParser(llm, cv_model, tracer), service_token))
     app.include_router(
         build_embeddings_router(
             EmbeddingService(embeddings, embedding_model, settings.embedding_dimensions),
             service_token,
         )
     )
+    app.include_router(
+        build_interview_router(
+            InterviewService(
+                Interviewer(llm, interviewer_model, settings.interview_llm_timeout_s),
+                InterviewStateStore(redis, settings.interview_state_ttl_s),
+                tracer,
+            ),
+            service_token,
+        )
+    )
+    app.include_router(build_tracing_router(tracer, service_token))
     return app

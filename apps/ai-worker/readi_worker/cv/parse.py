@@ -15,6 +15,7 @@ from readi_worker.llm.base import LLMClient, LLMError, LLMResult
 from readi_worker.llm.pricing import token_cost_micro_usd
 from readi_worker.logging_config import scrub
 from readi_worker.prompts import as_data, render
+from readi_worker.tracing import Tracer, TraceSubject, call_label, current_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -65,9 +66,10 @@ class CvExtraction(BaseModel):
 
 
 class CvParser:
-    def __init__(self, llm: LLMClient, model: str) -> None:
+    def __init__(self, llm: LLMClient, model: str, tracer: Tracer) -> None:
         self._llm = llm
         self._model = model
+        self._tracer = tracer
 
     async def parse(self, request: CvParseRequest) -> CvParseResponse:
         calls: list[AiCallRecord] = []
@@ -127,24 +129,31 @@ class CvParser:
             "cv_parse_input", PROMPT_VERSION, cv_text_block=as_data(extracted.text, "cv_text")
         )
 
-        for _attempt in range(MAX_ATTEMPTS):
-            try:
-                result = await self._llm.parse(
-                    model=self._model,
-                    system=system,
-                    user=user,
-                    output_type=CvExtraction,
-                    max_tokens=MAX_OUTPUT_TOKENS,
-                )
-            except LLMError as exc:
-                calls.append(_error_record(exc))
-                return respond("failed", error="llm_error")
-            calls.append(_record(result))
-            if result.output is not None:
-                return respond("parsed", parsed=normalise(result.output))
-            if result.failure == "refusal":
-                return respond("failed", error="llm_error")
-        return respond("failed", error="invalid_output")
+        # The trace opens here rather than at the top of the method: an unreadable file never
+        # reaches a model, and a trace with no generation in it is noise in Langfuse. `user_id` is
+        # what makes this deletable on erasure (ADR-0008/0011) and it reaches no prompt.
+        with (
+            self._tracer.trace(TraceSubject(name="cv.parse", user_id=str(request.user_id))),
+            call_label("cv_parse"),
+        ):
+            for _attempt in range(MAX_ATTEMPTS):
+                try:
+                    result = await self._llm.parse(
+                        model=self._model,
+                        system=system,
+                        user=user,
+                        output_type=CvExtraction,
+                        max_tokens=MAX_OUTPUT_TOKENS,
+                    )
+                except LLMError as exc:
+                    calls.append(_error_record(exc))
+                    return respond("failed", error="llm_error")
+                calls.append(_record(result))
+                if result.output is not None:
+                    return respond("parsed", parsed=normalise(result.output))
+                if result.failure == "refusal":
+                    return respond("failed", error="llm_error")
+            return respond("failed", error="invalid_output")
 
 
 def _record(result: LLMResult[CvExtraction]) -> AiCallRecord:
@@ -162,6 +171,7 @@ def _record(result: LLMResult[CvExtraction]) -> AiCallRecord:
             "cost_micro_usd": token_cost_micro_usd(
                 result.provider, result.model, result.input_tokens, result.output_tokens
             ),
+            "langfuse_trace_id": current_trace_id(),
         }
     )
 
@@ -179,6 +189,7 @@ def _error_record(exc: LLMError) -> AiCallRecord:
             "output_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": 0,
+            "langfuse_trace_id": current_trace_id(),
         }
     )
 

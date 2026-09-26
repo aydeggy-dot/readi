@@ -627,6 +627,21 @@ rather than letting a save drop what it never showed — `admin.content.role.cat
 
 ## Carried forward
 
+- **M4 blocker — expert blind-scoring of transcripts needs its own consent type and privacy copy
+  before any transcript is sampled.** Spec §90 commits the MVP to an "internal calibration tool:
+  admins/experts blind-score sampled answers", and `docs/status-and-dependencies.md` repeats it. That
+  is a staff human reading what a candidate typed, which is a processing purpose we have never named:
+  `CONSENT_TYPES` has `audio_processing`, `recording_storage`, `camera_coaching` and `marketing`, and
+  none of them covers it. It surfaced on 2026-09-26 while rewriting `interview_intro` — the intro had
+  been telling candidates "nobody else is listening", which the calibration tool makes false the day
+  it ships (item 13 of the paid-run diagnosis). **Nothing may sample a transcript until three things
+  exist:** a consent type (or a documented lawful basis that does not need one) with its
+  `CONSENT_VERSIONS` entry and `consent.types.<type>.v1` copy; an entry in the privacy copy and in
+  `docs/privacy/subprocessors.md` if a third party is involved; and the calibration tool reading the
+  decision before it selects a sample. The intro's v2 wording is deliberately silent about staff
+  reading transcripts, because until this is decided we do not know what to promise — so the wording
+  is honest today and must be re-read as part of this item, not left to drift into being a lie again.
+
 - **M3/M4 — pin the content a session was scored against.** Every `InterviewSession` must record the
   exact **question version and rubric version** it used (and the resolved rubric criteria, or a
   reference that can reach the right `content_versions` snapshot), not just `question_id` /
@@ -637,6 +652,20 @@ rather than letting a save drop what it never showed — `admin.content.role.cat
   holds the snapshot (ADR-0014 decision 2) — the session needs to name which one. Decide the shape
   when M3 designs the session bundle the worker receives, and cover it with a test that edits the
   content after a session and asserts the report does not move.
+
+- **M5 — two model calls per answer is a text-mode budget, not a voice one.** M3 judges coverage
+  and then phrases the chosen probe in two sequential calls (M3 decision, 2026-09-25): honest and
+  cheap when the candidate is typing, but it doubles what voice mode has to fit under the ~1s
+  turn target (CLAUDE.md §5 "Performance & low bandwidth"). Three ways out, and M5 should measure
+  before choosing: **merge** them into one call that returns the coverage flags and the phrased
+  probe together — the risk is that the model then effectively chooses, which is the thing the
+  planned-follow-up decision exists to prevent, so it would need the engine to discard a phrasing
+  for a probe it did not pick; **parallelise** by phrasing every candidate probe while the coverage
+  call runs and throwing away the losers — costs tokens, not latency, and there are at most four;
+  or **skip** — the phrasing call never runs when coverage says everything is covered, and the
+  coverage call itself is pointless once the follow-up budget is spent, because there is nothing
+  left to decide. That last one is free and belongs in M3; the first two are M5's call, with real
+  latency numbers in front of it.
 
 - **M6 — re-read the readiness formula's split before the first non-engineering role launches.**
   The formula's `technical` / `behavioral` / `communication` weighting (spec §7) assumes an engineering
@@ -1826,3 +1855,399 @@ The next pass's order, and the reasoning is in the closing handover: the `review
 first (it needs nothing else and is most likely to be hiding a live defect), then the stress-set
 rewrite, then the five missing tracks, then the full-stack content above, then backend at
 intern-junior, then wave 2.
+
+## M3 — the interview engine, text mode (branch `feat/m3-interview-engine`, from `main` at `d380611`)
+
+Plan: `docs/plans/m3-interview-engine.md`, written 2026-09-23 and **amended at the start of this
+branch** — the amendments are listed under "What changed since the plan was written" below and are
+folded into the plan document in phase 1, not before, because three of them are the owner's call.
+
+### What changed since the plan was written (2026-09-23 → 2026-09-25)
+
+The plan was saved before the question-bank programme ran. 31 commits landed between, and the parts
+of the plan that quoted the corpus are now wrong — always in the direction of more content.
+
+1. **The corpus is 30× what the plan assumed.** The plan's session-length table justifies deferring
+   45 minutes with "8 frontend / 3 backend / 3 QA today, plus full-stack sharing 11". The real
+   figures are 104 questions / 102 rubrics, offered per role: frontend 40, backend 38, QA 45,
+   full-stack 65. The stated reason for the 15/30-only decision no longer exists. **Owner decision 2.**
+2. **Probes exist for every bank, not only QA.** The plan says "the QA bank carries all 74 of its
+   probes"; there are **225** across the three banks. `interview_followup.v1.md` is written against
+   the real corpus for all four roles rather than against QA alone.
+3. **The two-probe selection rule is exercised by 16 of 104 questions** — 88 questions carry exactly
+   two probes (budget = menu), 15 carry three, one carries four; 16 have a criterion carrying two.
+   So "prefer a criterion nothing has probed yet, second probe on a criterion only when nothing else
+   is uncovered" is a real path with real fixtures, not a defensive branch.
+4. **A criterion goes without a probe only when the opening asks that criterion and nothing else**
+   (pilot rule, 2026-09-23). So "a criterion with no probe" is a normal state in the coverage log —
+   exactly one per question, the one the opening asked — not an anomaly to report.
+5. **A probe must not name what its criterion scores** (backend retrofit, 11 of 70 probes rewritten
+   on it). That is a constraint on `interview_followup.v1.md`: the model adapts the connective
+   tissue and **never adds specifics or examples**, because a leading follow-up is a gift to
+   precisely the candidate who had not earned it.
+6. **Backend at intern-junior is 18 questions (14 general).** With the "exclude the last 3 sessions"
+   rule and ~4 questions a session, the least-recently-seen fallback is that audience's **normal**
+   path by the fourth session, not an edge case. It is tested against the real corpus, not a fixture.
+7. **Five of the eight role × level combinations have no track.** Nothing in M3 needs one — an
+   interview does not read lessons — but the completion screen must not promise a study plan.
+8. **`SessionTurn.follow_up_index` became load-bearing for an M4 content decision** ("needed no
+   prompting", closing handover §3). It records _which_ probe, and `criteria_covered` records
+   whether a criterion was covered unprompted.
+9. **`review-doc.ts` keyed a Map on `criterion`** and silently dropped the second probe when the cap
+   moved to two. The engine builds per-criterion maps in three places; none of them may key probes
+   by criterion.
+10. **The ADR is 0016.** The plan's Files list still names `0015-interview-transport-and-streaming.md`;
+    0015 is roles-levels-stacks. Phase 3 of the same plan and `docs/PROMPTS.md` already say 0016.
+11. **`senior` exists as a draft level no role offers.** Setup reads the published catalogue, so it
+    cannot be chosen — with a test, because the failure is silent.
+
+### Decisions taken at the start of this branch (engineering, recorded not asked)
+
+- **Coverage is judged against the probes, never against the rubric.** One structured call per
+  candidate answer: the opening prompt, the answer wrapped by `as_data`, and the probes with their
+  criterion positions; out comes `already_answered` + a one-line reason per probe. Code then picks.
+  This is what keeps the rubric out of every interviewer-model call while still producing a
+  per-criterion log. Sending criterion text instead would put a readable answer key in every turn.
+- **`criteria_covered` records one entry per rubric criterion position**: `has_probe`, `covered`
+  (`true|false|null` — `null` means "no probe, so nothing judged it"), and the `follow_up_index`
+  chosen, if any. The criterion the opening asked is the `null` one. It is never a score.
+- **`max_follow_ups` stays 2 and every follow-up comes from the menu.** The pilot left open whether
+  the engine should keep a slot for a free-form probe at a vague answer; it should not — an invented
+  probe is the thing the retrofit removed. Revisit in M4, with sessions to look at.
+- **Two model calls per candidate answer** (coverage, then phrasing), sequential. Text mode has no
+  sub-second budget; M5's voice path revisits it.
+- **The browser reads the SSE stream with `fetch` + a `ReadableStream` reader, not `EventSource`** —
+  the route is a POST with a body and a session cookie. The generated api-client does not model
+  streaming responses, so the one hand-written client module is `lib/interview-stream.ts` and the
+  OpenAPI document declares the route as `text/event-stream`.
+
+### Phase 1 — contracts, schema, sessions and selection (API only, no LLM) · **done 2026-09-25**
+
+Handover: `docs/progress/2026-09-25-m3-phase-1.md`.
+
+- [x] `packages/shared-types/src/contracts/interviews.ts` + `constants.ts` (states, lengths, budgets,
+      `MAX_FOLLOW_UPS`); `InterviewSessionBundle` registered; `pnpm gen:contracts` committed
+- [x] Prisma: `InterviewSession`, `InterviewSessionQuestion`, `SessionTurn`; one migration —
+      `DROP INDEX questions_embedding_hnsw` deleted from it for the **fifth** time, no `DROP COLUMN`
+- [x] `InterviewsModule`: create / list (keyset) / get, candidate shapes, `ApiError` codes
+- [x] `session-bundle.ts` — `snapshotOf` pins it, `bundleQuestion` and `candidateQuestion` are the
+      only doors out, with a marker test on each
+- [x] `question-selection.ts` — pure, seeded, reusing `stackFilter`; 11 unit tests including five
+      consecutive sessions against the **real** backend intern-junior corpus
+- [x] Rate limits (6/h, 20/day) and the documented M8 entitlement seam
+- [x] Stale-session sweep → `abandoned` (`stale-sessions.queue.ts`, every 10 minutes)
+- [x] The pinning test, **watched failing on both halves**, and the leak test widened to
+      `/api/interviews/` with its own control
+- [x] Fold the amendments into `docs/plans/m3-interview-engine.md`
+
+Three things phase 1 added that the plan did not have:
+
+1. **`interview_sessions.catalogue`** — the slugs and names as they read at session time. A version
+   pins what the content _said_, not what the row was _called_, and the plan's own acceptance
+   ("rename the role afterwards; the report still says what it said") could not pass without it.
+2. **The bundle carries no rubric.** The plan's architecture paragraph said "the pinned questions
+   with their rubric criteria", written before the planned-follow-up decision and contradicting it.
+   `BundleQuestion` carries `criterion_count` instead — enough to log coverage per criterion,
+   not enough to score.
+3. **Interviews are in the data export** (ADR-0011): the transcript and the questions as asked,
+   without `follow_up_index` or `criteria_covered`, which are positions in a rubric the export does
+   not contain. Worth a second look if the owner disagrees — it is the one judgement call here.
+
+And one pre-existing bug fixed on the way, because M3's schema change made me drop `readi_test` and
+a warm database had been hiding it since M2.5: `content-seed.int.spec.ts` named `frontend` and `mid`
+in a seed directory that defines neither, so **13 tests failed on any empty database** — which is
+what CI creates. Confirmed identical on `main` in a worktree before changing anything. The fixture
+mints its own role and level now; the whole API suite passes on a freshly created database.
+
+### Phase 2 — the engine in the worker · **done 2026-09-25**
+
+- [x] `machine.py` — pure transition table, `now` passed in, 29 unit tests; `budgets.py` with the
+      three reserves (a question 120 s, a follow-up 45 s, their own questions 90 s)
+- [x] Probe selection as a pure function (`probes.py`), with the two-probe-on-one-criterion shape as
+      a fixture, and the per-criterion coverage log built from per-probe verdicts
+- [x] **Eight** versioned Jinja2 prompts, not five (see below); candidate text wrapped by `as_data`;
+      the follow-up prompt receives the chosen probe and the answer and **no rubric**
+- [x] `calls.py`: coverage judgement and phrasing, schema-validated, ≤2 retries, never on refusal,
+      and a **fallback to the pinned wording** so a failing provider does not end the interview;
+      `LLM_MODEL_INTERVIEWER=claude-sonnet-5`
+- [x] Redis state store with TTL (`INTERVIEW_STATE_TTL_S`, default 2 h) caching the bundle; the
+      interview-aware fake (`fake_script.py`), with a test that renders every prompt and asserts the
+      fake still recognises it
+- [x] The cross-language `InterviewAdvanceRequest` / `InterviewAdvanceResponse` contract and
+      `POST /interview/advance` (phase 3 calls it; the worker cannot have a router without it)
+- [x] Prompt-injection tests: all four named injections, plus "the model cannot end the interview by
+      saying so" and "the candidate never appears outside a data block" over the real prompts
+- [x] The free latency savings from the plan, as one rule in one place (`probes_to_judge`)
+
+Six things phase 2 decided or added that the plan did not have:
+
+1. **The snapshot in the request is the authority; Redis caches the bundle.** The plan said the
+   bundle is sent "on the first call or after a Redis miss", which the API cannot detect — so the
+   worker answers `bundle_required` and the API resends. And where the two disagree the request
+   wins, because the API's copy is what has actually been **persisted**: replaying a response that
+   reached Redis but not the database is right, and skipping ahead would leave a hole in the
+   transcript. That also made **an exchange all-or-nothing** (no turns and a null snapshot on an
+   error), which removed the need for a `resume` action.
+2. **`coverage` is its own `AiCallPurpose`** (one migration, `ALTER TYPE … ADD VALUE`). Folding it
+   into `follow_up` would have merged the call that is skipped with the call that is not, in the one
+   table that answers "what does the follow-up machinery cost".
+3. **A model that will not answer falls back to the pinned wording.** A question falls back to its
+   own prompt, a follow-up to its own probe, the close to a fixed line — all staff-written, all
+   already on the wire. The one call with no honest fallback is answering a question the _candidate_
+   asked, and that is the only thing that returns `llm_error`.
+4. **The intro is rendered, not generated**, and **the coverage call needs two prompts of its own**
+   — hence eight prompt files rather than five. The intro carries the facts (length, question count,
+   that skipping and ending early are allowed) and is the turn where the candidate is watching an
+   empty screen.
+5. **Coverage is tracked per probe, not per criterion** (`probes_covered` replaced
+   `covered_criteria` in the snapshot before anything was built on it). Two probes on one criterion
+   ask separable things, so an answer can reach one and not the other; criterion-level bookkeeping
+   would either re-ask what was answered or drop what was not. Per criterion is still how the
+   **log** reads — `coverage_log` is where the two views meet.
+6. **The migration guard the owner asked for exists**: `apps/api/src/prisma/migration-sql.spec.ts`,
+   offline, in `pnpm test` and CI. Prisma proposed `DROP INDEX questions_embedding_hnsw` for the
+   **sixth** time in this phase's one-line enum migration, which is what made writing it easy to
+   justify. Watched failing on both halves (the `DROP INDEX` and a `DROP COLUMN` under
+   `tracks_one_published_per_role_level`) before being kept.
+
+Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check` clean; `pnpm test` green —
+**427 API · 120 web · 95 shared-types · 178 Python · 56 ui · 3 api-client** (Python was 77).
+`pnpm test:e2e` still belongs to phase 6.
+
+### Phase 3 — wiring · **done 2026-09-25**
+
+- [x] **The stream proved first**, before anything depended on it: `scripts/sse-rewrite-proof.mjs`
+      runs a stub origin behind a production `next start` and times the frames through `proxy.ts` and
+      the rewrite. Five frames 300 ms apart arrived at 330/625/926/1226/1527 ms, no `content-length`,
+      `transfer-encoding: chunked`. Committed, because a Next upgrade could change the answer
+- [x] `advanceInterview` on `AiWorkerClient`; `AI_WORKER_TIMEOUT_MS` re-checked — and the real fix
+      was on the **worker** side: `INTERVIEW_LLM_TIMEOUT_S` (45 s) bounds an interview call far
+      tighter than `LLM_TIMEOUT_S` (90 s, right for a CV in a background job), so two chained calls
+      fit inside 150 s with room for a retry
+- [x] The SSE route and its frame contract (`InterviewFrame`: thinking / turn / question / state /
+      error / done), validated on the way out; `INTERVIEW_SSE_HEARTBEAT_MS`
+- [x] Idempotent turn persistence by `(session_id, seq)`; `asked_at` and `follow_ups_asked` derived
+      from the transcript; `ai_call_log` rows carrying the session id; `prompt_versions` merged and
+      `model_config` taken from what was actually called
+- [x] The Redis-miss round trip (`bundle_required` → resend the bundle); end-early; the expired
+      session refused past its resume grace
+- [x] A Redis lock per session (`interview_busy`), because a double-tapped send button would
+      otherwise collide on `(session_id, seq)` and read as a 500
+- [x] `GET /api/interviews/{id}/status` for the completion screen (`feedback_ready` always false in
+      M3, deliberately)
+- [x] **ADR-0016**, and `docs/PROMPTS.md`'s "stream interviewer text" corrected in the same change
+
+Three things phase 3 decided or found that the plan did not have:
+
+1. **A model that will not answer does not end the interview** (built in phase 2, wired here): the
+   API sees a normal exchange with `status: "error"` calls in `ai_calls`. Only an unreachable worker
+   or a refused exchange produces an `error` frame, and neither persists anything.
+2. **The leak test's rule about planned follow-ups had to be narrowed, and it caught it.** M3 phase 3
+   is where a route first _speaks_ a probe, so "never, anywhere" stopped being true — the test failed
+   on the fixture's own marker. It now asserts a probe appears **only** inside the text of a turn an
+   interviewer has spoken, counted, and nowhere else in any payload. That is stronger than the old
+   rule everywhere except the one place it was wrong. `plannedFollowUpMarkers` is its own list on the
+   fixture now, and CLAUDE.md §5 says so.
+3. **The API has no per-criterion view at all**, which is the API's answer to the `review-doc.ts`
+   bug: the coverage log arrives whole from the worker and is written whole, asserted byte-for-byte.
+   The three real ones were audited — `probes.py` (a list), `review-doc.ts` (grouped, with a test for
+   two probes on one criterion), `check-bank.mjs` (a count) — and `test_interview_probes.py` now
+   holds the general form: every probe reachable, one log entry per criterion.
+
+Verification: `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm check:contracts` clean;
+`pnpm test` green — **471 API · 120 web · 95 shared-types · 180 Python · 56 ui · 3 api-client**.
+`pnpm test:e2e` belongs to phase 6. No paid provider call yet: the owner's word is given for **one
+15-minute diagnostic on `claude-sonnet-5` after phase 4**, in the browser, with the cost reported.
+
+### Phase 4 — the web
+
+**Start here: `docs/progress/2026-09-25-m3-phase-4-primer.md`** — the frame contract, the client
+module, the status and candidate shapes, and the Margin rules for the interview screen, gathered so a
+fresh session does not have to reconstruct them.
+
+- [x] Practice list + setup (published catalogue, defaults from the profile, types from the role's
+      `supported_question_types`); the variant picker's "not listed" path (**owner decision 3**)
+- [x] The interview screen at 360px — serif interviewer, ruled candidate rail, wall-clock timer,
+      pinned composer, `sessionStorage` draft, `role="status"` composing region
+- [x] End-interview confirm (the `transition-panel.tsx` two-click pattern), completion/processing
+      screen that promises scoring in M4 and **not** a study plan (item 7)
+- [x] `/home` diagnostic CTA alive; the phone tab bar (Home, Practice, Profile); `proxy.ts` matcher
+- [x] `interview-errors.ts`, the `interview` i18n namespace
+- [ ] **Owner: a look at the interview screen at 360px** (screenshots taken 2026-09-25, light and
+      dark, in `screenshots/m3-phase4/`) — then the handover, then the one paid diagnostic
+
+#### Decided while building it
+
+1. **Where the "what do you actually use?" answer lands: the profile's `technologies`** (the
+   primer's open question, "a profile field vs. a table we read"). It is already the field that
+   means "free text describing what the candidate knows", it is already readable — the query is
+   profiles with `target_stack` null joined to their `technologies` — and it needs no API change,
+   no migration and no new contract. The setup screen merges what is typed into the existing list
+   through `PUT /api/me/profile`, **best effort and before the interview call**: it is a note to us,
+   so a profile that refuses the update must not stop the interview starting.
+2. **The meter on the grey bar tracks time, not the question count.** The time budget is the
+   authoritative one (CLAUDE.md §5), and its accessible name says "minutes" so the two numbers
+   beside it cannot be confused. The count is in words next to it, which is what keeps colour from
+   being the only signal (ADR-0013).
+3. **A new question starts a new section, marked by a hairline rule.** Without it the intro, the
+   first question and the answer beneath it read as one column and "which of these am I answering"
+   becomes work. A follow-up carries no rule: it belongs to the question above it.
+4. **The completion screen reports the time the session actually took**, not `planned_minutes`.
+   The first capture said "4 of 4 questions in 15 minutes" about an interview that took six.
+5. **The draft and the clock are external stores, not effects.** `useSyncExternalStore` over
+   `sessionStorage` and over one shared ticking clock — which is what the React Compiler lint rules
+   push towards, and it removed the second copy of the draft rather than just moving it.
+6. **`agentRules: false` in `next.config.ts`.** Next 16 writes an `AGENTS.md` and a `CLAUDE.md` into
+   `apps/web` on every `next dev`; a generated `apps/web/CLAUDE.md` is loaded as project
+   instructions and would quietly compete with the one we maintain at the root.
+
+### Phase 4.5 — what the paid run showed (2026-09-26)
+
+The first paid run (`docs/progress/2026-09-25-m3-paid-run.md`) produced zero follow-ups and openings
+that asked three or four things at once. Re-diagnosed from the database on 2026-09-26: **one root
+cause**, the dev database holding pre-retrofit _published_ rows that the importer was correctly
+refusing to update (ADR-0014 decision 5), so the session pinned three-ask prompts with an empty probe
+menu. The engine did exactly what it was designed to do with an empty menu. The earlier note's third
+cause — "the openings ask what the probes were written to ask" — was a misdiagnosis: it compared the
+new probes against the _stale pinned_ opening, and against the live one-ask opening they are
+complementary.
+
+- [x] **A. The coordinated second ask.** Ten openings still hang a second ask off the first with an
+      explicit coordinator ("…what the check does, **and what it does not do**"). A new error in
+      `check-bank.mjs` catches it; the token counter cannot (it reports >1 for 56 of 104, mostly
+      relative pronouns), the coordination detector is clean on 93 of 104 with 10 of 11 flags
+      genuine. Rule into `SKILL.md`; rewrite the ten; re-import
+- [x] **B. "Never add an ask" as an enforced invariant.** A runtime guard compares the asks in the
+      spoken turn with the asks in the pinned prompt; more is invalid output — retry, then fall back
+      to the pinned wording, which already exists. Robust because it is a _relative_ count over
+      near-identical text, so the counter's false positives cancel. Same guard on the follow-up call.
+      `asks.py` in the worker, shared test vectors so the JS and Python copies cannot drift.
+      `interview_question.v2.md` states the rule
+- [x] **C. Stale published content in dev.** `pnpm db:seed -- --check` exits non-zero on drift; a
+      warning at session creation when a pinned question has no probes and more than one criterion
+- [x] **D. `interview_intro.v2.md`.** "nothing to look up and nobody else is listening" is untrue —
+      the transcript is stored, and `complete.scoring` on the very next screen already says so. What
+      v2 may say is bounded by two facts: cohort seats make progress "visible to the program"
+      (spec §27) and the employer talent pool is opt-in [P3] (spec §127). See the M4 blocker above
+- [x] **E. `interview_candidate_questions.v2.md`** — warmer. It read like a form because the prompt
+      is almost all prohibitions; warmth comes from answering generously, not from praising the
+      question, and the ban on "great question" stays
+- [x] **F. Varying the transitions.** Each phrasing call is independent, so the model cannot know it
+      already said "Let's move on". The engine supplies the connective, chosen deterministically from
+      `(session_id, position)` so it varies within and between sessions and stays reproducible
+- [x] Free proving run on `LLM_PROVIDER=fake` with deliberately thin answers — session
+      `8643fee0-5661-4e1f-84b5-952ae1c2e982`: a thin answer drew two probes and stopped at the cap, a
+      complete one drew none, and the coverage log carries real verdicts. Written up in
+      `docs/progress/2026-09-26-paid-run-fixes.md`
+- [x] **The owner's second paid run** — 7.8¢, `8fbddf78-2fde-45d6-9ef1-9bb4bd3b4724`, written up in
+      `docs/progress/2026-09-26-m3-second-paid-run.md`. The design happened: follow-ups fired on real
+      gaps and quoted the candidate back. Four findings, all fixed except the one that needs an admin:
+  - [x] A **cut question was still published** and got asked (`api-error-shape`, cut 2026-09-25, no
+        probes, two-ask opening). The importer never deletes, by design — so `db:seed -- --check` now
+        reports published rows no seed file defines any more, which it could not see before because
+        drift was measured only over rows the files name
+  - [ ] **Retire `api-error-shape` and `api-error-contract` in /admin/content** — **the owner is doing
+        this** (2026-09-26). Left for them: a transition is an audited act and SQL would bypass the
+        trail. `--check` fails until it is done and goes green after, which is the check working
+  - [x] Two **asymmetries in the ask counter** made the guard reject faithful rephrasings and fall
+        back to the pinned wording, which is why two questions arrived with no connective: `whom` was
+        not counted and `whether` was. Both fixed in both implementations, measured over the corpus
+        (no floor break), with the asymmetries as named vectors
+  - [x] The **fallback now carries the connective**, so a rejection no longer makes the interview
+        lurch, and a rejected phrasing is in `ai_call_log` as `rejected_added_ask` rather than being
+        findable only by noticing a question spoken verbatim
+  - [x] `interview_candidate_questions.v3` — the "no real company behind this" disclaimer moves to the
+        invitation, which is spoken once. v2 had it in front of every answer because every call is
+        told to disclaim and no call can know it already has
+- [x] **`api-list-that-grew`'s "What is going wrong, and for whom?" is an accepted exception to the
+      one-ask rule** (owner's decision, 2026-09-26): one diagnosis with two sides rather than two
+      questions, and it produced one of the two best follow-ups of the paid run. The question stays as
+      it is and **no code changes** — `check-bank.mjs`'s coordinated-ask rule does not flag it and is
+      not being widened to (the `for` intervenes and `whom` is not in its trigger list), which is the
+      rule's deliberate narrowness earning its keep. The runtime counter reads it as two asks, which is
+      the right ceiling for the guard. **The exception is the shape, not the wording**: one question,
+      one criterion, two sides a candidate answers in one breath — not licence for a second clause
+      asking a second criterion, which stays an error. Recorded in
+      `docs/progress/2026-09-26-m3-second-paid-run.md` §5.2, not in the question's `reviewer_notes`,
+      because it is a decision about a rule rather than about that question's content
+- [x] **`LLM_PROVIDER=fake` is the default in `apps/ai-worker/.env` and `.env.example`** (owner's
+      decision, 2026-09-26), so a plain `pnpm dev:worker` is never paid by accident. A paid run is
+      armed on the command line for the length of that run; `ANTHROPIC_API_KEY` stays in `.env`, and
+      `Settings` forbids `fake` in production. This inverts the warning in the two earlier notes, which
+      are superseded rather than edited
+- [ ] **A known flake, left deliberately:** `interviews-advance.int.spec.ts` › "refuses a second
+      exchange while one is in flight" failed once under full-suite load and passes alone. It races
+      two `Promise.all` requests and needs them to genuinely overlap; on a loaded machine the first
+      acquires and releases the Redis lock before the second arrives and both get 200. The fix is in
+      the fixture — have the fake worker hold the exchange open — not in the test
+
+### Phase 5 — Langfuse (done, 2026-09-26; handover `docs/progress/2026-09-26-m3-phase-5.md`)
+
+- [x] Tracing behind the env check, with a test proving it is off without keys; masking hook
+- [x] `langfuse_trace_id` on `AiCallRecord` → `ai_call_log`; retention sweep; erasure reaches it
+- [x] `docs/privacy/subprocessors.md`, and `docs/runbooks/langfuse-enable.md` for the day keys exist
+- [ ] **Waiting on keys, and only this:** one trace inspected for ids-only, one masked prompt
+      confirmed, and deletion by `user_id` and by age verified against the real service. The
+      kickoff item "verify retention and bulk trace deletion" stays open until then — the code is
+      built, tested and disabled, and no test can prove a third party deletes anything
+
+### Phase 6 — verification and docs (done, 2026-09-26; handover `docs/progress/2026-09-26-m3.md`)
+
+- [x] e2e interview spec (`apps/web/e2e/interview.spec.ts`); `slow-network` and `visual` suites
+      extended — and the skipped specs did rot exactly as the M2.5 lesson predicted, in a way a
+      grep would not have caught: the visual capture had been photographing `content.spec.ts`'s
+      leftovers because **nothing publishes a question in a fresh e2e database**
+- [x] ~~One real 15-minute diagnostic against `claude-sonnet-5`~~ — done twice at the end of phase 4
+      (`2026-09-25-m3-paid-run.md`, `2026-09-26-m3-second-paid-run.md`), 4.2¢ and 7.8¢
+- [x] The pinning test watched to fail — **both halves**, the snapshot and the catalogue rename,
+      each by mutating the production code and reverting it; a Redis flush mid-session followed by
+      a resume, now a permanent step in the e2e spec rather than a one-off
+- [x] `CLAUDE.md` (the e2e database's two traps), the corrected M3 prompt in `docs/PROMPTS.md` (it
+      still said "phrase the intro/transition naturally"), the handover, two lessons
+- [x] Found and fixed on the way: the exchange lock was released **after** the stream closed, which
+      is what the "known flake" really was; and "You answered 1 of 4 questions in 1 minutes"
+
+### Carried out of M3, small
+
+- [ ] **`measure()` in `slow-network.spec.ts` can report a negative duration.** The M3 phase 6 run
+      printed `CMS question form: -123 ms, 310 KB`, and the interview screen's 1221 ms is the same
+      effect in a milder form: the helper times `page.goto` with `Date.now()`, and on a route the
+      browser has already prefetched (Next's `<Link>` fires `?_rsc=…` after `load`) the navigation
+      resolves against work that started before the clock did. **The weights are unaffected** — they
+      come from `performance.getEntriesByType`, which is why the budget assertions still mean
+      something — so this is about the printed timings, which are the part a person reads. Fix it
+      by measuring from the navigation entry (`startTime` to `loadEventEnd`) rather than wall clock,
+      and by clearing the cache between pages; whoever next touches that spec should do it.
+
+### The owner's three decisions, taken 2026-09-25 at the start of this branch
+
+1. **The coding round stays [P2].** M3 ships the prose interviewer. The carried-forward item is
+   closed: Judge0/a sandbox is infrastructure we do not run, Monaco is the heaviest thing we could
+   put on a mobile-first product, and M4's evaluator is being built around prose answers. What this
+   buys is an obligation, not a free pass — the setup screen and the completion screen say what this
+   interview covers and what it does not, because a product that prepares two rounds of three must
+   not imply it prepares three (product principle 1).
+2. **15 and 30 minutes only, as planned** — but for a new reason, which goes in the plan document.
+   The old reason (the bank is too small) is dead. The live one is that nobody has typed an answer
+   into this thing yet, so a 45-minute question budget would be a guess. It is one constant; M4's
+   sessions size it.
+3. **"Not sure yet" is explained, and asks.** No third state. The setup screen says what the choice
+   buys — general questions for the role, because the stack-specific ones need a variant we offer —
+   and a free-text "what do you actually use?" that **never touches eligibility** lands somewhere we
+   can read, because the right answer to a missing variant is usually to add the variant. Where it
+   lands is a phase-4 question (profile field vs. a rows-we-read table); the constraint is that it
+   is not a selection input.
+
+4. **The candidate's own questions are answered, not scored.** `CANDIDATE_QUESTIONS` answers in
+   character and stops there — no score, no rubric, nothing in the report — so spec §4.3's
+   "lightweight feedback" becomes a **lesson** in M7 rather than a rubric. Recorded in the plan as
+   "Carried forward, answered" decision 5, because phase 2 writes
+   `interview_candidate_questions.v1.md` to it: it answers, it does not assess, and its turns carry
+   no `criteria_covered`. The carried-forward M7 item stands — role-agnostic content still has no
+   home, since `Track` is keyed by role and level — with its shape now settled.
+
+Still needed from the owner: **Langfuse keys**, whenever they want tracing on — phase 5 shipped
+without them, correct and disabled, and `docs/runbooks/langfuse-enable.md` is the ten minutes it
+takes. The paid end-to-end run and the 360px look are both done (two runs, `2026-09-25-m3-paid-run.md`
+and `2026-09-26-m3-second-paid-run.md`). What is left for the owner before phase 6 is retiring
+`api-error-shape` and `api-error-contract` in the CMS, which `pnpm db:seed -- --check` still fails on.

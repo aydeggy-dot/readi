@@ -18,6 +18,7 @@
 //     including by the *quantity* of speech ("a detailed plan", "a thorough set of flows")
 //   - a criterion asked for by neither the prompt nor a planned follow-up, and a planned
 //     follow-up that names a criterion its rubric does not have
+//   - an opening that hangs a second ask off the first ("…what it does, and what it does not do")
 //   - a rubric file whose weights are a template rather than a claim
 //   - a criterion that keeps its specificity in level 4 instead of level 3
 //
@@ -211,12 +212,18 @@ for (const role of roles.values()) {
 // — are two asks, which is right: they are two things to answer. The engine speaks the prompt once,
 // so this is also roughly what a candidate has to hold in their head.
 
+// `whom` is counted and `whether` is not (2026-09-26): both were asymmetries rather than opinions,
+// and the worker's copy of this counter compares two texts, where an asymmetry is fatal. A pinned
+// "What is going wrong, and for whom?" counted one ask while a model's "and who it affects" counted
+// two, so the runtime guard rejected a faithful rephrasing three times and spoke the pinned wording.
+// `whether` is a subordinator far more often than an interrogative — "whether that was at work or on
+// your own" — and where it follows a directive the directive is already the ask.
 const ASK =
-  /\b(what|why|how|where|when|which|who|whether)\b|\b(tell|walk|talk|take)\s+me\b|\b(explain|describe|diagnose)\b/gi;
+  /\b(what|whom|why|how|where|when|which|who)\b|\b(tell|walk|talk|take)\s+me\b|\b(explain|describe|diagnose)\b/gi;
 // A yes/no question is an ask too — "is there anything you would keep out of the link?" — but only
 // where it does not already belong to an interrogative, or "what would you change" counts twice.
 const YES_NO =
-  /(?<!\b(?:what|why|how|where|when|which|who|whether)\s)\b(would|should|could|do|does|did|is|are|can|will)\s+(you|it|that|they|there)\b/gi;
+  /(?<!\b(?:what|whom|why|how|where|when|which|who)\s)\b(would|should|could|do|does|did|is|are|can|will)\s+(you|it|that|they|there)\b/gi;
 
 // A house-style **depth cue** asks for nothing new (owner's decision, 2026-09-25): it restores the
 // shape of the answer that a triple-barrelled prompt used to carry as a side effect of carrying its
@@ -230,7 +237,7 @@ function countAsks(prompt) {
   // "tell me what X" is one ask, not two: drop the interrogative that belongs to a directive.
   const normalise = (t) =>
     t.replace(
-      /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|why|how|where|when|which|who|whether)\b/gi,
+      /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|whom|why|how|where|when|which|who)\b/gi,
       " $1 me ",
     );
   const count = (t) => (t.match(ASK) ?? []).length + (t.match(YES_NO) ?? []).length;
@@ -239,6 +246,83 @@ function countAsks(prompt) {
   // Only as a cue — a prompt that is *nothing but* "Walk me through it." is still one ask.
   const withoutCue = count(normalise(raw.replace(DEPTH_CUE, " ")));
   return withoutCue > 0 ? withoutCue : count(normalise(raw));
+}
+
+/*
+ * One rule, two runtimes. `count_asks` in `apps/ai-worker/readi_worker/interview/asks.py` is the
+ * same counter, where it stops the phrasing call adding an ask at run time. Two implementations
+ * drift, so both assert against the same vectors and a mismatch is an error here exactly as it is a
+ * failing test there.
+ */
+const ASK_VECTORS = resolve(ROOT, "packages/shared-types/src/ask-vectors.json");
+for (const vector of JSON.parse(readFileSync(ASK_VECTORS, "utf8")).cases) {
+  const got = countAsks(vector.text);
+  if (got !== vector.asks)
+    error(
+      relative(ROOT, ASK_VECTORS),
+      `"${vector.text.slice(0, 60)}"`,
+      `counts ${got} ask(s), and the shared vector says ${vector.asks} — this counter and the worker's \`count_asks\` must agree`,
+    );
+}
+
+// ------------------------------------------------------------------------------------------- //
+// The second ask hung off the first.
+//
+// "The prompt asks one thing" (SKILL.md) survived the retrofit of 2026-09-25 as a rule about
+// *clauses*, and the defect came back in a smaller form: a second ask coordinated onto the first —
+// "Explain what the check that is there does, **and what it does not do**." Ten of the 104 openings
+// still did that on 2026-09-26, and one of them was the question whose paid-run answer went
+// un-probed, because a candidate who answers both halves has by definition covered the probe that
+// was written to ask the second one.
+//
+// This is a separate check from `countAsks` and deliberately so. `countAsks` is a **floor** —
+// enough things are asked for to justify the criteria — and it is lexical enough to be usable for
+// that: it over-counts (it reports more than one ask for 56 of the 104 openings, mostly relative
+// pronouns, "accounts **where** money left one", and existentials, "the check that **is there**"),
+// which is harmless in a floor and fatal in a ceiling. Sharpening it does not help; two passes at
+// the false-positive classes moved 48 clean to 50.
+//
+// What is precise is the **coordination** itself: an explicit `and`/`or`/`then` after a comma, dash
+// or semicolon, inside a sentence that is doing the asking. On the corpus of 2026-09-26 that is
+// clean on 94 of 104 with every one of the 10 flags genuine. Two restrictions earn that precision
+// and neither is optional:
+//
+//   - the coordinator must be explicit. A bare comma is usually a fronted adverbial — "Before you
+//     change anything, how would you see what they are seeing?" — which is one ask, not two.
+//   - it must be inside a sentence that asks. "Sign-up sometimes takes four seconds, and when the
+//     email provider is having a bad day the user gets an error" is scenario prose; without this
+//     restriction `email-in-the-request` is an eleventh flag and a false one.
+//
+// A prompt that genuinely needs two halves does not get an escape hatch here: the second half is
+// what `planned_follow_ups` is for, and it reaches exactly the candidate who did not volunteer it.
+//
+// One accepted exception exists and needs no code, which is the point of recording it here (owner's
+// decision, 2026-09-26; `docs/progress/2026-09-26-m3-second-paid-run.md` §5.2). `api-list-that-grew`
+// opens "What is going wrong, and for whom? Take me through it." — one diagnosis with two sides,
+// one criterion, answered in one breath — and this rule does not flag it, because the coordinator is
+// followed by `for` rather than by an interrogative. **Do not widen the rule until it does.** The
+// exception is that shape and not a licence for a second clause asking a second criterion, which
+// stays an error. (`interview/asks.py` counts the same prompt as two asks, deliberately: that number
+// is the ceiling the phrasing guard compares a model's rephrasing against, not a house-style verdict.)
+
+const COORDINATED_ASK =
+  /[,;—–]\s*(?:and|or|then)\s+(?:what|why|how|where|when|which|who|would|should|could|do|does|did|is|are|can|will|tell|walk|talk|take|explain|describe)\b/gi;
+/** A sentence that is doing the asking, rather than setting the scene. */
+const ASKING_SENTENCE =
+  /\?\s*$|\b(tell|walk|talk|take|give|write|show)\s+me\b|\b(explain|describe|diagnose)\b/i;
+
+const sentencesOf = (text) =>
+  String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.?!])\s+/)
+    .filter(Boolean);
+
+/** Every second ask coordinated onto a first one, as the fragment that gives it away. */
+function coordinatedAsks(prompt) {
+  return sentencesOf(prompt)
+    .filter((sentence) => ASKING_SENTENCE.test(sentence))
+    .flatMap((sentence) => sentence.match(COORDINATED_ASK) ?? []);
 }
 
 // ------------------------------------------------------------------------------------------- //
@@ -649,6 +733,18 @@ for (const question of questions) {
         `${criteria} criteria in \`${question.rubric}\`, and only ${asks + probes} asked for — the prompt asks ${asks} thing${asks === 1 ? "" : "s"} and ${probes} ${probes === 1 ? "criterion has" : "criteria have"} a planned follow-up. Every criterion needs one or the other, or it charges for something the candidate was never asked`,
       );
   }
+
+  /*
+   * And the ceiling on the same rule: the opening asks ONE thing. See "The second ask hung off the
+   * first" above for why this is a different check from the arithmetic and not a tightening of it.
+   */
+  if (typeof question.prompt === "string")
+    for (const fragment of coordinatedAsks(question.prompt))
+      error(
+        question.file,
+        at,
+        `the opening hangs a second ask off the first at "${fragment.trim()}" — one prompt asks one thing, and the second half belongs in a \`planned_follow_ups\` probe, where it reaches the candidate who did not volunteer it`,
+      );
 
   /*
    * A planned follow-up names the criterion it probes by position, so the position has to exist —

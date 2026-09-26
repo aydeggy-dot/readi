@@ -29,6 +29,7 @@ from readi_worker.cv.extract import DOCX, PDF
 from readi_worker.cv.parse import CvParser
 from readi_worker.llm.anthropic_client import AnthropicLLMClient
 from readi_worker.llm.pricing import has_price
+from readi_worker.tracing import NullTracer
 
 CONTENT_TYPES = {".pdf": PDF, ".docx": DOCX}
 REPORT_DIR = Path(__file__).parents[2] / ".cv-compare"
@@ -89,6 +90,9 @@ async def _compare_file(
     request = CvParseRequest.model_validate(
         {
             "request_id": str(uuid.uuid4()),
+            # A local tool run by staff on their own files: there is no account behind it, and the
+            # id only ever reaches a Langfuse trace, which this tool does not make.
+            "user_id": str(uuid.uuid4()),
             "content_type": CONTENT_TYPES[path.suffix.lower()],
             "file_base64": base64.b64encode(data).decode(),
             "target_role_label": role,
@@ -150,7 +154,7 @@ async def main(argv: list[str] | None = None) -> int:
 
     keys = _Keys()  # read from the environment / .env
     llm = AnthropicLLMClient(keys.anthropic_api_key.get_secret_value(), timeout_s=120)
-    parsers = {model: CvParser(llm, model) for model in models}
+    parsers = {model: CvParser(llm, model, NullTracer()) for model in models}
 
     header = (
         f"  {'model':<22} {'status':<24} {'time':>7} {'in':>7} {'out':>6} {'cost':>9}"

@@ -14,6 +14,7 @@ import { CvModule } from "./cv/cv.module";
 import type { Env } from "./config/env";
 import { EnvModule } from "./config/env.module";
 import { HealthModule } from "./health/health.module";
+import { InterviewsModule } from "./interviews/interviews.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
@@ -45,6 +46,7 @@ export class AppModule {
         ConsentsModule,
         CvModule,
         ContentModule,
+        InterviewsModule,
         AccountModule,
         AdminModule,
       ],

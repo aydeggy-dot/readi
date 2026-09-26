@@ -8,7 +8,7 @@ see the checklist at the end.
 Status: **M1**. Nothing here is a legal opinion; this file is what the system actually does, which is
 what legal review needs as input.
 
-Last reviewed: 2026-09-21 (M2 phase 3: Voyage AI wired, still disabled).
+Last reviewed: 2026-09-26 (M3 phase 5: Langfuse wired, still disabled — no keys anywhere yet).
 
 ## In use today
 
@@ -33,6 +33,7 @@ They become subprocessors the moment they are enabled in an environment that ser
 | **Sentry** | Error reporting | Error events with **no** request bodies, cookies or secret headers, and no stack-frame locals. All three SDKs are configured that way and each has a test. `sendDefaultPii: false` alone does **not** do this in the JavaScript SDKs — the HTTP integration captures bodies unless `maxIncomingRequestBodySize: "none"` is set, which is why every event also goes through a scrubber. User ids only |
 | **PostHog** | Product analytics (M9) | Opaque user ids and event names |
 | **Voyage AI** | Embeddings for question near-duplicate detection and, later, question retrieval (ADR-0006) | **No personal data.** Only the text of our own questions — a prompt and its setup — written by content experts. No candidate answers, no account ids. Off until `EMBEDDING_PROVIDER=voyage` and a key are set; the default fake provider reaches no third party (see `docs/runbooks/embeddings-switchover.md`) |
+| **Langfuse Cloud (EU)** | LLM tracing: the prompts and answers behind CV parsing and every interview turn, for prompt debugging and M4's evals. Treated as a **personal-data store**, not a log sink (ADR-0008) | The prompt and the model's answer, which means CV text and candidate answers; plus the opaque `user_id` and `session_id`, the model, the token counts and the latency. Emails, phone numbers, URLs and street addresses are masked in the worker before anything is sent. **No name, no email, no phone number, no account email.** Off until `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are both set; without them nothing is constructed and nothing is sent |
 
 ## Planned, by milestone
 
@@ -43,18 +44,21 @@ Add each to the table above — with its region and retention — in the milesto
 | LiveKit Cloud | Real-time audio for voice interviews | M5 |
 | Deepgram (or AssemblyAI) | Speech to text | M5 |
 | ElevenLabs (or Cartesia) | Text to speech | M5 |
-| Langfuse (EU) | LLM tracing; treated as a personal-data store (ADR-0008) | M3 |
 | Paystack | Payments in Naira | M8 |
 | Stripe | Payments in USD | M8 |
 | Meta (WhatsApp Cloud API) | Reminders on WhatsApp | Phase 2 |
 
 ## What we promise users about these
 
-- **Deletion reaches them.** Account erasure removes the CV file from object storage and, once
-  Langfuse is enabled, the user's traces (ADR-0008, ADR-0011). Email and SMS providers keep only
-  delivery logs, which age out on their own schedule.
-- **We send the minimum.** The worker receives a CV and the target role — never the account's name,
-  email, phone or id (ADR-0004). AI calls are recorded locally as cost rows without content (ADR-0007).
+- **Deletion reaches them.** Account erasure removes the CV file from object storage and the
+  user's LLM traces (ADR-0008, ADR-0011) — both **before** the database transaction, so a failure
+  retries the whole erasure rather than stranding data nothing can find. Traces also age out on
+  their own, after `LANGFUSE_RETENTION_DAYS` (30), on the same hourly sweep. Email and SMS
+  providers keep only delivery logs, which age out on their own schedule.
+- **We send the minimum.** The worker receives a CV or an answer, the target role, and two opaque
+  uuids (the account and the session) — never a name, an email or a phone number (ADR-0004). The
+  ids exist so that a trace can be found and deleted again (ADR-0008); nothing renders them into a
+  prompt. AI calls are recorded locally as cost rows without content (ADR-0007).
 - **No training on candidate data.** Providers are chosen so that inputs are not used to train their
   models; check this at renewal, not just at signup.
 - **Uploads that are never confirmed** sit under `cv-uploads/<upload id>` rather than a per-user

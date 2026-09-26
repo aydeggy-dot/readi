@@ -49,6 +49,7 @@ class AnthropicLLMClient:
         user: str,
         output_type: type[T],
         max_tokens: int,
+        timeout_s: float | None = None,
     ) -> LLMResult[T]:
         start = time.perf_counter()
         # Structured output via the documented `output_config.format` with the SDK's public schema
@@ -60,8 +61,10 @@ class AnthropicLLMClient:
         if effort := MODEL_EFFORT.get(model):
             output_config["effort"] = effort
         messages: list[MessageParam] = [{"role": "user", "content": user}]
+        # A shallow copy of the client with its own deadline; the connection pool is shared.
+        client = self._client if timeout_s is None else self._client.with_options(timeout=timeout_s)
         try:
-            response = await self._client.messages.create(
+            response = await client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
                 system=system,

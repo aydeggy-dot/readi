@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { grantRole, uniqueEmail } from "./helpers";
+import { E2E_PASSWORD, grantRole, signUpAndOnboard, uniqueEmail } from "./helpers";
 
 /**
  * Page weight and load time on a throttled connection (CLAUDE.md §5: mobile-first, low bandwidth).
@@ -69,7 +69,7 @@ test.describe("on a Slow 4G connection", () => {
     const email = uniqueEmail();
     await page.goto("/signup");
     await page.getByRole("textbox", { name: "Email" }).fill(email);
-    await page.getByRole("textbox", { name: "Password" }).fill("correct horse battery staple");
+    await page.getByRole("textbox", { name: "Password" }).fill(E2E_PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await page.waitForURL(/\/onboarding\/profile$/);
     grantRole(email, "content_expert");
@@ -84,6 +84,49 @@ test.describe("on a Slow 4G connection", () => {
 
     try {
       for (const { path, name } of SIGNED_IN_PAGES) {
+        const { loaded, kb } = await measure(coldPage, path);
+        console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
+        expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
+        expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
+      }
+    } finally {
+      await cold.close();
+    }
+  });
+
+  /**
+   * The interview screen is the one a candidate sits on for fifteen minutes, on their own data, so
+   * its weight matters more than any other page in the product. It has its own test because it
+   * needs a live session: the id is only known once one exists, and the screen has to be *started*
+   * before it is measured or the figure is for an empty transcript nobody ever sees.
+   *
+   * It is also where the budget could quietly go: no markdown renderer on this route, and Monaco,
+   * MediaPipe and LiveKit are all still ahead of us (CLAUDE.md §5).
+   */
+  test("the interview screen on a phone connection", async ({ page, browser }) => {
+    await signUpAndOnboard(page);
+    await page.getByRole("button", { name: "Start the diagnostic" }).click();
+    await page.waitForURL(/\/interview\/[0-9a-f-]{36}$/);
+    const url = new URL(page.url()).pathname;
+    // Started, and with one answer in it, so the measured page is a transcript rather than a stub.
+    await expect(page.getByText("Question 1 of 4")).toBeVisible({ timeout: 60_000 });
+    await page.getByRole("textbox", { name: "Your answer" }).fill("We split it into two services.");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Sending…" })).toHaveCount(0, {
+      timeout: 60_000,
+    });
+
+    const cold = await browser.newContext({ storageState: await page.context().storageState() });
+    const coldPage = await cold.newPage();
+    const client = await cold.newCDPSession(coldPage);
+    await client.send("Network.enable");
+    await client.send("Network.emulateNetworkConditions", SLOW_4G);
+
+    try {
+      for (const { path, name } of [
+        { path: "/practice", name: "Practice list" },
+        { path: url, name: "interview screen" },
+      ]) {
         const { loaded, kb } = await measure(coldPage, path);
         console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
         expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);

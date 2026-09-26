@@ -159,7 +159,7 @@ questions:
     difficulty: 3
     prompt: >-
       Two components on the same page need to know which job the user has selected: a list on the
-      left and a detail panel on the right. Where would you keep that selection, and why there?
+      left and a detail panel on the right. Where would you keep that selection? Take me through it.
     context: null
     rubric: state-placement-reasoning
     ideal_points:

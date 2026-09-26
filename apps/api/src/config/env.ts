@@ -65,7 +65,24 @@ export const EnvSchema = z
     // AI worker (ADR-0004): internal URL and the shared service token (worker SERVICE_TOKEN).
     AI_WORKER_URL: z.url({ protocol: /^https?$/ }).default("http://127.0.0.1:8000"),
     AI_WORKER_TOKEN: z.string().min(32, "must be at least 32 characters"),
+    /*
+     * Re-checked for the interview engine, which chains **two** model calls in one exchange (the
+     * coverage judgement, then phrasing the follow-up it chose). The worker bounds each of them at
+     * `INTERVIEW_LLM_TIMEOUT_S` = 45 s, so the normal worst case is 90 s and this leaves room for
+     * one retry of one of them. It is deliberately not sized for the pathological case — three
+     * invalid outputs on both calls — because an exchange is all-or-nothing: the API giving up
+     * costs a wasted call and a replay, not a session, and 150 s is already longer than a candidate
+     * should ever be asked to watch a spinner.
+     */
     AI_WORKER_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(150_000),
+
+    /*
+     * How often the interview stream repeats its `thinking` frame while a model call is in flight
+     * (ADR-0016). It keeps whatever sits between the API and a Nigerian mobile browser from
+     * dropping a connection it thinks is idle, and it tells the screen the difference between
+     * "still composing" and "we have lost you" — which a bare SSE comment cannot.
+     */
+    INTERVIEW_SSE_HEARTBEAT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),
 
     // Cosine similarity above which two questions are reported as near-duplicates (ADR-0006).
     // A warning to a content expert, never a refusal, so it is tuned rather than argued about.

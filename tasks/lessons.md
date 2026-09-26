@@ -301,3 +301,386 @@ Two things to keep:
   seeding is out of date silently narrows to whatever it can still get to — here, nothing at all,
   which at least failed loudly. A partial failure would have been worse: a "before/after" review of
   a subset nobody noticed had shrunk.
+
+## `prisma migrate dev` after `--create-only` stops on a prompt, and the error you see is the wrong one (M3 phase 1, 2026-09-25)
+
+CLAUDE.md says to generate with `--create-only`, edit the SQL, then apply. Applying it with a
+second `prisma migrate dev` is what I did, and it hung — silently, for the rest of the session.
+
+The reason is the hand-written HNSW index. Prisma cannot see an index over an `Unsupported`
+column, so the schema and the shadow database **never** agree: every `migrate dev` diffs them,
+finds an index it wants to drop, and asks `Enter a name for the new migration:`. With stdin at
+`/dev/null` it waits for ever, holding `pg_advisory_lock(72707369)` the whole time. The previous
+session had left exactly such a process running for **twenty hours**.
+
+The damage is in the next run, not this one. It fails with
+`P1002 … The database server was reached but timed out`, which reads like Postgres being unwell and
+sends you to `docker ps` and connection settings. The lock is held by an `idle` backend whose client
+died; `select * from pg_locks where locktype='advisory'` names the pid, and terminating it frees it.
+
+**The rule:** `--create-only`, edit, then **`prisma migrate deploy`** — it applies pending
+migrations without diffing, so it cannot prompt. And when a Prisma command times out talking to a
+database that is plainly up, look for an advisory lock before looking at the database.
+
+## A test that borrows catalogue rows passes only on a warm database (M3 phase 1, 2026-09-25)
+
+`content-seed.int.spec.ts` builds a temporary seed directory whose question says
+`roles: [frontend]`, `levels: [mid]` — rows no file in that directory defines. The importer resolves
+them from the database, so the block passed for as long as some other spec, or some earlier run, had
+imported the real corpus first. On a genuinely empty database — which is what CI creates — thirteen
+tests failed with `SeedReferenceError: … names role frontend, which no seed file defines`.
+
+This was true on `main` before M3 touched anything. I found it only because M3's schema change made
+me drop `readi_test`, and a warm database had been hiding it since M2.5.
+
+**The rule:** the M2.5 lesson ("a test that names content it does not create is borrowing") has a
+second half — **drop the test database and run the suite before believing it is green.** A suite
+that has only ever run against a database with history in it is a suite with an unknown number of
+these. The fixture now defines its own role and level, and borrows nothing.
+
+## A leak-test control has to widen the schema, not add a field (M3 phase 1, 2026-09-25)
+
+To check that the widened answer-key test really covers the interview routes, I added a `debug`
+field carrying the pinned snapshots to the session response — and the test passed. `ZodSerializerDto`
+had stripped it before it reached the wire.
+
+That is the serializer doing its job, and it is worth knowing it is there. But it means a negative
+control of that shape proves nothing about the detector. The control that works is the mistake that
+would really happen: **widen the candidate schema** — I added `planned_follow_ups` to
+`CandidateSessionQuestion` and to its mapper — and then the test failed on both counts, the marker
+text and the field name, exactly as the content half does.
+
+**The rule:** to prove a leak test works, make the leak the way a careless change would make it. An
+undeclared field is not that way; a wider contract is.
+
+## One candidate per test when the endpoint is rate-limited (M3 phase 1, 2026-09-25)
+
+`interviews.int.spec.ts` shared one signed-in candidate across the file. Starting an interview is
+capped at six an hour, so the seventh `start()` in the file returned 429, the test read `.body.id`
+off an error body, and the failure surfaced three tests later as a request to
+`/api/interviews/undefined` — a 400 about a uuid, pointing at nothing that was wrong.
+
+**The rule:** a spec against a rate-limited route mints a fresh principal per test, and its
+helpers throw on an unexpected status rather than returning a body to be indexed into. `startOk`
+now says `starting an interview failed: 429 …`, which is the sentence that would have saved the
+detour.
+
+## The sixth `DROP INDEX` was in a one-line enum migration, so the guard is a test now (M3 phase 2, 2026-09-25)
+
+`prisma migrate dev --create-only` for `ALTER TYPE "ai_call_purpose" ADD VALUE 'coverage'` — a
+migration that touches no table at all — generated this:
+
+```sql
+ALTER TYPE "ai_call_purpose" ADD VALUE 'coverage';
+DROP INDEX "questions_embedding_hnsw";
+```
+
+That is the **sixth** time. CLAUDE.md has warned about it since M2, `tasks/lessons.md` has warned
+about it since M2.5, and it keeps arriving because the warning asks a person to notice something in a
+file they are about to apply without reading, in a migration that has nothing to do with `questions`.
+
+`apps/api/src/prisma/migration-sql.spec.ts` now reads every committed `migration.sql` — no database,
+no fixtures — and fails on a migration that drops a hand-written index, or a column such an index is
+built over, without recreating it in the same file. `content-schema.int.spec.ts` stays as the backstop
+in a migrated database; this one catches it a step earlier and says which file and what to delete.
+
+**The rule:** a mistake that has been made more than twice is not a thing to remember, it is a thing
+to fail the build. And a guard for a silent loss earns its place by being watched fail: both halves
+were — the `DROP INDEX` line re-added, and an `ALTER TABLE "tracks" DROP COLUMN "role_id"`, which is
+the M2.5 shape that Prisma proposes nothing for.
+
+## A nullable constrained field generates a Pydantic class named after the field (M3 phase 2, 2026-09-25)
+
+`InterviewAdvanceRequest.text` was a bare `z.string().min(1).max(8_000).nullable()`. Because a
+_nullable_ constrained string cannot be an annotated `str`, datamodel-codegen hoists it into a
+RootModel — and names it from the field, so it emitted `class Text(RootModel[str])`. `EmbedRequest.texts`
+already generates a class called `Text`, with the same limits today by coincidence.
+
+So two unrelated contracts shared one generated class, and would have quietly split into `Text` and
+`Text1` the day `EMBEDDING_LIMITS.textMaxLength` or `INTERVIEW_LIMITS.answerMaxLength` moved — breaking
+whichever module had imported the one that got renamed. Neither the registry's id check nor the
+generator's `addDef` conflict check sees this: both only look at **named** `$defs`.
+
+**The rule:** give a nullable constrained field its own `.meta({ id })` (it became `CandidateText`).
+More generally, after `pnpm gen:contracts`, read the generated Python for class names the schema did
+not ask for — a name invented from a field is a name two schemas can collide on.
+
+## One field, two meanings, and the engine answered the candidate's answer (M3 phase 2, 2026-09-25)
+
+`EngineState.pending_text` held "the thing the candidate just said". It is read in exactly one place:
+`CANDIDATE_QUESTIONS`, where the engine has to hold on to their question in order to answer it. But
+`take_answer` set it for every answer, so the moment a question's follow-ups were done and the engine
+moved into `CANDIDATE_QUESTIONS`, it found a pending utterance — the candidate's _interview answer_ —
+and answered it as though it had been a question put to the interviewer.
+
+The transition-table tests caught it on the first run, which is the argument for writing the machine
+as `(state, event, now) -> state` with no I/O in it: the failure was three lines of expected steps
+rather than a strange turn in a session somebody had to read.
+
+**The rule:** name a field for the one thing it is read as, and set it only where that thing is true.
+"The last utterance" and "a question the candidate asked" are different claims, and a field that
+answers both answers neither.
+
+## A rule phrased as "never, anywhere" breaks the day something legitimately speaks it (M3 phase 3, 2026-09-25)
+
+`content-no-answer-key.int.spec.ts` treated a question's planned follow-ups as answer key and
+forbade them in every candidate response. That was exactly right until phase 3 built the route that
+**asks** one: the interviewer speaks the probe, so the candidate hears it, and the leak test failed
+on the fixture's own marker.
+
+The tempting fixes are both wrong. Dropping probes from the marker list would have removed the check
+that stops a probe leaking through a question's `context`, or through a question the session has not
+reached — which is the leak that matters, because it tells a candidate what is coming. Adding an
+exception for "the interview routes" would have exempted the surface with the most to leak.
+
+What it became: a probe may appear inside the `text` of a turn an **interviewer has spoken**, and
+nowhere else in any payload — counted, so one occurrence in the right place and one in the wrong
+place still fails. The fixture now carries `plannedFollowUpMarkers` separately from
+`answerKeyMarkers`, because the two obey different rules.
+
+**The rule:** when a safety-net test fails because the product legitimately started doing the thing,
+narrow the assertion to the one case that is now allowed — do not delete the assertion, and do not
+exempt the route. A rule with a stated exception is still a rule; a rule with a route-shaped hole in
+it is not. And the fixture is the right place for the distinction, because a marker list that means
+two different things will eventually be used for the wrong one.
+
+## Two pieces of Next can buffer a stream, and only a production build answers the question (M3 phase 3, 2026-09-25)
+
+The interview screen reads whole-turn frames over SSE, and the browser reaches the API through
+Next's `/api/*` rewrite — so every frame passes `proxy.ts` (which matches `/api/:path*`) **and** the
+rewrite, and `next dev` and `next start` are different code paths. None of that is worth guessing at
+after a screen has been written against it.
+
+`scripts/sse-rewrite-proof.mjs` is the answer: a stub origin that emits five frames 300 ms apart, a
+production `next start` in front of it, and a client that times each arrival. They arrived at 330,
+625, 926, 1226 and 1527 ms, with no `content-length` and `transfer-encoding: chunked`. It is
+committed rather than written up, because a Next upgrade could change it and a note cannot fail.
+
+Two details cost time and are worth keeping:
+
+- **`server.close()` waits for keep-alive connections**, so the script hung after reporting — and
+  because its output was piped through `tail`, nothing was printed at all and it looked like the
+  build was still running. `closeAllConnections()` first.
+- **`pnpm exec next start` leaves `next-server` as a grandchild.** Killing the child leaves it
+  holding the script's stdout pipe open for ever. Spawn `detached: true` and kill the process group.
+
+**The rule:** prove a transport before building on it, with the smallest thing that can answer the
+question — here a stub origin, not the real API — and commit the proof as a script. And when a
+long-running script goes quiet, suspect the pipe before suspecting the work.
+
+## A guard that outlives what it guards: the abort that stopped the interview starting (M3 phase 4, 2026-09-25)
+
+The interview screen starts itself — a session with no turns is one nobody has started, so the first
+thing it does is send `start`. The first time it ran in a browser, nothing happened: the header and
+the progress strip drew, the transcript stayed empty, and the network panel said the request was
+`net::ERR_ABORTED`.
+
+Three separate refs were doing one job badly:
+
+- `inFlight` (a boolean) said an exchange was running;
+- `abort` held the controller;
+- `autoStarted` (a boolean) said the start had been attempted.
+
+React runs effects twice in development — mount, unmount, mount — so the cleanup aborted the start,
+and the second mount found `autoStarted` still `true` and did nothing. Refs survive the simulated
+unmount; the request did not. A screen that had cancelled its own start and would never try again.
+
+The second half of the same bug showed up in a screenshot later: because `inFlight` and `abort` were
+separate, an exchange aborted while the component stayed mounted (a Fast Refresh, an effect whose
+deps changed) returned to a completion path that took `abort.current !== controller` as "somebody
+else owns the screen" and returned early — leaving the composer saying "Sending…" and the spinner
+turning for ever.
+
+What it became:
+
+- **The controller _is_ the guard.** `if (abort.current) return` refuses a second exchange, and the
+  one place that clears it is the one place that aborts it. A boolean that can disagree with the
+  controller will.
+- **The flags come down whatever happened.** `setBusy(false)` and `setThinking(false)` run before
+  the "was this still mine?" check; only _routing_ and _reporting a failure_ are skipped for a
+  superseded exchange. If the component really went, React ignores the writes.
+- **The start guard records which session it started**, and is cleared by the unmount cleanup — so a
+  re-render cannot start the interview twice, and a remount that has just aborted the first attempt
+  can.
+
+**The rule:** when a cleanup cancels work, every flag that describes that work has to be reachable
+from the cancel path. Guards and handles for one operation belong in one ref — and the test for
+whether you have got it right is not "does it work", it is "does it still work after React mounts
+it twice".
+
+## The React Compiler lint rules were right about the clock and the draft (M3 phase 4, 2026-09-25)
+
+`react-hooks/set-state-in-effect` and `react-hooks/purity` rejected three things at once: a ticking
+timer implemented as `setState` in an interval, a `sessionStorage` draft copied into state on mount,
+and `Date.now()` called in a render.
+
+The temptation was to reach for an `eslint-disable` and a sentence about how a one-shot read from
+storage is benign. Both are external stores, and saying so removed a real defect rather than a lint
+error: the draft had been living in **two** places — React state and `sessionStorage` — kept in step
+by hand, which is the shape that eventually loses somebody's answer. `useSyncExternalStore` over
+storage leaves one copy, and it makes the server snapshot (`""`) the honest one, so there is nothing
+for hydration to disagree about.
+
+The clock is the same argument: one module-level interval, shared by every subscriber, with the
+server's `now` passed down as the floor so the first paint of a countdown is right rather than blank.
+
+Reading the clock in an async **server** component is fine and the rule is about client re-renders —
+so it goes through a named helper (`serverNow()`, beside `todayIsoDate()`), which says what it is for
+at the call site.
+
+**The rule:** when the React Compiler rules reject a hook, ask what external system is being mirrored
+before asking how to silence them. Twice out of three here the rule was pointing at a second copy of
+the truth.
+
+## A passing report is not a check (the first paid interview run, 2026-09-26)
+
+The run produced no follow-ups and openings that asked three or four things at once. One cause, and it
+was in the database, not the code: the dev database held **published** rows from before the bank was
+rewritten, and the importer was correctly refusing to update them (ADR-0014 decision 5). The session
+pinned three-ask prompts with an empty probe menu, and the engine did exactly the right thing with an
+empty menu.
+
+What makes this a lesson rather than an accident is that **we had been told.** The dry run before that
+session printed `questions: 73 to update` and named 31 more under "left alone — published, and
+candidates are reading them". It was read. It exited 0, so the run went ahead. Prose in a command that
+succeeds is advisory, and advisory output loses to momentum every time.
+
+**The rule:** anything that costs money or takes a person's time gets a **check with an exit code** in
+front of it, not a report. `pnpm db:seed -- --check` is that check now. When you find yourself writing
+a more strongly worded warning, write an exit code instead.
+
+## Diagnose from the artefact, not from the last diagnosis (2026-09-26)
+
+The note written straight after that run named a third cause: "the openings ask what the probes were
+written to ask, so even with the bank repaired no follow-up will fire". It was wrong, and wrong in a
+way worth remembering — it compared the **new** probes against the **stale pinned** opening. Against
+the live one-ask opening the same two probes are exactly complementary.
+
+A pinned snapshot and the file it came from look interchangeable and are not; that is the entire point
+of pinning. Re-reading the database rather than the note also found the real residue — ten openings
+still hanging a second ask off the first — which the earlier note had not looked for because it
+believed the problem was already explained.
+
+**The rule:** when a previous session's note explains a failure, re-derive the explanation from the
+artefact before building on it. Especially where the artefact is a snapshot: ask "which copy is this,
+and what was it a copy of?" before comparing it with anything.
+
+## A lexical rule can be a floor or a ceiling, rarely both (2026-09-26)
+
+`countAsks` in `check-bank.mjs` has counted interrogatives since the QA bank, as a floor: _enough_
+things are asked for to justify the criteria. Asked to reuse it as a ceiling — the opening asks _at
+most_ one thing — it was useless: it reports more than one ask for 56 of 104 openings that ask exactly
+one thing, because relative pronouns ("accounts **where** money left one") and existentials ("the
+check that **is there**") read as asks. Two passes at sharpening it moved 48 clean to 50.
+
+Over-counting is harmless in a floor and fatal in a ceiling. The ceiling needed a different, narrower
+signal — coordination, an explicit `and`/`or`/`then` after a comma inside a sentence that asks — which
+is clean on 94 of 104 with every flag genuine. The same crude counter is still exactly right for the
+runtime guard, because there it compares two near-identical texts and its false positives appear on
+both sides and cancel.
+
+**The rule:** before reusing a heuristic on the other side of an inequality, measure its false
+positives against the corpus. A heuristic is not a measure of the thing; it is a measure with a bias,
+and which direction the bias hurts depends on which way the comparison runs.
+
+## A prompt rule that has never been tested is a hope (2026-09-26)
+
+`interview_question.v1.md` said "do not narrow it, broaden it, split it in two". The paid run's four
+openings gained a framing sentence and no ask, which read as the rule holding. It was not evidence:
+every opening in that session already asked three or four things, so there was nothing left to add.
+The case the rule exists for — a one-ask opening the model could helpfully expand — had never run.
+
+It is an invariant now, in `calls.speak`, which is a better place for it: the failure mode is
+detectable in code, the fallback to the pinned wording already existed for a model that will not
+answer, and the test drives it from the model's side with a scripted client, offline and free.
+
+**The rule:** when an instruction to a model protects something that matters, ask what would happen if
+it were ignored, and whether code could notice. If code can notice, the instruction stays _and_ the
+code checks. And be suspicious of evidence gathered where the failure was impossible.
+
+## "The database matches the files" has two halves, and I only checked one (2026-09-26)
+
+`pnpm db:seed -- --check` was written to stop a stale dev database being interviewed against. It
+walked every seed file, asked the database what it held for each named slug, and reported the
+differences. The second paid run was then conducted against a **cut** question: `api-error-shape` had
+been removed from the backend bank the day before, its row stayed `published`, and a session selected
+it, pinned its pre-retrofit two-ask opening and asked it. `--check` said "the database matches
+content/seed".
+
+It was not wrong about anything it looked at. It looked at rows the files _name_, and the whole defect
+was a row they had stopped naming — invisible by construction. The importer never deletes, on purpose,
+so "dropped from the files" is a state that exists and nothing was watching it.
+
+**The rule:** a check that compares two sets has to be written in both directions, and the second one
+is the one that gets forgotten because there is nothing in hand to iterate over. After writing "for
+each X in the files, is the database right?", write "for each X in the database, do the files still
+know about it?" — and if the answer is legitimately "sometimes no", say which cases are allowed rather
+than skipping the question.
+
+## An over-counting heuristic is fine; an asymmetric one is a bug (2026-09-26)
+
+Yesterday's lesson said to measure a heuristic's false positives before reusing it on the other side
+of an inequality, and I did. What I did not check was whether the counter treated **the same meaning
+written two ways** the same, which is the only property the runtime guard actually needs: it compares
+the bank's wording with the model's rephrasing of it and rejects the rephrasing if the count goes up.
+
+Two words broke it. `whom` was not in the interrogative list, so "and for whom?" counted zero and the
+model's "and who it affects" counted one. `whether` was in it, so a model writing "whether that was at
+work or on your own" appeared to add an ask. Both rejections were faithful rephrasings; the guard threw
+them away three times each, spoke the pinned wording, and the interview lost its transitions. Four
+paid calls and two visible defects, from a vocabulary list.
+
+**The rule:** when a heuristic is used to compare two texts rather than to judge one, the property to
+test is **invariance**, not accuracy. Write the pair — the original and a faithful rewrite — as a
+fixture and assert they agree. The shared vector file now has those pairs in it, labelled as
+asymmetries rather than as examples.
+
+## The model cannot remember, so stop asking it to (2026-09-26)
+
+Twice in two runs, the same shape. The interviewer repeated its transitions, because each phrasing call
+is independent and is never sent the turns before it. Then, fixed for transitions, it repeated "there's
+no real company behind this" in front of every answer to a candidate's question — because the prompt
+tells it to say so when it cannot answer about a real employer, and every call is the first call as far
+as the model knows.
+
+Both times the temptation was to write a better instruction ("vary your transitions", "only say this
+once"). Both times the instruction is unimplementable: there is nothing in the call to vary from or to
+count. The fixes were structural — the engine chooses the connective, and the disclaimer moves to the
+invitation, which the state machine speaks exactly once before any answer.
+
+**The rule:** before writing "don't repeat yourself" into a prompt, check what that call is actually
+shown. If the information needed to obey is not in the call, the instruction is decoration, and the
+answer is either to put the information in or to move the decision into code.
+
+## A shared test database makes a test lie in both directions (2026-09-26, M3 phase 6)
+
+The e2e database is created once and migrated, never dropped. The e2e interview spec interviewed for
+backend/mid off the shipped bank, and its "answering incompletely earns exactly two follow-ups"
+assertion passed and failed at random — because `content.spec.ts` publishes a question into that exact
+pair on every run, with **no planned follow-ups**, and question selection cannot tell a fixture from
+the bank. A question with no probes can never produce a follow-up.
+
+That was the visible half. The invisible half was worse: the importer never publishes and the
+catalogue setup publishes only the catalogue, so in a **fresh** e2e database no question is published
+at all and no interview can start. Nothing had noticed, because those leftovers were always there. The
+same leftovers were what the interview screenshots had been photographing — "A report page takes
+\*\*nine seconds\*\* to load … d2571bd2", literal asterisks and a uuid fragment, presented as the
+product's sample content.
+
+**The rule:** a test that needs particular content must create it, not find it. And when a shared
+fixture store is never reset, ask what the suite would do on an **empty** one — that is the question
+that finds the setup step nobody wrote, and the answer is usually that some other spec has been
+holding the door open.
+
+## "Flaky test" is a diagnosis, and it needs evidence like any other (2026-09-26, M3 phase 6)
+
+`interviews-advance.int.spec.ts` occasionally refused a plainly sequential request with
+`interview_busy`. It was written up twice as a flake whose fix belonged in the test fixture. Under the
+load of a whole-monorepo `pnpm test` it happened twice in one run, which was enough to look properly:
+closing the SSE stream is what tells the client the exchange is over, and the lock was released on the
+line _after_. Any client that sends its next request the moment the stream closes — a script, a test,
+M5's agent — meets a lock the exchange has already finished with.
+
+**The rule:** "flaky" names a symptom. Before writing it down as one, say which two things are racing
+and why the product is safe. If the answer is "the test is too fast", ask what a real client that fast
+would see — here it would have seen a 409 in production.

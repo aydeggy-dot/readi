@@ -28,6 +28,7 @@ class ScriptedLLMClient:
         user: str,
         output_type: type[T],
         max_tokens: int,
+        timeout_s: float | None = None,
     ) -> LLMResult[T]:
         self.calls.append({"model": model, "system": system, "user": user})
         step = self._steps.pop(0)
@@ -73,6 +74,7 @@ class FunctionLLMClient:
         user: str,
         output_type: type[T],
         max_tokens: int,
+        timeout_s: float | None = None,
     ) -> LLMResult[T]:
         output = output_type.model_validate(self._build(system, user).model_dump())
         return LLMResult(

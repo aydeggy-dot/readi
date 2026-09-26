@@ -26,7 +26,9 @@ cp apps/web/.env.example apps/web/.env.local
 # In apps/api/.env set BETTER_AUTH_SECRET, the same WEB_PROXY_SECRET in api and web, and the same
 # value as AI_WORKER_TOKEN (api) and SERVICE_TOKEN (ai-worker). Generate each with:
 openssl rand -base64 48
-# CV parsing: ANTHROPIC_API_KEY in apps/ai-worker/.env, or LLM_PROVIDER=fake to work without one.
+# AI calls are off by default: the worker ships LLM_PROVIDER=fake, which answers from a keyword
+# stand-in and costs nothing. Put ANTHROPIC_API_KEY in apps/ai-worker/.env to be able to arm a
+# real run — see "Paid AI runs" below — and leave LLM_PROVIDER saying fake.
 
 # 3. Dependencies, database and storage
 pnpm install
@@ -51,6 +53,31 @@ Profile → **Your data and account** downloads everything we hold about you, or
 (7-day grace period, ADR-0011); support cancels a deletion with
 `pnpm --filter @readi/api admin:cancel-deletion -- --email <their address>`.
 API docs (development only): http://localhost:4000/docs.
+
+## Paid AI runs
+
+`apps/ai-worker/.env` says `LLM_PROVIDER=fake`, and that is the resting state of the stack (owner's
+decision, 2026-09-26). An interview costs real money per run, a dev worker is left running for days,
+and nothing on the screen says which provider answered — so the default is free and a paid run is
+**armed on the command line, for the length of that run**, with the key left in the file:
+
+```bash
+cd apps/ai-worker
+LLM_PROVIDER=anthropic uv run python -m readi_worker
+# or, to pick the interviewer model for that run:
+LLM_PROVIDER=anthropic LLM_MODEL_INTERVIEWER=claude-sonnet-5 uv run python -m readi_worker
+```
+
+Stop it and the next `pnpm dev:worker` is free again. (`LLM_PROVIDER` is in `turbo.json`'s
+`passThroughEnv`, so `LLM_PROVIDER=anthropic pnpm dev:worker` works too; an environment variable
+beats the `.env` file either way.) The worker does not hot-reload its settings, so switching
+providers means restarting it. `Settings` refuses `LLM_PROVIDER=fake` when `ENVIRONMENT=production`,
+so the free default cannot follow a deployment out.
+
+A 15-minute text mock against `claude-sonnet-5` is roughly 6–8¢; the per-call breakdown and what to
+look at afterwards are in `docs/progress/2026-09-26-m3-second-paid-run.md`. Before spending, run
+`pnpm db:seed -- --check`: a dev database that has drifted from `content/seed` will pin the old
+wording into the session, which is what left the first paid run with no follow-ups at all.
 
 ## Checks
 

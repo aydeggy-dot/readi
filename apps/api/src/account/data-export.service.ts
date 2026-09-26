@@ -7,6 +7,8 @@ import {
   type DataExport,
   ParsedCv,
   Role,
+  SessionCatalogue,
+  SessionQuestionSnapshot,
   SignupMethod,
 } from "@readi/shared-types";
 import type { Redis } from "ioredis";
@@ -50,39 +52,55 @@ export class DataExportService {
       );
     }
 
-    const [user, profile, consents, accounts, sessions, audit, aiCalls] = await Promise.all([
-      this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
-      this.prisma.profile.findUnique({
-        where: { userId },
-        // The export answers with slugs, as the API does everywhere (ADR-0015).
-        include: {
-          targetRole: { select: { slug: true } },
-          targetLevel: { select: { slug: true } },
-          targetStack: { select: { slug: true } },
-        },
-      }),
-      this.prisma.consentRecord.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
-      // Only non-secret columns: never tokens or password hashes.
-      this.prisma.account.findMany({
-        where: { userId },
-        select: { providerId: true, accountId: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      this.prisma.session.findMany({
-        where: { userId },
-        select: { createdAt: true, expiresAt: true, ipAddress: true, userAgent: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      this.prisma.auditLog.findMany({
-        where: { OR: [{ actorId: userId }, { targetId: userId }] },
-        orderBy: { createdAt: "asc" },
-      }),
-      this.prisma.aiCallLog.findMany({
-        where: { userId },
-        select: { purpose: true, provider: true, model: true, status: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
-      }),
-    ]);
+    const [user, profile, consents, accounts, sessions, audit, aiCalls, interviews] =
+      await Promise.all([
+        this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+        this.prisma.profile.findUnique({
+          where: { userId },
+          // The export answers with slugs, as the API does everywhere (ADR-0015).
+          include: {
+            targetRole: { select: { slug: true } },
+            targetLevel: { select: { slug: true } },
+            targetStack: { select: { slug: true } },
+          },
+        }),
+        this.prisma.consentRecord.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
+        // Only non-secret columns: never tokens or password hashes.
+        this.prisma.account.findMany({
+          where: { userId },
+          select: { providerId: true, accountId: true, createdAt: true },
+          orderBy: { createdAt: "asc" },
+        }),
+        this.prisma.session.findMany({
+          where: { userId },
+          select: { createdAt: true, expiresAt: true, ipAddress: true, userAgent: true },
+          orderBy: { createdAt: "asc" },
+        }),
+        this.prisma.auditLog.findMany({
+          where: { OR: [{ actorId: userId }, { targetId: userId }] },
+          orderBy: { createdAt: "asc" },
+        }),
+        this.prisma.aiCallLog.findMany({
+          where: { userId },
+          select: { purpose: true, provider: true, model: true, status: true, createdAt: true },
+          orderBy: { createdAt: "asc" },
+        }),
+        /*
+         * A transcript is the candidate's own words, so it is theirs to take (ADR-0011). What is
+         * deliberately not selected: `snapshot` (the pinned rubric and ideal points),
+         * `follow_up_index` and `criteria_covered`. Those are the answer key and the engine's
+         * reasoning about it — see `ExportInterview` for why exporting them would be worse than
+         * leaving them out.
+         */
+        this.prisma.interviewSession.findMany({
+          where: { userId },
+          orderBy: { startedAt: "asc" },
+          include: {
+            questions: { orderBy: { position: "asc" } },
+            turns: { orderBy: { seq: "asc" } },
+          },
+        }),
+      ]);
 
     const cvLinkExpires = new Date(now.getTime() + DATA_EXPORT_CV_LINK_MINUTES * 60_000);
     const contentType = profile?.cvContentType ? CvContentType.parse(profile.cvContentType) : null;
@@ -161,6 +179,51 @@ export class DataExportService {
         user_agent: session.userAgent?.slice(0, USER_AGENT_MAX) || null,
       })),
       audit_entries: audit.map((entry) => toExportedAuditEntry(entry, userId)),
+      interviews: interviews.map((session) => {
+        const positionOf = new Map(session.questions.map((row) => [row.id, row.position]));
+        // The catalogue as it read at session time, not as it reads today (ADR-0015).
+        const catalogue = SessionCatalogue.parse(session.catalogue);
+        return {
+          id: session.id,
+          role: catalogue.role.slug,
+          level: catalogue.level.slug,
+          stack: catalogue.stack?.slug ?? null,
+          mode: session.mode,
+          is_diagnostic: session.isDiagnostic,
+          planned_minutes: session.plannedMinutes,
+          state: session.state,
+          status: session.status,
+          started_at: session.startedAt.toISOString(),
+          ended_at: session.endedAt?.toISOString() ?? null,
+          questions: session.questions.flatMap((row) => {
+            if (!row.askedAt) return [];
+            const snapshot = SessionQuestionSnapshot.safeParse(row.snapshot);
+            if (!snapshot.success) {
+              this.logger.warn(`pinned question ${row.id} does not match the contract`);
+              return [];
+            }
+            return [
+              {
+                position: row.position,
+                type: snapshot.data.type,
+                topic: snapshot.data.topic.name,
+                prompt: snapshot.data.prompt,
+                context: snapshot.data.context,
+                asked_at: row.askedAt.toISOString(),
+              },
+            ];
+          }),
+          turns: session.turns.map((turn) => ({
+            seq: turn.seq,
+            speaker: turn.speaker,
+            question_position: turn.sessionQuestionId
+              ? (positionOf.get(turn.sessionQuestionId) ?? null)
+              : null,
+            text: turn.text,
+            at: new Date(session.startedAt.getTime() + turn.startedMs).toISOString(),
+          })),
+        };
+      }),
       ai_processing: aiCalls.map((call) => ({
         purpose: call.purpose,
         provider: call.provider,

@@ -47,6 +47,7 @@ const minimalExport = {
       created_at: now,
     },
   ],
+  interviews: [],
   ai_processing: [],
 };
 

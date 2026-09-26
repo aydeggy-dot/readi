@@ -7,7 +7,12 @@ import type { CandidatePracticeResponse } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ContentService } from "../src/content/content.service";
-import { questionContent, questionInclude } from "../src/content/content.mappers";
+import {
+  questionContent,
+  questionInclude,
+  rubricContent,
+  rubricInclude,
+} from "../src/content/content.mappers";
 import { SeedImporter, SeedReferenceError } from "../src/content/seed-import";
 import { loadSeedDirectory, loadSeedSource } from "../src/content/seed-loader";
 import { PrismaService } from "../src/prisma/prisma.service";
@@ -48,10 +53,34 @@ describe("seeding content", () => {
     const directory = mkdtempSync(join(tmpdir(), "readi-seed-"));
     const slug = `seedtest-${Date.now()}`;
 
+    /*
+     * It defines its own role and level, and borrows nothing.
+     *
+     * It used to say `roles: [frontend]` and `levels: [mid]`, which no file in this temporary
+     * directory defines — so the import only succeeded when some *other* spec had already put those
+     * rows in the database, or when a previous run had left them there. On a genuinely empty
+     * database, which is what CI creates, every test in this block failed with
+     * `SeedReferenceError: … names role frontend, which no seed file defines`. That was true on
+     * `main` before M3 touched anything; it is the M2.5 lesson exactly — a test that names content
+     * it does not create is borrowing, and what it borrows can change under it.
+     */
     const file = (prompt: string, rubricName = "Seed test rubric", author = "ai_draft") => `
 version: 1
 author: ${author}
 status: draft
+career_levels:
+  - slug: ${slug}-level
+    name: Seed test level
+    summary: null
+    rank: 20
+career_roles:
+  - slug: ${slug}-role
+    name: Seed test role
+    summary: null
+    position: 0
+    supported_question_types: [technical]
+    levels: [${slug}-level]
+    stacks: []
 topics:
   - slug: ${slug}-topic
     name: Seed test topic
@@ -70,8 +99,8 @@ rubrics:
         levels: { "0": a, "1": b, "2": c, "3": d, "4": e }
 questions:
   - slug: ${slug}-question
-    roles: [frontend]
-    levels: [mid]
+    roles: [${slug}-role]
+    levels: [${slug}-level]
     type: technical
     topic: ${slug}-topic
     subtopic: null
@@ -95,6 +124,9 @@ questions:
       await prisma.question.deleteMany({ where: { slug: `${slug}-question` } });
       await prisma.rubric.deleteMany({ where: { slug: `${slug}-rubric` } });
       await prisma.topic.deleteMany({ where: { slug: `${slug}-topic` } });
+      await prisma.careerRoleLevel.deleteMany({ where: { role: { slug: `${slug}-role` } } });
+      await prisma.careerRole.deleteMany({ where: { slug: `${slug}-role` } });
+      await prisma.careerLevel.deleteMany({ where: { slug: `${slug}-level` } });
     });
 
     it("creates what the files describe", async () => {
@@ -278,6 +310,55 @@ questions:
       const after = await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } });
       expect(after.name).toBe("A renamed rubric");
       expect(after.status).toBe("published");
+    });
+
+    /**
+     * The narrow half of `--force`, and the reason it exists (2026-09-26).
+     *
+     * A dev database seeded before a bank was rewritten holds published rows the importer will not
+     * touch, so a session pins content nobody has read in weeks — that is what made the first paid
+     * interview run worthless. `--force` fixes it and also drags back every row a person has edited
+     * in the CMS, which is a much bigger act than the one being asked for. This is the refresh:
+     * the publish guard moves, the `seed_managed` guard does not.
+     */
+    it("refreshes published rows the files own with --force-published, and no others", async () => {
+      const admin = { id: randomUUID(), role: "admin" as const };
+      const before = await prisma.rubric.findUniqueOrThrow({ where: { slug: `${slug}-rubric` } });
+      // Where the test above left it: published, and still the files'.
+      expect(before).toMatchObject({ status: "published", seedManaged: true });
+
+      const refreshed = await new SeedImporter(prisma, content, { forcePublished: true }).import(
+        write("The file's wording.", "Refreshed from the file"),
+      );
+      expect(refreshed.rubrics).toMatchObject({ updated: 1, published: [], skipped: [] });
+      const rubric = await prisma.rubric.findUniqueOrThrow({ where: { id: before.id } });
+      expect(rubric).toMatchObject({
+        name: "Refreshed from the file",
+        status: "published",
+        seedManaged: true,
+      });
+
+      // A row a person has taken over stays theirs: only the publish guard moved.
+      const full = await prisma.rubric.findUniqueOrThrow({
+        where: { id: before.id },
+        include: rubricInclude,
+      });
+      await content.updateRubric(
+        before.id,
+        { ...rubricContent(full), name: "An admin renamed it" },
+        { actor: admin },
+      );
+      expect(
+        (await prisma.rubric.findUniqueOrThrow({ where: { id: before.id } })).seedManaged,
+      ).toBe(false);
+
+      const kept = await new SeedImporter(prisma, content, { forcePublished: true }).import(
+        write("The file's wording.", "The file tries again"),
+      );
+      expect(kept.rubrics).toMatchObject({ updated: 0, skipped: [`${slug}-rubric`] });
+      expect((await prisma.rubric.findUniqueOrThrow({ where: { id: before.id } })).name).toBe(
+        "An admin renamed it",
+      );
     });
 
     it("marks what a model drafted, and unmarks it when the file says a person wrote it", async () => {

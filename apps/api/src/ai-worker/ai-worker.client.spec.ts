@@ -11,6 +11,7 @@ const env = {
 
 const request: CvParseRequest = {
   request_id: "3f1a1a1e-0f0e-4b3e-9c3e-2d2b1a0f0e0d",
+  user_id: "6b9c8d7e-5f4a-4b3c-8d2e-1f0a9b8c7d6e",
   content_type: "application/pdf",
   file_base64: "JVBERi0=",
   target_role_label: "Backend engineer",

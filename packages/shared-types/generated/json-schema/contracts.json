@@ -7,6 +7,7 @@
       "type": "string",
       "enum": [
         "interviewer",
+        "coverage",
         "follow_up",
         "evaluator",
         "cv_parse",
@@ -74,6 +75,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
+        },
+        "langfuse_trace_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -86,7 +99,8 @@
         "input_units",
         "output_units",
         "unit_kind",
-        "cost_micro_usd"
+        "cost_micro_usd",
+        "langfuse_trace_id"
       ],
       "additionalProperties": false
     },
@@ -97,6 +111,111 @@
         "characters",
         "seconds"
       ]
+    },
+    "BundleQuestion": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "$ref": "#/$defs/QuestionType"
+        },
+        "topic_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "context": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "criterion_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 8
+        },
+        "planned_follow_ups": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlannedFollowUp"
+          }
+        }
+      },
+      "required": [
+        "position",
+        "type",
+        "topic_label",
+        "prompt",
+        "context",
+        "criterion_count",
+        "planned_follow_ups"
+      ],
+      "additionalProperties": false
+    },
+    "CandidateText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000
+    },
+    "CoverageVerdict": {
+      "type": "string",
+      "enum": [
+        "covered",
+        "not_covered",
+        "not_judged"
+      ]
+    },
+    "CriterionCoverage": {
+      "type": "object",
+      "properties": {
+        "criterion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "has_probe": {
+          "type": "boolean"
+        },
+        "covered": {
+          "$ref": "#/$defs/CoverageVerdict"
+        },
+        "follow_up_index": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "criterion",
+        "has_probe",
+        "covered",
+        "follow_up_index"
+      ],
+      "additionalProperties": false
     },
     "CvContentType": {
       "type": "string",
@@ -174,6 +293,10 @@
           "type": "string",
           "format": "uuid"
         },
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "content_type": {
           "$ref": "#/$defs/CvContentType"
         },
@@ -210,6 +333,7 @@
       },
       "required": [
         "request_id",
+        "user_id",
         "content_type",
         "file_base64",
         "target_role_label",
@@ -385,6 +509,44 @@
       ],
       "additionalProperties": false
     },
+    "EngineQuestionProgress": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "asked": {
+          "type": "boolean"
+        },
+        "probes_asked": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "probes_covered": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "required": [
+        "position",
+        "asked",
+        "probes_asked",
+        "probes_covered"
+      ],
+      "additionalProperties": false
+    },
     "HealthCheckError": {
       "type": "string",
       "enum": [
@@ -451,6 +613,424 @@
         "error"
       ]
     },
+    "InterviewAction": {
+      "type": "string",
+      "enum": [
+        "start",
+        "answer",
+        "skip",
+        "end"
+      ]
+    },
+    "InterviewAdvanceRequest": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "action": {
+          "$ref": "#/$defs/InterviewAction"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CandidateText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "now": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "bundle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewSessionBundle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "engine_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewEngineSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "session_id",
+        "action",
+        "text",
+        "now",
+        "bundle",
+        "engine_snapshot"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewAdvanceResponse": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "$ref": "#/$defs/InterviewState"
+        },
+        "ended": {
+          "type": "boolean"
+        },
+        "end_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewEndReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterviewTurn"
+          }
+        },
+        "engine_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewEngineSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt_versions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/PromptVersion"
+          }
+        },
+        "ai_calls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AiCallRecord"
+          }
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "bundle_required",
+                "bad_request",
+                "engine_error",
+                "llm_error"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "session_id",
+        "state",
+        "ended",
+        "end_reason",
+        "turns",
+        "engine_snapshot",
+        "prompt_versions",
+        "ai_calls",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewCandidateContext": {
+      "type": "object",
+      "properties": {
+        "role_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "level_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "stack_label": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 140
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "weak_topics": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          }
+        }
+      },
+      "required": [
+        "role_label",
+        "level_label",
+        "stack_label",
+        "weak_topics"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewEndReason": {
+      "type": "string",
+      "enum": [
+        "questions_done",
+        "out_of_time",
+        "candidate_ended"
+      ]
+    },
+    "InterviewEngineSnapshot": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "number",
+          "const": 1
+        },
+        "state": {
+          "$ref": "#/$defs/InterviewState"
+        },
+        "current_question": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "questions_asked": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "progress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EngineQuestionProgress"
+          }
+        },
+        "end_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewEndReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "state",
+        "current_question",
+        "next_seq",
+        "questions_asked",
+        "progress",
+        "end_reason"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewMode": {
+      "type": "string",
+      "enum": [
+        "text",
+        "voice"
+      ]
+    },
+    "InterviewPersona": {
+      "type": "string",
+      "enum": [
+        "friendly"
+      ]
+    },
+    "InterviewSessionBundle": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "mode": {
+          "$ref": "#/$defs/InterviewMode"
+        },
+        "persona": {
+          "$ref": "#/$defs/InterviewPersona"
+        },
+        "is_diagnostic": {
+          "type": "boolean"
+        },
+        "planned_minutes": {
+          "type": "number",
+          "enum": [
+            15,
+            30
+          ]
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "question_budget": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "max_follow_ups": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "candidate": {
+          "$ref": "#/$defs/InterviewCandidateContext"
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BundleQuestion"
+          }
+        }
+      },
+      "required": [
+        "session_id",
+        "user_id",
+        "mode",
+        "persona",
+        "is_diagnostic",
+        "planned_minutes",
+        "ends_at",
+        "question_budget",
+        "max_follow_ups",
+        "candidate",
+        "questions"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewState": {
+      "type": "string",
+      "enum": [
+        "intro",
+        "question",
+        "follow_up",
+        "candidate_questions",
+        "wrap_up",
+        "ended"
+      ]
+    },
+    "InterviewTurn": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "speaker": {
+          "$ref": "#/$defs/TurnSpeaker"
+        },
+        "state": {
+          "$ref": "#/$defs/InterviewState"
+        },
+        "question_position": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "follow_up_index": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "criteria_covered": {
+          "anyOf": [
+            {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CriterionCoverage"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "seq",
+        "speaker",
+        "state",
+        "question_position",
+        "follow_up_index",
+        "text",
+        "criteria_covered"
+      ],
+      "additionalProperties": false
+    },
     "ParsedCv": {
       "type": "object",
       "properties": {
@@ -494,6 +1074,89 @@
         "gaps"
       ],
       "additionalProperties": false
+    },
+    "PlannedFollowUp": {
+      "type": "object",
+      "properties": {
+        "criterion": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "probe": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      },
+      "required": [
+        "criterion",
+        "probe"
+      ],
+      "additionalProperties": false
+    },
+    "PromptVersion": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "QuestionType": {
+      "type": "string",
+      "enum": [
+        "behavioral",
+        "technical",
+        "scenario",
+        "test_design"
+      ]
+    },
+    "TraceDeleteRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expired": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "user_id",
+        "expired"
+      ],
+      "additionalProperties": false
+    },
+    "TraceDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "deleted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "enabled",
+        "deleted"
+      ],
+      "additionalProperties": false
+    },
+    "TurnSpeaker": {
+      "type": "string",
+      "enum": [
+        "interviewer",
+        "candidate"
+      ]
     },
     "YearMonth": {
       "type": "string",

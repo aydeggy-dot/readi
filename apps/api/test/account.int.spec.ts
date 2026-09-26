@@ -18,6 +18,7 @@ import { Prisma } from "../src/generated/prisma/client";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { removeCataloguePair, seedCataloguePair, type CataloguePair } from "./content-fixtures";
 import { StorageService } from "../src/storage/storage.service";
+import { TracesService } from "../src/tracing/traces.service";
 import { FakeAiWorker, PARSED } from "./fake-ai-worker";
 import {
   createTestApp,
@@ -59,6 +60,7 @@ describe("data export and account deletion (ADR-0011)", () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
   let storage: StorageService;
+  let traces: TracesService;
   const worker = new FakeAiWorker();
   const http = () => request(app.getHttpServer());
 
@@ -69,6 +71,7 @@ describe("data export and account deletion (ADR-0011)", () => {
     });
     prisma = app.get(PrismaService);
     storage = app.get(StorageService);
+    traces = app.get(TracesService);
     pair = await seedCataloguePair(prisma);
   });
   afterAll(async () => {
@@ -330,7 +333,7 @@ describe("data export and account deletion (ADR-0011)", () => {
     it("does nothing before the grace period ends", async () => {
       const { cookie, userId } = await emailUser();
       await requestDeletion(cookie).expect(200);
-      expect(await eraseUser(prisma, storage, userId)).toBe(false);
+      expect(await eraseUser(prisma, storage, traces, userId)).toBe(false);
       expect(await prisma.user.count({ where: { id: userId } })).toBe(1);
     });
 
@@ -397,7 +400,7 @@ describe("data export and account deletion (ADR-0011)", () => {
       await endGracePeriod(userId);
 
       const erasedAfter = new Date();
-      expect(await eraseUser(prisma, storage, userId)).toBe(true);
+      expect(await eraseUser(prisma, storage, traces, userId)).toBe(true);
 
       expect(await prisma.user.count({ where: { id: userId } })).toBe(0);
       expect(await prisma.profile.count({ where: { userId } })).toBe(0);
@@ -445,6 +448,49 @@ describe("data export and account deletion (ADR-0011)", () => {
 
       // The email address is free again.
       expect((await signUpWithEmail(app, email)).cookie).toBeTruthy();
+    });
+
+    it("asks the worker to delete the user's LLM traces, and does it first", async () => {
+      // Langfuse holds our prompts and our prompts hold their answers (ADR-0008), so erasure is
+      // not complete until they are gone. It runs before the transaction because afterwards the
+      // only id that could find them is a tombstone.
+      const { cookie, userId } = await emailUser();
+      await requestDeletion(cookie).expect(200);
+      await endGracePeriod(userId);
+      worker.traceDeletions.length = 0;
+
+      expect(await eraseUser(prisma, storage, traces, userId)).toBe(true);
+
+      expect(worker.traceDeletions).toEqual([{ user_id: userId, expired: false }]);
+    });
+
+    it("does not erase the account when the traces could not be deleted", async () => {
+      const { cookie, userId } = await emailUser();
+      await requestDeletion(cookie).expect(200);
+      await endGracePeriod(userId);
+      worker.traceDeleteOutcome = "unavailable";
+      try {
+        await expect(eraseUser(prisma, storage, traces, userId)).rejects.toThrow();
+      } finally {
+        worker.traceDeleteOutcome = "ok";
+      }
+      // Still here, and the next hourly sweep retries the whole of it.
+      expect(await prisma.user.count({ where: { id: userId } })).toBe(1);
+      expect(await eraseUser(prisma, storage, traces, userId)).toBe(true);
+    });
+
+    it("ages out expired traces on the same sweep, and survives the worker being down", async () => {
+      worker.traceDeletions.length = 0;
+      expect(await traces.purgeExpired()).toBe(0);
+      expect(worker.traceDeletions).toEqual([{ user_id: null, expired: true }]);
+
+      worker.traceDeleteOutcome = "unavailable";
+      try {
+        // Logged, not thrown: nothing downstream waits on it, and the next sweep retries.
+        expect(await traces.purgeExpired()).toBe(0);
+      } finally {
+        worker.traceDeleteOutcome = "ok";
+      }
     });
 
     it("the sweep erases every account that is due", async () => {

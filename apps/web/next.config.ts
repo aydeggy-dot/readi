@@ -8,6 +8,12 @@ parseClientEnv(process.env);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /*
+   * Next 16 writes an `AGENTS.md` and a `CLAUDE.md` into this app on every `next dev`. A generated
+   * `apps/web/CLAUDE.md` is loaded as project instructions and would quietly compete with the one
+   * at the repository root, which is the file we maintain (CLAUDE.md §7.5).
+   */
+  agentRules: false,
   // The end-to-end run builds into its own folder so it never disturbs a running `next dev`.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   poweredByHeader: false,

@@ -82,6 +82,10 @@ def _record(result: EmbeddingResult) -> AiCallRecord:
             "cost_micro_usd": token_cost_micro_usd(
                 result.provider, result.model, result.input_tokens, 0
             ),
+            # Embeddings are not traced (ADR-0008): there is no prompt to debug — one input string,
+            # which is a published question written by staff — and no user whose traces this would
+            # belong to. The cost row in `ai_call_log` is the whole record of the call.
+            "langfuse_trace_id": None,
         }
     )
 
@@ -99,5 +103,6 @@ def _error_record(exc: EmbeddingError) -> AiCallRecord:
             "output_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": 0,
+            "langfuse_trace_id": None,  # embeddings are not traced; see `_record`.
         }
     )
