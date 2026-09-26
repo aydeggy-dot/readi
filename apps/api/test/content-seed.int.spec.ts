@@ -7,7 +7,12 @@ import type { CandidatePracticeResponse } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ContentService } from "../src/content/content.service";
-import { questionContent, questionInclude } from "../src/content/content.mappers";
+import {
+  questionContent,
+  questionInclude,
+  rubricContent,
+  rubricInclude,
+} from "../src/content/content.mappers";
 import { SeedImporter, SeedReferenceError } from "../src/content/seed-import";
 import { loadSeedDirectory, loadSeedSource } from "../src/content/seed-loader";
 import { PrismaService } from "../src/prisma/prisma.service";
@@ -305,6 +310,55 @@ questions:
       const after = await prisma.rubric.findUniqueOrThrow({ where: { id: rubric.id } });
       expect(after.name).toBe("A renamed rubric");
       expect(after.status).toBe("published");
+    });
+
+    /**
+     * The narrow half of `--force`, and the reason it exists (2026-09-26).
+     *
+     * A dev database seeded before a bank was rewritten holds published rows the importer will not
+     * touch, so a session pins content nobody has read in weeks — that is what made the first paid
+     * interview run worthless. `--force` fixes it and also drags back every row a person has edited
+     * in the CMS, which is a much bigger act than the one being asked for. This is the refresh:
+     * the publish guard moves, the `seed_managed` guard does not.
+     */
+    it("refreshes published rows the files own with --force-published, and no others", async () => {
+      const admin = { id: randomUUID(), role: "admin" as const };
+      const before = await prisma.rubric.findUniqueOrThrow({ where: { slug: `${slug}-rubric` } });
+      // Where the test above left it: published, and still the files'.
+      expect(before).toMatchObject({ status: "published", seedManaged: true });
+
+      const refreshed = await new SeedImporter(prisma, content, { forcePublished: true }).import(
+        write("The file's wording.", "Refreshed from the file"),
+      );
+      expect(refreshed.rubrics).toMatchObject({ updated: 1, published: [], skipped: [] });
+      const rubric = await prisma.rubric.findUniqueOrThrow({ where: { id: before.id } });
+      expect(rubric).toMatchObject({
+        name: "Refreshed from the file",
+        status: "published",
+        seedManaged: true,
+      });
+
+      // A row a person has taken over stays theirs: only the publish guard moved.
+      const full = await prisma.rubric.findUniqueOrThrow({
+        where: { id: before.id },
+        include: rubricInclude,
+      });
+      await content.updateRubric(
+        before.id,
+        { ...rubricContent(full), name: "An admin renamed it" },
+        { actor: admin },
+      );
+      expect(
+        (await prisma.rubric.findUniqueOrThrow({ where: { id: before.id } })).seedManaged,
+      ).toBe(false);
+
+      const kept = await new SeedImporter(prisma, content, { forcePublished: true }).import(
+        write("The file's wording.", "The file tries again"),
+      );
+      expect(kept.rubrics).toMatchObject({ updated: 0, skipped: [`${slug}-rubric`] });
+      expect((await prisma.rubric.findUniqueOrThrow({ where: { id: before.id } })).name).toBe(
+        "An admin renamed it",
+      );
     });
 
     it("marks what a model drafted, and unmarks it when the file says a person wrote it", async () => {

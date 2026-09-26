@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable, Logger } from "@nestjs/common";
 import {
   type CandidateSessionQuestion,
   type CandidateTurn,
@@ -30,7 +30,7 @@ import {
   type SessionWithContent,
 } from "./interview-sessions.repository";
 import { selectQuestions } from "./question-selection";
-import { candidateQuestion, snapshotOf } from "./session-bundle";
+import { candidateQuestion, questionsWithNoProbes, snapshotOf } from "./session-bundle";
 
 /**
  * Sessions: starting one, listing them, and reading one back (spec §4.3).
@@ -55,6 +55,7 @@ import { candidateQuestion, snapshotOf } from "./session-bundle";
  */
 @Injectable()
 export class InterviewsService {
+  private readonly logger = new Logger(InterviewsService.name);
   private readonly limiter: RedisRateLimiter;
 
   constructor(
@@ -111,6 +112,25 @@ export class InterviewsService {
     }
 
     const rows = await this.repository.questionsToPin(chosen.map((q) => q.questionId));
+    const pinned = rows.map((row, position) => ({
+      position,
+      questionId: row.id,
+      questionVersion: row.version,
+      rubricId: row.rubricId,
+      rubricVersion: row.rubric.version,
+      snapshot: snapshotOf(row),
+    }));
+    /*
+     * A question the engine cannot follow up on is worth a line in the log before it is pinned,
+     * because after that it is pinned for good. Slugs, not prose: content is not personal data, and
+     * a slug is what the person reading this has to go and look at.
+     */
+    const unprobed = questionsWithNoProbes(pinned.map((question) => question.snapshot));
+    if (unprobed.length > 0)
+      this.logger.warn(
+        `pinning ${unprobed.length} question(s) with no planned follow-ups: ${unprobed.join(", ")}` +
+          " — the engine will ask each once and move on; is the seeded content current?",
+      );
     const now = new Date();
     const session = await this.repository.create({
       userId: user.id,
@@ -132,14 +152,7 @@ export class InterviewsService {
       maxFollowUps: Math.min(plan.maxFollowUps, MAX_FOLLOW_UPS),
       endsAt: new Date(now.getTime() + request.minutes * 60 * 1_000),
       selectionSeed: seed,
-      questions: rows.map((row, position) => ({
-        position,
-        questionId: row.id,
-        questionVersion: row.version,
-        rubricId: row.rubricId,
-        rubricVersion: row.rubric.version,
-        snapshot: snapshotOf(row),
-      })),
+      questions: pinned,
     });
     return toSessionResponse(session);
   }

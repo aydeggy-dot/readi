@@ -81,6 +81,18 @@ export interface SeedOptions {
   dryRun?: boolean;
   /** Overwrite items the CMS owns, taking them back for the files (ADR-0014 decision 5). */
   force?: boolean;
+  /**
+   * Overwrite **published** items whose content the files still own, and nothing else.
+   *
+   * The narrow half of `--force`, added 2026-09-26 for the case that caused the first paid run to
+   * be worthless: a dev database seeded before a bank was rewritten holds published rows the
+   * importer will not touch, so a session pins content nobody has read in weeks. `--force` fixes
+   * that and also drags back every row a person has edited in the CMS, which is a far bigger act
+   * than the one being asked for. This passes the publish guard and leaves the `seed_managed`
+   * guard exactly where it is: a row a person took over stays theirs and is still named in the
+   * report.
+   */
+  forcePublished?: boolean;
 }
 
 export type SeedReport = Record<SeedEntityKind, SeedCounts>;
@@ -194,10 +206,20 @@ export class SeedImporter {
      * also how model-drafted words could reach candidates without the publish guard ever running:
      * an import changes no status, so nothing passes `publishNeedsReview`.
      */
-    if (existing.status === "published" && this.options.force !== true) {
+    const publishGuardApplies =
+      existing.status === "published" &&
+      this.options.force !== true &&
+      this.options.forcePublished !== true;
+    if (publishGuardApplies) {
       counts.published.push(slug);
       return;
     }
+    /*
+     * Order matters, and only under `--force-published`: a row that is both published and CMS-owned
+     * is named under `skipped`, not under `published`, because the publish guard has been waived
+     * deliberately and the thing actually stopping the write is the person who edited it. Naming it
+     * the other way round would print "re-run with --force-published" at somebody who just did.
+     */
     if (!mayWrite) {
       counts.skipped.push(slug);
       return;

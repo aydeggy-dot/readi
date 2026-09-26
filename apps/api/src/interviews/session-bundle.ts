@@ -118,6 +118,33 @@ export function bundleQuestion(
   };
 }
 
+/**
+ * A question this session cannot follow up on, if there is one.
+ *
+ * A pinned question with no planned follow-ups and more than one criterion is a question the engine
+ * will ask once and move on from, because `probes_to_judge` finds an empty menu, skips the coverage
+ * call and logs `not_judged` against every criterion. That is the correct behaviour for an empty
+ * menu, and it is also exactly what the first paid interview run looked like from the outside
+ * (2026-09-25): four questions, no follow-ups, and every criterion but the one the opening asked
+ * charged for something the candidate was never asked.
+ *
+ * The cause there was a dev database holding pre-retrofit published rows, but the cause does not
+ * matter to the candidate, and `check-bank.mjs` already makes a probe-less multi-criterion question
+ * an error in the files — so if one reaches a session, something has gone wrong between the files
+ * and here. This is a pure predicate so it can be asserted on; `InterviewsService` logs it at
+ * session creation, which is the last moment before the content is pinned and the first moment
+ * anybody could have noticed.
+ */
+export function questionsWithNoProbes(
+  snapshots: readonly SessionQuestionSnapshot[],
+): readonly string[] {
+  return snapshots
+    .filter(
+      (snapshot) => snapshot.planned_follow_ups.length === 0 && snapshot.rubric.criteria.length > 1,
+    )
+    .map((snapshot) => snapshot.slug);
+}
+
 /** The browser's view of a question the session has reached. */
 export function candidateQuestion(
   snapshot: SessionQuestionSnapshot,

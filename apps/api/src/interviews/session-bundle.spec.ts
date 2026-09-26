@@ -3,6 +3,7 @@ import {
   bundleQuestion,
   candidateQuestion,
   type QuestionForSnapshot,
+  questionsWithNoProbes,
   sessionBundle,
   snapshotOf,
 } from "./session-bundle";
@@ -164,5 +165,40 @@ describe("sessionBundle", () => {
     // Positions are the session's own numbering, not the question's id anywhere.
     expect(bundle.questions.map((q) => q.position)).toEqual([0]);
     expect(json(bundle)).not.toContain("a-slow-endpoint");
+  });
+});
+
+/**
+ * What the first paid run looked like from the outside, as a predicate.
+ *
+ * Four questions, no follow-ups, and every criterion but the one the opening asked charged for
+ * something the candidate was never asked. The cause was a stale dev database, but the candidate
+ * cannot tell a stale database from a badly written question, and `check-bank.mjs` already makes
+ * this an error in the files — so if one reaches a session, something is wrong upstream of here.
+ */
+describe("a question the engine cannot follow up on", () => {
+  const withProbes = (probes: QuestionForSnapshot["plannedFollowUps"]): QuestionForSnapshot => ({
+    ...question(),
+    plannedFollowUps: probes,
+  });
+
+  it("is named when a multi-criterion question carries no probes", () => {
+    expect(questionsWithNoProbes([snapshotOf(withProbes([]))])).toEqual(["a-slow-endpoint"]);
+  });
+
+  it("is not named when the question carries any probe at all", () => {
+    expect(questionsWithNoProbes([snapshotOf(question())])).toEqual([]);
+    expect(
+      questionsWithNoProbes([snapshotOf(withProbes([{ criterion: 1, probe: "And then?" }]))]),
+    ).toEqual([]);
+  });
+
+  it("is not named when there is only one criterion, which the opening asks", () => {
+    const base = question();
+    const single: QuestionForSnapshot = {
+      ...withProbes([]),
+      rubric: { ...base.rubric, criteria: base.rubric.criteria.slice(0, 1) },
+    };
+    expect(questionsWithNoProbes([snapshotOf(single)])).toEqual([]);
   });
 });
