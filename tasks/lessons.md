@@ -684,3 +684,48 @@ M5's agent — meets a lock the exchange has already finished with.
 **The rule:** "flaky" names a symptom. Before writing it down as one, say which two things are racing
 and why the product is safe. If the answer is "the test is too fast", ask what a real client that fast
 would see — here it would have seen a 409 in production.
+
+## A constant that is also a database enum is two changes, not one (2026-09-26, M4 phase 0)
+
+Adding `transcript_review` to `CONSENT_TYPES` in `packages/shared-types` looked like editing a list.
+It type-checked the web app, generated new JSON Schema and new Pydantic, updated the OpenAPI document
+and the API client — and then failed `pnpm typecheck` in the API, because `ConsentRecord.type` is a
+Prisma **enum** and the database had never heard of the value. The plan for the phase said "add the
+type" and had not noticed there was a column behind it.
+
+The generated migration then proposed `DROP INDEX questions_embedding_hnsw`, in a migration whose only
+other line is `ALTER TYPE ... ADD VALUE`. That is the seventh time, and the first in a migration with
+no relation to `questions` at all.
+
+**The rule:** before adding a value to a shared union, grep `schema.prisma` for it. A shared constant
+that is mirrored as a database enum needs its own migration, and a checklist item that says "add the
+type" should say which three places it lives in — the constant, the enum, and the copy. Then read the
+migration, because Prisma will try to take the index again whatever the change was about.
+
+## The commands CLAUDE.md calls safe still build the web app (2026-09-26, M4 phase 0)
+
+CLAUDE.md says never to run a build that writes `apps/api/dist` or `apps/web/.next` while the owner's
+dev servers are up, and names `pnpm build` and `pnpm test:e2e`. It does not name `pnpm gen:contracts`
+or `pnpm typecheck` — and both of them run `next build` and `nest build`, because `turbo.json` has
+`gen:contracts` depending on `build` and `typecheck` depending on `gen:contracts`. Running the
+documented codegen command against a live dev stack is therefore the forbidden thing under a different
+name. (Nothing broke this time: all three servers still answered 200 afterwards.)
+
+The way round it, for codegen specifically, is the CLI build: `pnpm --filter @readi/api
+build:standalone` writes `dist-cli`, which is a different folder from the one `nest start --watch`
+owns, and `node apps/api/dist-cli/src/cli/export-openapi.js` produces the OpenAPI document from it.
+Together with the two package-level `gen:contracts` scripts, that regenerates everything
+`pnpm gen:contracts` does and writes neither `dist` nor `.next`:
+
+```bash
+pnpm --filter @readi/shared-types gen:contracts     # Zod → JSON Schema
+pnpm --filter @readi/ai-worker gen:contracts        # JSON Schema → Pydantic
+pnpm --filter @readi/api build:standalone           # → dist-cli, not dist
+node apps/api/dist-cli/src/cli/export-openapi.js packages/api-client/openapi.json
+pnpm --filter @readi/api-client gen && pnpm exec prettier --write packages/api-client/openapi.json
+```
+
+**The rule:** "is it safe to run while the servers are up?" is a question about the task graph, not
+about the command's name. Check `turbo.json` for a transitive `build` before trusting a command
+CLAUDE.md does not warn about — and ask the owner before running anything that builds, rather than
+reading the rule narrowly enough to permit it.
