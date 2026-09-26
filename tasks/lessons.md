@@ -597,3 +597,57 @@ answer, and the test drives it from the model's side with a scripted client, off
 **The rule:** when an instruction to a model protects something that matters, ask what would happen if
 it were ignored, and whether code could notice. If code can notice, the instruction stays _and_ the
 code checks. And be suspicious of evidence gathered where the failure was impossible.
+
+## "The database matches the files" has two halves, and I only checked one (2026-09-26)
+
+`pnpm db:seed -- --check` was written to stop a stale dev database being interviewed against. It
+walked every seed file, asked the database what it held for each named slug, and reported the
+differences. The second paid run was then conducted against a **cut** question: `api-error-shape` had
+been removed from the backend bank the day before, its row stayed `published`, and a session selected
+it, pinned its pre-retrofit two-ask opening and asked it. `--check` said "the database matches
+content/seed".
+
+It was not wrong about anything it looked at. It looked at rows the files _name_, and the whole defect
+was a row they had stopped naming — invisible by construction. The importer never deletes, on purpose,
+so "dropped from the files" is a state that exists and nothing was watching it.
+
+**The rule:** a check that compares two sets has to be written in both directions, and the second one
+is the one that gets forgotten because there is nothing in hand to iterate over. After writing "for
+each X in the files, is the database right?", write "for each X in the database, do the files still
+know about it?" — and if the answer is legitimately "sometimes no", say which cases are allowed rather
+than skipping the question.
+
+## An over-counting heuristic is fine; an asymmetric one is a bug (2026-09-26)
+
+Yesterday's lesson said to measure a heuristic's false positives before reusing it on the other side
+of an inequality, and I did. What I did not check was whether the counter treated **the same meaning
+written two ways** the same, which is the only property the runtime guard actually needs: it compares
+the bank's wording with the model's rephrasing of it and rejects the rephrasing if the count goes up.
+
+Two words broke it. `whom` was not in the interrogative list, so "and for whom?" counted zero and the
+model's "and who it affects" counted one. `whether` was in it, so a model writing "whether that was at
+work or on your own" appeared to add an ask. Both rejections were faithful rephrasings; the guard threw
+them away three times each, spoke the pinned wording, and the interview lost its transitions. Four
+paid calls and two visible defects, from a vocabulary list.
+
+**The rule:** when a heuristic is used to compare two texts rather than to judge one, the property to
+test is **invariance**, not accuracy. Write the pair — the original and a faithful rewrite — as a
+fixture and assert they agree. The shared vector file now has those pairs in it, labelled as
+asymmetries rather than as examples.
+
+## The model cannot remember, so stop asking it to (2026-09-26)
+
+Twice in two runs, the same shape. The interviewer repeated its transitions, because each phrasing call
+is independent and is never sent the turns before it. Then, fixed for transitions, it repeated "there's
+no real company behind this" in front of every answer to a candidate's question — because the prompt
+tells it to say so when it cannot answer about a real employer, and every call is the first call as far
+as the model knows.
+
+Both times the temptation was to write a better instruction ("vary your transitions", "only say this
+once"). Both times the instruction is unimplementable: there is nothing in the call to vary from or to
+count. The fixes were structural — the engine chooses the connective, and the disclaimer moves to the
+invitation, which the state machine speaks exactly once before any answer.
+
+**The rule:** before writing "don't repeat yourself" into a prompt, check what that call is actually
+shown. If the information needed to obey is not in the call, the instruction is decoration, and the
+answer is either to put the information in or to move the decision into code.

@@ -179,6 +179,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   is a false positive in the phrasing of it, and cancels. The first paid run appeared to show the
   prompt rule holding, but all four of its openings already asked three or four things, so nothing
   could have been added; the one-ask case was untested.
+  **An asymmetry in the counter is therefore a bug, where over-counting is not**: if the bank's
+  wording and a faithful rephrasing of it count differently, the guard rejects the rephrasing, speaks
+  the pinned wording and the interview lurches. The second paid run found two — `whom` was not counted
+  and `whether` was — and they cost four calls and two transitions. Changing the counter means
+  measuring the corpus first (no floor break in `check-bank`, both implementations still agreeing on
+  every prompt and probe) and adding the case to `ask-vectors.json`.
 - **The connective between questions is the engine's, not the model's** (`interview/transitions.py`).
   Every phrasing call is independent and is never sent the turns before it, so a model told to vary
   its transitions has nothing to vary from: the first paid run opened three of four questions with
@@ -344,7 +350,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   is the narrow refresh (published rows the files still own, CMS-edited rows untouched) where
   `--force` is the bigger act of taking everything back. A session also logs a warning when it pins a
   question with no planned follow-ups and more than one criterion, which is what this looks like from
-  the inside.
+  the inside — though a log line in a dev server's terminal is only marginally better than a report
+  that exits 0, and in the second paid run it fired and went unread.
+- **The importer never deletes, so `--check` also reports what the files have dropped** (2026-09-26).
+  Content removed from a file stays in the database, deliberately — a person may have edited it since
+  — so a question **cut** from a bank keeps being offered. `api-error-shape` was cut on 2026-09-25,
+  stayed published with a pre-retrofit two-ask opening and no probes, and was asked in the second paid
+  run. Neither check could see it: `check-bank.mjs` reads files, and drift was measured only over rows
+  the files *name*. `--check` now fails on **published, `seed_managed` rows that no seed file defines
+  any more**, and the remedy is to retire them — a re-import cannot reach a row with no file.
 - **A model's draft never reaches candidates in production unreviewed** (ADR-0014 decision 6). The
   four publishable entities carry `ai_draft_unreviewed` (set by the importer from each seed file's
   `author`), `reviewed_by_user_id` and `reviewed_at`. Publishing a marked item is refused

@@ -2139,8 +2139,31 @@ complementary.
       `8643fee0-5661-4e1f-84b5-952ae1c2e982`: a thin answer drew two probes and stopped at the cap, a
       complete one drew none, and the coverage log carries real verdicts. Written up in
       `docs/progress/2026-09-26-paid-run-fixes.md`
-- [ ] **The owner's second paid run.** Not armed: the worker is running the new code on
-      `LLM_PROVIDER=fake`. The checklist is at the end of the fixes note
+- [x] **The owner's second paid run** — 7.8¢, `8fbddf78-2fde-45d6-9ef1-9bb4bd3b4724`, written up in
+      `docs/progress/2026-09-26-m3-second-paid-run.md`. The design happened: follow-ups fired on real
+      gaps and quoted the candidate back. Four findings, all fixed except the one that needs an admin:
+  - [x] A **cut question was still published** and got asked (`api-error-shape`, cut 2026-09-25, no
+        probes, two-ask opening). The importer never deletes, by design — so `db:seed -- --check` now
+        reports published rows no seed file defines any more, which it could not see before because
+        drift was measured only over rows the files name
+  - [ ] **Retire `api-error-shape` and `api-error-contract` in /admin/content** (admin). Left for the
+        owner: a transition is an audited act and SQL would bypass the trail. `--check` fails until
+        it is done, on purpose
+  - [x] Two **asymmetries in the ask counter** made the guard reject faithful rephrasings and fall
+        back to the pinned wording, which is why two questions arrived with no connective: `whom` was
+        not counted and `whether` was. Both fixed in both implementations, measured over the corpus
+        (no floor break), with the asymmetries as named vectors
+  - [x] The **fallback now carries the connective**, so a rejection no longer makes the interview
+        lurch, and a rejected phrasing is in `ai_call_log` as `rejected_added_ask` rather than being
+        findable only by noticing a question spoken verbatim
+  - [x] `interview_candidate_questions.v3` — the "no real company behind this" disclaimer moves to the
+        invitation, which is spoken once. v2 had it in front of every answer because every call is
+        told to disclaim and no call can know it already has
+- [ ] **Is `api-list-that-grew`'s opening one ask or two?** "What is going wrong, and for whom?" counts
+      as two now that `whom` is counted. Defensible as one diagnosis with two dimensions, and it
+      performed well in the paid run, so nothing was changed — but the coordination rule cannot see
+      "and for whom" (the `for` intervenes, and `whom` is not in its trigger list). If the answer is
+      "two asks", both the question and the rule need a pass. A judgement for the next bank session
 - [ ] **A known flake, left deliberately:** `interviews-advance.int.spec.ts` › "refuses a second
       exchange while one is in flight" failed once under full-suite load and passes alone. It races
       two `Promise.all` requests and needs them to genuinely overlap; on a loaded machine the first
