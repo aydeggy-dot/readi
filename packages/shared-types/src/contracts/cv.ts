@@ -139,6 +139,12 @@ export const AiCallRecord = z
     output_units: z.int().min(0),
     unit_kind: AiUnitKind,
     cost_micro_usd: z.int().min(0),
+    /**
+     * The Langfuse trace this call was made under (ADR-0008), for `ai_call_log.langfuse_trace_id`.
+     * Null whenever tracing is off — which is local development, CI and e2e, where the worker has
+     * no Langfuse keys — and for a call made outside a traced request.
+     */
+    langfuse_trace_id: z.string().min(1).max(64).nullable(),
   })
   .meta({ id: "AiCallRecord" });
 export type AiCallRecord = z.infer<typeof AiCallRecord>;
@@ -158,6 +164,12 @@ const MAX_CV_BASE64_LENGTH = Math.ceil(CV_MAX_BYTES / 3) * 4;
  */
 export const CvParseRequest = z.object({
   request_id: z.uuid(),
+  /**
+   * Whose CV this is — an opaque uuid and nothing else, so that the Langfuse trace of the parse
+   * carries a `user_id` and account erasure can find it (ADR-0008, ADR-0011). It is never rendered
+   * into a prompt; the worker uses it as a trace attribute only.
+   */
+  user_id: z.uuid(),
   content_type: CvContentType,
   file_base64: z.base64().min(1).max(MAX_CV_BASE64_LENGTH),
   target_role_label: text(CONTENT_LIMITS.titleMaxLength),

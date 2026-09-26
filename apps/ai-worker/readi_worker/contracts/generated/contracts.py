@@ -15,6 +15,10 @@ class ErrorCode(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
 
+class LangfuseTraceId(RootModel[str]):
+    root: str = Field(..., max_length=64, min_length=1)
+
+
 class Context(RootModel[str]):
     root: str = Field(..., max_length=4000, min_length=1)
 
@@ -46,6 +50,7 @@ class CvParseRequest(BaseModel):
         extra="forbid",
     )
     request_id: UUID
+    user_id: UUID
     content_type: Literal[
         "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ]
@@ -154,6 +159,22 @@ class PromptVersion(RootModel[int]):
     root: int = Field(..., ge=-9007199254740991, le=9007199254740991)
 
 
+class TraceDeleteRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    user_id: UUID | None
+    expired: bool
+
+
+class TraceDeleteResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    enabled: bool
+    deleted: int = Field(..., ge=0, le=9007199254740991)
+
+
 class YearMonth(RootModel[str]):
     root: str = Field(..., pattern="^\\d{4}-(0[1-9]|1[0-2])$")
 
@@ -183,6 +204,7 @@ class AiCallRecord(BaseModel):
     output_units: int = Field(..., ge=0, le=9007199254740991)
     unit_kind: Literal["tokens", "characters", "seconds"]
     cost_micro_usd: int = Field(..., ge=0, le=9007199254740991)
+    langfuse_trace_id: LangfuseTraceId | None
 
 
 class BundleQuestion(BaseModel):
@@ -259,6 +281,7 @@ class InterviewSessionBundle(BaseModel):
         extra="forbid",
     )
     session_id: UUID
+    user_id: UUID
     mode: Literal["text", "voice"]
     persona: Literal["friendly"]
     is_diagnostic: bool

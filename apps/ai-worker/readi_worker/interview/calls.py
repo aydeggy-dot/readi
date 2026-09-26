@@ -29,6 +29,7 @@ from readi_worker.contracts import AiCallRecord
 from readi_worker.interview.asks import count_asks
 from readi_worker.llm.base import LLMClient, LLMError, LLMResult
 from readi_worker.llm.pricing import token_cost_micro_usd
+from readi_worker.tracing import call_label, current_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -122,14 +123,17 @@ class Interviewer:
         calls: list[AiCallRecord] = []
         for _attempt in range(MAX_ATTEMPTS):
             try:
-                result = await self._llm.parse(
-                    model=self._model,
-                    system=system,
-                    user=user,
-                    output_type=Speech,
-                    max_tokens=MAX_SPEECH_TOKENS,
-                    timeout_s=self._timeout_s,
-                )
+                # `purpose` is also what the generation is called in Langfuse: "interviewer" and
+                # "follow_up" are the same call to `LLMClient` and different things to a reader.
+                with call_label(purpose):
+                    result = await self._llm.parse(
+                        model=self._model,
+                        system=system,
+                        user=user,
+                        output_type=Speech,
+                        max_tokens=MAX_SPEECH_TOKENS,
+                        timeout_s=self._timeout_s,
+                    )
             except LLMError as exc:
                 calls.append(_error_record(purpose, exc))
                 break
@@ -163,14 +167,15 @@ class Interviewer:
         calls: list[AiCallRecord] = []
         for _attempt in range(MAX_ATTEMPTS):
             try:
-                result = await self._llm.parse(
-                    model=self._model,
-                    system=system,
-                    user=user,
-                    output_type=CoverageJudgement,
-                    max_tokens=MAX_COVERAGE_TOKENS,
-                    timeout_s=self._timeout_s,
-                )
+                with call_label("coverage"):
+                    result = await self._llm.parse(
+                        model=self._model,
+                        system=system,
+                        user=user,
+                        output_type=CoverageJudgement,
+                        max_tokens=MAX_COVERAGE_TOKENS,
+                        timeout_s=self._timeout_s,
+                    )
             except LLMError as exc:
                 calls.append(_error_record("coverage", exc))
                 return None, calls
@@ -260,6 +265,7 @@ def _record(
             "cost_micro_usd": token_cost_micro_usd(
                 result.provider, result.model, result.input_tokens, result.output_tokens
             ),
+            "langfuse_trace_id": current_trace_id(),
         }
     )
 
@@ -277,5 +283,6 @@ def _error_record(purpose: Purpose, exc: LLMError) -> AiCallRecord:
             "output_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": 0,
+            "langfuse_trace_id": current_trace_id(),
         }
     )

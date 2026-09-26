@@ -39,6 +39,22 @@ class Settings(BaseSettings):
     # the authority, so losing this cache costs one round trip and never a session.
     interview_state_ttl_s: int = Field(default=7_200, ge=60, le=86_400)
 
+    # LLM tracing (ADR-0008). Langfuse holds our prompts, and our prompts hold candidate answers
+    # and CV text, so it is a personal-data store: EU region, opaque ids only, contact details
+    # masked on the way out, and traces deleted on erasure and on a retention schedule.
+    #
+    # **Tracing is off unless both keys are present**, which is local development, CI and e2e. It
+    # is two keys rather than one flag on purpose: there is no configuration in which tracing is
+    # "on" and unable to reach Langfuse, and nothing to keep in step with a separate switch.
+    langfuse_public_key: SecretStr | None = None
+    langfuse_secret_key: SecretStr | None = None
+    #: The EU region by default (ADR-0008). Change this and you have changed where traces live.
+    langfuse_host: str = Field(default="https://cloud.langfuse.com", min_length=1)
+    #: How long a trace lives. The same default as recordings will have in M5, and the same reason:
+    #: long enough to debug a prompt, short enough that a transcript is not kept twice for ever.
+    langfuse_retention_days: int = Field(default=30, ge=1, le=3650)
+    langfuse_timeout_s: int = Field(default=10, ge=1, le=120)
+
     # Embedding adapter (ADR-0006). `fake` is a pure function of the text: no key, no network, no
     # cost. `embedding_dimensions` must match the `vector(N)` column in the migration — the worker
     # refuses a provider answer of any other length rather than store an unsearchable row.
@@ -48,7 +64,14 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=1024, ge=1, le=4096)
     embedding_timeout_s: float = Field(default=30.0, gt=0, le=600)
 
-    @field_validator("sentry_dsn", "anthropic_api_key", "voyage_api_key", mode="before")
+    @field_validator(
+        "sentry_dsn",
+        "anthropic_api_key",
+        "voyage_api_key",
+        "langfuse_public_key",
+        "langfuse_secret_key",
+        mode="before",
+    )
     @classmethod
     def _empty_is_none(cls, value: object) -> object:
         return None if value == "" else value
@@ -73,6 +96,21 @@ class Settings(BaseSettings):
             )
         if self.environment == "production" and self.embedding_provider == "fake":
             raise ValueError("EMBEDDING_PROVIDER=fake is not allowed in production")
+        return self
+
+    @model_validator(mode="after")
+    def _tracing_configured(self) -> "Settings":
+        """One key without the other is a typo, not a configuration: say so rather than run blind.
+
+        Tracing being off is a legitimate state (development, CI, e2e) and so is it being on. Half
+        on is neither, and silently disabling it would hide a production misconfiguration until
+        somebody went looking for traces that were never sent.
+        """
+        if (self.langfuse_public_key is None) != (self.langfuse_secret_key is None):
+            raise ValueError(
+                "LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY go together: set both to enable "
+                "tracing (ADR-0008), or neither to disable it"
+            )
         return self
 
 

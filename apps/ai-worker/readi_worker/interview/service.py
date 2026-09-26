@@ -46,6 +46,7 @@ from readi_worker.interview.probes import coverage_log, covered_by
 from readi_worker.interview.state_store import CachedSession, InterviewStateStore
 from readi_worker.interview.transitions import connective
 from readi_worker.prompts import as_data, render
+from readi_worker.tracing import Tracer, TraceSubject
 
 logger = logging.getLogger(__name__)
 
@@ -111,9 +112,12 @@ class _PendingAnswer:
 
 
 class InterviewService:
-    def __init__(self, interviewer: Interviewer, store: InterviewStateStore) -> None:
+    def __init__(
+        self, interviewer: Interviewer, store: InterviewStateStore, tracer: Tracer
+    ) -> None:
         self._interviewer = interviewer
         self._store = store
+        self._tracer = tracer
 
     async def advance(self, request: InterviewAdvanceRequest) -> InterviewAdvanceResponse:
         session_id = str(request.session_id)
@@ -126,6 +130,26 @@ class InterviewService:
         if bundle.session_id != request.session_id:
             return _refused(request, "bad_request", [])
 
+        # The trace opens once the bundle is known, because the bundle is where `user_id` is: the
+        # two refusals above make no model call, so there is nothing for a trace to hold. Both ids
+        # are opaque (ADR-0008) and `action` is a word from a closed set, not candidate text.
+        with self._tracer.trace(
+            TraceSubject(
+                name="interview.advance",
+                user_id=str(bundle.user_id),
+                session_id=session_id,
+                metadata={"action": request.action},
+            )
+        ):
+            return await self._exchange(request, bundle, cached, session_id)
+
+    async def _exchange(
+        self,
+        request: InterviewAdvanceRequest,
+        bundle: InterviewSessionBundle,
+        cached: CachedSession | None,
+        session_id: str,
+    ) -> InterviewAdvanceResponse:
         calls: list[AiCallRecord] = []
         turns: list[InterviewTurn] = []
         prompts: dict[str, int] = {}

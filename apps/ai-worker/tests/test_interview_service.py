@@ -21,6 +21,7 @@ from readi_worker.interview.service import (
 from readi_worker.interview.state_store import InterviewStateStore
 from readi_worker.llm.base import LLMClient, LLMResult
 from readi_worker.llm.fake import FakeLLMError, FunctionLLMClient, ScriptedLLMClient, Step
+from readi_worker.tracing import NullTracer
 from tests.conftest import FakeRedis
 from tests.interview_fixtures import SESSION_ID, TWO_ON_ONE, at, bundle, question
 
@@ -29,7 +30,7 @@ def build(llm: LLMClient | None = None) -> tuple[InterviewService, FakeRedis]:
     redis = FakeRedis()
     client = llm or FakeInterviewerLLMClient(FunctionLLMClient(lambda _s, _u: Speech(speech="x")))
     return (
-        InterviewService(Interviewer(client, "fake"), InterviewStateStore(redis, 60)),
+        InterviewService(Interviewer(client, "fake"), InterviewStateStore(redis, 60), NullTracer()),
         redis,
     )
 
@@ -467,7 +468,9 @@ async def test_every_interview_call_carries_the_interviewer_deadline() -> None:
             )
 
     redis = FakeRedis()
-    service = InterviewService(Interviewer(Timed(), "fake", 12.5), InterviewStateStore(redis, 60))
+    service = InterviewService(
+        Interviewer(Timed(), "fake", 12.5), InterviewStateStore(redis, 60), NullTracer()
+    )
     deck = bundle(questions=[question(0)], question_budget=1)
     opening = await service.advance(request("start", now=at(0), deck=deck))
     await service.advance(

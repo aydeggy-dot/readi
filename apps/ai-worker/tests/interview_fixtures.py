@@ -13,6 +13,9 @@ from typing import Any
 from readi_worker.contracts import InterviewSessionBundle
 
 SESSION_ID = "11111111-2222-4333-8444-555555555555"
+#: Whose session it is. Opaque, and on the bundle only so the worker can put it on a Langfuse
+#: trace (ADR-0008); nothing renders it.
+USER_ID = "99999999-8888-4777-8666-555555555555"
 STARTED_AT = datetime(2026, 9, 25, 9, 0, tzinfo=UTC)
 
 #: Three criteria, one probe each for criteria 1 and 2. The opening asks criterion 0.
@@ -58,6 +61,7 @@ def bundle(
     return InterviewSessionBundle.model_validate(
         {
             "session_id": SESSION_ID,
+            "user_id": USER_ID,
             "mode": "text",
             "persona": "friendly",
             "is_diagnostic": is_diagnostic,

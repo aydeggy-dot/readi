@@ -8,6 +8,7 @@ import {
 import { Queue, Worker } from "bullmq";
 import type { Env } from "../config/env";
 import { ENV } from "../config/env.module";
+import { TracesService } from "../tracing/traces.service";
 import { AccountDeletionService } from "./account-deletion.service";
 
 export const ACCOUNT_ERASURE_QUEUE = "account-erasure";
@@ -27,6 +28,7 @@ export class AccountErasureQueue implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(ENV) private readonly env: Env,
     private readonly deletion: AccountDeletionService,
+    private readonly traces: TracesService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -54,10 +56,15 @@ export class AccountErasureQueue implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** One sweep: erase the accounts that are due, then drop expired verification codes. */
+  /**
+   * One sweep: erase the accounts that are due, drop expired verification codes, then age out LLM
+   * traces (ADR-0008). Trace retention is last and cannot fail the run — it is the only step with
+   * an external dependency that nothing else waits on.
+   */
   private async sweep(): Promise<void> {
     await this.deletion.eraseDue();
     await this.deletion.purgeExpiredVerifications();
+    await this.traces.purgeExpired();
   }
 
   async onModuleDestroy(): Promise<void> {

@@ -15,6 +15,8 @@ import {
   type InterviewSessionBundle,
   type InterviewTurn,
   type ParsedCv,
+  type TraceDeleteRequest,
+  type TraceDeleteResponse,
 } from "@readi/shared-types";
 import { AiWorkerClient, AiWorkerUnavailableError } from "../src/ai-worker/ai-worker.client";
 
@@ -58,6 +60,9 @@ export function stubVector(text: string, dimensions = EMBEDDING_DIMENSIONS): num
 export class FakeAiWorker extends AiWorkerClient {
   readonly requests: CvParseRequest[] = [];
   readonly embedRequests: EmbedRequest[] = [];
+  readonly traceDeletions: TraceDeleteRequest[] = [];
+  /** Set to "unavailable" to prove erasure fails and retries rather than stranding traces. */
+  traceDeleteOutcome: "ok" | "unavailable" = "ok";
   /** The interview half, kept in its own object so its state is obvious in a test. */
   readonly engine = new FakeInterviewEngine();
   outcome: Outcome = "parsed";
@@ -91,6 +96,7 @@ export class FakeAiWorker extends AiWorkerClient {
           output_units: 0,
           unit_kind: "tokens",
           cost_micro_usd: 0,
+          langfuse_trace_id: null,
         },
       ],
     });
@@ -98,6 +104,15 @@ export class FakeAiWorker extends AiWorkerClient {
 
   advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse> {
     return this.engine.advance(request);
+  }
+
+  /** What a worker with no Langfuse keys answers: nothing was traced, so nothing was deleted. */
+  deleteTraces(request: TraceDeleteRequest): Promise<TraceDeleteResponse> {
+    this.traceDeletions.push(request);
+    if (this.traceDeleteOutcome === "unavailable") {
+      return Promise.reject(new AiWorkerUnavailableError("connection refused"));
+    }
+    return Promise.resolve({ enabled: false, deleted: 0 });
   }
 
   parseCv(request: CvParseRequest): Promise<CvParseResponse> {
@@ -124,6 +139,7 @@ export class FakeAiWorker extends AiWorkerClient {
               output_units: 1000,
               unit_kind: "tokens",
               cost_micro_usd: 16_000,
+              langfuse_trace_id: null,
             },
           ]
         : [],
@@ -150,6 +166,8 @@ export class FakeInterviewEngine {
   readonly responses: InterviewAdvanceResponse[] = [];
   /** `ok`, or what the engine answers instead. */
   outcome: "ok" | "unavailable" | "engine_error" = "ok";
+  /** What a traced worker reports on each call; null is what a keyless one reports (ADR-0008). */
+  langfuseTraceId: string | null = null;
   private readonly bundles = new Map<string, InterviewSessionBundle>();
 
   /** A Redis flush inside the worker: the next exchange must ask for the bundle again. */
@@ -269,7 +287,7 @@ export class FakeInterviewEngine {
       turns,
       engine_snapshot: next,
       prompt_versions: { interview_system: 1, interview_question: 1 },
-      ai_calls: [interviewerCall()],
+      ai_calls: [interviewerCall(this.langfuseTraceId)],
       error: null,
     };
   }
@@ -329,7 +347,7 @@ function coverageFor(
   });
 }
 
-function interviewerCall(): AiCallRecord {
+function interviewerCall(langfuseTraceId: string | null): AiCallRecord {
   return {
     purpose: "interviewer",
     provider: "fake",
@@ -341,5 +359,7 @@ function interviewerCall(): AiCallRecord {
     output_units: 40,
     unit_kind: "tokens",
     cost_micro_usd: 0,
+    // Null as it is in every local run: the worker has no Langfuse keys (ADR-0008).
+    langfuse_trace_id: langfuseTraceId,
   };
 }

@@ -9,6 +9,7 @@ export * from "./contracts/content.js";
 export * from "./contracts/catalogue.js";
 export * from "./contracts/seed.js";
 export * from "./contracts/interviews.js";
+export * from "./contracts/tracing.js";
 export * from "./constants.js";
 export { contractRegistry } from "./contracts/registry.js";
 export * from "./contracts/account.js";

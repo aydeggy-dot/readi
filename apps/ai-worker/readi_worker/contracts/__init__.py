@@ -18,6 +18,8 @@ from readi_worker.contracts.generated.contracts import (
     InterviewTurn,
     ParsedCv,
     PlannedFollowUp,
+    TraceDeleteRequest,
+    TraceDeleteResponse,
 )
 
 __all__ = [
@@ -38,4 +40,6 @@ __all__ = [
     "InterviewTurn",
     "ParsedCv",
     "PlannedFollowUp",
+    "TraceDeleteRequest",
+    "TraceDeleteResponse",
 ]

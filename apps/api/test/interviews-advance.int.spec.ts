@@ -241,6 +241,25 @@ describe("advancing an interview", () => {
       expect(calls.length).toBeGreaterThan(0);
       expect(calls[0]?.purpose).toBe("interviewer");
       expect(calls[0]?.userId).not.toBeNull();
+      // Null because the worker has no Langfuse keys, which is every local and CI run (ADR-0008).
+      expect(calls[0]?.langfuseTraceId).toBeNull();
+    });
+
+    it("keeps the trace a call was made under, when the worker is tracing", async () => {
+      // The last link of ADR-0008: a cost row leads back to the prompt behind it. The worker
+      // reports the id; nothing on this side invents one.
+      const traceId = "0af7651916cd43dd8448eb211c80319c";
+      worker.engine.langfuseTraceId = traceId;
+      try {
+        const cookie = await candidate();
+        const started = await session(cookie);
+        await advance(cookie, started.id, { action: "start" });
+
+        const calls = await prisma.aiCallLog.findMany({ where: { sessionId: started.id } });
+        expect(calls.map((call) => call.langfuseTraceId)).toEqual([traceId]);
+      } finally {
+        worker.engine.langfuseTraceId = null;
+      }
     });
 
     it("records which prompts spoke and which models answered", async () => {

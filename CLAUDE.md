@@ -206,6 +206,20 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Provider choice and model names come from config/env (e.g. `LLM_MODEL_INTERVIEWER`, `LLM_MODEL_EVALUATOR`), never hardcoded in business logic.
 - Every AI call records: provider, model, purpose, latency, token/character/second usage, estimated cost, session id → Langfuse + `ai_call_log` (ADR-0007).
   Cost is integer **micro-USD**. `usage_ledger` is for customer allowance metering only (voice/avatar minutes), not cost.
+- **Tracing is a wrapper, not a call site** (M3 phase 5). `TracedLLMClient` goes on in `main.py`
+  between the provider client and everything that uses it, so every model call the worker will ever
+  make — CV parse, the interview engine, M4's evaluator — is traced by construction and there is no
+  "did you trace this one?" review question. A *request* is a trace and each model call inside it a
+  generation, which is why `ai_call_log.langfuse_trace_id` is the same for an exchange's `coverage`
+  and `follow_up` calls: they are one turn and only readable together. Two context variables carry
+  what the seam cannot (`tracing/context.py`) — the trace id, read where an `AiCallRecord` is built,
+  and the call label, left by the caller because `LLMClient` does not know *why* it is being called
+  and every generation would otherwise be named "llm".
+- **Tracing is off unless both Langfuse keys are set**, which is local development, CI and e2e:
+  `build_tracer` returns `NullTracer`, the SDK is never imported, nothing is sent and every
+  `langfuse_trace_id` is null (ADR-0008). One key without the other is refused at startup — half on
+  is a typo, not a configuration. `test_tracing.py` holds all of that. Embeddings are deliberately
+  **not** traced: one input string of published staff content, no prompt to debug, no user.
 
 ### Data access
 - Only the API connects to Postgres; Prisma owns the schema and migrations (ADR-0004).
@@ -404,8 +418,19 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 - Camera analysis (MediaPipe) runs on the client; only numeric metrics are sent to the server.
 - Recordings (if consented) auto-expire after a configurable retention period (default 30 days).
 - Never log transcripts, CVs, emails, or phone numbers to application logs or Sentry. Use ids.
-- Langfuse traces contain personal data: opaque ids only, CV contact details masked, same retention as
-  recordings, deleted on account deletion (ADR-0008).
+- Langfuse traces contain personal data: opaque ids only, contact details masked, same retention as
+  recordings, deleted on account deletion (ADR-0008). Two identifiers therefore cross to the worker
+  — `user_id` on `CvParseRequest` and on `InterviewSessionBundle` — and they exist **only** so a
+  trace can be found and deleted again; neither reaches a prompt, and `cv.int.spec.ts` pins the
+  exact field list the worker receives. Masking is one SDK-level hook over every trace
+  (`tracing/mask.py`), wider than ADR-0008's "CV-parsing traces" because a candidate types their
+  own email into an answer often enough, and it may never raise.
+- **Erasure deletes outside our database before it touches it** (`erase-user.ts`): traces, then
+  files, then the transaction. Anything left until afterwards is stranded, because the id that
+  would find it is a tombstone by then. The worker does the deleting (`POST /traces/delete`, the
+  only holder of Langfuse credentials) and answers "nothing to delete" without keys, so nothing on
+  the API side needs a second switch. The retention sweep rides the same hourly job and is the one
+  step that logs rather than throws.
 - Support data export and account deletion endpoints from day one (ADR-0011). Deletion is a request with a typed
   confirmation and a recent sign-in, then a soft delete that blocks every sign-in method, then erasure by an hourly
   sweep after a 7-day grace period; cancelling in between is an audited admin action. Rows that must be kept

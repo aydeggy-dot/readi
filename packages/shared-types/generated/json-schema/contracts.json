@@ -75,6 +75,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
+        },
+        "langfuse_trace_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -87,7 +99,8 @@
         "input_units",
         "output_units",
         "unit_kind",
-        "cost_micro_usd"
+        "cost_micro_usd",
+        "langfuse_trace_id"
       ],
       "additionalProperties": false
     },
@@ -280,6 +293,10 @@
           "type": "string",
           "format": "uuid"
         },
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "content_type": {
           "$ref": "#/$defs/CvContentType"
         },
@@ -316,6 +333,7 @@
       },
       "required": [
         "request_id",
+        "user_id",
         "content_type",
         "file_base64",
         "target_role_label",
@@ -874,6 +892,10 @@
           "type": "string",
           "format": "uuid"
         },
+        "user_id": {
+          "type": "string",
+          "format": "uuid"
+        },
         "mode": {
           "$ref": "#/$defs/InterviewMode"
         },
@@ -916,6 +938,7 @@
       },
       "required": [
         "session_id",
+        "user_id",
         "mode",
         "persona",
         "is_diagnostic",
@@ -1085,6 +1108,48 @@
         "scenario",
         "test_design"
       ]
+    },
+    "TraceDeleteRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expired": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "user_id",
+        "expired"
+      ],
+      "additionalProperties": false
+    },
+    "TraceDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "deleted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "enabled",
+        "deleted"
+      ],
+      "additionalProperties": false
     },
     "TurnSpeaker": {
       "type": "string",

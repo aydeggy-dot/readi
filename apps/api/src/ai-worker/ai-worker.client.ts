@@ -6,6 +6,8 @@ import {
   EmbedResponse,
   type InterviewAdvanceRequest,
   InterviewAdvanceResponse,
+  type TraceDeleteRequest,
+  TraceDeleteResponse,
 } from "@readi/shared-types";
 import type { Env } from "../config/env";
 import { ENV } from "../config/env.module";
@@ -21,6 +23,11 @@ export abstract class AiWorkerClient {
   abstract embed(request: EmbedRequest): Promise<EmbedResponse>;
   /** One interview exchange (ADR-0004/0016). The engine lives in the worker; this asks it. */
   abstract advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse>;
+  /**
+   * Delete LLM traces — a user's, on erasure, or everything past retention (ADR-0008). The worker
+   * holds the Langfuse credentials, so this is how the API reaches them.
+   */
+  abstract deleteTraces(request: TraceDeleteRequest): Promise<TraceDeleteResponse>;
 }
 
 @Injectable()
@@ -41,6 +48,11 @@ export class HttpAiWorkerClient extends AiWorkerClient {
 
   async advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse> {
     return this.post("/interview/advance", request, InterviewAdvanceResponse, request.session_id);
+  }
+
+  async deleteTraces(request: TraceDeleteRequest): Promise<TraceDeleteResponse> {
+    // The correlation id is what the request is about — never a random one nobody could match.
+    return this.post("/traces/delete", request, TraceDeleteResponse, request.user_id ?? "expired");
   }
 
   /** One POST to the worker, validated against the response contract (ADR-0003/0004). */

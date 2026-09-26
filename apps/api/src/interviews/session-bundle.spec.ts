@@ -140,6 +140,7 @@ describe("sessionBundle", () => {
     const bundle = sessionBundle(
       {
         id: "11111111-1111-4111-8111-111111111111",
+        userId: "22222222-2222-4222-8222-222222222222",
         mode: "text",
         persona: "friendly",
         isDiagnostic: true,
@@ -165,6 +166,9 @@ describe("sessionBundle", () => {
     // Positions are the session's own numbering, not the question's id anywhere.
     expect(bundle.questions.map((q) => q.position)).toEqual([0]);
     expect(json(bundle)).not.toContain("a-slow-endpoint");
+    // The one identifier that crosses, and only so the worker can put it on a Langfuse trace
+    // that erasure has to be able to find again (ADR-0008).
+    expect(bundle.user_id).toBe("22222222-2222-4222-8222-222222222222");
   });
 });
 

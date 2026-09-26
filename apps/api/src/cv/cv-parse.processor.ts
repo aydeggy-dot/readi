@@ -37,6 +37,9 @@ export class CvParseProcessor {
       const file = await this.storage.read(job.fileKey);
       const result = await this.worker.parseCv({
         request_id: randomUUID(),
+        // The worker traces the parse under this id so account erasure can delete it again
+        // (ADR-0008); it reaches no prompt.
+        user_id: job.userId,
         content_type: CvContentType.parse(profile.cvContentType),
         file_base64: Buffer.from(file).toString("base64"),
         // Minimal context only (ADR-0004): no name, email or phone.

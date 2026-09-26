@@ -335,6 +335,13 @@ export type InterviewCandidateContext = z.infer<typeof InterviewCandidateContext
 export const InterviewSessionBundle = z
   .object({
     session_id: z.uuid(),
+    /**
+     * Whose session this is — an opaque uuid, carried so the worker can put a `user_id` on the
+     * Langfuse trace of every exchange and account erasure can then find them (ADR-0008,
+     * ADR-0011). It reaches no prompt, and it is on the bundle rather than on each request
+     * because the bundle is what Redis caches: a cached turn must trace like the first one.
+     */
+    user_id: z.uuid(),
     mode: InterviewMode,
     persona: InterviewPersona,
     is_diagnostic: z.boolean(),

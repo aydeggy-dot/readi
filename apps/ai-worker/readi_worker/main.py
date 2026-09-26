@@ -28,6 +28,7 @@ from readi_worker.llm.base import LLMClient
 from readi_worker.llm.fake import FunctionLLMClient
 from readi_worker.logging_config import install_pii_filter
 from readi_worker.settings import Settings, load_settings
+from readi_worker.tracing import TracedLLMClient, Tracer, build_tracer, build_tracing_router
 
 
 def _init_sentry(settings: Settings) -> None:
@@ -82,9 +83,10 @@ def create_app(
     redis: RedisClient | None = None,
     llm: LLMClient | None = None,
     embeddings: EmbeddingProvider | None = None,
+    tracer: Tracer | None = None,
 ) -> FastAPI:
-    """Build the app. Tests inject `settings`, a fake `redis`, `llm` and `embeddings`; otherwise
-    all come from the environment."""
+    """Build the app. Tests inject `settings`, a fake `redis`, `llm`, `embeddings` and `tracer`;
+    otherwise all come from the environment."""
     settings = settings if settings is not None else load_settings()
     install_pii_filter()
     _init_sentry(settings)
@@ -97,6 +99,9 @@ def create_app(
         )
         redis = owned_redis
 
+    # `NullTracer` unless both Langfuse keys are set — local development, CI and e2e (ADR-0008).
+    tracer = tracer if tracer is not None else build_tracer(settings)
+
     owned_llm: AnthropicLLMClient | None = None
     if llm is None:
         llm, cv_model, interviewer_model = _build_llm(settings)
@@ -104,6 +109,9 @@ def create_app(
     else:
         cv_model = settings.llm_model_cv_parse
         interviewer_model = settings.llm_model_interviewer
+    # Tracing goes on here, once, between the provider and everything that calls it: every model
+    # call the worker will ever make is traced by construction rather than by remembering to.
+    llm = TracedLLMClient(llm, tracer)
 
     owned_embeddings: VoyageEmbeddingProvider | None = None
     if embeddings is None:
@@ -115,6 +123,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
+        await tracer.aclose()
         if owned_redis is not None:
             await owned_redis.aclose()
         if owned_llm is not None:
@@ -135,7 +144,7 @@ def create_app(
     app.add_middleware(BodySizeLimit)
     app.include_router(build_health_router(redis, timeout_s))
     service_token = require_service_token(settings.service_token)
-    app.include_router(build_cv_router(CvParser(llm, cv_model), service_token))
+    app.include_router(build_cv_router(CvParser(llm, cv_model, tracer), service_token))
     app.include_router(
         build_embeddings_router(
             EmbeddingService(embeddings, embedding_model, settings.embedding_dimensions),
@@ -147,8 +156,10 @@ def create_app(
             InterviewService(
                 Interviewer(llm, interviewer_model, settings.interview_llm_timeout_s),
                 InterviewStateStore(redis, settings.interview_state_ttl_s),
+                tracer,
             ),
             service_token,
         )
     )
+    app.include_router(build_tracing_router(tracer, service_token))
     return app

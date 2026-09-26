@@ -1,5 +1,6 @@
 import type { PrismaClient } from "../generated/prisma/client";
 import type { StorageService } from "../storage/storage.service";
+import type { TracesService } from "../tracing/traces.service";
 
 /**
  * Columns that reference a user WITHOUT a foreign key, in rows kept after the user is erased
@@ -36,17 +37,23 @@ export const TOMBSTONED_COLUMNS = [
 export const userFilesPrefix = (userId: string) => `cvs/${userId}/`;
 
 /**
- * Erases a user whose deletion grace period is over: their files, every row of personal data
- * (cascading from `users`), and pending verification codes; rows that must be kept get a new
- * tombstone id that nothing links back to the user. Returns false (and changes nothing in the
- * database) if the user is not due, e.g. because the deletion was cancelled.
+ * Erases a user whose deletion grace period is over: their LLM traces, their files, every row of
+ * personal data (cascading from `users`), and pending verification codes; rows that must be kept
+ * get a new tombstone id that nothing links back to the user. Returns false (and changes nothing
+ * in the database) if the user is not due, e.g. because the deletion was cancelled.
  *
- * Files go first: if the database step then fails, the next sweep retries both, and no file can
- * outlive the record that would find it.
+ * **Everything outside our database goes first**, and in this order: traces (ADR-0008), then
+ * files. If a later step fails, the next sweep retries the whole of it — whereas anything left
+ * until after the transaction would be stranded, because the id that finds it is a tombstone by
+ * then. Both steps are idempotent, so retrying costs nothing.
+ *
+ * A worker with no Langfuse keys answers "nothing to delete" (`TracesService`), so development,
+ * CI and the e2e run take this path unchanged.
  */
 export async function eraseUser(
   prisma: PrismaClient,
   storage: Pick<StorageService, "deletePrefix">,
+  traces: Pick<TracesService, "deleteForUser">,
   userId: string,
   now = new Date(),
 ): Promise<boolean> {
@@ -56,6 +63,7 @@ export async function eraseUser(
   });
   if (!due) return false;
 
+  await traces.deleteForUser(userId);
   await storage.deletePrefix(userFilesPrefix(userId));
 
   return prisma.$transaction(async (tx) => {

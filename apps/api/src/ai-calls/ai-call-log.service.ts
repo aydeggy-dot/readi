@@ -26,6 +26,9 @@ export class AiCallLogService {
         outputUnits: call.output_units,
         unitKind: call.unit_kind,
         costMicroUsd: BigInt(call.cost_micro_usd),
+        // Null whenever the worker has no Langfuse keys, which is every local and CI run
+        // (ADR-0008). When it is set, it is how a cost row leads back to the prompt behind it.
+        langfuseTraceId: call.langfuse_trace_id,
       })),
     });
   }

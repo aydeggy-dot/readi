@@ -165,8 +165,12 @@ describe("CV upload and parsing", () => {
         "request_id",
         "stack_label",
         "target_role_label",
+        // The one identifier, and an opaque one: it goes on the Langfuse trace of the parse so
+        // that account erasure can delete it again (ADR-0008), and reaches no prompt.
+        "user_id",
       ].sort(),
     );
+    expect(sent?.user_id).toBe(userId);
 
     const calls = await prisma.aiCallLog.findMany({ where: { userId } });
     expect(calls).toHaveLength(1);

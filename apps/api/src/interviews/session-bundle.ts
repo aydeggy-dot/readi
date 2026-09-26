@@ -163,6 +163,7 @@ export function candidateQuestion(
 
 export interface BundleSession {
   id: string;
+  userId: string;
   mode: InterviewSessionBundle["mode"];
   persona: InterviewSessionBundle["persona"];
   isDiagnostic: boolean;
@@ -177,7 +178,9 @@ export interface BundleSession {
  *
  * The worker has no database, so everything it needs is here — and nothing it does not need is.
  * The candidate is described in **labels, not keys** and without a name, an email, a phone number
- * or a line of their CV.
+ * or a line of their CV. The one identifier that does cross is `user_id`, an opaque uuid that
+ * reaches no prompt: it is what puts a user on the Langfuse trace of each exchange, so that
+ * account erasure can find those traces again (ADR-0008, ADR-0011).
  */
 export function sessionBundle(
   session: BundleSession,
@@ -186,6 +189,7 @@ export function sessionBundle(
 ): InterviewSessionBundle {
   return {
     session_id: session.id,
+    user_id: session.userId,
     mode: session.mode,
     persona: session.persona,
     is_diagnostic: session.isDiagnostic,

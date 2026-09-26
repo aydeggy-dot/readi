@@ -10,6 +10,7 @@ import { SMS_PROVIDER } from "../notifications/notifications.module";
 import type { SmsProvider } from "../notifications/sms";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
+import { TracesService } from "../tracing/traces.service";
 import { eraseUser } from "./erase-user";
 
 const MINUTE_MS = 60_000;
@@ -28,6 +29,7 @@ export class AccountDeletionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly traces: TracesService,
     private readonly auth: AuthService,
     private readonly email: EmailSender,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
@@ -99,7 +101,7 @@ export class AccountDeletionService {
     let failed = 0;
     for (const { id } of due) {
       try {
-        if (await eraseUser(this.prisma, this.storage, id, now)) erased += 1;
+        if (await eraseUser(this.prisma, this.storage, this.traces, id, now)) erased += 1;
       } catch (error) {
         failed += 1;
         // Retried by the next sweep. Ids only: never personal data in logs.

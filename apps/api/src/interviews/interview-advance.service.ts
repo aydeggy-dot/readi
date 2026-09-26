@@ -239,6 +239,7 @@ export class InterviewAdvanceService {
     return sessionBundle(
       {
         id: session.id,
+        userId: session.userId,
         mode: session.mode,
         persona: session.persona,
         isDiagnostic: session.isDiagnostic,
