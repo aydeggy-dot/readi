@@ -351,7 +351,14 @@ questions:
   });
 
   await test.step("now the candidate sees it — and none of the answer key", async () => {
-    const response = await candidate.request.get("/api/content/practice");
+    /*
+     * Filtered to this test's own topic. `/api/content/practice` returns the first 20 questions by
+     * difficulty and slug, so in a full parallel run whatever else has published for this role can
+     * push this question off the page — which it did on 2026-09-26, twice, while passing whenever
+     * the spec ran alone. The topic is unique to this test, so the filter makes the assertion about
+     * this question rather than about how busy the rest of the suite was.
+     */
+    const response = await candidate.request.get(`/api/content/practice?topic=${topicSlug}`);
     const raw = await response.text();
     const body = JSON.parse(raw) as { items: { slug: string }[] };
     expect(body.items.map((item) => item.slug)).toContain(questionSlug);

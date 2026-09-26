@@ -93,7 +93,16 @@ test("email sign-up through onboarding to home", async ({ page }) => {
 
   await test.step("the navigation bar marks where you are, and shows focus on its own grey", async () => {
     await page.goto("/profile");
-    const nav = page.getByRole("navigation", { name: "Main" });
+    /*
+     * Which navigation holds Practice and Profile depends on the width, deliberately: on a phone
+     * the tab bar ("Sections") owns them and the header's "Main" keeps only the staff links, so a
+     * candidate at 360px has an empty header nav. This asserts the rule rather than the width —
+     * whichever bar shows the link marks it as the page you are on. It looked for "Main" until
+     * 2026-09-26 and failed on mobile-chromium from the day the tab bar landed.
+     */
+    const nav = page
+      .getByRole("navigation")
+      .filter({ has: page.getByRole("link", { name: "Profile" }) });
     await expect(nav.getByRole("link", { name: "Profile" })).toHaveAttribute(
       "aria-current",
       "page",
