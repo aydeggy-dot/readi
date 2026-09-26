@@ -322,9 +322,9 @@ questions:
     subtopic: what to cache
     difficulty: 3
     prompt: >-
-      A jobs board makes the same three database queries on every page load — the list of open
-      jobs, the categories, and the signed-in user's saved jobs — and the database is struggling
-      at peak. Which of those would you cache, and which would you leave alone?
+      A jobs board makes the same three database queries on every page load — the list of open jobs,
+      the categories, and the signed-in user's saved jobs — and the database is struggling at peak.
+      Which of those three would you cache? Take me through it.
     context: null
     rubric: caching-judgement
     ideal_points:
@@ -481,8 +481,8 @@ questions:
     difficulty: 3
     prompt: >-
       A tester signed in as an ordinary user, changed the number in the address bar, and read
-      somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever
-      you work. Explain what the check that is there does, and what it does not do.
+      somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever you
+      work. Explain what the check that is there actually proves.
     context: |
       ```js
       app.get("/api/invoices/:id", requireSignIn, async (req, res) => {

@@ -261,7 +261,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Two components on the same page need to know which job the user has selected: a list on the left and a detail panel on the right. Where would you keep that selection, and why there?
+> Two components on the same page need to know which job the user has selected: a list on the left and a detail panel on the right. Where would you keep that selection? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 

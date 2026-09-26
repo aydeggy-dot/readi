@@ -1,0 +1,85 @@
+{
+  "note": [
+    "How many things a text asks the candidate for. One rule, two implementations, because it is",
+    "needed in two runtimes: `countAsks` in .claude/skills/question-bank/scripts/check-bank.mjs",
+    "checks a written bank, and `count_asks` in apps/ai-worker/readi_worker/interview/asks.py stops",
+    "the phrasing call adding an ask to a question at run time. Both assert against this file, so the",
+    "two copies cannot drift — check-bank fails on a mismatch like any other error, and",
+    "tests/test_interview_asks.py fails on the same one. Verified on 2026-09-26 to agree on all 330",
+    "prompts and probes in /content/seed as well.",
+    "The counter over-counts on purpose-built prose and that is documented, not a bug: see the",
+    "`over-counts` cases. It is used as a floor and as a comparison between two near-identical texts,",
+    "never as an absolute ceiling — `check-bank.mjs` has its own narrower check for that."
+  ],
+  "cases": [
+    { "asks": 0, "text": "" },
+    { "asks": 0, "text": "This is the code that moves it, in JavaScript." },
+    { "asks": 1, "text": "What is the exception telling you?" },
+    { "asks": 1, "text": "How would you order the testing?" },
+    { "asks": 1, "text": "Would you take it?" },
+    {
+      "why": "over-counts: the directive-owns rule covers `tell/walk/talk/take me`, not `explain`",
+      "asks": 2,
+      "text": "Explain what that check actually proves."
+    },
+
+    {
+      "why": "a directive owns the interrogative that follows it",
+      "asks": 1,
+      "text": "Tell me what is actually in that copy."
+    },
+    {
+      "why": "same, through `through`",
+      "asks": 1,
+      "text": "Walk me through what happens to that error."
+    },
+
+    {
+      "why": "the house depth cue asks for nothing new",
+      "asks": 1,
+      "text": "Which is the more serious? Take me through it."
+    },
+    {
+      "why": "…and a prompt that is nothing but the cue still asks one thing",
+      "asks": 1,
+      "text": "Walk me through it."
+    },
+    {
+      "why": "a cue with a noun in it is the ask, and is counted",
+      "asks": 1,
+      "text": "Walk me through what you would change."
+    },
+
+    {
+      "why": "two things to answer, coordinated",
+      "asks": 2,
+      "text": "Which is the more serious, and what makes it so?"
+    },
+    {
+      "why": "three, which is what the retrofit of 2026-09-25 removed",
+      "asks": 3,
+      "text": "Walk me through how that state comes about, what you would change, and what you would do about the rows that are already wrong."
+    },
+    {
+      "why": "an interrogative owns a following modal: one ask, not two",
+      "asks": 1,
+      "text": "What would you change?"
+    },
+    {
+      "why": "but a bare modal of its own is an ask",
+      "asks": 2,
+      "text": "What is in that copy, and would you take it?"
+    },
+
+    {
+      "why": "over-counts: `where` is a relative pronoun here, not an interrogative",
+      "asks": 2,
+      "text": "Support have found accounts where money left one and never arrived in the other. Walk me through how that state comes about."
+    },
+    {
+      "why": "over-counts: `is there` is existential here",
+      "asks": 4,
+      "text": "Explain what the check that is there does, and what it does not do."
+    }
+  ]
+}

@@ -187,6 +187,25 @@ So, writing a question:
 
 - **The prompt is one clause.** No "and", no "also", no trailing "and how would you know your list
   is enough?". Read it aloud; if you run out of breath or lose the thread, it is still two questions.
+  **`check-bank.mjs` enforces this as an error, and only in its sharpest form** (2026-09-26): a
+  second ask coordinated onto the first with an explicit `and`/`or`/`then`, inside a sentence that is
+  doing the asking. Ten openings across the three banks still did that after the 2026-09-25 retrofit
+  cut the three-clause prompts — "Explain what the check that is there does, **and what it does not
+  do**", "Which is the more serious, **and what makes it so**" — and one of them was the question
+  whose answer went un-probed in the first paid run. The check is narrow on purpose, because counting
+  asks lexically does not work as a ceiling: the counter behind the arithmetic rule above reports
+  more than one ask for 56 of 104 openings, almost all of them relative pronouns ("accounts **where**
+  money left one") and existentials ("the check that **is there**"), and two passes at sharpening it
+  moved 48 clean to 50. Coordination is clean on 94 of 104 with every flag genuine. So a two-part
+  opening the check does not catch is still a defect; it is just one a reader has to catch.
+- **Cutting the second half does not mean losing it.** Three places it can go, in this order of
+  preference: it is usually the _same_ criterion as the first half, in which case the opening simply
+  loses a clause it did not need — and a house **depth cue** restores the shape of the answer that
+  the second clause used to carry as a side effect ("Which is the more serious? Take me through
+  it."). Where it is genuinely a different criterion, it becomes that criterion's probe, which is
+  better than the opening: it reaches exactly the candidate who did not volunteer it. And where it
+  was asking a criterion that _already_ had a probe, it was being asked twice — `selenium-stale-element`
+  and `pushing-back-on-a-release` were both doing that on 2026-09-26.
 - **Each remaining criterion gets a probe**, `{ criterion, probe }`, where `criterion` is that
   criterion's position in the rubric counting from 0 — not the criterion's name, because two
   questions can share a rubric and positions are what the engine pins into a session.

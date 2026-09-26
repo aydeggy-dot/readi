@@ -568,7 +568,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Which of those would you cache, and which would you leave alone?
+> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Which of those three would you cache? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -868,7 +868,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A tester signed in as an ordinary user, changed the number in the address bar, and read somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever you work. Explain what the check that is there does, and what it does not do.
+> A tester signed in as an ordinary user, changed the number in the address bar, and read somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever you work. Explain what the check that is there actually proves.
 
 **Setup the candidate is given**
 
@@ -2584,7 +2584,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Two components on the same page need to know which job the user has selected: a list on the left and a detail panel on the right. Where would you keep that selection, and why there?
+> Two components on the same page need to know which job the user has selected: a list on the left and a detail panel on the right. Where would you keep that selection? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -4752,7 +4752,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is the same endpoint a week apart. This went out last night. What would you say happened, and what does it mean for the apps already reading that field?
+> On your screen is the same endpoint a week apart. This went out last night. What would you say happened? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -4834,7 +4834,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> You need about five hundred customers with realistic transaction histories to test a statement screen. The quickest route is a copy of the live database, and someone senior has offered you one. What is in that copy, and would you take it?
+> You need about five hundred customers with realistic transaction histories to test a statement screen. The quickest route is a copy of the live database, and someone senior has offered you one. Tell me what is actually in that copy.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 

@@ -176,7 +176,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A transfer screen takes a recipient account number, an amount and a four-digit PIN, and the daily limit is two hundred thousand naira. How would you order the testing, and what puts the first thing first?
+> A transfer screen takes a recipient account number, an amount and a four-digit PIN, and the daily limit is two hundred thousand naira. How would you order the testing?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -557,7 +557,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen are two defects, and one fix will make it into tomorrow's release. Which is the more serious, and what makes it so?
+> On your screen are two defects, and one fix will make it into tomorrow's release. Which is the more serious? Take me through it.
 
 **Setup the candidate is given**
 
@@ -808,7 +808,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is the same endpoint a week apart. This went out last night. What would you say happened, and what does it mean for the apps already reading that field?
+> On your screen is the same endpoint a week apart. This went out last night. What would you say happened? Walk me through it.
 
 **Setup the candidate is given**
 
@@ -890,7 +890,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A team has two hundred manual test cases and time for you to automate about thirty. Which thirty, and what puts a case in that group?
+> A team has two hundred manual test cases and time for you to automate about thirty. What puts a case in that thirty?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1465,7 +1465,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> You need about five hundred customers with realistic transaction histories to test a statement screen. The quickest route is a copy of the live database, and someone senior has offered you one. What is in that copy, and would you take it?
+> You need about five hundred customers with realistic transaction histories to test a statement screen. The quickest route is a copy of the live database, and someone senior has offered you one. Tell me what is actually in that copy.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1767,7 +1767,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> Tell me about a time you found something close to a release — at work, or on a project of your own — that you thought should stop it going out. What was the risk, and how did you know?
+> Tell me about a time you found something close to a release — at work, or on a project of your own — that you thought should stop it going out. What was the risk?
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -1823,7 +1823,7 @@ _Planned follow-ups — asked only if the answer has not already covered this, a
 
 > What do you do differently now, because of it?
 
-> **The drafter is unsure about:** **Reworded on 2026-09-23**, and it now has its own rubric. It used to require that "someone more senior disagreed" — in many workplaces here disagreeing upward is not done and the candidate has no story — and it was scored with the generic `behavioural-answer-quality`, in which "how they made the case" landed nowhere. The slug still says "pushing back", which the question no longer requires; slugs are permanent. The second follow-up carries criterion 2's fairness promise out loud — "if there was nobody to tell" — rather than only in a descriptor the candidate never sees. This is the one question with **four** follow-ups: criterion 1 gets one although the opening asks it, because a candidate can tell the whole story and never say how they knew it was serious, and criterion 3 gets two because "what is different now" is where a nervous candidate stops. Enough?
+> **The drafter is unsure about:** **Reworded on 2026-09-23**, and it now has its own rubric. It used to require that "someone more senior disagreed" — in many workplaces here disagreeing upward is not done and the candidate has no story — and the generic `behavioural-answer-quality` gave "how they made the case" nowhere to land. The slug still says "pushing back", which the question no longer requires; slugs are permanent. The second follow-up carries criterion 2's fairness promise out loud — "if there was nobody to tell" — rather than only in a descriptor the candidate never sees. This is the one question with **four** follow-ups: criterion 1 gets one because a candidate can tell the whole story and never say how they knew it was serious, and criterion 3 gets two because "what is different now" is where a nervous candidate stops. **"and how did you know?" came off the opening on 2026-09-26**, where it asked criterion 1 a second time. Enough?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers
@@ -2142,7 +2142,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> On your screen is a test that throws on its last line, and only when the filter actually changes the list. What is the exception telling you, and would waiting longer help?
+> On your screen is a test that throws on its last line, and only when the filter actually changes the list. What is the exception telling you?
 
 **Setup the candidate is given**
 
@@ -2177,7 +2177,9 @@ The reference points at an element that was in the page and no longer is.
 - **3 (solid):** Says the re-render replaced the element, so the reference is to something detached from the page — and that waiting cannot help, because the element it names will never come back.
 - **4 (excellent):** As 3, and knows a re-render is one of several ways to get here, naming navigating away or switching window or frame as the others.
 
-_Asked for by the opening prompt; no planned follow-up._
+_Planned follow-up — asked only if the answer has not already covered this:_
+
+> Would waiting longer help?
 
 **The fix — 30%**
 
@@ -2207,7 +2209,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 > Somebody suggests retrying on that exception everywhere — what would that hide?
 
-> **The drafter is unsure about:** **Version-sensitive: that the exception means the element is no longer attached to the document, that relocating it is the documented remedy, and that a locator-storing wrapper is the other documented answer rather than a flourish. Checked against selenium.dev on 2026-09-23 (Selenium 4.49).** One thing to be careful of, which the fact-check turned up — the documentation does not say in so many words that waiting cannot help. That is an inference from the remedy, and a sound one, but the rubric turns level 3 on it, so it is our claim rather than the vendor's. Is it safe to score on? And the docs list three causes where the question gives one; a candidate who names navigation and frame switching too is reading the exception properly rather than padding. The opening question is the one place in this bank that still asks two things — "would waiting longer help" is what criterion 1 turns on at level 3, and it has no follow-up of its own because the prompt is its criterion.
+> **The drafter is unsure about:** **Version-sensitive: that the exception means the element is no longer attached to the document, that relocating it is the documented remedy, and that a locator-storing wrapper is the other documented answer rather than a flourish. Checked against selenium.dev on 2026-09-23 (Selenium 4.49).** Careful with one thing the fact-check turned up: the documentation never says waiting cannot help. That is an inference from the remedy, and a sound one, but the rubric turns level 3 on it, so it is our claim rather than the vendor's. Safe to score on? The docs also list three causes where the question gives one, so a candidate who names navigation and frame switching is reading the exception properly rather than padding. **The opening asked two things until 2026-09-26** — "would waiting longer help" is now criterion 1's own probe, making this the one question here where every criterion carries one. Is that probe too close to a yes/no to be worth a turn?
 
 - [ ] a real interviewer would ask this, at this level
 - [ ] the rubric is what a strong answer actually covers

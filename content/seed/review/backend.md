@@ -565,7 +565,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Which of those would you cache, and which would you leave alone?
+> A jobs board makes the same three database queries on every page load — the list of open jobs, the categories, and the signed-in user's saved jobs — and the database is struggling at peak. Which of those three would you cache? Take me through it.
 
 **What a strong answer covers** — the answer key; never shown to a candidate
 
@@ -865,7 +865,7 @@ _Planned follow-up — asked only if the answer has not already covered this:_
 
 **The interviewer asks**
 
-> A tester signed in as an ordinary user, changed the number in the address bar, and read somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever you work. Explain what the check that is there does, and what it does not do.
+> A tester signed in as an ordinary user, changed the number in the address bar, and read somebody else's invoice. This is the route, in JavaScript — the idea is the same wherever you work. Explain what the check that is there actually proves.
 
 **Setup the candidate is given**
 
