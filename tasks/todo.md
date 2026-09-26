@@ -2207,6 +2207,18 @@ complementary.
 - [x] Found and fixed on the way: the exchange lock was released **after** the stream closed, which
       is what the "known flake" really was; and "You answered 1 of 4 questions in 1 minutes"
 
+### Carried out of M3, small
+
+- [ ] **`measure()` in `slow-network.spec.ts` can report a negative duration.** The M3 phase 6 run
+      printed `CMS question form: -123 ms, 310 KB`, and the interview screen's 1221 ms is the same
+      effect in a milder form: the helper times `page.goto` with `Date.now()`, and on a route the
+      browser has already prefetched (Next's `<Link>` fires `?_rsc=…` after `load`) the navigation
+      resolves against work that started before the clock did. **The weights are unaffected** — they
+      come from `performance.getEntriesByType`, which is why the budget assertions still mean
+      something — so this is about the printed timings, which are the part a person reads. Fix it
+      by measuring from the navigation entry (`startTime` to `loadEventEnd`) rather than wall clock,
+      and by clearing the cache between pages; whoever next touches that spec should do it.
+
 ### The owner's three decisions, taken 2026-09-25 at the start of this branch
 
 1. **The coding round stays [P2].** M3 ships the prose interviewer. The carried-forward item is

@@ -37,7 +37,13 @@ test("email sign-up through onboarding to home", async ({ page }) => {
     await page.getByRole("radio", { name: "Mid-level" }).check();
     // The picker starts on the role's default variant; this candidate says otherwise (ADR-0015).
     await expect(page.getByRole("radio", { name: "Node.js (Express / NestJS)" })).toBeChecked();
-    await page.getByRole("radio", { name: "Go", exact: true }).check();
+    /*
+     * Java / Spring, not Go. Backend offers four variants and Go is not one of them — it came off
+     * `roles.yaml` with the backend blueprint — and this line went on passing for two milestones
+     * because the e2e database was never dropped and still held the link row. `e2e-prepare.ts`
+     * recreates the database now, which is what turned this into a failure instead of a fiction.
+     */
+    await page.getByRole("radio", { name: "Java / Spring" }).check();
     await page.getByRole("spinbutton", { name: "Years of professional experience" }).fill("3");
     await page.getByRole("textbox", { name: "What do you work with?" }).fill("Go");
     await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -84,7 +90,7 @@ test("email sign-up through onboarding to home", async ({ page }) => {
     const chosenStack = page
       .locator("dt", { hasText: "Interviewing for" })
       .locator("xpath=following-sibling::dd");
-    await expect(chosenStack).toHaveText("Go");
+    await expect(chosenStack).toHaveText("Java / Spring");
     await expect(page.getByText("Ready", { exact: true })).toBeVisible();
     // Onboarding is finished, so the app stops redirecting to its steps.
     await page.goto("/onboarding");

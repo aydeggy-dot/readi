@@ -109,7 +109,9 @@ async function fillProfile(page: Page, name: string): Promise<void> {
    * because this spec only runs when `E2E_SCREENSHOTS` is set. A screen it cannot reach is a
    * screen it cannot photograph, so the captures are only as current as this function.
    */
-  await page.getByRole("radio", { name: "Go", exact: true }).check();
+  // Java / Spring, not Go: Go is not one of backend's four variants and has not been since the
+  // backend blueprint. The stale e2e database hid that too (see `onboarding.spec.ts`).
+  await page.getByRole("radio", { name: "Java / Spring" }).check();
   await page.getByRole("textbox", { name: "What do you work with?" }).fill("Go");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("radio", { name: "Remote role at a foreign company" }).check();
