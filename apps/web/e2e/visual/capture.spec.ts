@@ -1,6 +1,12 @@
 import { fileURLToPath } from "node:url";
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { grantRole, seedContent, uniqueEmail } from "../helpers";
+import {
+  grantRole,
+  publishSeededQuestions,
+  seedContent,
+  signUpAndOnboard,
+  uniqueEmail,
+} from "../helpers";
 
 /**
  * Before/after screenshots of every screen, for reviewing a visual change (D1 and later UI
@@ -56,6 +62,16 @@ const SCREENS = [
   ["32-content-level-new", "/admin/content/levels/new", "expert"],
   ["33-content-stacks", "/admin/content/stacks", "expert"],
   ["34-content-stack-new", "/admin/content/stacks/new", "expert"],
+  /*
+   * The interview (M3). Two of these carry a session id that only exists once one has been run,
+   * so the path holds a placeholder and `seedAccounts` supplies the value. The account has one
+   * finished interview and one still running, which is also what makes the Practice list worth a
+   * picture: the resume card, a finished card and the scope note, all on a 360px screen.
+   */
+  ["35-practice", "/practice", "interviewing"],
+  ["36-practice-new", "/practice/new", "interviewing"],
+  ["37-interview", "/interview/{live}", "interviewing"],
+  ["38-interview-complete", "/interview/{finished}/complete", "interviewing"],
 ] as const satisfies ReadonlyArray<readonly [string, string, StateKey | null]>;
 
 /** 360px is the narrowest width we support; 1280px is where the desktop layout applies. */
@@ -65,8 +81,13 @@ const VIEWPORTS = [
 ] as const;
 const THEMES = ["light", "dark"] as const;
 
-type StateKey = "fresh" | "mid" | "done" | "expert";
+type StateKey = "fresh" | "mid" | "done" | "expert" | "interviewing";
 type States = Record<StateKey, Awaited<ReturnType<BrowserContext["storageState"]>>>;
+/** Session ids the paths above interpolate, because a screenshot of one needs one to exist. */
+interface Sessions {
+  live: string;
+  finished: string;
+}
 
 async function signUp(page: Page, address: string): Promise<void> {
   await page.goto("/signup");
@@ -100,7 +121,7 @@ async function fillProfile(page: Page, name: string): Promise<void> {
  * Four accounts, each parked at the point that makes a group of screens reachable. They are made
  * once and replayed as cookies, so the captures themselves never mutate anything.
  */
-async function seedAccounts(browser: Browser): Promise<States> {
+async function seedAccounts(browser: Browser): Promise<{ states: States; sessions: Sessions }> {
   const states: Partial<States> = {};
 
   const fresh = await browser.newContext();
@@ -144,7 +165,58 @@ async function seedAccounts(browser: Browser): Promise<States> {
   states.expert = await expert.storageState();
   await expert.close();
 
-  return states as States;
+  /*
+   * A candidate with an interview behind them and one in flight. Both are run through the real
+   * screens rather than posted to the API, because the point of this account is the screens: a
+   * transcript with something in it, and a completion screen with a real session under it.
+   */
+  const interviewing = await browser.newContext();
+  const interviewingPage = await interviewing.newPage();
+  /*
+   * **Frontend, and its questions published first.** Two things had to be fixed to get a picture
+   * of a real interview here. The seed importer never publishes (ADR-0014 decision 5) and
+   * `catalogue.setup.ts` publishes only the catalogue, so in a fresh e2e database no question is
+   * published at all and an interview cannot start. And what made that invisible was
+   * `content.spec.ts`, which leaves a published fixture in backend/mid on every run — random
+   * suffix, literal `**` in the prompt — which selection cannot tell from the bank, so these
+   * screenshots came out full of "A report page takes **nine seconds** to load … d2571bd2".
+   * Frontend is untouched by the other specs, so what is photographed is the bank.
+   */
+  await publishSeededQuestions({ role: "frontend", level: "mid", count: 6 });
+  await signUpAndOnboard(interviewingPage, {
+    name: "Tunde Adeyemi",
+    role: "Frontend engineer",
+  });
+  const finished = await runInterview(interviewingPage, { end: true });
+  const live = await runInterview(interviewingPage, { end: false });
+  states.interviewing = await interviewing.storageState();
+  await interviewing.close();
+
+  return { states: states as States, sessions: { live, finished } };
+}
+
+/**
+ * Sets up an interview, answers one question, and optionally ends it. Returns the session id.
+ *
+ * `LLM_PROVIDER=fake` answers instantly, so this costs seconds rather than a model call.
+ */
+async function runInterview(page: Page, { end }: { end: boolean }): Promise<string> {
+  await page.goto("/practice/new");
+  await page.getByRole("button", { name: "Start the interview" }).click();
+  await page.waitForURL(/\/interview\/[0-9a-f-]{36}$/);
+  const id = page.url().split("/").pop() ?? "";
+  await page.getByText(/Question 1 of/).waitFor({ timeout: 60_000 });
+  await page
+    .getByRole("textbox", { name: "Your answer" })
+    .fill("We had a slow endpoint and I started with the query plan before changing anything.");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.getByRole("button", { name: "Sending…" }).waitFor({ state: "detached" });
+  if (end) {
+    await page.getByRole("button", { name: "End the interview" }).click();
+    await page.getByRole("button", { name: "End it now" }).click();
+    await page.getByRole("link", { name: "See where you got to" }).waitFor({ timeout: 60_000 });
+  }
+  return id;
 }
 
 test.describe("visual review", () => {
@@ -154,20 +226,20 @@ test.describe("visual review", () => {
     browser,
   }) => {
     /*
-     * 34 screens × 2 widths × 2 themes is 136 full-page screenshots, and the whole run takes about
-     * two and a half minutes. The ceiling is this high because the failure it guards against is a
+     * 38 screens × 2 widths × 2 themes is 152 full-page screenshots, and the whole run takes about
+     * three minutes. The ceiling is this high because the failure it guards against is a
      * *hang* — a locator in `seedAccounts` that will never match, which is how this spec spent
      * twenty minutes producing nothing when a field was renamed under it. A generous timeout costs
      * nothing on a run that is skipped unless `E2E_SCREENSHOTS` is set.
      */
     test.setTimeout(20 * 60 * 1000);
-    const states = await seedAccounts(browser);
+    const { states, sessions } = await seedAccounts(browser);
     const dir = `${OUT}/${label ?? "unlabelled"}`;
     let taken = 0;
 
     for (const viewport of VIEWPORTS) {
       for (const colorScheme of THEMES) {
-        for (const key of [null, "fresh", "mid", "done", "expert"] as const) {
+        for (const key of [null, "fresh", "mid", "done", "expert", "interviewing"] as const) {
           const screens = SCREENS.filter(([, , state]) => state === key);
           const context = await browser.newContext({
             viewport,
@@ -177,7 +249,10 @@ test.describe("visual review", () => {
           });
           const page = await context.newPage();
           for (const [name, path] of screens) {
-            await page.goto(path, { waitUntil: "networkidle" });
+            const url = path
+              .replace("{live}", sessions.live)
+              .replace("{finished}", sessions.finished);
+            await page.goto(url, { waitUntil: "networkidle" });
             await page.screenshot({
               path: `${dir}/${name}-${viewport.width}-${colorScheme}.png`,
               fullPage: true,

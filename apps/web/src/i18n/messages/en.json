@@ -371,6 +371,7 @@
     "complete": {
       "title": "Interview finished",
       "lead": "You answered {asked} of {budget} questions in {minutes} minutes.",
+      "leadOneMinute": "You answered {asked} of {budget} questions in a minute.",
       "leadUnfinished": "This one was left unfinished after {asked} of {budget} questions.",
       "waitingTitle": "Putting the session away",
       "waiting": "Saving the last of the transcript.",

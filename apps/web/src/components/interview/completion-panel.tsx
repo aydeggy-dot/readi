@@ -72,6 +72,10 @@ export function CompletionPanel({
 
   const unfinished = status.status === "abandoned";
   const asked = session.questions.length;
+  // What it took, not what was on offer. A candidate who ends early after forty seconds read
+  // "in 1 minutes", which the screenshot review caught: one variant rather than a plural engine,
+  // because this is the only counted noun in the product whose value can be one.
+  const minutes = elapsedMinutes(session.started_at, status.ended_at, clock);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-6 sm:px-8 sm:py-10">
@@ -83,11 +87,10 @@ export function CompletionPanel({
                 asked,
                 budget: session.question_budget,
               })
-            : t("interview.complete.lead", {
+            : t(minutes === 1 ? "interview.complete.leadOneMinute" : "interview.complete.lead", {
                 asked,
                 budget: session.question_budget,
-                // What it took, not what was on offer.
-                minutes: elapsedMinutes(session.started_at, status.ended_at, clock),
+                minutes,
               })}
         </p>
       </div>
