@@ -18,6 +18,7 @@ const counts = (over: Partial<SeedCounts> = {}): SeedCounts => ({
   reviewed: 0,
   skipped: [],
   published: [],
+  orphans: [],
   ...over,
 });
 
@@ -67,5 +68,34 @@ describe("hasDrift", () => {
    */
   it("catches an author-only flip", () => {
     expect(hasDrift(report({ questions: counts({ reviewed: 1, unchanged: 104 }) }))).toBe(true);
+  });
+});
+
+/**
+ * The failure the second paid run put in front of the owner: a question cut from the bank on
+ * 2026-09-25 that was still published, so a session selected it, pinned it, and asked a pre-retrofit
+ * two-ask opening with no planned follow-ups. `--check` said "the database matches content/seed",
+ * because drift was measured only over rows the files name — and this was a row they had stopped
+ * naming.
+ */
+describe("orphans", () => {
+  it("is drift, and names the remedy rather than a re-import", () => {
+    const drifted = report({ questions: counts({ orphans: ["api-error-shape"], unchanged: 104 }) });
+    expect(hasDrift(drifted)).toBe(true);
+    const said = formatDrift(drifted).join("\n");
+    expect(said).toContain("api-error-shape");
+    expect(said).toContain("Retire them");
+    // A re-import cannot fix a row no file describes, so it must not be the advice.
+    expect(said).not.toContain("--force-published");
+  });
+
+  it("is reported alongside an ordinary update, without either hiding the other", () => {
+    const drifted = report({
+      questions: counts({ orphans: ["api-error-shape"] }),
+      rubrics: counts({ updated: 3 }),
+    });
+    const said = formatDrift(drifted).join("\n");
+    expect(said).toContain("api-error-shape");
+    expect(said).toContain("--force-published");
   });
 });

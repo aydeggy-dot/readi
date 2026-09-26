@@ -63,6 +63,12 @@ export interface SeedCounts {
    * `--force` writes them anyway.
    */
   published: string[];
+  /**
+   * Slugs that are **published** and that the files no longer define at all — content the files
+   * created and have since dropped, still being offered to candidates. See `findOrphans`; the second
+   * paid run put one of these in front of the owner.
+   */
+  orphans: string[];
 }
 
 export type SeedEntityKind =
@@ -115,6 +121,7 @@ const emptyCounts = (): SeedCounts => ({
   reviewed: 0,
   skipped: [],
   published: [],
+  orphans: [],
 });
 
 const emptyReport = (): SeedReport => ({
@@ -144,6 +151,10 @@ export class SeedImporter {
     career_levels: new Set<string>(),
     career_roles: new Set<string>(),
     stacks: new Set<string>(),
+    // Not needed to resolve a reference; needed to notice a row the files have dropped (`orphans`).
+    questions: new Set<string>(),
+    tracks: new Set<string>(),
+    lessons: new Set<string>(),
   };
 
   constructor(
@@ -240,6 +251,12 @@ export class SeedImporter {
       for (const level of data.career_levels ?? []) this.defined.career_levels.add(level.slug);
       for (const stack of data.stacks ?? []) this.defined.stacks.add(stack.slug);
       for (const role of data.career_roles ?? []) this.defined.career_roles.add(role.slug);
+      for (const question of data.questions ?? []) this.defined.questions.add(question.slug);
+      if (data.track) {
+        this.defined.tracks.add(data.track.slug);
+        for (const module of data.track.modules)
+          for (const lesson of module.lessons) this.defined.lessons.add(lesson.slug);
+      }
     }
     // The catalogue first: a role names the levels and stacks it offers (ADR-0015).
     for (const { data } of files)
@@ -253,7 +270,65 @@ export class SeedImporter {
       await this.forFile(data, () => this.importQuestions(file, data, report));
     for (const { file, data } of files)
       await this.forFile(data, () => this.importTrack(file, data, report));
+    await this.findOrphans(report);
     return report;
+  }
+
+  /**
+   * Published rows the files created and no longer mention.
+   *
+   * **The importer never deletes**, deliberately: content removed from a file stays in the database
+   * because a person may have edited it since. The cost of that showed up in the second paid run
+   * (2026-09-26). `api-error-shape` was cut from the backend bank on 2026-09-25 — subsumed by
+   * `api-status-code-choice`, which asks it better — and the row stayed **published**, so a session
+   * selected it, pinned it, and put a pre-retrofit two-ask opening with no planned follow-ups to a
+   * candidate. Its rubric `api-error-contract` was cut with it and is published too.
+   *
+   * `pnpm db:seed -- --check` could not see this: drift was measured only over rows the files
+   * *name*, so a row they had stopped naming was invisible by construction. It is reported here
+   * instead, where the set of named slugs already exists.
+   *
+   * **Only `published` ones, and only `seed_managed` ones.** A draft orphan is invisible to a
+   * candidate and is usually just history — `behavioural-answer-quality` is one — and a row with
+   * `seed_managed = false` belongs to whoever edited it in the CMS, which is the whole point of that
+   * column. A published one is being offered right now, by a file that no longer exists to explain
+   * it, and the remedy is to retire it.
+   */
+  private async findOrphans(report: SeedReport): Promise<void> {
+    const published = { status: "published" as const, seedManaged: true };
+    const slugsOf = async (
+      rows: Promise<{ slug: string }[]>,
+      named: Set<string>,
+    ): Promise<string[]> => (await rows).map((row) => row.slug).filter((slug) => !named.has(slug));
+
+    report.questions.orphans = await slugsOf(
+      this.prisma.question.findMany({ where: published, select: { slug: true } }),
+      this.defined.questions,
+    );
+    report.rubrics.orphans = await slugsOf(
+      this.prisma.rubric.findMany({ where: published, select: { slug: true } }),
+      this.defined.rubrics,
+    );
+    report.tracks.orphans = await slugsOf(
+      this.prisma.track.findMany({ where: published, select: { slug: true } }),
+      this.defined.tracks,
+    );
+    report.lessons.orphans = await slugsOf(
+      this.prisma.lesson.findMany({ where: published, select: { slug: true } }),
+      this.defined.lessons,
+    );
+    report.career_roles.orphans = await slugsOf(
+      this.prisma.careerRole.findMany({ where: published, select: { slug: true } }),
+      this.defined.career_roles,
+    );
+    report.career_levels.orphans = await slugsOf(
+      this.prisma.careerLevel.findMany({ where: published, select: { slug: true } }),
+      this.defined.career_levels,
+    );
+    report.stacks.orphans = await slugsOf(
+      this.prisma.stack.findMany({ where: published, select: { slug: true } }),
+      this.defined.stacks,
+    );
   }
 
   /** Runs one pass over one file with that file's authorship in force. */
