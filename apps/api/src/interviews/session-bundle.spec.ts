@@ -148,6 +148,7 @@ describe("sessionBundle", () => {
         endsAt: new Date("2026-09-25T10:15:00.000Z"),
         questionBudget: 4,
         maxFollowUps: 2,
+        transcriptReviewGranted: false,
       },
       [snapshotOf(question())],
       {

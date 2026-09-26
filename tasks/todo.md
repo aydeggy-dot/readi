@@ -2257,18 +2257,31 @@ and `2026-09-26-m3-second-paid-run.md`). What is left for the owner before phase
 Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded there, taken
 2026-09-26 before any code was written.
 
-### Phase 0 — the blocker: staff reading transcripts
+### Phase 0 — the blocker: staff reading transcripts · **done 2026-09-26**
 
-- [ ] `transcript_review` in `CONSENT_TYPES` / `CONSENT_VERSIONS`; it **joins `allDecided`**, so
+- [x] `transcript_review` in `CONSENT_TYPES` / `CONSENT_VERSIONS`; it **joins `allDecided`**, so
       every existing account is asked once
-- [ ] `consent.types.transcript_review.v1.{title,body}` copy; both consent screens pick it up
-- [ ] `interview_intro.v3.md` — one conditional clause for a candidate who granted it;
-      `InterviewCandidateContext` gains the boolean and the bundle reads the decision
-- [ ] `docs/privacy/subprocessors.md`: the calibration reviewers, **and the stale Anthropic row**
-      (it still says CV text only; candidate answers have gone there since M3)
-- [ ] ADR-0017 — the lawful basis, and what the consent does and does not permit
-- [ ] Tests: the sampling predicate reads a granted current-version decision; a non-consenting
-      candidate is never selectable; the intro clause appears only with the grant
+- [x] **A Prisma enum value, so it needed a migration** — `ConsentType` is a database enum, which the
+      plan had not accounted for. `20260926223512_consent_transcript_review`, and it proposed
+      `DROP INDEX questions_embedding_hnsw` for the **seventh** time, in a migration that touches
+      nothing but an enum
+- [x] `consent.types.transcript_review.v1.{title,body}` copy; both consent screens pick it up from
+      `CONSENT_TYPES`, so neither form changed
+- [x] `interview_intro.v3.md` — one conditional clause; the boolean is on the **bundle root**, not
+      `InterviewCandidateContext` (it is not context a model may act on), and it is read when the
+      bundle is built rather than pinned, because `session_turns` already records what was said
+- [x] `docs/privacy/subprocessors.md`: the calibration reviewers, **and the stale Anthropic row** —
+      it had described CV parsing alone since M1, and candidate answers have gone there since M3
+- [x] ADR-0017 — the lawful basis, what the consent does not permit, and the self-selection caveat
+      the agreement metric now carries
+- [x] `isCurrentGrant` as the one rule, with a truth table; `usersGranting()` filters the set through
+      the same predicate rather than restating it in SQL; `hasGranted()` for the single-user check
+- [x] The intro clause appears only with the grant (worker), and the bundle carries the real decision
+      (API integration) — **watched failing** by hardcoding `false` in `bundleFor`
+- [x] CLAUDE.md: the consent list, and that adding a type is three things plus a re-ask
+- [ ] **Still open, for the owner:** are the calibration reviewers contractors or employees? The
+      subprocessors entry says the answer decides whether a data-processing clause is needed, and it
+      must be recorded **before the first reviewer is given access**
 
 ### Phase 1 — contracts, schema, `evaluationRequest()`
 

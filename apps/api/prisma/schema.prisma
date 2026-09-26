@@ -191,6 +191,9 @@ enum ConsentType {
   audio_processing
   recording_storage
   camera_coaching
+  /// A person on our team may read this candidate's interview answers, so the model's scoring can be
+  /// checked against a human's (spec §90, ADR-0017). Optional, default off, declinable at no cost.
+  transcript_review
   marketing
 
   @@map("consent_type")

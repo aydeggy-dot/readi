@@ -2964,7 +2964,13 @@
       },
       "ConsentType_Output": {
         "type": "string",
-        "enum": ["audio_processing", "recording_storage", "camera_coaching", "marketing"]
+        "enum": [
+          "audio_processing",
+          "recording_storage",
+          "camera_coaching",
+          "transcript_review",
+          "marketing"
+        ]
       },
       "ConsentsResponseDto_Output": {
         "type": "object",
@@ -2998,14 +3004,20 @@
       },
       "ConsentType": {
         "type": "string",
-        "enum": ["audio_processing", "recording_storage", "camera_coaching", "marketing"]
+        "enum": [
+          "audio_processing",
+          "recording_storage",
+          "camera_coaching",
+          "transcript_review",
+          "marketing"
+        ]
       },
       "UpdateConsentsRequestDto": {
         "type": "object",
         "properties": {
           "decisions": {
             "minItems": 1,
-            "maxItems": 4,
+            "maxItems": 5,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ConsentDecision"

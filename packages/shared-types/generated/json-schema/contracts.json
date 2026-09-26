@@ -905,6 +905,9 @@
         "is_diagnostic": {
           "type": "boolean"
         },
+        "transcript_review_granted": {
+          "type": "boolean"
+        },
         "planned_minutes": {
           "type": "number",
           "enum": [
@@ -942,6 +945,7 @@
         "mode",
         "persona",
         "is_diagnostic",
+        "transcript_review_granted",
         "planned_minutes",
         "ends_at",
         "question_budget",

@@ -4,6 +4,7 @@ import type {
   InterviewSessionResponse,
   InterviewStatusResponse,
 } from "@readi/shared-types";
+import { CONSENT_VERSIONS } from "@readi/shared-types";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
@@ -316,6 +317,34 @@ describe("advancing an interview", () => {
       // Four to eight pinned questions, with their code snippets, not resent every turn.
       expect(worker.engine.requests[1]?.bundle).toBeNull();
       expect(worker.engine.requests[1]?.engine_snapshot).not.toBeNull();
+    });
+
+    it("tells the worker whether a person may read this transcript, and defaults to no", async () => {
+      // ADR-0017. The intro says it aloud only when the candidate has agreed, so the decision has to
+      // reach the one template that speaks it — and a candidate who has decided nothing has not
+      // agreed, which is why the absence of a record reads as `false` rather than as unknown.
+      const quiet = await candidate();
+      await advance(quiet, (await session(quiet)).id, { action: "start" });
+      expect(worker.engine.requests[0]?.bundle?.transcript_review_granted).toBe(false);
+
+      const willing = await candidate();
+      const saved = await http()
+        .put("/api/me/consents")
+        .set("cookie", willing)
+        .send({
+          decisions: [
+            {
+              type: "transcript_review",
+              granted: true,
+              version: CONSENT_VERSIONS.transcript_review,
+            },
+          ],
+        });
+      expect(saved.status).toBe(200);
+
+      worker.engine.requests.length = 0;
+      await advance(willing, (await session(willing)).id, { action: "start" });
+      expect(worker.engine.requests[0]?.bundle?.transcript_review_granted).toBe(true);
     });
 
     it("sends it again when the worker says it has lost it", async () => {

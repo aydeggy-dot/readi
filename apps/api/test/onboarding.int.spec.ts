@@ -177,18 +177,23 @@ describe("profile, consent and onboarding", () => {
       const cookie = await signUp();
       const { id } = await me(cookie);
 
+      // One row per type, counted from the list rather than written down: adding a consent type is
+      // a thing we do (`transcript_review`, ADR-0017), and a literal here fails for the right
+      // reason in the wrong place.
+      const count = () => prisma.consentRecord.count({ where: { userId: id } });
+
       await http()
         .put("/api/me/consents")
         .set("cookie", cookie)
         .send({ decisions: allDecisions((t) => t === "marketing") });
-      expect(await prisma.consentRecord.count({ where: { userId: id } })).toBe(4);
+      expect(await count()).toBe(CONSENT_TYPES.length);
 
       // Same choices again: nothing new. Then revoke marketing: one new row.
       await http()
         .put("/api/me/consents")
         .set("cookie", cookie)
         .send({ decisions: allDecisions((t) => t === "marketing") });
-      expect(await prisma.consentRecord.count({ where: { userId: id } })).toBe(4);
+      expect(await count()).toBe(CONSENT_TYPES.length);
       const revoked = await http()
         .put("/api/me/consents")
         .set("cookie", cookie)
@@ -196,7 +201,7 @@ describe("profile, consent and onboarding", () => {
           decisions: [{ type: "marketing", granted: false, version: CONSENT_VERSIONS.marketing }],
         });
       expect(revoked.status).toBe(200);
-      expect(await prisma.consentRecord.count({ where: { userId: id } })).toBe(5);
+      expect(await count()).toBe(CONSENT_TYPES.length + 1);
 
       const marketing = ConsentsResponse.parse(revoked.body).consents.find(
         (c) => c.type === "marketing",

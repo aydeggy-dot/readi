@@ -53,3 +53,36 @@ describe("ConsentsService with a bumped consent version", () => {
     expect(await new ConsentsService(prisma).allDecided(USER)).toBe(true);
   });
 });
+
+describe("who may be sampled", () => {
+  const OTHER = "1c1e1c1e-1c1e-4c1e-8c1e-1c1e1c1e1c1e";
+
+  it("asks the shared predicate, so one user's answer is read the same way as the set's", async () => {
+    findMany.mockResolvedValue(records);
+    const service = new ConsentsService(prisma);
+    expect(await service.hasGranted(USER, "transcript_review")).toBe(true);
+    // `marketing` is granted at version 1 and the current text is version 2 (mocked above), so the
+    // same stale-yes rule that hides it from `list()` also keeps it out of `hasGranted`.
+    expect(await service.hasGranted(USER, "marketing")).toBe(false);
+  });
+
+  it("returns only the users whose latest row granted the current text", async () => {
+    findMany.mockResolvedValue([
+      { ...records[0], id: "a", userId: USER, type: "transcript_review", granted: true },
+      { ...records[0], id: "b", userId: OTHER, type: "transcript_review", granted: false },
+    ]);
+    expect(await new ConsentsService(prisma).usersGranting("transcript_review")).toEqual([USER]);
+  });
+
+  it("takes the latest row per user, which is what `distinct` is asked for", async () => {
+    findMany.mockResolvedValue([]);
+    await new ConsentsService(prisma).usersGranting("transcript_review");
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { type: "transcript_review" },
+        orderBy: { createdAt: "desc" },
+        distinct: ["userId"],
+      }),
+    );
+  });
+});

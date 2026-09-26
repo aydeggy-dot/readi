@@ -31,11 +31,20 @@ export const PROFILE_LIMITS = {
   technologyMaxLength: 40,
 } as const;
 
-/** Consent types (spec §4.1, CLAUDE.md "Data & privacy"). */
+/**
+ * Consent types (spec §4.1, CLAUDE.md "Data & privacy").
+ *
+ * `transcript_review` is the one a candidate can decline without losing anything: it lets a member
+ * of our team read what they typed, so that the model's scoring can be checked against a human's
+ * (spec §90, ADR-0017). Declining costs the candidate nothing and only shrinks the calibration
+ * sample. Every type is still **asked**, which is why adding one sends existing accounts back to
+ * the consent screen once (`ConsentsService.allDecided`) — an explicit yes or no is the point.
+ */
 export const CONSENT_TYPES = [
   "audio_processing",
   "recording_storage",
   "camera_coaching",
+  "transcript_review",
   "marketing",
 ] as const;
 
@@ -49,6 +58,7 @@ export const CONSENT_VERSIONS = {
   audio_processing: 1,
   recording_storage: 1,
   camera_coaching: 1,
+  transcript_review: 1,
   marketing: 1,
 } as const satisfies Record<(typeof CONSENT_TYPES)[number], number>;
 

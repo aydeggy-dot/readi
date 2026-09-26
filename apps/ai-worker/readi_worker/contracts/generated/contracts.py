@@ -285,6 +285,7 @@ class InterviewSessionBundle(BaseModel):
     mode: Literal["text", "voice"]
     persona: Literal["friendly"]
     is_diagnostic: bool
+    transcript_review_granted: bool
     planned_minutes: Literal[15, 30]
     ends_at: AwareDatetime
     question_budget: int = Field(..., ge=1, le=9007199254740991)

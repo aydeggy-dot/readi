@@ -17,6 +17,7 @@ import { AiCallLogService } from "../ai-calls/ai-call-log.service";
 import { AiWorkerClient, AiWorkerUnavailableError } from "../ai-worker/ai-worker.client";
 import type { AuthenticatedUser } from "../auth/auth.service";
 import type { Env } from "../config/env";
+import { ConsentsService } from "../consents/consents.service";
 import { ENV } from "../config/env.module";
 import { ApiError } from "../http/api-error";
 import { REDIS } from "../redis/redis.module";
@@ -60,6 +61,7 @@ export class InterviewAdvanceService {
     private readonly repository: InterviewSessionsRepository,
     private readonly worker: AiWorkerClient,
     private readonly aiCalls: AiCallLogService,
+    private readonly consents: ConsentsService,
     @Inject(REDIS) private readonly redis: Redis,
     @Inject(ENV) private readonly env: Env,
   ) {}
@@ -211,7 +213,7 @@ export class InterviewAdvanceService {
     requestedAt: Date,
     calls: AiCallRecord[],
   ): Promise<InterviewAdvanceResponse> {
-    const bundle = this.bundleFor(session);
+    const bundle = await this.bundleFor(session);
     const snapshot = session.engineSnapshot
       ? InterviewEngineSnapshot.parse(session.engineSnapshot)
       : null;
@@ -239,8 +241,13 @@ export class InterviewAdvanceService {
    * snapshot and it does not carry one (CLAUDE.md §5) — and the candidate is described in the
    * catalogue's own **names**, as the session recorded them, so a role renamed afterwards cannot
    * change how the interviewer addressed them.
+   *
+   * The one consent decision it carries is `transcript_review`, which the intro speaks aloud when it
+   * has been granted (ADR-0017). It is read here rather than pinned on the session: the intro is
+   * spoken once and `session_turns` already holds the words, so the transcript is the record of what
+   * was claimed, and a bundle resent after a Redis miss cannot re-speak an intro either way.
    */
-  private bundleFor(session: SessionWithContent): InterviewAdvanceRequest["bundle"] {
+  private async bundleFor(session: SessionWithContent): Promise<InterviewAdvanceRequest["bundle"]> {
     const catalogue = SessionCatalogue.parse(session.catalogue);
     const candidate: InterviewCandidateContext = {
       role_label: catalogue.role.name,
@@ -260,6 +267,10 @@ export class InterviewAdvanceService {
         endsAt: session.endsAt,
         questionBudget: session.questionBudget,
         maxFollowUps: session.maxFollowUps,
+        transcriptReviewGranted: await this.consents.hasGranted(
+          session.userId,
+          "transcript_review",
+        ),
       },
       session.questions.map((row) => SessionQuestionSnapshot.parse(row.snapshot)),
       candidate,

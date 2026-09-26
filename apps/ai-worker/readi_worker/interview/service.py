@@ -56,8 +56,10 @@ logger = logging.getLogger(__name__)
 #: one shared `VERSION = 1` until 2026-09-26, which made "bump one prompt" impossible to express.
 PROMPT_VERSIONS: dict[str, int] = {
     "interview_system": 1,
-    # v2, 2026-09-26: v1 told the candidate "nobody else is listening", which is not true.
-    "interview_intro": 2,
+    # v2, 2026-09-26: v1 told the candidate "nobody else is listening", which is not true. v3 the
+    # same day (M4 phase 0): v2's silence about who else reads a transcript is settled by ADR-0017,
+    # so the intro says it aloud — conditionally, because the consent is optional and declinable.
+    "interview_intro": 3,
     # v2, 2026-09-26: the engine supplies the connective, and "do not add an ask" is now enforced.
     "interview_question": 2,
     "interview_followup": 1,
@@ -325,6 +327,7 @@ class InterviewService:
                     is_diagnostic=bundle.is_diagnostic,
                     question_budget=planned_total,
                     planned_minutes=bundle.planned_minutes,
+                    transcript_review_granted=bundle.transcript_review_granted,
                 )
             )
             return _turn(step.seq, "intro", text)

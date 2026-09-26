@@ -796,7 +796,7 @@ export interface components {
             decided_at: string | null;
         };
         /** @enum {string} */
-        ConsentType_Output: "audio_processing" | "recording_storage" | "camera_coaching" | "marketing";
+        ConsentType_Output: "audio_processing" | "recording_storage" | "camera_coaching" | "transcript_review" | "marketing";
         ConsentsResponseDto_Output: {
             consents: components["schemas"]["ConsentStatus_Output"][];
         };
@@ -806,7 +806,7 @@ export interface components {
             version: number;
         };
         /** @enum {string} */
-        ConsentType: "audio_processing" | "recording_storage" | "camera_coaching" | "marketing";
+        ConsentType: "audio_processing" | "recording_storage" | "camera_coaching" | "transcript_review" | "marketing";
         UpdateConsentsRequestDto: {
             decisions: components["schemas"]["ConsentDecision"][];
         };

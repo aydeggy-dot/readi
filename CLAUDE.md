@@ -414,7 +414,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   everyone, and additionally by SMS (Termii) to users who signed up by phone.
 
 ### Data & privacy (Nigeria Data Protection Act 2023, GDPR-ready)
-- Store explicit `consent_records` for: recording audio, camera coaching, storing recordings, marketing.
+- Store explicit `consent_records` for: recording audio, camera coaching, storing recordings,
+  **transcript review** and marketing. `transcript_review` is the one that lets a *person* read what
+  a candidate typed, for expert calibration (ADR-0017): opt-in, default off, refusable at no cost,
+  and nothing may sample an answer except through `ConsentsService.usersGranting()`. The rule for
+  "granted" is `consent-eligibility.ts`'s `isCurrentGrant` and is written once — a caller that
+  restates it fails silently by showing one candidate's words to someone who was told no.
+  **Adding a consent type is three things, not one**: a `CONSENT_TYPES` entry, a Prisma enum value
+  with its own migration, and a `consent.types.<type>.v1` copy block. It also sends every existing
+  account back to the consent screen, because `allDecided` wants an answer to each type.
 - Camera analysis (MediaPipe) runs on the client; only numeric metrics are sent to the server.
 - Recordings (if consented) auto-expire after a configurable retention period (default 30 days).
 - Never log transcripts, CVs, emails, or phone numbers to application logs or Sentry. Use ids.

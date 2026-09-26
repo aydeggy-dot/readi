@@ -245,6 +245,12 @@
           "body": "Eye contact and posture are analysed on your device. Video never leaves your device; only numbers are sent."
         }
       },
+      "transcript_review": {
+        "v1": {
+          "title": "Let our team read my interview answers",
+          "body": "A reviewer on our team may read answers from your practice interviews and score them by hand, so we can check that our AI scores you fairly. They see the question and what you typed \u2014 not your name, your email or your CV. Say no and nothing you type is ever shown to a person; you get the same interviews and the same feedback either way."
+        }
+      },
       "marketing": {
         "v1": {
           "title": "Product news and tips",

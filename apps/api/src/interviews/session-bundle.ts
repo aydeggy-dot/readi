@@ -171,6 +171,8 @@ export interface BundleSession {
   endsAt: Date;
   questionBudget: number;
   maxFollowUps: number;
+  /** Whether this candidate has granted `transcript_review` (ADR-0017). Read, never pinned. */
+  transcriptReviewGranted: boolean;
 }
 
 /**
@@ -193,6 +195,7 @@ export function sessionBundle(
     mode: session.mode,
     persona: session.persona,
     is_diagnostic: session.isDiagnostic,
+    transcript_review_granted: session.transcriptReviewGranted,
     planned_minutes: session.plannedMinutes as InterviewSessionBundle["planned_minutes"],
     ends_at: session.endsAt.toISOString(),
     question_budget: session.questionBudget,
