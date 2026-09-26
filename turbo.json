@@ -17,7 +17,7 @@
       ]
     },
     "gen:contracts": {
-      "dependsOn": ["^gen:contracts", "build"],
+      "dependsOn": ["^gen:contracts"],
       "outputs": ["generated/**", "readi_worker/contracts/generated/**"]
     },
     "typecheck": {

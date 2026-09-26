@@ -67,10 +67,15 @@ describe("who may be sampled", () => {
   });
 
   it("returns only the users whose latest row granted the current text", async () => {
-    findMany.mockResolvedValue([
-      { ...records[0], id: "a", userId: USER, type: "transcript_review", granted: true },
-      { ...records[0], id: "b", userId: OTHER, type: "transcript_review", granted: false },
-    ]);
+    const latest = (id: string, userId: string, granted: boolean): ConsentRecord => ({
+      id,
+      userId,
+      type: "transcript_review",
+      granted,
+      version: 1,
+      createdAt: new Date("2026-09-26T00:00:00.000Z"),
+    });
+    findMany.mockResolvedValue([latest("a", USER, true), latest("b", OTHER, false)]);
     expect(await new ConsentsService(prisma).usersGranting("transcript_review")).toEqual([USER]);
   });
 

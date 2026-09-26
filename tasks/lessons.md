@@ -729,3 +729,17 @@ pnpm --filter @readi/api-client gen && pnpm exec prettier --write packages/api-c
 about the command's name. Check `turbo.json` for a transitive `build` before trusting a command
 CLAUDE.md does not warn about — and ask the owner before running anything that builds, rather than
 reading the rule narrowly enough to permit it.
+
+**Fixed the same day, on the owner's instruction that a rule people must remember is a rule that
+breaks.** `turbo run typecheck --dry=json` said it in one line: `@readi/web#gen:contracts <-
+@readi/web#build`. Turbo synthesises a node for a task **every** package is configured for, even one
+with no such script, so the root `gen:contracts.dependsOn: ["build"]` — which exists for
+`packages/shared-types` alone, whose generator imports from `dist/` — was making every package build
+itself, `next build` included. The root task now says `["^gen:contracts"]` and
+`packages/shared-types/turbo.json` carries the `build` dependency for the one package that needs it
+(`extends: ["//"]`, as `apps/api/turbo.json` already did). `scripts/gen-api-client.sh` switched from
+`build` to `build:standalone`, so the API side writes `dist-cli` — which seven CLIs already use —
+instead of the `dist` that `nest start --watch` owns. `pnpm gen:contracts` and `pnpm typecheck` now
+build `shared-types` and `api-client` with `tsc` and nothing else, and the footgun is gone rather than
+documented. **When a lesson's rule is "remember this", check first whether the thing can be made
+untrue instead.**

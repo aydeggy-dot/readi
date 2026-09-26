@@ -2279,9 +2279,13 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
 - [x] The intro clause appears only with the grant (worker), and the bundle carries the real decision
       (API integration) — **watched failing** by hardcoding `false` in `bundleFor`
 - [x] CLAUDE.md: the consent list, and that adding a type is three things plus a re-ask
-- [ ] **Still open, for the owner:** are the calibration reviewers contractors or employees? The
-      subprocessors entry says the answer decides whether a data-processing clause is needed, and it
-      must be recorded **before the first reviewer is given access**
+- [x] **Answered 2026-09-26: contractors, so processors.** Recorded in `subprocessors.md` and in
+      ADR-0017 decision 6 (amended in place while unmerged, as ADR-0014 did — the decision as written
+      asked the question rather than answering it). `docs/privacy/reviewer-agreement.md` is the draft
+      template, marked on its face as needing an NDPA-familiar lawyer before anyone signs
+- [ ] **Gate on phase 6:** no real reviewer is given access until a reviewed, signed agreement exists.
+      The tool is built and demonstrated against staff-authored answers until then, which is what the
+      gold set is made of anyway, so nothing in the schedule waits on the paperwork
 
 ### Phase 1 — contracts, schema, `evaluationRequest()`
 
@@ -2324,6 +2328,9 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
 
 ### Phase 6 — the calibration tool
 
+- [ ] **Blocked from going live** until a reviewed, signed `reviewer-agreement.md` exists (ADR-0017
+      decision 6). Build and demonstrate against staff-authored answers; do not sample a real
+      candidate's transcript before then, consent or no consent
 - [ ] `/admin/calibration`: consent-filtered sampling, the AI score hidden, `calibration_scores`, agreement per rubric and question
 - [ ] A staff member reading a candidate's words is audited
 - [ ] Reuse `content-workflow.ts`; no second status machine

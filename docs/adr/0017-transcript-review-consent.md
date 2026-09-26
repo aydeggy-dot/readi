@@ -5,6 +5,13 @@
 - **Context:** M4 phase 0 (evaluation, the session report, the eval harness, calibration)
 - **Relates to:** ADR-0008 (Langfuse is a personal-data store), ADR-0011 (export and deletion),
   ADR-0014 decision 6 (a model's draft needs a human before production). **Supersedes:** nothing.
+- **Amended:** 2026-09-26, decision 6, while this ADR is still unmerged. CLAUDE.md §7.4 says an
+  accepted ADR is superseded rather than edited; decision 6 as first written did not *decide*
+  anything — it asked the owner which contractual arrangement applied and said the answer had to be
+  recorded before any reviewer was given access. The answer arrived the same day and is filled in
+  below. That is the ADR answering its own open question, not a decision being changed, and it
+  follows the precedent ADR-0014 set for the same situation. **Once this is merged, a change becomes
+  a new ADR.**
 
 ## Context
 
@@ -93,12 +100,26 @@ It does not permit:
 - **surviving erasure.** A calibration score references the answer it scored, so account erasure
   removes it with the rest (ADR-0011).
 
-### 6. Whether a reviewer is a subprocessor depends on their contract
+### 6. The reviewers are contractors, and therefore processors
 
-A reviewer engaged as a contractor is a processor acting on our behalf and needs a data-processing
-clause; an employee is not a separate subprocessor but is bound by the same access rule.
-`docs/privacy/subprocessors.md` records the arrangement, and it must say which one applies **before
-the first reviewer is given access**. Access is audited, like every other privileged action.
+**Answered by the owner, 2026-09-26.** Reviewers are senior engineers outside the company, paid per
+review and engaged under contract rather than employed. They are processors acting on our behalf, and
+three things follow:
+
+- **Each signs a data-processing and confidentiality agreement before being given access.**
+  `docs/privacy/reviewer-agreement.md` is the template. It is a **draft**: it says on its own face
+  that a lawyer familiar with the NDPA 2023 must review it before anybody signs, because nothing in
+  this repository is a legal opinion and an agreement that has not been read by a lawyer is worth
+  less than the trouble it took to write.
+- **Phase 6 does not go live with real reviewers until an agreement is signed.** That is a gate on
+  the milestone, not a note in it. The tool can be built, tested and demonstrated against staff-
+  authored answers in the meantime — which is what the eval harness's gold set is made of anyway —
+  so nothing about the schedule depends on the paperwork arriving first.
+- **`docs/privacy/subprocessors.md` records the arrangement**, because a DPA we sign with a customer
+  or a cohort partner has to be able to say who reads candidate answers and under what terms.
+
+Access is audited, like every other privileged action, and the agreement says so: a reviewer should
+know that which answers they opened is recorded, and why that protects them as much as the candidate.
 
 ## Consequences
 

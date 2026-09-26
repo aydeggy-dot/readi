@@ -8,7 +8,7 @@ see the checklist at the end.
 Status: **M1**. Nothing here is a legal opinion; this file is what the system actually does, which is
 what legal review needs as input.
 
-Last reviewed: 2026-09-26 (M4 phase 0: the Anthropic row corrected — it had described CV parsing
+Last reviewed: 2026-09-26 (M4 phase 0: the reviewers recorded as contracted processors; the Anthropic row corrected — it had described CV parsing
 alone since M1, and candidate answers have gone there since M3 — and the calibration reviewers
 recorded below).
 
@@ -49,6 +49,7 @@ Add each to the table above — with its region and retention — in the milesto
 | Paystack | Payments in Naira | M8 |
 | Stripe | Payments in USD | M8 |
 | Meta (WhatsApp Cloud API) | Reminders on WhatsApp | Phase 2 |
+| Contracted calibration reviewers (people, not a service — see below) | Blind-scoring sampled answers so the evaluator's fairness can be measured | M4 |
 
 ## People, not services: the calibration reviewers
 
@@ -64,11 +65,15 @@ purpose in the product that no third-party service performs.
   not count.
 - **What a reviewer sees** is the question, the rubric and the answer. Not the candidate's name,
   email, phone number or CV — the tool identifies the answer by ids.
-- **Whether a reviewer is a subprocessor depends on their contract.** A reviewer engaged as a
-  contractor rather than employed is a processor acting on our behalf and needs a data-processing
-  clause in that contract; an employee is not a separate subprocessor but is still bound by the same
-  access rule. **Record which arrangement applies here before the first reviewer is given access** —
-  this file is what legal review reads, and "it depends" is not an answer it can use.
+- **The reviewers are contractors, so they are processors** (owner's decision, 2026-09-26). They are
+  senior engineers outside the company, paid per review, engaged under contract rather than employed.
+  Each therefore needs a data-processing and confidentiality agreement before they are given access:
+  `docs/privacy/reviewer-agreement.md` is the **draft** template, and it says on its face that a
+  lawyer familiar with the NDPA 2023 must review it before anybody signs.
+  **Phase 6 of M4 does not go live with real reviewers until a signed agreement is in place**, which
+  is a gate on the milestone rather than a note in it. Named, individual contractors are not listed
+  as rows in the table above — that table is for services we send data to — but they are processors
+  in exactly the same sense, and a DPA we sign with a customer or a partner has to be able to say so.
 - **Access is logged.** A staff member reading a candidate's words is an audited event, like every
   other privileged action (ADR-0011's audit rules).
 
