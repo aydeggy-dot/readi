@@ -531,3 +531,69 @@ at the call site.
 **The rule:** when the React Compiler rules reject a hook, ask what external system is being mirrored
 before asking how to silence them. Twice out of three here the rule was pointing at a second copy of
 the truth.
+
+## A passing report is not a check (the first paid interview run, 2026-09-26)
+
+The run produced no follow-ups and openings that asked three or four things at once. One cause, and it
+was in the database, not the code: the dev database held **published** rows from before the bank was
+rewritten, and the importer was correctly refusing to update them (ADR-0014 decision 5). The session
+pinned three-ask prompts with an empty probe menu, and the engine did exactly the right thing with an
+empty menu.
+
+What makes this a lesson rather than an accident is that **we had been told.** The dry run before that
+session printed `questions: 73 to update` and named 31 more under "left alone — published, and
+candidates are reading them". It was read. It exited 0, so the run went ahead. Prose in a command that
+succeeds is advisory, and advisory output loses to momentum every time.
+
+**The rule:** anything that costs money or takes a person's time gets a **check with an exit code** in
+front of it, not a report. `pnpm db:seed -- --check` is that check now. When you find yourself writing
+a more strongly worded warning, write an exit code instead.
+
+## Diagnose from the artefact, not from the last diagnosis (2026-09-26)
+
+The note written straight after that run named a third cause: "the openings ask what the probes were
+written to ask, so even with the bank repaired no follow-up will fire". It was wrong, and wrong in a
+way worth remembering — it compared the **new** probes against the **stale pinned** opening. Against
+the live one-ask opening the same two probes are exactly complementary.
+
+A pinned snapshot and the file it came from look interchangeable and are not; that is the entire point
+of pinning. Re-reading the database rather than the note also found the real residue — ten openings
+still hanging a second ask off the first — which the earlier note had not looked for because it
+believed the problem was already explained.
+
+**The rule:** when a previous session's note explains a failure, re-derive the explanation from the
+artefact before building on it. Especially where the artefact is a snapshot: ask "which copy is this,
+and what was it a copy of?" before comparing it with anything.
+
+## A lexical rule can be a floor or a ceiling, rarely both (2026-09-26)
+
+`countAsks` in `check-bank.mjs` has counted interrogatives since the QA bank, as a floor: _enough_
+things are asked for to justify the criteria. Asked to reuse it as a ceiling — the opening asks _at
+most_ one thing — it was useless: it reports more than one ask for 56 of 104 openings that ask exactly
+one thing, because relative pronouns ("accounts **where** money left one") and existentials ("the
+check that **is there**") read as asks. Two passes at sharpening it moved 48 clean to 50.
+
+Over-counting is harmless in a floor and fatal in a ceiling. The ceiling needed a different, narrower
+signal — coordination, an explicit `and`/`or`/`then` after a comma inside a sentence that asks — which
+is clean on 94 of 104 with every flag genuine. The same crude counter is still exactly right for the
+runtime guard, because there it compares two near-identical texts and its false positives appear on
+both sides and cancel.
+
+**The rule:** before reusing a heuristic on the other side of an inequality, measure its false
+positives against the corpus. A heuristic is not a measure of the thing; it is a measure with a bias,
+and which direction the bias hurts depends on which way the comparison runs.
+
+## A prompt rule that has never been tested is a hope (2026-09-26)
+
+`interview_question.v1.md` said "do not narrow it, broaden it, split it in two". The paid run's four
+openings gained a framing sentence and no ask, which read as the rule holding. It was not evidence:
+every opening in that session already asked three or four things, so there was nothing left to add.
+The case the rule exists for — a one-ask opening the model could helpfully expand — had never run.
+
+It is an invariant now, in `calls.speak`, which is a better place for it: the failure mode is
+detectable in code, the fallback to the pinned wording already existed for a model that will not
+answer, and the test drives it from the model's side with a scripted client, offline and free.
+
+**The rule:** when an instruction to a model protects something that matters, ask what would happen if
+it were ignored, and whether code could notice. If code can notice, the instruction stays _and_ the
+code checks. And be suspicious of evidence gathered where the failure was impossible.

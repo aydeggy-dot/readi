@@ -627,6 +627,21 @@ rather than letting a save drop what it never showed — `admin.content.role.cat
 
 ## Carried forward
 
+- **M4 blocker — expert blind-scoring of transcripts needs its own consent type and privacy copy
+  before any transcript is sampled.** Spec §90 commits the MVP to an "internal calibration tool:
+  admins/experts blind-score sampled answers", and `docs/status-and-dependencies.md` repeats it. That
+  is a staff human reading what a candidate typed, which is a processing purpose we have never named:
+  `CONSENT_TYPES` has `audio_processing`, `recording_storage`, `camera_coaching` and `marketing`, and
+  none of them covers it. It surfaced on 2026-09-26 while rewriting `interview_intro` — the intro had
+  been telling candidates "nobody else is listening", which the calibration tool makes false the day
+  it ships (item 13 of the paid-run diagnosis). **Nothing may sample a transcript until three things
+  exist:** a consent type (or a documented lawful basis that does not need one) with its
+  `CONSENT_VERSIONS` entry and `consent.types.<type>.v1` copy; an entry in the privacy copy and in
+  `docs/privacy/subprocessors.md` if a third party is involved; and the calibration tool reading the
+  decision before it selects a sample. The intro's v2 wording is deliberately silent about staff
+  reading transcripts, because until this is decided we do not know what to promise — so the wording
+  is honest today and must be re-read as part of this item, not left to drift into being a lie again.
+
 - **M3/M4 — pin the content a session was scored against.** Every `InterviewSession` must record the
   exact **question version and rubric version** it used (and the resolved rubric criteria, or a
   reference that can reach the right `content_versions` snapshot), not just `question_id` /
@@ -2085,6 +2100,52 @@ fresh session does not have to reconstruct them.
 6. **`agentRules: false` in `next.config.ts`.** Next 16 writes an `AGENTS.md` and a `CLAUDE.md` into
    `apps/web` on every `next dev`; a generated `apps/web/CLAUDE.md` is loaded as project
    instructions and would quietly compete with the one we maintain at the root.
+
+### Phase 4.5 — what the paid run showed (2026-09-26)
+
+The first paid run (`docs/progress/2026-09-25-m3-paid-run.md`) produced zero follow-ups and openings
+that asked three or four things at once. Re-diagnosed from the database on 2026-09-26: **one root
+cause**, the dev database holding pre-retrofit _published_ rows that the importer was correctly
+refusing to update (ADR-0014 decision 5), so the session pinned three-ask prompts with an empty probe
+menu. The engine did exactly what it was designed to do with an empty menu. The earlier note's third
+cause — "the openings ask what the probes were written to ask" — was a misdiagnosis: it compared the
+new probes against the _stale pinned_ opening, and against the live one-ask opening they are
+complementary.
+
+- [x] **A. The coordinated second ask.** Ten openings still hang a second ask off the first with an
+      explicit coordinator ("…what the check does, **and what it does not do**"). A new error in
+      `check-bank.mjs` catches it; the token counter cannot (it reports >1 for 56 of 104, mostly
+      relative pronouns), the coordination detector is clean on 93 of 104 with 10 of 11 flags
+      genuine. Rule into `SKILL.md`; rewrite the ten; re-import
+- [x] **B. "Never add an ask" as an enforced invariant.** A runtime guard compares the asks in the
+      spoken turn with the asks in the pinned prompt; more is invalid output — retry, then fall back
+      to the pinned wording, which already exists. Robust because it is a _relative_ count over
+      near-identical text, so the counter's false positives cancel. Same guard on the follow-up call.
+      `asks.py` in the worker, shared test vectors so the JS and Python copies cannot drift.
+      `interview_question.v2.md` states the rule
+- [x] **C. Stale published content in dev.** `pnpm db:seed -- --check` exits non-zero on drift; a
+      warning at session creation when a pinned question has no probes and more than one criterion
+- [x] **D. `interview_intro.v2.md`.** "nothing to look up and nobody else is listening" is untrue —
+      the transcript is stored, and `complete.scoring` on the very next screen already says so. What
+      v2 may say is bounded by two facts: cohort seats make progress "visible to the program"
+      (spec §27) and the employer talent pool is opt-in [P3] (spec §127). See the M4 blocker above
+- [x] **E. `interview_candidate_questions.v2.md`** — warmer. It read like a form because the prompt
+      is almost all prohibitions; warmth comes from answering generously, not from praising the
+      question, and the ban on "great question" stays
+- [x] **F. Varying the transitions.** Each phrasing call is independent, so the model cannot know it
+      already said "Let's move on". The engine supplies the connective, chosen deterministically from
+      `(session_id, position)` so it varies within and between sessions and stays reproducible
+- [x] Free proving run on `LLM_PROVIDER=fake` with deliberately thin answers — session
+      `8643fee0-5661-4e1f-84b5-952ae1c2e982`: a thin answer drew two probes and stopped at the cap, a
+      complete one drew none, and the coverage log carries real verdicts. Written up in
+      `docs/progress/2026-09-26-paid-run-fixes.md`
+- [ ] **The owner's second paid run.** Not armed: the worker is running the new code on
+      `LLM_PROVIDER=fake`. The checklist is at the end of the fixes note
+- [ ] **A known flake, left deliberately:** `interviews-advance.int.spec.ts` › "refuses a second
+      exchange while one is in flight" failed once under full-suite load and passes alone. It races
+      two `Promise.all` requests and needs them to genuinely overlap; on a loaded machine the first
+      acquires and releases the Redis lock before the second arrives and both get 200. The fix is in
+      the fixture — have the fake worker hold the exchange open — not in the test
 
 ### Phase 5 — Langfuse (ADR-0008)
 
