@@ -127,7 +127,9 @@ def build_langfuse_client(
     return Langfuse(
         public_key=public_key,
         secret_key=secret_key,
-        host=host,
+        # `base_url`, not `host`: the SDK resolves `base_url` -> $LANGFUSE_BASE_URL -> `host`, so a
+        # stray LANGFUSE_BASE_URL in the environment would otherwise beat our configured region.
+        base_url=host,
         timeout=timeout_s,
         environment=environment,
         mask=mask_personal_data,

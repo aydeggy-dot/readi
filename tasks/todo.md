@@ -2181,11 +2181,15 @@ complementary.
       acquires and releases the Redis lock before the second arrives and both get 200. The fix is in
       the fixture — have the fake worker hold the exchange open — not in the test
 
-### Phase 5 — Langfuse (ADR-0008)
+### Phase 5 — Langfuse (done, 2026-09-26; handover `docs/progress/2026-09-26-m3-phase-5.md`)
 
-- [ ] Tracing behind the env check, with a test proving it is off without keys; masking hook
-- [ ] `langfuse_trace_id` on `AiCallRecord` → `ai_call_log`; retention sweep; erasure reaches it
-- [ ] `docs/privacy/subprocessors.md`
+- [x] Tracing behind the env check, with a test proving it is off without keys; masking hook
+- [x] `langfuse_trace_id` on `AiCallRecord` → `ai_call_log`; retention sweep; erasure reaches it
+- [x] `docs/privacy/subprocessors.md`, and `docs/runbooks/langfuse-enable.md` for the day keys exist
+- [ ] **Waiting on keys, and only this:** one trace inspected for ids-only, one masked prompt
+      confirmed, and deletion by `user_id` and by age verified against the real service. The
+      kickoff item "verify retention and bulk trace deletion" stays open until then — the code is
+      built, tested and disabled, and no test can prove a third party deletes anything
 
 ### Phase 6 — verification and docs
 
@@ -2224,5 +2228,8 @@ complementary.
    no `criteria_covered`. The carried-forward M7 item stands — role-agnostic content still has no
    home, since `Track` is keyed by role and level — with its shape now settled.
 
-Still needed from the owner, at the phase that needs it: Langfuse keys before phase 5; the word
-before the one paid end-to-end run (≈2–4¢); a look at the interview screen at 360px after phase 4.
+Still needed from the owner: **Langfuse keys**, whenever they want tracing on — phase 5 shipped
+without them, correct and disabled, and `docs/runbooks/langfuse-enable.md` is the ten minutes it
+takes. The paid end-to-end run and the 360px look are both done (two runs, `2026-09-25-m3-paid-run.md`
+and `2026-09-26-m3-second-paid-run.md`). What is left for the owner before phase 6 is retiring
+`api-error-shape` and `api-error-contract` in the CMS, which `pnpm db:seed -- --check` still fails on.
