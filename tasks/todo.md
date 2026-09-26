@@ -2146,9 +2146,9 @@ complementary.
         probes, two-ask opening). The importer never deletes, by design — so `db:seed -- --check` now
         reports published rows no seed file defines any more, which it could not see before because
         drift was measured only over rows the files name
-  - [ ] **Retire `api-error-shape` and `api-error-contract` in /admin/content** (admin). Left for the
-        owner: a transition is an audited act and SQL would bypass the trail. `--check` fails until
-        it is done, on purpose
+  - [ ] **Retire `api-error-shape` and `api-error-contract` in /admin/content** — **the owner is doing
+        this** (2026-09-26). Left for them: a transition is an audited act and SQL would bypass the
+        trail. `--check` fails until it is done and goes green after, which is the check working
   - [x] Two **asymmetries in the ask counter** made the guard reject faithful rephrasings and fall
         back to the pinned wording, which is why two questions arrived with no connective: `whom` was
         not counted and `whether` was. Both fixed in both implementations, measured over the corpus
@@ -2159,11 +2159,22 @@ complementary.
   - [x] `interview_candidate_questions.v3` — the "no real company behind this" disclaimer moves to the
         invitation, which is spoken once. v2 had it in front of every answer because every call is
         told to disclaim and no call can know it already has
-- [ ] **Is `api-list-that-grew`'s opening one ask or two?** "What is going wrong, and for whom?" counts
-      as two now that `whom` is counted. Defensible as one diagnosis with two dimensions, and it
-      performed well in the paid run, so nothing was changed — but the coordination rule cannot see
-      "and for whom" (the `for` intervenes, and `whom` is not in its trigger list). If the answer is
-      "two asks", both the question and the rule need a pass. A judgement for the next bank session
+- [x] **`api-list-that-grew`'s "What is going wrong, and for whom?" is an accepted exception to the
+      one-ask rule** (owner's decision, 2026-09-26): one diagnosis with two sides rather than two
+      questions, and it produced one of the two best follow-ups of the paid run. The question stays as
+      it is and **no code changes** — `check-bank.mjs`'s coordinated-ask rule does not flag it and is
+      not being widened to (the `for` intervenes and `whom` is not in its trigger list), which is the
+      rule's deliberate narrowness earning its keep. The runtime counter reads it as two asks, which is
+      the right ceiling for the guard. **The exception is the shape, not the wording**: one question,
+      one criterion, two sides a candidate answers in one breath — not licence for a second clause
+      asking a second criterion, which stays an error. Recorded in
+      `docs/progress/2026-09-26-m3-second-paid-run.md` §5.2, not in the question's `reviewer_notes`,
+      because it is a decision about a rule rather than about that question's content
+- [x] **`LLM_PROVIDER=fake` is the default in `apps/ai-worker/.env` and `.env.example`** (owner's
+      decision, 2026-09-26), so a plain `pnpm dev:worker` is never paid by accident. A paid run is
+      armed on the command line for the length of that run; `ANTHROPIC_API_KEY` stays in `.env`, and
+      `Settings` forbids `fake` in production. This inverts the warning in the two earlier notes, which
+      are superseded rather than edited
 - [ ] **A known flake, left deliberately:** `interviews-advance.int.spec.ts` › "refuses a second
       exchange while one is in flight" failed once under full-suite load and passes alone. It races
       two `Promise.all` requests and needs them to genuinely overlap; on a loaded machine the first

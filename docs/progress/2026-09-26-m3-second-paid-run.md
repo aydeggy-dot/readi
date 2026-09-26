@@ -88,9 +88,9 @@ dropped them, and candidates are still being offered them:
   questions: api-error-shape
 ```
 
-**⚠ Still to do, and it needs you** (see §5): retiring them is an admin's act in the CMS, and doing it
-by SQL would bypass the version and audit trail that ADR-0014 exists for. `--check` fails until it is
-done, which is the behaviour we want.
+**The owner is retiring both in the CMS** (§5.1). It is an admin's audited act, and SQL would bypass
+the version and audit trail ADR-0014 exists for, so it was left rather than done from here. `--check`
+fails until it is done, which is the behaviour we want.
 
 ---
 
@@ -172,31 +172,78 @@ because the field was added after it; from now on they are labelled.
 
 ---
 
-## 5. What is left for you
+## 5. The owner's three decisions on these findings (2026-09-26)
 
-1. **Retire `api-error-shape` and `api-error-contract`** in `/admin/content` as an admin. They are
-   published rows for content cut from the bank on 2026-09-25, and until they are retired a Backend ·
-   Mid-level session can still draw the question. `pnpm db:seed -- --check` fails while they are live,
-   on purpose. Not done here because a status transition is an admin's audited act and SQL would
-   bypass the trail.
-2. **Consider whether `api-list-that-grew`'s opening is one ask.** "What is going wrong, and for
-   whom?" now counts as **two** with `whom` added to the counter. It is defensible as one diagnosis
-   with two dimensions, and it performed well in this run — the probes were the ones the owner
-   praised — so nothing has been changed. But the coordination rule does not see "and for whom" (the
-   `for` intervenes and `whom` is not in its trigger list), so if the answer is "that is two asks",
-   both the question and the rule need a pass. A judgement for the next bank session, recorded rather
-   than taken.
-3. **The M4 consent blocker** still stands (`tasks/todo.md`): no transcript may be sampled for expert
-   blind-scoring until it has a consent type and privacy copy, and `interview_intro.v2`'s silence
-   about who reads a transcript is to be re-read then.
+**1. `api-error-shape` and `api-error-contract`: the owner is retiring them in the CMS.** They are
+published rows for content cut from the bank on 2026-09-25, and until they are retired a Backend ·
+Mid-level session can still draw the question. Not done from here on purpose: a status transition is
+an admin's audited act, and SQL would bypass the version and audit trail ADR-0014 exists for.
+`pnpm db:seed -- --check` fails while they are live and goes green when they are retired, which is the
+check working rather than a nuisance — and it is now the thing that would catch the next cut question
+before an interview does.
+
+**2. "What is going wrong, and for whom?" is an accepted exception to the one-ask rule.** Owner's
+decision, on the evidence of this run: it is **one diagnosis with two sides**, not two questions, and
+it produced one of the two best follow-ups in the session — the Android installed-base probe. So
+`api-list-that-grew` stays exactly as it is.
+
+What that means in practice, so nobody "fixes" it later:
+
+- **No code changes, and none are needed.** `check-bank.mjs`'s coordinated-ask rule does not flag it
+  and is not being made to: the rule requires an explicit `and`/`or`/`then` followed by an
+  interrogative, and here the `for` intervenes and `whom` is not in its trigger list. The rule is
+  deliberately narrow (see §2 of `2026-09-26-paid-run-fixes.md`), and this is the narrowness earning
+  its keep rather than a gap to close.
+- **The runtime counter reads it as two asks**, since `whom` is now counted, and that is the right
+  outcome for the guard: the ceiling for this question is two, so a model rephrasing "for whom" as
+  "who it affects" is no longer rejected. That is precisely the rejection that cost this run two
+  transitions.
+- **The exception is the shape, not the wording**: one question, one criterion, asked from two sides
+  that a candidate would answer in one breath. It is not licence for a second clause that asks a
+  second criterion — that is the defect the ten rewrites removed, and it stays an error.
+- `api-list-that-grew`'s `reviewer_notes` does not mention this. If the expert reviewer should see it,
+  that is a content edit and a re-import; it is recorded here rather than in the bank because it is a
+  decision about a rule, not about that question's content.
+
+**3. `LLM_PROVIDER=fake` is now the default in `apps/ai-worker/.env`**, and in `.env.example` so it
+survives a fresh checkout. A plain `pnpm dev:worker` is free from now on; a paid run is armed on the
+command line, for the length of that run:
+
+```bash
+cd apps/ai-worker
+LLM_PROVIDER=anthropic LLM_MODEL_INTERVIEWER=claude-sonnet-5 uv run python -m readi_worker
+```
+
+`ANTHROPIC_API_KEY` stays in `.env`, so arming is the one env var and nothing else. `Settings` forbids
+`fake` in production, so the default cannot follow a deployment out. **This inverts the warning that
+appears in the two earlier notes** (`2026-09-25-m3-paid-run.md` §5 and
+`2026-09-26-paid-run-fixes.md` §6, both of which say a plain `pnpm dev:worker` is paid): they were
+true when written and are superseded here, not edited, because they are dated records of what was
+handed over at the time.
+
+## 6. Still open, and not ours to close here
+
+- **The M4 consent blocker** (`tasks/todo.md`): no transcript may be sampled for expert blind-scoring
+  until it has a consent type and privacy copy, and `interview_intro.v2`'s deliberate silence about who
+  reads a transcript is to be re-read when that is decided.
+- **One known flake**, left deliberately: `interviews-advance.int.spec.ts` › "refuses a second exchange
+  while one is in flight" races two `Promise.all` requests and needs them to genuinely overlap. The fix
+  is in the fake worker fixture — have it hold the exchange open — not in the test.
+- **M3 phases 5 and 6** are untouched by any of this: Langfuse, then the e2e interview spec,
+  screenshots, Slow 4G and the milestone handover.
 
 ## State
 
-The worker is back on **`LLM_PROVIDER=fake`** with all of this in it (it does not reload; it was
-restarted). The API dev server watches and already has it. `apps/ai-worker/.env` still says
-`anthropic`, so a plain `pnpm dev:worker` is a **paid** worker.
+The worker is running on **`LLM_PROVIDER=fake`** with all of this in it — it does not reload, so it
+was restarted — and `apps/ai-worker/.env` now says `fake` too, so a restart keeps it free. The API dev
+server watches and already has the changes. The dev database matches `content/seed` apart from the two
+orphans in §5.1, which `--check` reports and which the owner is retiring.
 
-Verified: `check-bank` clean (53 pre-existing warnings) · worker ruff, format, `mypy --strict`, **213
-pytest** · API **482 Vitest** · web 155 · shared-types 95 · `pnpm lint`, `pnpm format:check`,
-`pnpm check:contracts` clean · `pnpm test:e2e` green · `pnpm db:seed -- --check` fails, correctly, on
-the two orphans above and on nothing else.
+Verified after every change: `check-bank` clean (53 pre-existing warnings) · worker ruff, ruff format,
+`mypy --strict`, **213 pytest** · API **482 Vitest** · web 155 · shared-types 95 · `pnpm lint`,
+`pnpm format:check`, `pnpm check:contracts` clean · `pnpm test:e2e` green · `pnpm db:seed -- --check`
+fails, correctly, on the two orphans and on nothing else.
+
+Committed as `bc1aec3`, `10bbb9f`, `2264965`, `6cbf109`, `190b57d` (the first round of fixes and its
+docs) and `565f029`, `b17f2e1`, `b8ba59c` (this run's findings and its docs), on
+`feat/m3-interview-engine`. Nothing is pushed; the branch is yours.
