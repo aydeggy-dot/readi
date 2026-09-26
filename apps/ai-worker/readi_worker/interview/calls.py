@@ -26,6 +26,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from readi_worker.contracts import AiCallRecord
+from readi_worker.interview.asks import count_asks
 from readi_worker.llm.base import LLMClient, LLMError, LLMResult
 from readi_worker.llm.pricing import token_cost_micro_usd
 
@@ -100,9 +101,24 @@ class Interviewer:
         return {"provider": self._llm.provider, "interviewer": self._model}
 
     async def speak(
-        self, *, purpose: Purpose, system: str, user: str, fallback: str | None
+        self,
+        *,
+        purpose: Purpose,
+        system: str,
+        user: str,
+        fallback: str | None,
+        asks_in_pinned: int | None = None,
     ) -> tuple[Spoken | None, list[AiCallRecord]]:
-        """Phrase one turn. None only when there is no fallback and the model gave nothing."""
+        """Phrase one turn. None only when there is no fallback and the model gave nothing.
+
+        `asks_in_pinned` is how many things the staff-written wording asks for. Given it, a turn
+        that asks for more is rejected — see `asks.py` for the rule, and for why the comparison is
+        sound where an absolute count would not be. It is passed for the two calls that put a
+        written question to the candidate and left None for the rest, where there is no pinned
+        wording to exceed: the
+        invitation and the close are the interviewer's own words, and answering a question the
+        candidate asked is not asking one.
+        """
         calls: list[AiCallRecord] = []
         for _attempt in range(MAX_ATTEMPTS):
             try:
@@ -120,7 +136,12 @@ class Interviewer:
             calls.append(_record(purpose, result))
             if result.output is not None:
                 spoken = normalise_speech(result.output.speech)
-                if spoken:
+                if spoken and _adds_an_ask(spoken, asks_in_pinned):
+                    # Invalid output, not a refusal: the model answered, it just asked
+                    # the candidate something nobody wrote. Retried, and then the pinned
+                    # wording is spoken instead.
+                    logger.info("interview %s call added an ask; rejected", purpose)
+                elif spoken:
                     return Spoken(spoken, from_fallback=False), calls
                 # Valid JSON, empty utterance: retryable in the same way invalid output is.
             if result.failure == "refusal":
@@ -164,6 +185,16 @@ class Interviewer:
             if result.failure == "refusal":
                 break
         return None, calls
+
+
+def _adds_an_ask(spoken: str, asks_in_pinned: int | None) -> bool:
+    """Did the model turn one question into two?
+
+    The comparison is against the pinned wording rather than against a fixed number, because the
+    counter over-counts ordinary prose and the two texts are near-identical: whatever it miscounts
+    in the question it miscounts in the phrasing of it, and cancels (`asks.py`).
+    """
+    return asks_in_pinned is not None and count_asks(spoken) > asks_in_pinned
 
 
 # ---- Normalisation: the model speaks, code decides what a turn may contain.

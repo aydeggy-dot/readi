@@ -13,7 +13,11 @@ from pydantic import BaseModel
 from readi_worker.contracts import InterviewAdvanceRequest, InterviewSessionBundle
 from readi_worker.interview.calls import CoverageJudgement, Interviewer, ProbeVerdict, Speech
 from readi_worker.interview.fake_script import FAKE_WRAP_UP, FakeInterviewerLLMClient
-from readi_worker.interview.service import FALLBACK_WRAP_UP, InterviewService
+from readi_worker.interview.service import (
+    FALLBACK_WRAP_UP,
+    PROMPT_VERSIONS,
+    InterviewService,
+)
 from readi_worker.interview.state_store import InterviewStateStore
 from readi_worker.llm.base import LLMClient, LLMResult
 from readi_worker.llm.fake import FakeLLMError, FunctionLLMClient, ScriptedLLMClient, Step
@@ -99,19 +103,28 @@ async def test_a_session_runs_from_start_to_close() -> None:
 
 
 async def test_every_prompt_used_is_reported_with_its_version() -> None:
+    """The names are asserted; the numbers come from `PROMPT_VERSIONS`, so a bump is one edit.
+
+    `interview_coverage_input` is in this list from 2026-09-26. It was rendered on every judged
+    answer and named in no session's `prompt_versions`, because recording was a line a caller had to
+    remember; `_render` does it now.
+    """
     service, _ = build()
     deck = bundle(questions=[question(0)], question_budget=1)
     opening = await service.advance(request("start", now=at(0), deck=deck))
-    assert versions(opening) == {
-        "interview_intro": 1,
-        "interview_system": 1,
-        "interview_question": 1,
-    }
+    assert set(versions(opening)) == {"interview_intro", "interview_system", "interview_question"}
+
     answered = await service.advance(
         request("answer", now=at(1), text="Yes.", snapshot=opening.engine_snapshot)
     )
-    assert versions(answered)["interview_coverage"] == 1
-    assert versions(answered)["interview_followup"] == 1
+    assert set(versions(answered)) == {
+        "interview_system",
+        "interview_coverage",
+        "interview_coverage_input",
+        "interview_followup",
+    }
+    for reported in (versions(opening), versions(answered)):
+        assert reported == {name: PROMPT_VERSIONS[name] for name in reported}
 
 
 async def test_the_intro_states_the_real_budgets() -> None:

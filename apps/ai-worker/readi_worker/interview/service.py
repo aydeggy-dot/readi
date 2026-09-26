@@ -27,6 +27,7 @@ from readi_worker.contracts import (
     InterviewTurn,
 )
 from readi_worker.interview import machine
+from readi_worker.interview.asks import count_asks
 from readi_worker.interview.calls import Interviewer, ProbeVerdict, normalise_speech
 from readi_worker.interview.machine import (
     AnswerCandidateQuestion,
@@ -43,11 +44,28 @@ from readi_worker.interview.machine import (
 )
 from readi_worker.interview.probes import coverage_log, covered_by
 from readi_worker.interview.state_store import CachedSession, InterviewStateStore
+from readi_worker.interview.transitions import connective
 from readi_worker.prompts import as_data, render
 
 logger = logging.getLogger(__name__)
 
-VERSION = 1
+#: Which version of each interview prompt is in use. **A released version is never edited in place**
+#: (CLAUDE.md "Prompts"): a change is a new `v<N+1>` and one line here, so every other prompt keeps
+#: saying what it said and a session's `prompt_versions` stays a true record of what spoke. This was
+#: one shared `VERSION = 1` until 2026-09-26, which made "bump one prompt" impossible to express.
+PROMPT_VERSIONS: dict[str, int] = {
+    "interview_system": 1,
+    # v2, 2026-09-26: v1 told the candidate "nobody else is listening", which is not true.
+    "interview_intro": 2,
+    # v2, 2026-09-26: the engine supplies the connective, and "do not add an ask" is now enforced.
+    "interview_question": 2,
+    "interview_followup": 1,
+    "interview_coverage": 1,
+    "interview_coverage_input": 1,
+    # v2, 2026-09-26: v1 was accurate and read like a form.
+    "interview_candidate_questions": 2,
+    "interview_wrapup": 1,
+}
 
 #: The interviewer's own words, for when the model cannot supply them. They are in the same register
 #: as the prompts and English-only for the same reason the model's output is: this is the
@@ -56,6 +74,18 @@ FALLBACK_INVITE = (
     "Before we finish — is there anything you would like to ask me? It is fine if not."
 )
 FALLBACK_WRAP_UP = "That is everything from me. Thank you for your time today, and all the best."
+
+
+def _render(prompts: dict[str, int], name: str, **variables: object) -> str:
+    """Render a prompt and record the version that was rendered.
+
+    The recording is not a separate step a caller can forget: `interview_coverage_input` was
+    rendered
+    on every judged answer and named in no session's `prompt_versions` until this existed.
+    """
+    version = PROMPT_VERSIONS[name]
+    prompts[name] = version
+    return render(name, version, **variables)
 
 
 class UnanswerableError(Exception):
@@ -201,9 +231,9 @@ class InterviewService:
         prompts: dict[str, int],
     ) -> list[ProbeVerdict]:
         asked_before = state.at(question.position).probes_asked
-        user = render(
+        user = _render(
+            prompts,
             "interview_coverage_input",
-            VERSION,
             question_block=as_data(question.prompt, "question"),
             answer_block=as_data(answer, "answer"),
             probed_before=(
@@ -221,9 +251,8 @@ class InterviewService:
                 "follow_ups",
             ),
         )
-        prompts["interview_coverage"] = VERSION
         verdicts, records = await self._interviewer.judge_coverage(
-            system=render("interview_coverage", VERSION), user=user, probes=probes
+            system=_render(prompts, "interview_coverage"), user=user, probes=probes
         )
         calls.extend(records)
         return verdicts or []
@@ -255,15 +284,14 @@ class InterviewService:
         prompts: dict[str, int],
         pending: _PendingAnswer | None,
     ) -> InterviewTurn:
-        system = self._system(bundle)
+        system = self._system(bundle, prompts)
         planned_total = min(bundle.question_budget, len(bundle.questions))
 
         if isinstance(step, SpeakIntro):
-            prompts["interview_intro"] = VERSION
             text = normalise_speech(
-                render(
+                _render(
+                    prompts,
                     "interview_intro",
-                    VERSION,
                     is_diagnostic=bundle.is_diagnostic,
                     question_budget=planned_total,
                     planned_minutes=bundle.planned_minutes,
@@ -273,65 +301,60 @@ class InterviewService:
 
         if isinstance(step, AskQuestion):
             question = bundle.questions[step.question]
-            user = render(
+            user = _render(
+                prompts,
                 "interview_question",
-                VERSION,
                 position=step.question,
                 total=planned_total,
                 question_block=as_data(question.prompt, "question"),
                 has_context=question.context is not None,
+                connective=connective(str(bundle.session_id), step.question, planned_total),
             )
             text = await self._say(
-                "interviewer", system, user, question.prompt, calls, prompts, "interview_question"
+                "interviewer",
+                system,
+                user,
+                question.prompt,
+                calls,
+                prompts,
+                asks_in_pinned=count_asks(question.prompt),
             )
             return _turn(step.seq, "question", text, question=step.question)
 
         if isinstance(step, AskFollowUp):
             question = bundle.questions[step.question]
             probe = question.planned_follow_ups[step.probe].probe
-            user = render(
+            user = _render(
+                prompts,
                 "interview_followup",
-                VERSION,
                 question_block=as_data(question.prompt, "question"),
                 answer_block=as_data(pending.text if pending else "", "answer"),
                 probe_block=as_data(probe, "follow_up"),
             )
             text = await self._say(
-                "follow_up", system, user, probe, calls, prompts, "interview_followup"
+                "follow_up", system, user, probe, calls, prompts, asks_in_pinned=count_asks(probe)
             )
             return _turn(step.seq, "follow_up", text, question=step.question, probe=step.probe)
 
         if isinstance(step, InviteCandidateQuestions):
-            user = render("interview_candidate_questions", VERSION, candidate_question_block="")
-            text = await self._say(
-                "interviewer",
-                system,
-                user,
-                FALLBACK_INVITE,
-                calls,
-                prompts,
-                "interview_candidate_questions",
-            )
+            user = _render(prompts, "interview_candidate_questions", candidate_question_block="")
+            text = await self._say("interviewer", system, user, FALLBACK_INVITE, calls, prompts)
             return _turn(step.seq, "candidate_questions", text)
 
         if isinstance(step, AnswerCandidateQuestion):
-            user = render(
+            user = _render(
+                prompts,
                 "interview_candidate_questions",
-                VERSION,
                 candidate_question_block=as_data(step.text, "candidate_question"),
             )
-            text = await self._say(
-                "interviewer", system, user, None, calls, prompts, "interview_candidate_questions"
-            )
+            text = await self._say("interviewer", system, user, None, calls, prompts)
             return _turn(step.seq, "candidate_questions", text)
 
         if isinstance(step, SpeakWrapUp):
-            user = render(
-                "interview_wrapup", VERSION, end_reason=state.end_reason or "questions_done"
+            user = _render(
+                prompts, "interview_wrapup", end_reason=state.end_reason or "questions_done"
             )
-            text = await self._say(
-                "interviewer", system, user, FALLBACK_WRAP_UP, calls, prompts, "interview_wrapup"
-            )
+            text = await self._say("interviewer", system, user, FALLBACK_WRAP_UP, calls, prompts)
             return _turn(step.seq, "wrap_up", text)
 
         raise EngineError("engine_error", f"cannot perform {type(step).__name__}")
@@ -344,28 +367,33 @@ class InterviewService:
         fallback: str | None,
         calls: list[AiCallRecord],
         prompts: dict[str, int],
-        prompt_name: str,
+        asks_in_pinned: int | None = None,
     ) -> str:
-        prompts["interview_system"] = VERSION
-        prompts[prompt_name] = VERSION
+        """Say one turn. The user prompt has already recorded its own version through `_render`.
+
+        `asks_in_pinned` is passed only where there is staff-written wording the turn must not
+        exceed
+        — a question and a follow-up. See `calls.speak` and `asks.py`.
+        """
         spoken, records = await self._interviewer.speak(
             purpose=purpose,  # type: ignore[arg-type]  # one of the three Purpose literals
             system=system,
             user=user,
             fallback=fallback,
+            asks_in_pinned=asks_in_pinned,
         )
         calls.extend(records)
         if spoken is None:
             raise UnanswerableError
         return spoken.text
 
-    def _system(self, bundle: InterviewSessionBundle) -> str:
+    def _system(self, bundle: InterviewSessionBundle, prompts: dict[str, int]) -> str:
         """The shared system prompt. Catalogue names are staff-written content that lands in a
         *system* prompt, so they are wrapped as data like everything else (the `cv_parse` rule)."""
         stack = bundle.candidate.stack_label
-        return render(
+        return _render(
+            prompts,
             "interview_system",
-            VERSION,
             role_block=as_data(bundle.candidate.role_label, "role"),
             level_block=as_data(bundle.candidate.level_label, "level"),
             stack_block=as_data(stack.root, "stack") if stack is not None else "",
