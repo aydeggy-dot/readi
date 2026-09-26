@@ -385,3 +385,52 @@ export const INTERVIEW_RATE_LIMITS = {
   perHour: { window: 3_600, max: 6 },
   perDay: { window: 86_400, max: 20 },
 } as const;
+
+// -----------------------------------------------------------------------------------------------
+// Evaluation (spec §4.4, §6.2; M4).
+
+/**
+ * The rubric's ladder: five descriptors, `"0"`–`"4"`, so a criterion score is 0–4 inclusive
+ * (`CONTENT_LIMITS.levelDescriptorMaxLength` is the text of one rung). It is `max_score` on every
+ * stored criterion rather than an implicit constant, so a row stays readable if the ladder ever
+ * changes length — and a stored evaluation says what it was scored out of rather than what we
+ * currently think it was.
+ */
+export const MAX_CRITERION_SCORE = 4;
+
+/** How sure the evaluator is of its own reading, lowered in code when evidence will not verify. */
+export const EVALUATION_CONFIDENCE = ["low", "medium", "high"] as const;
+
+export const EVALUATION_LIMITS = {
+  /**
+   * Quotes per criterion. A non-zero score needs at least one (spec §6.2), and three is already
+   * more than a reader will check: the point of evidence is that the candidate can see what the
+   * score was based on, which one exact sentence does better than five approximate ones.
+   */
+  evidencePerCriterion: 3,
+  /**
+   * One quote. Long enough for a full spoken sentence, short enough that quoting is not
+   * paraphrasing — a "quote" the length of a paragraph is the model retelling the answer, and the
+   * verifier would pass it while telling the candidate nothing.
+   */
+  evidenceMaxLength: 400,
+  /** Why this score and not the one above it. One or two sentences (spec §6.2). */
+  reasoningMaxLength: 400,
+  /** What the answer did and did not contain, against the question's ideal points. */
+  pointsPerAnswer: 10,
+  pointMaxLength: 300,
+  strengthsPerAnswer: 4,
+  strengthMaxLength: 200,
+  /** One concrete, actionable tip (spec §6.2) — not a list wearing a singular name. */
+  tipMaxLength: 300,
+  /**
+   * Factual errors the candidate stated. Capped low on purpose: a model listing eight red flags on
+   * one answer is marking a style it dislikes, and the rubric is where substance is scored.
+   */
+  redFlagsPerAnswer: 4,
+  redFlagMaxLength: 300,
+  /** The report's own lists: "top 3 strengths, top 3 fixes" (spec §4.4), chosen in code. */
+  reportHighlights: 3,
+  /** Lessons recommended by topic. Often none: five of eight role × level pairs have no track. */
+  lessonsPerReport: 6,
+} as const;

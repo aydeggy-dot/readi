@@ -19,6 +19,22 @@ class LangfuseTraceId(RootModel[str]):
     root: str = Field(..., max_length=64, min_length=1)
 
 
+class CoveredPoint(RootModel[str]):
+    root: str = Field(..., max_length=300, min_length=1)
+
+
+class MissingPoint(RootModel[str]):
+    root: str = Field(..., max_length=300, min_length=1)
+
+
+class Strength(RootModel[str]):
+    root: str = Field(..., max_length=200, min_length=1)
+
+
+class RedFlag(RootModel[str]):
+    root: str = Field(..., max_length=300, min_length=1)
+
+
 class Context(RootModel[str]):
     root: str = Field(..., max_length=4000, min_length=1)
 
@@ -39,6 +55,21 @@ class CriterionCoverage(BaseModel):
     has_probe: bool
     covered: Literal["covered", "not_covered", "not_judged"]
     follow_up_index: FollowUpIndex | None
+
+
+class EvidenceItem(RootModel[str]):
+    root: str = Field(..., max_length=400, min_length=1)
+
+
+class CriterionScore(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    criterion: int = Field(..., ge=0, le=9007199254740991)
+    score: int = Field(..., ge=0, le=4)
+    max_score: Literal[4]
+    evidence: list[EvidenceItem] = Field(..., max_length=3)
+    reasoning: str = Field(..., max_length=400, min_length=1)
 
 
 class StackLabel(RootModel[str]):
@@ -111,6 +142,47 @@ class EngineQuestionProgress(BaseModel):
     asked: bool
     probes_asked: list[ProbesAskedItem] = Field(..., max_length=10)
     probes_covered: list[ProbesCoveredItem] = Field(..., max_length=10)
+
+
+class Levels(RootModel[str]):
+    root: str = Field(..., max_length=300, min_length=1)
+
+
+class EvaluationCriterion(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    position: int = Field(..., ge=0, le=9007199254740991)
+    dimension: str = Field(..., max_length=80, min_length=1)
+    description: str = Field(..., max_length=300, min_length=1)
+    levels: dict[str, Levels]
+
+
+class Description(RootModel[str]):
+    root: str = Field(..., max_length=400, min_length=1)
+
+
+class Topic(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    slug: str = Field(..., max_length=80, min_length=1, pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    name: str = Field(..., max_length=140, min_length=1)
+    description: Description | None
+    id: UUID
+
+
+class IdealPoint(RootModel[str]):
+    root: str = Field(..., max_length=300, min_length=1)
+
+
+class Rubric(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    slug: str = Field(..., max_length=80, min_length=1, pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    name: str = Field(..., max_length=140, min_length=1)
+    criteria: list[EvaluationCriterion] = Field(..., max_length=8, min_length=2)
 
 
 class WeakTopic(RootModel[str]):
@@ -207,6 +279,19 @@ class AiCallRecord(BaseModel):
     langfuse_trace_id: LangfuseTraceId | None
 
 
+class AnswerEvaluation(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    criteria: list[CriterionScore] = Field(..., max_length=8, min_length=2)
+    covered_points: list[CoveredPoint] = Field(..., max_length=10)
+    missing_points: list[MissingPoint] = Field(..., max_length=10)
+    strengths: list[Strength] = Field(..., max_length=4)
+    improvement_tip: str = Field(..., max_length=300, min_length=1)
+    red_flags: list[RedFlag] = Field(..., max_length=4)
+    confidence: Literal["low", "medium", "high"]
+
+
 class BundleQuestion(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -243,6 +328,40 @@ class EmbedResponse(BaseModel):
     dimensions: int = Field(..., ge=0, le=9007199254740991)
     embeddings: list[list[float]]
     ai_calls: list[AiCallRecord]
+
+
+class EvaluateAnswerResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    position: int = Field(..., ge=0, le=9007199254740991)
+    evaluation: AnswerEvaluation | None
+    error: Literal["invalid_output", "refused", "provider_error", "timeout"] | None
+    ai_calls: list[AiCallRecord]
+
+
+class EvaluationQuestion(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    slug: str = Field(..., max_length=80, min_length=1, pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    type: Literal["behavioral", "technical", "scenario", "test_design"]
+    topic: Topic
+    prompt: str = Field(..., max_length=2000, min_length=1)
+    context: Context | None
+    ideal_points: list[IdealPoint] = Field(..., max_length=10)
+    rubric: Rubric
+
+
+class EvaluationTurn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    kind: Literal["text"]
+    seq: int = Field(..., ge=0, le=9007199254740991)
+    speaker: Literal["interviewer", "candidate"]
+    follow_up_index: FollowUpIndex | None
+    text: str = Field(..., max_length=2400, min_length=1)
 
 
 class HealthCheckResult(BaseModel):
@@ -337,6 +456,17 @@ class CvParseResponse(BaseModel):
         | None
     )
     ai_calls: list[AiCallRecord]
+
+
+class EvaluateAnswerRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    session_id: UUID
+    user_id: UUID
+    position: int = Field(..., ge=0, le=9007199254740991)
+    question: EvaluationQuestion
+    exchange: list[EvaluationTurn] = Field(..., min_length=1)
 
 
 class InterviewAdvanceRequest(BaseModel):

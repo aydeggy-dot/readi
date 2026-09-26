@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { CvParseRequest, CvParseResponse } from "./cv.js";
 import { EmbedRequest, EmbedResponse } from "./embeddings.js";
+import { EvaluateAnswerRequest, EvaluateAnswerResponse } from "./evaluations.js";
 import { HealthResponse } from "./health.js";
 import { InterviewAdvanceRequest, InterviewAdvanceResponse } from "./interviews.js";
 import { TraceDeleteRequest, TraceDeleteResponse } from "./tracing.js";
@@ -21,6 +22,8 @@ export const contractRegistry: Record<string, z.ZodType> = {
   CvParseResponse,
   EmbedRequest,
   EmbedResponse,
+  EvaluateAnswerRequest,
+  EvaluateAnswerResponse,
   InterviewAdvanceRequest,
   InterviewAdvanceResponse,
   TraceDeleteRequest,

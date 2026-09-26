@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bundleQuestion,
   candidateQuestion,
+  evaluationRequest,
   type QuestionForSnapshot,
   questionsWithNoProbes,
   sessionBundle,
@@ -9,7 +10,7 @@ import {
 } from "./session-bundle";
 
 /**
- * The two doors out of a pinned snapshot, and what each one is not allowed to carry.
+ * The three doors out of a pinned snapshot, and what each one is not allowed to carry.
  *
  * Built like the leak test it is the unit-level half of: every answer-key string in the fixture is
  * a unique marker, and the first assertion proves the snapshot really holds them. A test that
@@ -205,5 +206,88 @@ describe("a question the engine cannot follow up on", () => {
       rubric: { ...base.rubric, criteria: base.rubric.criteria.slice(0, 1) },
     };
     expect(questionsWithNoProbes([snapshotOf(single)])).toEqual([]);
+  });
+});
+
+describe("evaluationRequest", () => {
+  const SESSION = {
+    id: "11111111-1111-4111-8111-111111111111",
+    userId: "22222222-2222-4222-8222-222222222222",
+  };
+  const turns = [
+    {
+      seq: 3,
+      speaker: "candidate" as const,
+      followUpIndex: 0,
+      text: "And the plan says a seq scan.",
+    },
+    {
+      seq: 0,
+      speaker: "interviewer" as const,
+      followUpIndex: null,
+      text: "Spoken wording of the question.",
+    },
+    {
+      seq: 1,
+      speaker: "candidate" as const,
+      followUpIndex: null,
+      text: "I would look at what ran.",
+    },
+    {
+      seq: 2,
+      speaker: "interviewer" as const,
+      followUpIndex: 0,
+      text: "Spoken wording of the probe.",
+    },
+  ];
+  const request = evaluationRequest(SESSION, 2, snapshotOf(question()), turns);
+
+  it("is the one door the rubric goes through", () => {
+    // The opposite assertion to `bundleQuestion`'s, and the reason this door is the careful one.
+    const raw = json(request);
+    for (const marker of [DIMENSION, DESCRIPTION, DESCRIPTOR, RUBRIC_NAME, IDEAL]) {
+      expect(raw).toContain(marker);
+    }
+  });
+
+  it("carries no criterion weight, because the weighting is ours", () => {
+    for (const criterion of request.question.rubric.criteria) {
+      expect(criterion).not.toHaveProperty("weight");
+    }
+    // Belt and braces: the fixture's weights are 40/30/30, so a leak would put one of them in the
+    // JSON even if the key were renamed on the way out.
+    expect(json(request)).not.toContain('"weight"');
+  });
+
+  it("carries no planned follow-ups, only the probes that were actually spoken", () => {
+    expect(request.question).not.toHaveProperty("planned_follow_ups");
+    // The probe markers live in `planned_follow_ups`; the spoken wording in the transcript is its
+    // own text, so a request built from real turns contains neither marker.
+    expect(json(request)).not.toContain(PROBE);
+    expect(json(request)).toContain("Spoken wording of the probe.");
+  });
+
+  it("orders the exchange by seq, so the answer reads in the order it was said", () => {
+    expect(request.exchange.map((turn) => turn.seq)).toEqual([0, 1, 2, 3]);
+    expect(request.exchange.map((turn) => turn.speaker)).toEqual([
+      "interviewer",
+      "candidate",
+      "interviewer",
+      "candidate",
+    ]);
+  });
+
+  it("keeps which probe a follow-up was, so code can weigh prompting without the model knowing", () => {
+    expect(request.exchange.map((turn) => turn.follow_up_index)).toEqual([null, null, 0, 0]);
+  });
+
+  it("tags every turn with a kind, so a coding answer can join rather than rename", () => {
+    expect(request.exchange.every((turn) => turn.kind === "text")).toBe(true);
+  });
+
+  it("identifies the answer by session and position, and the user only for the trace", () => {
+    expect(request.session_id).toBe(SESSION.id);
+    expect(request.position).toBe(2);
+    expect(request.user_id).toBe(SESSION.userId);
   });
 });

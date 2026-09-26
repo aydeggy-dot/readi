@@ -962,6 +962,7 @@ model InterviewSession {
 
   questions InterviewSessionQuestion[]
   turns     SessionTurn[]
+  report    SessionReport?
 
   /// The Practice list: one candidate's sessions, keyset-paged by `(updated_at, id)`.
   @@index([userId, updatedAt, id])
@@ -1004,7 +1005,8 @@ model InterviewSessionQuestion {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  turns SessionTurn[]
+  turns      SessionTurn[]
+  evaluation AnswerEvaluation?
 
   @@unique([sessionId, position])
   @@index([questionId])
@@ -1049,4 +1051,151 @@ model SessionTurn {
   @@unique([sessionId, seq])
   @@index([sessionQuestionId])
   @@map("session_turns")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Evaluation (spec §4.4, §6.2; M4). Scored per answer against the rubric the session PINNED, never
+// against the live content — `evaluationRequest()` in `session-bundle.ts` is the only door.
+
+enum EvaluationStatus {
+  ok
+  failed
+
+  @@map("evaluation_status")
+}
+
+enum EvaluationConfidence {
+  low
+  medium
+  high
+
+  @@map("evaluation_confidence")
+}
+
+enum SessionReportStatus {
+  ready
+  partial
+  failed
+
+  @@map("session_report_status")
+}
+
+/// One answer, evaluated.
+///
+/// Keyed on the pinned question rather than on `question_id`, so re-running the job cannot write a
+/// second row and a session that asked the same question twice could not confuse them. The unique
+/// constraint IS the idempotency: the evaluation job is retried on transport failure like any other.
+///
+/// **What the model said and what we did with it are separate columns on purpose.** `criteria` holds
+/// the evaluator's own per-criterion scores, untouched; `overall_raw` is those scores weighted into
+/// 0–100; `overall` is `overall_raw` after the prompting adjustment (a criterion first satisfied only
+/// after the engine asked about it contributes at a reduced weight — owner's decision, 2026-09-26,
+/// versioned by `scoring_version`). The `/evals` agreement metric compares a human to `criteria`,
+/// because that is what a human scores; the candidate reads `overall`. Collapsing the two would make
+/// the harness measure our arithmetic.
+///
+/// Every column here except the bookkeeping is null when `status` is `failed`: a model that will not
+/// produce valid output leaves the answer unscored and the report says so for that question, rather
+/// than inventing a number (ADR-0016 decision 5, applied to scoring).
+model AnswerEvaluation {
+  id                String                   @id @default(uuid()) @db.Uuid
+  sessionQuestionId String                   @unique @map("session_question_id") @db.Uuid
+  sessionQuestion   InterviewSessionQuestion @relation(fields: [sessionQuestionId], references: [id], onDelete: Cascade)
+
+  status EvaluationStatus
+
+  /// `CriterionScore[]` — the evaluator's reading: score, the quotes it is based on, and why. The
+  /// quotes are the candidate's own words, so this is personal data and goes with the account
+  /// (ADR-0011); there is no tombstone for it, because a score with the answer deleted is noise.
+  criteria       Json?
+  coveredPoints  String[]              @map("covered_points")
+  missingPoints  String[]              @map("missing_points")
+  strengths      String[]
+  improvementTip String?               @map("improvement_tip")
+  /// Factual errors the candidate stated (spec §6.2). Empty is the normal case.
+  redFlags       String[]              @map("red_flags")
+  /// Lowered in code when a quote could not be verified against the transcript.
+  confidence     EvaluationConfidence?
+
+  overall          Int? // 0-100, after the prompting adjustment. What the candidate is shown.
+  overallRaw       Int?  @map("overall_raw") // 0-100, straight from the criteria. What the harness compares.
+  /// Positions of the criteria this answer reached only after the engine asked a probe for them.
+  /// An engine fact, read from `session_turns.follow_up_index` and the pinned probes — never from
+  /// the coverage model's verdict, which M3 recorded may reach the evaluator "as a prior and never
+  /// as a score". Stored so the report can say it in words and a re-score can be checked.
+  promptedCriteria Int[] @map("prompted_criteria")
+  scoringVersion   Int   @map("scoring_version")
+
+  evaluatorProvider String  @map("evaluator_provider")
+  evaluatorModel    String  @map("evaluator_model")
+  /// Which version of each evaluator prompt scored this, as a session records its own.
+  promptVersions    Json    @map("prompt_versions")
+  /// How many model calls it took. Spec §6.1 called this a `retry` status; an attempt is not an
+  /// outcome, so the count lives here and `status` says only whether there is a score.
+  attempts          Int     @default(1)
+  /// A stable code (`invalid_output`, `refused`, `provider_error`, `timeout`). Never prose, and
+  /// never anything the candidate wrote.
+  failureReason     String? @map("failure_reason")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  calibrationScores CalibrationScore[]
+
+  /// The calibration sampler draws recent, scored answers (ADR-0017).
+  @@index([status, createdAt])
+  @@map("answer_evaluations")
+}
+
+/// The assembled report, as the candidate read it (spec §4.4, §6.1).
+///
+/// `summary` is the whole `SessionReportResponse`, assembled in code from the per-answer rows and
+/// stored rather than rebuilt per request. It duplicates them deliberately, for the same reason a
+/// session pins its questions: this is the artefact a person actually read, and changing how reports
+/// are assembled must not rewrite one they have already been given. The rows remain the data we
+/// analyse; this is the record.
+model SessionReport {
+  id        String           @id @default(uuid()) @db.Uuid
+  sessionId String           @unique @map("session_id") @db.Uuid
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  status         SessionReportStatus
+  /// Null only when nothing could be scored.
+  overall        Int?
+  scoredAnswers  Int                 @map("scored_answers")
+  totalAnswers   Int                 @map("total_answers")
+  summary        Json
+  scoringVersion Int                 @map("scoring_version")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("session_reports")
+}
+
+/// An expert's own score for one answer, given without seeing the model's (spec §4.4, §6.1).
+///
+/// The point is the disagreement: `AiCallLog` tells us what a score cost and this tells us whether it
+/// was right. Sampling is gated on the candidate's `transcript_review` consent (ADR-0017) — nothing
+/// may select an answer without it — and the expert is a plain uuid with no foreign key, like every
+/// other authorship column (ADR-0014 decision 4), so erasing a reviewer's account leaves the
+/// measurement standing. The candidate's side is not tombstoned: this cascades with the answer.
+model CalibrationScore {
+  id                 String           @id @default(uuid()) @db.Uuid
+  answerEvaluationId String           @map("answer_evaluation_id") @db.Uuid
+  answerEvaluation   AnswerEvaluation @relation(fields: [answerEvaluationId], references: [id], onDelete: Cascade)
+  /// Who scored it. A uuid with no relation, listed in `TOMBSTONED_COLUMNS`.
+  expertUserId       String           @map("expert_user_id") @db.Uuid
+
+  /// `CriterionScore[]` in the same shape the evaluator produces, so the two are compared directly.
+  criteria Json
+  /// Free-text note from the reviewer about the answer or the rubric. Never about the candidate.
+  note     String?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  /// One score per expert per answer; a second is an edit, not a second opinion.
+  @@unique([answerEvaluationId, expertUserId])
+  @@index([expertUserId])
+  @@map("calibration_scores")
 }

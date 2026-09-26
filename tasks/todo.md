@@ -2287,13 +2287,30 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
       The tool is built and demonstrated against staff-authored answers until then, which is what the
       gold set is made of anyway, so nothing in the schedule waits on the paperwork
 
-### Phase 1 — contracts, schema, `evaluationRequest()`
+### Phase 1 — contracts, schema, `evaluationRequest()` · **done 2026-09-27**
 
-- [ ] `contracts/evaluations.ts` (+ `registry.ts`, or no Pydantic is generated)
-- [ ] `session-bundle.ts` gains `evaluationRequest()` — the fourth width, in the one place widths cross
-- [ ] Prisma `answer_evaluations`, `session_reports`; `--create-only`, read the SQL, `migrate deploy`
-- [ ] Erasure **deletes** them (evidence quotes are candidate text); extend the erasure test
-- [ ] `content-no-answer-key.int.spec.ts`: `idealPointMarkers`, `rubricCriterionMarkers`, asserted as a count
+- [x] `contracts/evaluations.ts` + `registry.ts` + `index.ts`; 47 JSON Schema definitions, Pydantic regenerated
+- [x] `session-bundle.ts` gains `evaluationQuestion` / `evaluationTurns` / `evaluationRequest` — the
+      **fourth** width, in the one place widths cross. It carries the rubric and **not** the weights
+      (the roll-up is arithmetic, and a model told one criterion is 45% will skim the rest) and not the
+      planned follow-ups (the probes that were asked are already in the exchange). Both asserted, and
+      the weight assertion **watched failing** by spreading the snapshot's criteria
+- [x] `EVALUATION_LIMITS`, `MAX_CRITERION_SCORE`, `EVALUATION_CONFIDENCE` in `constants.ts`
+- [x] The evidence rule as a function, not a `.refine` (a refinement cannot reach Pydantic), with
+      `src/evidence-cases.json` as the shared case set — `ask-vectors.json`'s precedent. **Its Python
+      twin is phase 2**, and until then the file has one reader
+- [x] Prisma `answer_evaluations`, `session_reports`, `calibration_scores` + three enums; one
+      migration, read by hand — it proposed `DROP INDEX questions_embedding_hnsw` for the **eighth**
+      time, in a migration that only creates tables
+- [x] Erasure: `calibration_scores.expert_user_id` tombstoned (the measurement outlives the reviewer);
+      the candidate's side cascades. A new guard walks **every** foreign-key path from each of the
+      three tables to `users` and fails on any hop that is not `CASCADE` — with a planted
+      counter-example, because every real path in this schema cascades and a walker that finds nothing
+      would otherwise pass
+- [ ] **Moved to phase 3/4** (`content-no-answer-key.int.spec.ts`: `idealPointMarkers`, asserted as a
+      count): there is no report route yet, so the markers would have no assertions to belong to. The
+      shape decision is already made and enforced in the contract —
+      `CandidateCriterionFeedback` has no `description`, `levels`, `weight` or `position`, with a test
 
 ### Phase 2 — the evaluator in the worker
 
