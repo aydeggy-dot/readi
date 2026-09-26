@@ -133,17 +133,16 @@ class Interviewer:
             except LLMError as exc:
                 calls.append(_error_record(purpose, exc))
                 break
-            calls.append(_record(purpose, result))
-            if result.output is not None:
-                spoken = normalise_speech(result.output.speech)
-                if spoken and _adds_an_ask(spoken, asks_in_pinned):
-                    # Invalid output, not a refusal: the model answered, it just asked
-                    # the candidate something nobody wrote. Retried, and then the pinned
-                    # wording is spoken instead.
-                    logger.info("interview %s call added an ask; rejected", purpose)
-                elif spoken:
-                    return Spoken(spoken, from_fallback=False), calls
-                # Valid JSON, empty utterance: retryable in the same way invalid output is.
+            spoken = normalise_speech(result.output.speech) if result.output is not None else ""
+            # Invalid output, not a refusal: the model answered, it just asked the candidate
+            # something nobody wrote. Retried, and then the pinned wording is spoken instead.
+            rejected = bool(spoken) and _adds_an_ask(spoken, asks_in_pinned)
+            calls.append(_record(purpose, result, rejected=rejected))
+            if rejected:
+                logger.info("interview %s call added an ask; rejected", purpose)
+            elif spoken:
+                return Spoken(spoken, from_fallback=False), calls
+            # Valid JSON, empty utterance: retryable in the same way invalid output is.
             if result.failure == "refusal":
                 break  # never retry a refusal (CLAUDE.md "AI provider adapters")
         if fallback is None:
@@ -236,14 +235,24 @@ def normalise_verdicts(judgement: CoverageJudgement, probes: tuple[int, ...]) ->
     return [seen[index] for index in probes if index in seen]
 
 
-def _record(purpose: Purpose, result: LLMResult[BaseModel]) -> AiCallRecord:
+#: A phrasing the guard threw away, in `ai_call_log.error_code`. The call itself succeeded and cost
+#: money, so `status` stays `ok` — what failed was our check on its output, and the difference
+#: matters to anyone reading the log for provider health. It is here because the second paid run's
+#: two rejections were only findable by noticing that a question had been spoken word for word as
+#: the bank wrote it; that is transcript archaeology, and this is a query.
+REJECTED_ADDED_ASK = "rejected_added_ask"
+
+
+def _record(
+    purpose: Purpose, result: LLMResult[BaseModel], *, rejected: bool = False
+) -> AiCallRecord:
     return AiCallRecord.model_validate(
         {
             "purpose": purpose,
             "provider": result.provider,
             "model": result.model,
             "status": "ok" if result.output is not None else "error",
-            "error_code": result.failure,
+            "error_code": REJECTED_ADDED_ASK if rejected else result.failure,
             "latency_ms": result.latency_ms,
             "input_units": result.input_tokens,
             "output_units": result.output_tokens,

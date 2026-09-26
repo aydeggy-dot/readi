@@ -212,12 +212,18 @@ for (const role of roles.values()) {
 // — are two asks, which is right: they are two things to answer. The engine speaks the prompt once,
 // so this is also roughly what a candidate has to hold in their head.
 
+// `whom` is counted and `whether` is not (2026-09-26): both were asymmetries rather than opinions,
+// and the worker's copy of this counter compares two texts, where an asymmetry is fatal. A pinned
+// "What is going wrong, and for whom?" counted one ask while a model's "and who it affects" counted
+// two, so the runtime guard rejected a faithful rephrasing three times and spoke the pinned wording.
+// `whether` is a subordinator far more often than an interrogative — "whether that was at work or on
+// your own" — and where it follows a directive the directive is already the ask.
 const ASK =
-  /\b(what|why|how|where|when|which|who|whether)\b|\b(tell|walk|talk|take)\s+me\b|\b(explain|describe|diagnose)\b/gi;
+  /\b(what|whom|why|how|where|when|which|who)\b|\b(tell|walk|talk|take)\s+me\b|\b(explain|describe|diagnose)\b/gi;
 // A yes/no question is an ask too — "is there anything you would keep out of the link?" — but only
 // where it does not already belong to an interrogative, or "what would you change" counts twice.
 const YES_NO =
-  /(?<!\b(?:what|why|how|where|when|which|who|whether)\s)\b(would|should|could|do|does|did|is|are|can|will)\s+(you|it|that|they|there)\b/gi;
+  /(?<!\b(?:what|whom|why|how|where|when|which|who)\s)\b(would|should|could|do|does|did|is|are|can|will)\s+(you|it|that|they|there)\b/gi;
 
 // A house-style **depth cue** asks for nothing new (owner's decision, 2026-09-25): it restores the
 // shape of the answer that a triple-barrelled prompt used to carry as a side effect of carrying its
@@ -231,7 +237,7 @@ function countAsks(prompt) {
   // "tell me what X" is one ask, not two: drop the interrogative that belongs to a directive.
   const normalise = (t) =>
     t.replace(
-      /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|why|how|where|when|which|who|whether)\b/gi,
+      /\b(tell|walk|talk|take)\s+me\s+(through\s+)?(what|whom|why|how|where|when|which|who)\b/gi,
       " $1 me ",
     );
   const count = (t) => (t.match(ASK) ?? []).length + (t.match(YES_NO) ?? []).length;

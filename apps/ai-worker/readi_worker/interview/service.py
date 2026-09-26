@@ -62,16 +62,22 @@ PROMPT_VERSIONS: dict[str, int] = {
     "interview_followup": 1,
     "interview_coverage": 1,
     "interview_coverage_input": 1,
-    # v2, 2026-09-26: v1 was accurate and read like a form.
-    "interview_candidate_questions": 2,
+    # v2, 2026-09-26: v1 was accurate and read like a form. v3 the same day: v2 said "there is no
+    # real company behind this" in front of every answer, because each call is told to and no call
+    # can know it has already been said. It is said once now, in the invitation.
+    "interview_candidate_questions": 3,
     "interview_wrapup": 1,
 }
 
 #: The interviewer's own words, for when the model cannot supply them. They are in the same register
 #: as the prompts and English-only for the same reason the model's output is: this is the
 #: interviewer speaking, not product copy, and it never passes through the web app's i18n.
+#: Said once, and before any answer: the state machine always speaks the invitation before it
+#: answers a candidate's question, which is what lets `interview_candidate_questions.v3` tell the
+#: reply that the disclaimer is already out of the way (v2 repeated it in front of every answer).
 FALLBACK_INVITE = (
-    "Before we finish — is there anything you would like to ask me? It is fine if not."
+    "Before we finish — is there anything you would like to ask me? There is no real company behind"
+    " this one, so I will answer in general terms, and it is fine if you have nothing."
 )
 FALLBACK_WRAP_UP = "That is everything from me. Thank you for your time today, and all the best."
 
@@ -301,6 +307,7 @@ class InterviewService:
 
         if isinstance(step, AskQuestion):
             question = bundle.questions[step.question]
+            line = connective(str(bundle.session_id), step.question, planned_total)
             user = _render(
                 prompts,
                 "interview_question",
@@ -308,13 +315,17 @@ class InterviewService:
                 total=planned_total,
                 question_block=as_data(question.prompt, "question"),
                 has_context=question.context is not None,
-                connective=connective(str(bundle.session_id), step.question, planned_total),
+                connective=line,
             )
             text = await self._say(
                 "interviewer",
                 system,
                 user,
-                question.prompt,
+                # The fallback carries the connective too. It is the engine's own words and adds no
+                # ask, and without it a rejected phrasing makes the interview lurch: the second paid
+                # run fell back twice, and those were exactly the two questions the owner noticed
+                # arriving with no transition and no "last one".
+                f"{line} {question.prompt}".strip(),
                 calls,
                 prompts,
                 asks_in_pinned=count_asks(question.prompt),

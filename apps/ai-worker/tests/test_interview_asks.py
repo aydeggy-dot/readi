@@ -12,7 +12,12 @@ from pathlib import Path
 import pytest
 
 from readi_worker.interview.asks import count_asks
-from readi_worker.interview.calls import CoverageJudgement, ProbeVerdict, Speech
+from readi_worker.interview.calls import (
+    REJECTED_ADDED_ASK,
+    CoverageJudgement,
+    ProbeVerdict,
+    Speech,
+)
 from readi_worker.interview.service import PROMPT_VERSIONS
 from readi_worker.interview.transitions import LAST_QUESTION, NEXT_QUESTION, connective
 from readi_worker.llm.fake import ScriptedLLMClient
@@ -188,16 +193,72 @@ def test_two_sessions_do_not_sound_the_same() -> None:
 # ---- Versions.
 
 
-def test_every_prompt_version_in_use_has_a_file_and_every_file_is_named() -> None:
-    """A bump with no template, or a template nothing points at, is caught here rather than live."""
+def test_every_prompt_version_in_use_has_a_file_and_every_file_is_accounted_for() -> None:
+    """A bump with no template, or a template nothing points at, is caught here rather than live.
+
+    A superseded version is **kept** — a session that spoke it names it, and must keep meaning
+    what it meant (CLAUDE.md "Prompts") — so the rule is not "every file is in use". It is that
+    every file is either the version in use or an earlier one of a prompt that is: a file nobody
+    ever pointed at, or a version *above* the one in use, is a mistake.
+    """
     directory = Path(__file__).parents[1] / "readi_worker/prompts"
     for name, version in PROMPT_VERSIONS.items():
         assert (directory / f"{name}.v{version}.md").is_file(), f"{name} v{version} is missing"
-    on_disk = {path.name for path in directory.glob("interview_*.v*.md")}
-    named = {f"{name}.v{version}.md" for name, version in PROMPT_VERSIONS.items()}
-    superseded = {
-        "interview_intro.v1.md",
-        "interview_question.v1.md",
-        "interview_candidate_questions.v1.md",
-    }
-    assert on_disk - named == superseded, "a released version is kept, and a new one must be in use"
+
+    for path in directory.glob("interview_*.v*.md"):
+        prompt, _, on_disk = path.name.removesuffix(".md").rpartition(".v")
+        assert prompt in PROMPT_VERSIONS, f"{path.name} belongs to no prompt in use"
+        assert int(on_disk) <= PROMPT_VERSIONS[prompt], (
+            f"{path.name} is above the version in use ({PROMPT_VERSIONS[prompt]})"
+        )
+
+
+# ---- What the guard leaves behind, and what it must never reject.
+
+
+def test_every_connective_adds_no_ask() -> None:
+    """Load-bearing: the connective rides on the pinned wording in the fallback, and it is compared
+    against a ceiling computed from the question alone. One that counted as an ask would make the
+    engine's own words trip the engine's own guard."""
+    for line in (*NEXT_QUESTION, *LAST_QUESTION):
+        assert count_asks(line) == 0, line
+
+
+async def test_a_rejected_phrasing_is_logged_and_the_fallback_keeps_its_transition() -> None:
+    """Both halves of what the second paid run made us go and read a transcript for.
+
+    The rejection was invisible in `ai_call_log` — three `interviewer` rows that all said `ok` — and
+    the fallback spoke the pinned question with no connective, so the interview lurched from one
+    question into the next with nothing between them.
+    """
+    greedy = "Next one. Walk me through how that state comes about, and what you would change."
+    assert count_asks(greedy) > count_asks(PINNED)
+
+    llm = scripted_speech("Question one.", greedy, greedy, greedy)
+    service, _ = build(llm)
+    deck = bundle(
+        questions=[question(0), question(1, prompt=PINNED)],
+        question_budget=2,
+        max_follow_ups=0,
+        minutes=30,
+    )
+    opening = await service.advance(request("start", now=at(0), deck=deck))
+    answered = await service.advance(
+        request("answer", now=at(1), text="An answer.", snapshot=opening.engine_snapshot)
+    )
+
+    spoken = texts(answered)[-1]
+    expected = connective(SESSION_ID, 1, 2)
+    assert expected in LAST_QUESTION, "position 1 of 2 is the last question"
+    assert spoken == f"{expected} {PINNED}", (
+        "the pinned wording, but not stripped of its transition"
+    )
+
+    rejected = [
+        call
+        for call in answered.ai_calls
+        if call.error_code is not None and call.error_code.root == REJECTED_ADDED_ASK
+    ]
+    assert len(rejected) == 3, "each attempt is one call, and each says why it was thrown away"
+    # The calls succeeded and cost money; it is our check on the output that failed.
+    assert all(call.status == "ok" for call in rejected)

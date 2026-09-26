@@ -4,25 +4,42 @@
     "needed in two runtimes: `countAsks` in .claude/skills/question-bank/scripts/check-bank.mjs",
     "checks a written bank, and `count_asks` in apps/ai-worker/readi_worker/interview/asks.py stops",
     "the phrasing call adding an ask to a question at run time. Both assert against this file, so the",
-    "two copies cannot drift — check-bank fails on a mismatch like any other error, and",
-    "tests/test_interview_asks.py fails on the same one. Verified on 2026-09-26 to agree on all 330",
-    "prompts and probes in /content/seed as well.",
+    "two copies cannot drift - check-bank fails on a mismatch like any other error, and",
+    "tests/test_interview_asks.py fails on the same one. Verified on 2026-09-26 to agree on every",
+    "prompt and probe in /content/seed as well.",
     "The counter over-counts on purpose-built prose and that is documented, not a bug: see the",
     "`over-counts` cases. It is used as a floor and as a comparison between two near-identical texts,",
-    "never as an absolute ceiling — `check-bank.mjs` has its own narrower check for that."
+    "never as an absolute ceiling - `check-bank.mjs` has its own narrower check for that.",
+    "An ASYMMETRY, though, is a bug, because the comparison is what the guard runs on: if the bank's",
+    "wording and a faithful rephrasing of it count differently, the guard rejects the rephrasing. The",
+    "second paid run found two, and the `asymmetry` cases below are them."
   ],
   "cases": [
-    { "asks": 0, "text": "" },
-    { "asks": 0, "text": "This is the code that moves it, in JavaScript." },
-    { "asks": 1, "text": "What is the exception telling you?" },
-    { "asks": 1, "text": "How would you order the testing?" },
-    { "asks": 1, "text": "Would you take it?" },
+    {
+      "asks": 0,
+      "text": ""
+    },
+    {
+      "asks": 0,
+      "text": "This is the code that moves it, in JavaScript."
+    },
+    {
+      "asks": 1,
+      "text": "What is the exception telling you?"
+    },
+    {
+      "asks": 1,
+      "text": "How would you order the testing?"
+    },
+    {
+      "asks": 1,
+      "text": "Would you take it?"
+    },
     {
       "why": "over-counts: the directive-owns rule covers `tell/walk/talk/take me`, not `explain`",
       "asks": 2,
       "text": "Explain what that check actually proves."
     },
-
     {
       "why": "a directive owns the interrogative that follows it",
       "asks": 1,
@@ -33,7 +50,6 @@
       "asks": 1,
       "text": "Walk me through what happens to that error."
     },
-
     {
       "why": "the house depth cue asks for nothing new",
       "asks": 1,
@@ -49,7 +65,6 @@
       "asks": 1,
       "text": "Walk me through what you would change."
     },
-
     {
       "why": "two things to answer, coordinated",
       "asks": 2,
@@ -70,7 +85,6 @@
       "asks": 2,
       "text": "What is in that copy, and would you take it?"
     },
-
     {
       "why": "over-counts: `where` is a relative pronoun here, not an interrogative",
       "asks": 2,
@@ -80,6 +94,31 @@
       "why": "over-counts: `is there` is existential here",
       "asks": 4,
       "text": "Explain what the check that is there does, and what it does not do."
+    },
+    {
+      "why": "asymmetry fixed 2026-09-26: `whom` was not counted, so this read as one ask while a model's \"and who it affects\" read as two, and the guard rejected the rephrasing three times",
+      "asks": 2,
+      "text": "What is going wrong, and for whom?"
+    },
+    {
+      "why": "…and the rephrasing it was rejecting. The two must agree",
+      "asks": 2,
+      "text": "What's going wrong here, and who it affects."
+    },
+    {
+      "why": "asymmetry fixed 2026-09-26: `whether` is a subordinator here, not an interrogative, so this is the one ask the bank wrote",
+      "asks": 1,
+      "text": "Talk me through something you built, whether that was at work or on your own."
+    },
+    {
+      "why": "…and the pinned wording it has to match",
+      "asks": 1,
+      "text": "Take me through something you built — anything, at work or on your own."
+    },
+    {
+      "why": "a directive already owns a `whether` that follows it",
+      "asks": 1,
+      "text": "Tell me whether it had been worth doing."
     }
   ]
 }

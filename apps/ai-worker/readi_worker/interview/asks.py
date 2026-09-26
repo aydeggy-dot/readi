@@ -33,8 +33,18 @@ import re
 
 #: An interrogative, or a directive to produce something. Two sharing one clause — "what and why" —
 #: are two asks, which is right: they are two things to answer.
+#:
+#: **`whom` is here and `whether` is not** (2026-09-26, from the second paid run). Both were
+#: asymmetries rather than opinions, and an asymmetry is what breaks the comparison this counter is
+#: for. `whom` was missing, so a pinned "What is going wrong, and for whom?" counted one ask while
+#: the model's "what's going wrong, and who it affects" counted two, and the guard rejected a
+#: faithful rephrasing three times over. `whether` was present, and it is a subordinator far more
+#: often than an interrogative — "whether that was at work or on your own", "tell me whether it
+#: worked" — so a model reaching for it appeared to add an ask it had not added. Nothing spoken in
+#: these banks opens on an interrogative `whether`, and where it follows a directive the directive
+#: is already the ask.
 _ASK = re.compile(
-    r"\b(?:what|why|how|where|when|which|who|whether)\b"
+    r"\b(?:what|whom|why|how|where|when|which|who)\b"
     r"|\b(?:tell|walk|talk|take)\s+me\b"
     r"|\b(?:explain|describe|diagnose)\b",
     re.IGNORECASE,
@@ -50,7 +60,7 @@ _YES_NO = re.compile(
     re.IGNORECASE,
 )
 _OWNED_MODAL = re.compile(
-    r"\b(?:what|why|how|where|when|which|who|whether)\s+"
+    r"\b(?:what|whom|why|how|where|when|which|who)\s+"
     r"(?:would|should|could|do|does|did|is|are|can|will)\s+(?:you|it|that|they|there)\b",
     re.IGNORECASE,
 )
@@ -65,7 +75,7 @@ _DEPTH_CUE = re.compile(
 #: "tell me what X" is one ask, not two: the directive owns the interrogative that follows it.
 _DIRECTIVE_OWNS = re.compile(
     r"\b(tell|walk|talk|take)\s+me\s+(?:through\s+)?"
-    r"(?:what|why|how|where|when|which|who|whether)\b",
+    r"(?:what|whom|why|how|where|when|which|who)\b",
     re.IGNORECASE,
 )
 
