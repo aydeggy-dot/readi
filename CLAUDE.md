@@ -89,7 +89,7 @@ pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
-E2E_SCREENSHOTS=before pnpm test:e2e visual   # 80 before/after screenshots for a visual change (apps/web/e2e/visual)
+E2E_SCREENSHOTS=before pnpm test:e2e visual   # 152 before/after screenshots for a visual change (apps/web/e2e/visual)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
@@ -522,6 +522,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   both themes into `screenshots/<label>/` (gitignored) for a before/after review — see
   `apps/web/e2e/visual/README.md`. Never run a build that writes `apps/api/dist` or `apps/web/.next` while
   the owner's dev servers are up.
+- **The e2e database is never reset and nothing in it is published by default.** `e2e-prepare.ts`
+  creates the database if it is missing and migrates it, so every run inherits the last one's rows
+  — 18 stale `Platform engineer <hex>` roles at the time of writing. And the seed importer never
+  publishes (ADR-0014 decision 5) while `catalogue.setup.ts` publishes only the catalogue, so in a
+  **fresh** database no question is published at all and no interview can start. A spec that needs
+  published content publishes it: `publishSeededQuestions` (a few general questions of the shipped
+  bank, for the visual capture) or its own private bank (`interview.spec.ts`, which needs known
+  probes). Relying on what another spec left behind is how the interview screenshots came out full
+  of `content.spec.ts`'s fixtures, and how a follow-up cap assertion passed at random.
 - Adding a third party that processes personal data means updating `docs/privacy/subprocessors.md` and
   making sure account erasure reaches it (ADR-0011).
 - Working notes live in `tasks/todo.md` and `tasks/lessons.md`; milestone handovers in `docs/progress/`.

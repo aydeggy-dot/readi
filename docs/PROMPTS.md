@@ -241,7 +241,12 @@ Architecture
   `apps/api/src/content/question-eligibility.ts` (ADR-0015) rather than rewriting either; weight toward weak topics
   (from past evaluations if any); exclude questions seen in the last 3 sessions, falling back to the
   least-recently-seen questions when too few remain; deterministic given a seed (for tests).
-- LLM use inside states only: (a) phrase the intro/transition naturally, (b) **phrase** the follow-up
+- LLM use inside states only: (a) ~~phrase the intro/transition naturally~~ — **neither, in the end**
+  (corrected after the first two paid runs, 2026-09-26). The intro is *rendered* from a versioned
+  template because it states the session length, the question count and that skipping is allowed,
+  and a model paraphrasing those gets them wrong eventually; the connective between questions is
+  picked by the engine from a small pinned list, because every phrasing call is independent and a
+  model told to vary its transitions has nothing to vary from. See CLAUDE.md §5. (b) **phrase** the follow-up
   the engine has chosen — the probes are the question's own `planned_follow_ups`, one per rubric
   criterion the opening prompt does not ask for, and the engine picks one only for a criterion the
   answer has not already covered (owner's decision, 2026-09-23). The model does not decide what to

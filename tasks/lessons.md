@@ -651,3 +651,36 @@ invitation, which the state machine speaks exactly once before any answer.
 **The rule:** before writing "don't repeat yourself" into a prompt, check what that call is actually
 shown. If the information needed to obey is not in the call, the instruction is decoration, and the
 answer is either to put the information in or to move the decision into code.
+
+## A shared test database makes a test lie in both directions (2026-09-26, M3 phase 6)
+
+The e2e database is created once and migrated, never dropped. The e2e interview spec interviewed for
+backend/mid off the shipped bank, and its "answering incompletely earns exactly two follow-ups"
+assertion passed and failed at random — because `content.spec.ts` publishes a question into that exact
+pair on every run, with **no planned follow-ups**, and question selection cannot tell a fixture from
+the bank. A question with no probes can never produce a follow-up.
+
+That was the visible half. The invisible half was worse: the importer never publishes and the
+catalogue setup publishes only the catalogue, so in a **fresh** e2e database no question is published
+at all and no interview can start. Nothing had noticed, because those leftovers were always there. The
+same leftovers were what the interview screenshots had been photographing — "A report page takes
+\*\*nine seconds\*\* to load … d2571bd2", literal asterisks and a uuid fragment, presented as the
+product's sample content.
+
+**The rule:** a test that needs particular content must create it, not find it. And when a shared
+fixture store is never reset, ask what the suite would do on an **empty** one — that is the question
+that finds the setup step nobody wrote, and the answer is usually that some other spec has been
+holding the door open.
+
+## "Flaky test" is a diagnosis, and it needs evidence like any other (2026-09-26, M3 phase 6)
+
+`interviews-advance.int.spec.ts` occasionally refused a plainly sequential request with
+`interview_busy`. It was written up twice as a flake whose fix belonged in the test fixture. Under the
+load of a whole-monorepo `pnpm test` it happened twice in one run, which was enough to look properly:
+closing the SSE stream is what tells the client the exchange is over, and the lock was released on the
+line _after_. Any client that sends its next request the moment the stream closes — a script, a test,
+M5's agent — meets a lock the exchange has already finished with.
+
+**The rule:** "flaky" names a symptom. Before writing it down as one, say which two things are racing
+and why the product is safe. If the answer is "the test is too fast", ask what a real client that fast
+would see — here it would have seen a 409 in production.

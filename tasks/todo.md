@@ -2191,15 +2191,21 @@ complementary.
       kickoff item "verify retention and bulk trace deletion" stays open until then — the code is
       built, tested and disabled, and no test can prove a third party deletes anything
 
-### Phase 6 — verification and docs
+### Phase 6 — verification and docs (done, 2026-09-26; handover `docs/progress/2026-09-26-m3.md`)
 
-- [ ] e2e interview spec; `slow-network` and `visual` suites extended (and the skipped specs grepped
-      for renamed fields, per the M2.5 lesson)
-- [ ] ~~One real 15-minute diagnostic against `claude-sonnet-5`~~ — **moved to the end of phase 4**
-      (owner, 2026-09-25): they want to sit through it in the browser rather than read a transcript.
-      One 15-minute diagnostic on `claude-sonnet-5`, announced before it runs, with the cost reported
-- [ ] The pinning test watched to fail; a Redis flush mid-session followed by a resume
-- [ ] `CLAUDE.md`, the corrected M3 prompt in `docs/PROMPTS.md`, the handover, lessons
+- [x] e2e interview spec (`apps/web/e2e/interview.spec.ts`); `slow-network` and `visual` suites
+      extended — and the skipped specs did rot exactly as the M2.5 lesson predicted, in a way a
+      grep would not have caught: the visual capture had been photographing `content.spec.ts`'s
+      leftovers because **nothing publishes a question in a fresh e2e database**
+- [x] ~~One real 15-minute diagnostic against `claude-sonnet-5`~~ — done twice at the end of phase 4
+      (`2026-09-25-m3-paid-run.md`, `2026-09-26-m3-second-paid-run.md`), 4.2¢ and 7.8¢
+- [x] The pinning test watched to fail — **both halves**, the snapshot and the catalogue rename,
+      each by mutating the production code and reverting it; a Redis flush mid-session followed by
+      a resume, now a permanent step in the e2e spec rather than a one-off
+- [x] `CLAUDE.md` (the e2e database's two traps), the corrected M3 prompt in `docs/PROMPTS.md` (it
+      still said "phrase the intro/transition naturally"), the handover, two lessons
+- [x] Found and fixed on the way: the exchange lock was released **after** the stream closed, which
+      is what the "known flake" really was; and "You answered 1 of 4 questions in 1 minutes"
 
 ### The owner's three decisions, taken 2026-09-25 at the start of this branch
 
