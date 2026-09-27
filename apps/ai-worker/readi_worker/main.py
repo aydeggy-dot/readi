@@ -1,5 +1,6 @@
 """FastAPI application factory for the AI worker."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import NamedTuple, Protocol
@@ -52,6 +53,9 @@ def _init_sentry(settings: Settings) -> None:
 
 class RedisClient(SupportsPing, SupportsCache, Protocol):
     """What the worker asks of Redis: a ping for `/health`, and a small cache for the engine."""
+
+
+logger = logging.getLogger(__name__)
 
 
 class Models(NamedTuple):
@@ -136,6 +140,20 @@ def create_app(
     # Tracing goes on here, once, between the provider and everything that calls it: every model
     # call the worker will ever make is traced by construction rather than by remembering to.
     llm = TracedLLMClient(llm, tracer)
+
+    # Which provider this process is armed with, once, at startup. `fake` is the resting state and a
+    # paid run is armed on the command line for its own length (`.env.example`), so the one thing an
+    # operator needs before spending money is a way to tell the two apart from outside the process —
+    # and the first two paid runs were each diagnosed twice partly because there was not one. Names
+    # only: the key is a `SecretStr` and never goes near a log.
+    logger.info(
+        "llm provider=%s cv_parse=%s interviewer=%s evaluator=%s tracing=%s",
+        settings.llm_provider,
+        models.cv_parse,
+        models.interviewer,
+        models.evaluator,
+        "langfuse" if settings.langfuse_public_key else "off",
+    )
 
     owned_embeddings: VoyageEmbeddingProvider | None = None
     if embeddings is None:
