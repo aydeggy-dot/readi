@@ -12,6 +12,7 @@ import { REDIS } from "../src/redis/redis.module";
 import { StorageService } from "../src/storage/storage.service";
 import { FakeAiWorker, PARSED } from "./fake-ai-worker";
 import { createTestApp, signUpWithEmail } from "./helpers";
+import { pollFor } from "./poll";
 
 const PDF = "application/pdf";
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -77,12 +78,10 @@ describe("CV upload and parsing", () => {
     CvResponse.parse((await http().get("/api/me/cv").set("cookie", cookie)).body);
 
   async function settled(cookie: string): Promise<CvResponse> {
-    for (let i = 0; i < 100; i++) {
+    return pollFor("CV still processing", async () => {
       const cv = await getCv(cookie);
-      if (cv.status !== "processing") return cv;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error("CV still processing after 10 s");
+      return cv.status === "processing" ? null : cv;
+    });
   }
 
   it.each([

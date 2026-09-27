@@ -30,6 +30,7 @@ import {
   uniqueNigerianMobile,
   viaProxy,
 } from "./helpers";
+import { pollFor } from "./poll";
 
 const PDF = "application/pdf";
 const PDF_BYTES = new TextEncoder().encode("%PDF-1.7\nA CV body that the fake worker never reads.");
@@ -118,12 +119,10 @@ describe("data export and account deletion (ADR-0011)", () => {
     const { upload_id, url, headers } = CvUploadResponse.parse(created.body);
     expect((await fetch(url, { method: "PUT", headers, body: PDF_BYTES })).status).toBe(200);
     await http().post("/api/me/cv").set("cookie", cookie).send({ upload_id }).expect(200);
-    for (let i = 0; i < 100; i++) {
+    await pollFor("CV not parsed", async () => {
       const cv = CvResponse.parse((await http().get("/api/me/cv").set("cookie", cookie)).body);
-      if (cv.status === "parsed") return;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error("CV not parsed after 10 s");
+      return cv.status === "parsed" ? true : null;
+    });
   }
 
   const requestDeletion = (cookie: string) =>

@@ -892,3 +892,34 @@ between two prompts, not a tokenizer.
 way round. The usable estimate came from the system prompt's own character count and a stated
 chars-per-token band, with the sensitivity printed (3.5 / 3.7 / 4.0 → 12.9% / 12.2% / 11.2%) so the
 decision could be seen not to turn on the guess.
+
+## A flake you cannot name is a grep you got wrong (2026-09-28)
+
+An API test failed three times under `pnpm test` and was never identified, because the thing watching
+for it matched turbo's **counts** (`Tests 1 failed | 587 passed`) instead of its `×` lines — and
+turbo's per-package prefixes and ANSI colour codes defeated the pattern that would have. Every re-run
+was clean, so by the time anyone looked there was nothing left to read. Twenty subsequent runs — ten of
+the suite alone, ten of the full `pnpm test --force` — did not reproduce it.
+
+**The rule:** the first time an intermittent failure appears, capture the whole log, not a summary. A
+summary of a failure you cannot reproduce is worth nothing, and the run is the only chance to get it.
+Strip ANSI (`sed 's/\x1b\[[0-9;]*m//g'`) before grepping turbo output, and grep the per-test markers
+rather than the totals.
+
+**And record the machine's state**, because that turned out to be the only lead: all three failures
+happened with `pnpm dev` and `dev:worker` running, all twenty clean runs with them stopped, on a box
+with six cores and 7 GB. "What else was running" is part of the bug report for anything timing
+sensitive.
+
+## A hand-rolled wait is a constant nobody measured, copied five times (2026-09-28)
+
+Five integration specs each had their own `for (let i = 0; i < 100; i++)` at 100 ms — a 10-second
+budget for a real BullMQ job — with five slightly different failure messages. Nothing measured the ten
+seconds: the fake worker answers in milliseconds, so the entire margin was machine load.
+
+**The rule:** a wait for a background job belongs in one helper with one named constant and a `what`
+argument, so the failure says "no report for session <id> after 25 s" rather than "timed out". Two
+properties are worth writing down beside it — the budget must stay **under** the framework's own
+timeout, or the framework reports a bare timeout and the poll's message never runs; and `null`/
+`undefined` mean "not yet" while `0`, `false` and `""` are answers, which a helper written with
+`if (found)` gets wrong and no caller ever notices.

@@ -2724,8 +2724,9 @@ The owner's decision on finding 1: **implement both**, the guarantee first. Full
       (`FakeInterviewEngine.followUps`), the 127-second reserve, the worker's criteria block and v2
       prompt, the stand-in scoring a `NOT ASKED` criterion 0, and the web sentence
 - [x] Lint, typecheck, 584 API + 349 worker + 168 web tests green
-- [ ] **Not run: `pnpm test:e2e`** — the owner's dev servers are up and a build would write
-      `apps/web/.next`. Worth a run before the phase is called done
+- [x] **`pnpm test:e2e` green** (2026-09-28, once WSL restarted and the dev servers were down):
+      9 passed, 6 skipped — the opt-in visual and slow-network specs. It covers the interview but
+      **not the report**; "e2e interview → report" is still owed by phase 7
 - [x] **Every stored report is now unreadable to this release, and that is the designed path.**
       `not_assessed` is a required field, so `SessionReportResponse.safeParse` fails on the paid run's
       stored `summary` — which is exactly what `safeParse` plus the sweep exist for: the route answers
@@ -2737,6 +2738,25 @@ The owner's decision on finding 1: **implement both**, the guarantee first. Full
       `scoring_version = 1` — so the paid run's report re-assembles at 55 and 73. Re-scoring a session
       means deleting its `answer_evaluations` rows and paying again: an operator's call, and there is
       one real session it would apply to
+
+### The intermittent API test failure — hunted, not caught (2026-09-28)
+
+`docs/progress/2026-09-28-flaky-test-hunt.md`. **Twenty runs, no reproduction**, so the cause is
+unconfirmed rather than explained.
+
+- [x] 10 × the API suite alone, and 10 × `pnpm test --force` through turbo: all clean (588 each)
+- [x] **The one lead**: all three failures happened while `pnpm dev` and `dev:worker` were up; all
+      twenty clean runs happened with them stopped. On 6 cores and 7 GB — ~2 GB free _without_ them —
+      six concurrent package suites plus the API's own four Nest apps is a materially different load
+- [x] **The named suspect**: five specs polled a real background job with a hand-rolled 10-second
+      budget that was never measured. Unified into `test/poll.ts` (`pollFor`,
+      `BACKGROUND_JOB_BUDGET_MS = 25_000`, still under `testTimeout` so the poll names what it waited
+      for), with `poll.test.ts` — seven cases, because a poll that returns too eagerly fails _silently_
+- [x] **The first finding cost the most**: no test name was ever captured, because the grep matched
+      turbo's counts and not its `×` lines, and ANSI codes defeated the pattern that would have. The
+      write-up says how to capture it next time
+- [ ] **Still possible it recurs.** The widened budget is a mitigation for an unconfirmed diagnosis. If
+      it does, the four steps in the write-up say what to do, and the five polls now name themselves
 
 ### Phase 5 — the eval harness
 

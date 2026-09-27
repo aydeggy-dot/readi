@@ -14,6 +14,7 @@ import {
   type ContentFixture,
 } from "./content-fixtures";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
+import { pollFor } from "./poll";
 
 /**
  * **The pinning test** (`tasks/todo.md` "Carried forward", ADR-0014 decision 2).
@@ -320,11 +321,9 @@ describe("a session pins the content it was run against", () => {
 
   /** The stored report, once the queue has run. */
   async function report(sessionId: string): Promise<SessionReportResponse> {
-    for (let attempt = 0; attempt < 100; attempt++) {
+    return pollFor(`no report for session ${sessionId}`, async () => {
       const row = await prisma.sessionReport.findUnique({ where: { sessionId } });
-      if (row) return SessionReportResponse.parse(row.summary);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error(`no report for session ${sessionId} after 10 s`);
+      return row ? SessionReportResponse.parse(row.summary) : null;
+    });
   }
 });

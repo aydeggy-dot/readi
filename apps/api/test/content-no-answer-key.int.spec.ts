@@ -15,6 +15,7 @@ import {
   type ContentFixture,
 } from "./content-fixtures";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
+import { pollFor } from "./poll";
 import { framesOf } from "./sse";
 
 /**
@@ -173,13 +174,14 @@ describe("candidate content never carries the answer key", () => {
         .send(body);
       if (advanced.status !== 200) throw new Error(`advancing failed: ${advanced.text}`);
     }
-    for (let attempt = 0; attempt < 100; attempt++) {
+    return pollFor(`no report for session ${id}`, async () => {
       const response = await http().get(`/api/interviews/${id}/report`).set("cookie", cookie);
       if (response.status === 200) return id;
+      // 409 is `report_not_ready`, which is the ordinary answer while the job runs. Anything else is
+      // the route answering the wrong thing, and waiting for it to stop would prove nothing.
       if (response.status !== 409) throw new Error(`report failed: ${response.status}`);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error(`no report for session ${id} after 10 s`);
+      return null;
+    });
   }
 
   afterAll(async () => {

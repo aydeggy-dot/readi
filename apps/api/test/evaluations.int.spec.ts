@@ -18,6 +18,7 @@ import {
 } from "./content-fixtures";
 import { FakeAiWorker } from "./fake-ai-worker";
 import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
+import { pollFor } from "./poll";
 import { framesOf } from "./sse";
 
 /**
@@ -120,12 +121,10 @@ describe("evaluating an ended session", () => {
 
   /** The stored report, once the job has run. Polled, because the queue is real. */
   async function report(sessionId: string): Promise<SessionReportResponse> {
-    for (let attempt = 0; attempt < 100; attempt++) {
+    return pollFor(`no report for session ${sessionId}`, async () => {
       const row = await prisma.sessionReport.findUnique({ where: { sessionId } });
-      if (row) return SessionReportResponse.parse(row.summary);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error(`no report for session ${sessionId} after 10 s`);
+      return row ? SessionReportResponse.parse(row.summary) : null;
+    });
   }
 
   const evaluationsOf = (sessionId: string) =>
