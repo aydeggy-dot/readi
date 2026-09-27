@@ -4,6 +4,7 @@ import { t } from "@/i18n";
 import {
   bandKey,
   catalogueLine,
+  notAssessedSentence,
   promptedSentence,
   questionPromptingSentence,
   reportDate,
@@ -108,6 +109,13 @@ describe("the sentences", () => {
     );
   });
 
+  it("says one point and several differently when the interview did not get to ask", () => {
+    // One is the ordinary case: a question carries a probe per criterion its opening does not ask, and
+    // it is usually the last of them the clock takes.
+    expect(notAssessedSentence(1).key).toBe("interview.report.notAssessedOne");
+    expect(notAssessedSentence(2).key).toBe("interview.report.notAssessed");
+  });
+
   it("renders with every variable filled in", () => {
     // `t` leaves an unknown placeholder intact, so a missing var would ship as literal "{total}".
     const sentences = [
@@ -115,6 +123,8 @@ describe("the sentences", () => {
       promptedSentence({ total: 9, volunteered: 3, questionsPrompted: 2, questions: 4 }),
       questionPromptingSentence(prompting()),
       questionPromptingSentence(prompting({ follow_ups_asked: 0 })),
+      notAssessedSentence(1),
+      notAssessedSentence(3),
     ];
     for (const sentence of sentences) expect(t(sentence.key, sentence.vars)).not.toMatch(/[{}]/);
   });

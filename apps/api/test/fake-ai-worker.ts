@@ -176,6 +176,20 @@ export class FakeInterviewEngine {
   outcome: "ok" | "unavailable" | "engine_error" = "ok";
   /** What a traced worker reports on each call; null is what a keyless one reports (ADR-0008). */
   langfuseTraceId: string | null = null;
+  /**
+   * Whether an answer earns the follow-up this question has a probe for.
+   *
+   * `false` is the shape of an exchange where the engine asked no probe at all, and the API cannot
+   * otherwise provoke it: the real engine does that when the deadline leaves no room for a follow-up,
+   * when the cap is spent, or when the coverage judgement says the answer already reached every probe
+   * — three different reasons with one shape, which is a turn whose coverage log is `not_judged`
+   * throughout. The first paid evaluation run's fourth question was exactly this, and the answer was
+   * then scored on a criterion nobody had asked about (2026-09-27).
+   *
+   * **Which of the three reasons applies is still the engine's business and is tested in Python.** The
+   * switch exists because the fairness rule on the API's side keys on the shape.
+   */
+  followUps = true;
   private readonly bundles = new Map<string, InterviewSessionBundle>();
 
   /** A Redis flush inside the worker: the next exchange must ask for the bundle again. */
@@ -258,11 +272,11 @@ export class FakeInterviewEngine {
             position,
             null,
             request.text?.trim() ?? "",
-            coverageFor(question, progress?.probes_asked.length === 0),
+            coverageFor(question, this.followUps && progress?.probes_asked.length === 0),
           ),
         );
       }
-      const probe = progress && progress.probes_asked.length === 0 ? 0 : null;
+      const probe = this.followUps && progress && progress.probes_asked.length === 0 ? 0 : null;
       const hasProbe = (question?.planned_follow_ups.length ?? 0) > 0;
       if (request.action === "answer" && probe !== null && hasProbe && progress) {
         progress.probes_asked = [probe];
@@ -409,7 +423,7 @@ export class FakeEvaluator {
         evaluation: null,
         error: this.failure,
         evidence_flags: [],
-        prompt_versions: { evaluate_answer: 1, evaluate_answer_input: 1 },
+        prompt_versions: { evaluate_answer: 2, evaluate_answer_input: 1 },
         // Three attempts, all rejected: what the worker really reports when it gives up.
         ai_calls: [evaluatorCall("error"), evaluatorCall("error"), evaluatorCall("error")],
       });
@@ -440,7 +454,7 @@ export class FakeEvaluator {
       },
       error: null,
       evidence_flags: this.evidenceFlags,
-      prompt_versions: { evaluate_answer: 1, evaluate_answer_input: 1 },
+      prompt_versions: { evaluate_answer: 2, evaluate_answer_input: 1 },
       ai_calls: [evaluatorCall("ok")],
     });
   }

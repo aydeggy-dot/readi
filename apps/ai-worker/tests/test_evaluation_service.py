@@ -7,16 +7,19 @@ guarantee the report makes actually lives. A real model is exercised by the paid
 
 from readi_worker.evaluation.calls import CriterionReading
 from readi_worker.evaluation.service import (
+    NOT_ASKED_LABEL,
     PROMPT_VERSIONS,
     candidate_words,
     criteria_block,
     transcript_block,
 )
 from readi_worker.llm.fake import FakeLLMError
+from readi_worker.prompts import render
 from tests.evaluation_fixtures import (
     ANSWER,
     DESCRIPTOR_3,
     DIMENSION_0,
+    DIMENSION_1,
     code_of,
     criterion,
     default_exchange,
@@ -286,6 +289,36 @@ def test_the_criteria_are_numbered_by_position_and_carry_their_whole_ladder() ->
         assert rung in block
     # The rubric is the instruction, not a record of what happened, so it is not wrapped as data.
     assert "<rubric>" not in block
+
+
+def test_a_criterion_the_interview_never_asked_about_is_labelled_as_such() -> None:
+    """The one engine fact the evaluator is given (the owner's decision, 2026-09-27).
+
+    It is here so the **prose** can be fair: a model that does not know the interview ran out of
+    time writes "you did not mention how you would repair the rows", which reads to the candidate as
+    a criticism for something nobody asked them. Whether it counts towards the score is decided in
+    `scoring.ts`, on the same engine fact and on this reading's own 0-with-no-evidence.
+    """
+    block = criteria_block(
+        request(
+            criteria=[criterion(0, DIMENSION_0), criterion(1, DIMENSION_1, asked_about=False)]
+        ).question.rubric.criteria
+    )
+    assert block.count(NOT_ASKED_LABEL) == 1
+    # On the marked criterion, and under its dimension rather than anywhere else in the block.
+    assert f"1. {DIMENSION_1}\n   {NOT_ASKED_LABEL}" in block
+    assert f"0. {DIMENSION_0}\n   What it scores:" in block
+
+
+def test_the_system_prompt_says_what_to_do_with_a_criterion_nobody_asked_about() -> None:
+    """A rewording that drops the rule fails here rather than in a candidate's report."""
+    system = render("evaluate_answer", PROMPT_VERSIONS["evaluate_answer"])
+    assert "NOT ASKED" in system
+    # Score it as the answer merits — the exclusion is arithmetic and is not the model's to apply.
+    assert "Do not compensate" in system
+    # And the half that is the model's: do not blame them for a question nobody put to them.
+    assert "Do not tell the candidate they failed to say something" in system
+    assert "missing_points" in system
 
 
 def test_only_the_candidates_turns_are_evidence() -> None:

@@ -22,6 +22,23 @@ SECONDS_FOR_A_QUESTION = 120
 #: this the engine moves on rather than asking something the deadline will interrupt.
 SECONDS_FOR_A_FOLLOW_UP = 45
 
+#: Do not open a new question unless there is room for the answer **and** one probe after it
+#: (the owner's decision, 2026-09-27).
+#:
+#: `SECONDS_FOR_A_QUESTION` on its own knowingly admitted a question it might not be able to probe —
+#: "enough for the answer, if not for the probing" — and the first paid run showed what that costs.
+#: It opened a fourth question with 127 seconds left, the answer took 99, and at submission 25
+#: seconds remained against `SECONDS_FOR_A_FOLLOW_UP`: so `probes_to_judge` correctly returned
+#: nothing, two probes went unasked, and the candidate had put to them one third of a rubric they
+#: were scored on (`docs/progress/2026-09-27-m4-first-paid-evaluation.md` §1).
+#:
+#: The scoring fix of the same day means an unasked criterion no longer costs them anything, so this
+#: is not what makes the interview fair — it is what makes it *whole*. A question whose probes
+#: cannot be asked is a question the candidate answers once and is scored on one criterion of,
+#: which is a worse interview than three proper questions and their own questions at the end. The
+#: reserve now means what its neighbour's comment always claimed.
+SECONDS_TO_OPEN_A_QUESTION = SECONDS_FOR_A_QUESTION + SECONDS_FOR_A_FOLLOW_UP
+
 #: Spec §4.3 gives the candidate their own questions at the end. Skipped when there is no room —
 #: the plan's "out of time jumps to WRAP_UP, skipping CANDIDATE_QUESTIONS if there is no room".
 SECONDS_FOR_CANDIDATE_QUESTIONS = 90

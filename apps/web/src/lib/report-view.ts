@@ -36,7 +36,12 @@ export const bandKey = (overall: number): MessageKey =>
  * reading "you covered 7 of 11" should be reading about the interview they sat.
  */
 export interface SessionPrompting {
-  /** Criteria across all answered questions — the "points" the report talks about. */
+  /**
+   * The points the session was **scored on**, added up — `criteria_total` per question, which is the
+   * rubric's criteria less any the interview never asked about. A point nobody put to the candidate is
+   * not one they failed to volunteer, so counting it here would make the one number in the report they
+   * can move read worse than the interview was.
+   */
   total: number;
   /** Those the candidate covered before any probe was asked. */
   volunteered: number;
@@ -111,6 +116,21 @@ export function questionPromptingSentence(prompting: CandidatePrompting): Senten
         : "interview.report.questionPromptingMany",
     vars,
   };
+}
+
+/**
+ * "We did not get to ask you about these" — the criteria left out of an answer's score (the owner's
+ * decision, 2026-09-27).
+ *
+ * One wording for one point and one for several, rather than a plural engine, because one is the
+ * ordinary case: a question carries a probe per criterion its opening does not ask for, and it is
+ * usually the last of them the clock takes. The sentence says plainly that they are **not in the
+ * score**, which is the part a candidate has to be able to check — an answer marked out of two of
+ * three criteria and not saying so is a number nobody can reconcile with their own transcript.
+ */
+export function notAssessedSentence(count: number): Sentence {
+  const vars = { count };
+  return { key: count === 1 ? "interview.report.notAssessedOne" : "interview.report.notAssessed", vars };
 }
 
 /**

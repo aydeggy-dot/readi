@@ -1124,6 +1124,14 @@ model AnswerEvaluation {
   /// the coverage model's verdict, which M3 recorded may reach the evaluator "as a prior and never
   /// as a score". Stored so the report can say it in words and a re-score can be checked.
   promptedCriteria Int[] @map("prompted_criteria")
+  /// Positions of the criteria this answer was **not scored on**: the interview never asked about
+  /// them (they carry a probe and none of it was asked — the clock, an early end, or the follow-up
+  /// cap spent elsewhere) and the evaluator found nothing in the answer either, which is a 0 with no
+  /// evidence. They are out of `overall`'s denominator entirely, not scored 0 (owner's decision,
+  /// 2026-09-27). Stored rather than recomputed for the same reason as `promptedCriteria`: `overall`
+  /// was worked out against *this* list, under the `scoringVersion` beside it, and a report naming a
+  /// set the number did not come from could not be checked against the transcript.
+  notAssessedCriteria Int[] @map("not_assessed_criteria")
   scoringVersion   Int   @map("scoring_version")
 
   evaluatorProvider String  @map("evaluator_provider")

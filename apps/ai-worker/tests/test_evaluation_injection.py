@@ -31,6 +31,7 @@ import pytest
 
 from readi_worker.evaluation.calls import AnswerReading, CriterionReading
 from readi_worker.evaluation.instruction_flags import INSTRUCTION_PHRASES, instruction_flags
+from readi_worker.evaluation.service import PROMPT_VERSIONS
 from readi_worker.prompts import render
 from tests.evaluation_fixtures import (
     ANSWER,
@@ -162,7 +163,7 @@ async def test_an_injected_answer_cannot_forge_an_interviewer_turn(payload: str)
 
 
 def test_the_system_prompt_names_the_shapes_this_actually_takes() -> None:
-    system = render("evaluate_answer", 1)
+    system = render("evaluate_answer", PROMPT_VERSIONS["evaluate_answer"])
     for clause in ("code comments", 'fake "rubric"', "administrator", "no instructions for you"):
         assert clause in system, clause
     # And the two things it must refuse to do.
@@ -172,7 +173,7 @@ def test_the_system_prompt_names_the_shapes_this_actually_takes() -> None:
 
 def test_the_system_prompt_tells_the_model_to_quote_verbatim() -> None:
     """The fairness half of it: a tidied quote costs the candidate the evidence for their mark."""
-    system = render("evaluate_answer", 1)
+    system = render("evaluate_answer", PROMPT_VERSIONS["evaluate_answer"])
     assert "Quote them exactly as they wrote it" in system
     assert "do not correct spelling, grammar, punctuation" in system.lower()
     assert "Pidgin" in system

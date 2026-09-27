@@ -54,6 +54,7 @@ describe("evaluating an ended session", () => {
     worker.engine.outcome = "ok";
     worker.engine.requests.length = 0;
     worker.engine.forgetBundles();
+    worker.engine.followUps = true;
     worker.evaluator.outcome = "ok";
     worker.evaluator.requests.length = 0;
     worker.evaluator.scores = {};
@@ -177,7 +178,7 @@ describe("evaluating an ended session", () => {
     // Keyed on the engine fact — the probe it really asked — and not on the coverage model's verdict.
     expect(stored?.promptedCriteria).toEqual([1]);
     expect(stored?.evaluatorProvider).toBe("fake");
-    expect(stored?.promptVersions).toMatchObject({ evaluate_answer: 1 });
+    expect(stored?.promptVersions).toMatchObject({ evaluate_answer: 2 });
 
     const summary = await report(session.id);
     expect(summary.overall).toBe(71);
@@ -187,6 +188,61 @@ describe("evaluating an ended session", () => {
       criteria_volunteered: 1,
       follow_ups_asked: 1,
     });
+  });
+
+  it("does not score a criterion the interview never asked about, and names it on the report", async () => {
+    /*
+     * **The first paid run's fourth answer, end to end** (2026-09-27, the owner's decision of the same
+     * day). There, the engine opened a question with 127 seconds left, the answer took 99, and at
+     * submission there was no room for a follow-up — so two probes went unasked and the evaluator
+     * scored the whole rubric anyway, because nothing told it which probes the engine managed to ask.
+     * The candidate lost 35% of an answer to the clock and neither the report nor their own transcript
+     * could say why.
+     *
+     * Reproduced here as the shape rather than as one of its causes — the engine asks no probe at all
+     * (`FakeInterviewEngine.followUps`), which is what the clock, an early end and a spent follow-up cap
+     * all look like from the API's side, and is why the rule is "for any reason". The fixture's one
+     * planned probe is for criterion 1, so criterion 1 is the one nobody asked about, and the evaluator
+     * is told to find nothing in the answer for it.
+     */
+    worker.engine.followUps = false;
+    worker.evaluator.scores = { 1: 0 };
+    const cookie = await candidate();
+    const session = await started(cookie);
+    await advance(cookie, session.id, { action: "start" });
+    await advance(cookie, session.id, {
+      action: "answer",
+      text: "I opened the trace in production and counted the queries one request made.",
+    });
+
+    const summary = await report(session.id);
+    const [stored] = await evaluationsOf(session.id);
+
+    // The engine asked no probe, so nothing is discounted and criterion 1 was never put to them.
+    expect(stored?.promptedCriteria).toEqual([]);
+    expect(stored?.notAssessedCriteria).toEqual([1]);
+    // Raw, over the whole rubric, is what the model said: 0.75 × 60 + 0 × 40 = 45. What the candidate
+    // is shown is marked out of the criterion they were actually asked: 0.75 × 60 / 60 = 75.
+    expect(stored?.overallRaw).toBe(45);
+    expect(stored?.overall).toBe(75);
+    expect(summary.overall).toBe(75);
+
+    // And the page says so, by dimension, instead of showing it at 0 of 4.
+    const question = summary.questions[0];
+    expect(question?.not_assessed).toEqual([fixture.dimensionMarkers[1]]);
+    expect(question?.criteria).toHaveLength(1);
+    expect(question?.criteria[0]?.dimension).toBe(fixture.dimensionMarkers[0]);
+    // The denominator of the volunteered sentence drops with it: "1 of 1", never "1 of 2".
+    expect(question?.prompting).toEqual({
+      criteria_total: 1,
+      criteria_volunteered: 1,
+      follow_ups_asked: 0,
+    });
+
+    // The evaluator was told which criteria the interview asked about — the one engine fact it gets,
+    // and only so its prose does not blame the candidate for a question nobody put to them.
+    const criteria = worker.evaluator.requests[0]?.question.rubric.criteria;
+    expect(criteria?.map((criterion) => criterion.asked_about)).toEqual([true, false]);
   });
 
   it("shows the pinned ideal points and no other part of the answer key", async () => {

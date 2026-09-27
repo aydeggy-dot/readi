@@ -10,6 +10,10 @@ import {
   SessionQuestionSnapshot,
 } from "@readi/shared-types";
 import { z } from "zod";
+// The engine fact the evaluator's width carries, written once in `prompting.ts` so that the score and
+// the request cannot disagree about which criteria the interview asked. A leaf import: `prompting.ts`
+// depends on nothing but shared-types.
+import { unaskedCriteria } from "../evaluations/prompting";
 
 /**
  * The four widths of a question, and the three doors between them.
@@ -31,7 +35,11 @@ import { z } from "zod";
  *   **weights**, because the weighted roll-up is arithmetic and belongs in code (spec §6.2), and
  *   telling a model one criterion is 45% of the answer invites it to skim the rest. Not the
  *   **planned follow-ups** either: the probes the engine actually asked are already in the exchange,
- *   and the unasked ones would have it scoring "did they answer the probe".
+ *   and the unasked ones would have it scoring "did they answer the probe". It does carry one bit of
+ *   engine fact per criterion — `asked_about`, whether the interview put that criterion to the
+ *   candidate at all (owner's decision, 2026-09-27) — because the evaluator's prose is printed in the
+ *   candidate's report, and a model that does not know the interview ran out of time will tell them
+ *   off for not answering a question nobody asked.
  * - **Candidate** (to the browser): prompt, context, type, topic. And only once asked.
  *
  * The evaluator's width is wider than the interviewer's, so it is the one to be careful with. What
@@ -262,7 +270,14 @@ export function evaluationTurns(turns: readonly TurnForEvaluation[]): Evaluation
  * a rubric nobody scored them on (`tasks/todo.md` "Carried forward", ADR-0014 decision 2). That is
  * the failure `interview-pinning.int.spec.ts` exists to catch, extended in M4 to scoring.
  */
-export function evaluationQuestion(snapshot: SessionQuestionSnapshot): EvaluationQuestion {
+export function evaluationQuestion(
+  snapshot: SessionQuestionSnapshot,
+  turns: readonly TurnForEvaluation[],
+): EvaluationQuestion {
+  // Which criteria the interview never put to the candidate. A criterion with no probe is asked by
+  // the opening prompt itself (the pilot rule of 2026-09-23, held as an error by `check-bank.mjs`),
+  // so it is never in here and is always `asked_about`.
+  const unasked = new Set(unaskedCriteria(snapshot.planned_follow_ups, turns));
   return {
     slug: snapshot.slug,
     type: snapshot.type,
@@ -280,6 +295,7 @@ export function evaluationQuestion(snapshot: SessionQuestionSnapshot): Evaluatio
         dimension: criterion.dimension,
         description: criterion.description,
         levels: criterion.levels,
+        asked_about: !unasked.has(criterion.position),
       })),
     },
   };
@@ -296,7 +312,7 @@ export function evaluationRequest(
     session_id: session.id,
     user_id: session.userId,
     position,
-    question: evaluationQuestion(snapshot),
+    question: evaluationQuestion(snapshot, turns),
     exchange: evaluationTurns(turns),
   };
 }

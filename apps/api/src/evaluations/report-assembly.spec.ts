@@ -69,6 +69,7 @@ function answer(overrides: Partial<AnswerForReport> = {}): AnswerForReport {
     ],
     followUpsAsked: 0,
     promptedCriteria: [],
+    notAssessedCriteria: [],
     evaluation: evaluation(),
     score: null,
   };
@@ -85,7 +86,10 @@ function answer(overrides: Partial<AnswerForReport> = {}): AnswerForReport {
                 { position: 1, weight: 40 },
               ],
               merged.evaluation.criteria,
-              merged.promptedCriteria,
+              {
+                prompted: merged.promptedCriteria,
+                notAssessed: merged.notAssessedCriteria,
+              },
             )
           : null,
   };
@@ -258,6 +262,55 @@ describe("assembleReport", () => {
       criteria_volunteered: 1,
       follow_ups_asked: 1,
     });
+    expect(report.questions[0]?.not_assessed).toEqual([]);
+  });
+
+  it("names a not-assessed criterion instead of scoring it, and marks the answer out of the rest", () => {
+    /*
+     * The report half of the 2026-09-27 fairness fix. A criterion nobody asked about is in
+     * `not_assessed` by its dimension and **not** in `criteria`, so the page cannot show it at 0 of 4 —
+     * which is what the first paid run's fourth answer did, for 35% of a rubric.
+     *
+     * Note what the numbers become: the answer is marked out of the 60% criterion alone, and the
+     * prompting sentence's denominator drops with it, because "you covered 1 of 2 before I asked" is a
+     * claim about an interview that did not happen.
+     */
+    const report = assemble([
+      answer({
+        notAssessedCriteria: [1],
+        evaluation: evaluation({
+          criteria: [
+            {
+              criterion: 0,
+              score: 3,
+              max_score: 4,
+              evidence: ["I counted the queries"],
+              reasoning: "Did.",
+            },
+            { criterion: 1, score: 0, max_score: 4, evidence: [], reasoning: "Never came up." },
+          ],
+        }),
+      }),
+    ]);
+    const question = report.questions[0];
+    expect(question?.not_assessed).toEqual(["Recognises the pattern"]);
+    expect(question?.criteria.map((criterion) => criterion.dimension)).toEqual([
+      "Looks at what actually ran",
+    ]);
+    // 0.75 × 60 / 60 = 75, not 0.75 × 60 / 100 = 45.
+    expect(question?.overall).toBe(75);
+    expect(question?.prompting).toEqual({
+      criteria_total: 1,
+      criteria_volunteered: 1,
+      follow_ups_asked: 0,
+    });
+  });
+
+  it("names nothing for an answer that could not be scored at all", () => {
+    // Nothing is known about which criteria the answer reached, and "nobody asked" is only half the
+    // rule. The unscored panel is the honest state there, not a list of points we did not get to.
+    const report = assemble([answer({ evaluation: null, score: null })]);
+    expect(report.questions[0]?.not_assessed).toEqual([]);
   });
 
   it("never reports a negative volunteered count", () => {

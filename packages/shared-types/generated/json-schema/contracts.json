@@ -798,13 +798,17 @@
             "minLength": 1,
             "maxLength": 300
           }
+        },
+        "asked_about": {
+          "type": "boolean"
         }
       },
       "required": [
         "position",
         "dimension",
         "description",
-        "levels"
+        "levels",
+        "asked_about"
       ],
       "additionalProperties": false
     },

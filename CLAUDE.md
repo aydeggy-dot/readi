@@ -120,6 +120,13 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   which states exist, or what to probe.
 - Every session has a time budget and question budget enforced in code. The **time budget is the
   authoritative one**: `ends_at` is a wall-clock deadline, and the question count is a cap.
+- **A question is not opened unless a probe could follow it** — `SECONDS_TO_OPEN_A_QUESTION`, the
+  answer plus one follow-up (owner's decision, 2026-09-27). `SECONDS_FOR_A_QUESTION` alone knowingly
+  admitted a question it might not be able to probe, and the first paid run opened its fourth with
+  127 seconds left, took 99 on the answer, and had no room for either of its two probes. **End sooner
+  with fewer questions instead**: a question the clock cannot probe is one the candidate is asked
+  once and scored on one criterion of, which is a worse interview than three proper questions and
+  their own questions at the end.
 - Text mode and voice mode share the **same engine**; voice is just a different transport.
 - **A question exists at three widths, and the gaps between them are the product rules**
   (`apps/api/src/interviews/session-bundle.ts` is the only place they are crossed):
@@ -284,6 +291,31 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   coverage model's private verdict, which M3 wrote may reach the evaluator "as a prior and never as a
   score". **A criterion may carry two probes**, so the menu is read **per probe** and collapsed to a set
   of criteria at the end: anything keyed by criterion drops the second probe, as `review-doc.ts` did.
+- **A criterion the interview never asked about is not assessed, and leaves the denominator**
+  (owner's decision, 2026-09-27; `SCORING_VERSION` 2). Two facts, from two places, and both are
+  needed: the **engine fact** that the criterion carries probes and the interview asked none of them
+  (`unaskedCriteria`, the exact complement of `promptedCriteria` over the criteria that have probes),
+  and the **model's own reading** that the answer did not reach it — a 0 with no evidence, which spec
+  §6.2 already defines as "never addressed at all". A candidate who volunteered it unasked scores on
+  it as normal, and so does one who addressed it and was wrong, which is the 0 *with* a quote. Any
+  reason counts: the clock, an early end, or the follow-up cap spent on another criterion. It is the
+  mirror of the 0.85: that protects a candidate who **needed** a nudge, and there was nothing at all
+  for one who was never **offered** one — the first paid run's fourth answer lost 30 points that way,
+  and neither the report nor the transcript could say where. `overall_raw` carries neither adjustment,
+  because `/evals` compares a human to the model and not to our arithmetic. **It never excludes the
+  whole rubric**: two of the 104 seeded questions probe every criterion, and an answer that reached
+  none of them is a 0 the candidate earned on the thing the prompt did ask.
+  **The report has to admit it** — `CandidateQuestionReport.not_assessed` names those criteria by
+  `dimension`, and a criterion is in exactly one of `criteria` and that list. A score assembled over
+  two of three criteria which does not say which one is missing cannot be checked against the
+  transcript, which is the whole basis of the report (product principle 1).
+- **`asked_about` is the one engine fact the evaluator is given**, and it may not move a score. The
+  model is told whether the interview put each criterion to the candidate (`EvaluationCriterion`,
+  `NOT_ASKED_LABEL`, `evaluate_answer.v2.md`) — because its prose is printed in the report, and a
+  model that does not know the interview ran out of time tells the candidate off for not answering a
+  question nobody asked. "Volunteered or prompted" stays hidden, because that is a *grading* fact;
+  "asked at all" does not, because it is a fact about us. The exclusion itself is arithmetic in
+  `scoring.ts`, keyed on the same engine fact and on the model's 0-with-no-evidence.
 - **A report is served once and recovered twice.** `GET /api/interviews/:id/report` reads
   `session_reports.summary` with `safeParse` — it is the artefact a candidate was given, written by
   whichever release assembled it, and a shape that has moved since must not 500 their page. Missing or

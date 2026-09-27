@@ -282,6 +282,51 @@ describe("evaluationRequest", () => {
     expect(request.exchange.map((turn) => turn.follow_up_index)).toEqual([null, null, 0, 0]);
   });
 
+  /**
+   * **The one engine fact the evaluator is given** (the owner's decision, 2026-09-27).
+   *
+   * The fixture probes criteria 1 and 2, and the transcript asked probe 0 — criterion 1's. So
+   * criterion 0 is `asked_about` because the opening prompt asks it and it has no probe; criterion 1
+   * because its probe really was asked; and criterion 2 is not, because nothing in this interview put
+   * it to the candidate.
+   *
+   * It is here so the model's **prose** can be fair, not so it can adjust a mark: "was it volunteered
+   * or prompted" stays hidden, because that is a grading fact, and "was it asked at all" does not,
+   * because the evaluator's words are printed in the candidate's report.
+   */
+  it("says which criteria the interview actually put to the candidate", () => {
+    expect(request.question.rubric.criteria.map((criterion) => criterion.asked_about)).toEqual([
+      true,
+      true,
+      false,
+    ]);
+  });
+
+  it("says every criterion was asked when every probe was", () => {
+    const both = evaluationRequest(SESSION, 0, snapshotOf(question()), [
+      { seq: 0, speaker: "interviewer", followUpIndex: null, text: "The question." },
+      { seq: 1, speaker: "candidate", followUpIndex: null, text: "An answer." },
+      { seq: 2, speaker: "interviewer", followUpIndex: 0, text: "First probe." },
+      { seq: 3, speaker: "candidate", followUpIndex: 0, text: "More." },
+      { seq: 4, speaker: "interviewer", followUpIndex: 1, text: "Second probe." },
+      { seq: 5, speaker: "candidate", followUpIndex: 1, text: "More still." },
+    ]);
+    expect(both.question.rubric.criteria.every((criterion) => criterion.asked_about)).toBe(true);
+  });
+
+  it("says nothing but the opening was asked when the engine asked no probe at all", () => {
+    // The first paid run's fourth question: two probes in play, the clock left no room for either.
+    const none = evaluationRequest(SESSION, 0, snapshotOf(question()), [
+      { seq: 0, speaker: "interviewer", followUpIndex: null, text: "The question." },
+      { seq: 1, speaker: "candidate", followUpIndex: null, text: "An answer." },
+    ]);
+    expect(none.question.rubric.criteria.map((criterion) => criterion.asked_about)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+  });
+
   it("tags every turn with a kind, so a coding answer can join rather than rename", () => {
     expect(request.exchange.every((turn) => turn.kind === "text")).toBe(true);
   });

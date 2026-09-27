@@ -41,6 +41,14 @@ import { Slug } from "./slug.js";
  * stored is the model's raw per-criterion score untouched, so the `/evals` agreement metric compares
  * a human to the model and not to our arithmetic.
  *
+ * The **one** exception, and the line it is drawn on: `EvaluationCriterion.asked_about` says whether
+ * the interview ever put that criterion to the candidate at all (the owner's decision, 2026-09-27).
+ * "Was it volunteered or prompted" stays hidden because it is a *grading* fact; "was it asked" is not,
+ * because the evaluator's prose is printed in the candidate's report and blaming somebody for not
+ * saying what nobody asked is the one thing that prose must not do. It still may not move a score —
+ * the exclusion from the denominator is arithmetic in `scoring.ts`, keyed on the same engine fact and
+ * on the model's own 0-with-no-evidence.
+ *
  * ## Which schemas carry `.meta({ id })`
  *
  * As everywhere else (ADR-0003): a registered contract carries no root id; reusable nested pieces do.
@@ -64,6 +72,25 @@ export const EvaluationCriterion = z
     description: text(CONTENT_LIMITS.criterionDescriptionMaxLength),
     /** Keyed `"0"`–`"4"`, as the rubric stores them. */
     levels: z.record(z.string(), text(CONTENT_LIMITS.levelDescriptorMaxLength)),
+    /**
+     * Whether the interview actually put this criterion to the candidate (the owner's decision,
+     * 2026-09-27).
+     *
+     * True when the opening prompt asks for it — a criterion with no planned follow-up is the one the
+     * prompt asks, which is the pilot rule of 2026-09-23 and what `check-bank.mjs` holds a bank to —
+     * or when the engine asked one of its probes. False when it carries probes and the interview
+     * asked none of them: the clock ran out, the candidate ended early, or the follow-up cap was
+     * spent elsewhere.
+     *
+     * **It is the one engine fact the evaluator is given, and it may not change a score.** The model
+     * is still told nothing about weights, about which probes exist, or about whether an answer was
+     * volunteered or prompted — all of which would have it scoring the interview rather than the
+     * answer. What this changes is the *words*: an evaluator that does not know the interview never
+     * reached a point writes "you did not mention how you would repair the rows", which reads to the
+     * candidate as a criticism for something nobody asked. Whether it counts towards the score is
+     * decided in code, under `SCORING_VERSION`.
+     */
+    asked_about: z.boolean(),
   })
   .meta({ id: "EvaluationCriterion" });
 export type EvaluationCriterion = z.infer<typeof EvaluationCriterion>;
@@ -336,6 +363,13 @@ export type CandidateCriterionFeedback = z.infer<typeof CandidateCriterionFeedba
  */
 export const CandidatePrompting = z
   .object({
+    /**
+     * The points this answer was **scored on** — the pinned rubric's criteria less the ones the
+     * interview never asked about (`CandidateQuestionReport.not_assessed`). It is the assessed count
+     * rather than the rubric's size because this number is the denominator of a sentence the
+     * candidate reads: "you covered 2 of 3 before I asked" is a lie about the interview when one of
+     * the three was never put to them.
+     */
     criteria_total: z.int().min(0),
     criteria_volunteered: z.int().min(0),
     follow_ups_asked: z.int().min(0),
@@ -372,6 +406,26 @@ export const CandidateQuestionReport = z
     red_flags: z
       .array(text(EVALUATION_LIMITS.redFlagMaxLength))
       .max(EVALUATION_LIMITS.redFlagsPerAnswer),
+    /**
+     * The criteria the interview never asked about, by `dimension`, named plainly because they are
+     * **not in this answer's score** (the owner's decision, 2026-09-27).
+     *
+     * A question carries probes for the criteria its opening prompt does not ask for, and an interview
+     * does not always reach them: the deadline arrives, the candidate ends early, or the follow-up cap
+     * was spent on another criterion. A candidate who was never asked and did not happen to cover it
+     * anyway used to be charged the whole weight of it — 30 points of one answer, in the first paid
+     * run. Now it leaves the denominator, and this is the page admitting so: a score assembled over
+     * two of three criteria has to say which one is missing, or the number cannot be checked against
+     * the transcript.
+     *
+     * A criterion is in **exactly one** of `criteria` and this list, so the two cannot drift. The
+     * `dimension` is all that crosses, as everywhere else — never the description, the weight or a
+     * level descriptor — and it is empty on an answer that could not be scored at all, where nothing
+     * is known about which criteria the answer reached.
+     */
+    not_assessed: z
+      .array(text(CONTENT_LIMITS.dimensionMaxLength))
+      .max(CONTENT_LIMITS.rubricCriteria.max),
     prompting: CandidatePrompting,
   })
   .meta({ id: "CandidateQuestionReport" });

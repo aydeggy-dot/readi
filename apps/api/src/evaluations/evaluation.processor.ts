@@ -14,8 +14,8 @@ import { ENV } from "../config/env.module";
 import { evaluationRequest, type TurnForEvaluation } from "../interviews/session-bundle";
 import { type AnswerForReport, assembleReport } from "./report-assembly";
 import { EvaluationsRepository, type SessionToEvaluate } from "./evaluations.repository";
-import { followUpsAsked, promptedCriteria } from "./prompting";
-import { scoreAnswer } from "./scoring";
+import { followUpsAsked, promptedCriteria, unaskedCriteria } from "./prompting";
+import { notAssessedCriteria, scoreAnswer } from "./scoring";
 
 /** One session to score. Ids only, like every other job (ADR-0004). */
 export interface EvaluationJob {
@@ -115,16 +115,26 @@ export class EvaluationProcessor {
     await this.recordCalls(session, response.ai_calls);
 
     const prompted = promptedCriteria(answer.snapshot.planned_follow_ups, answer.turns);
+    // The other half of the engine fact: probes this question carried that the interview never asked.
+    // On its own it changes nothing — `notAssessedCriteria` is where it meets the model's reading.
+    const unasked = unaskedCriteria(answer.snapshot.planned_follow_ups, answer.turns);
     const evaluation = response.evaluation;
+    const notAssessed = evaluation
+      ? notAssessedCriteria(answer.snapshot.rubric.criteria, evaluation.criteria, unasked)
+      : [];
     await this.repository.save({
       sessionQuestionId: answer.sessionQuestionId,
       status: evaluation ? "ok" : "failed",
       evaluation,
       // The model's scores, the **pinned** weights, and the engine's record of what it had to ask.
       score: evaluation
-        ? scoreAnswer(answer.snapshot.rubric.criteria, evaluation.criteria, prompted)
+        ? scoreAnswer(answer.snapshot.rubric.criteria, evaluation.criteria, {
+            prompted,
+            notAssessed,
+          })
         : null,
       promptedCriteria: prompted,
+      notAssessedCriteria: notAssessed,
       evidenceFlags: response.evidence_flags,
       ...modelOf(response.ai_calls),
       promptVersions: response.prompt_versions,
@@ -154,6 +164,9 @@ export class EvaluationProcessor {
       evaluation: null,
       score: null,
       promptedCriteria: promptedCriteria(answer.snapshot.planned_follow_ups, answer.turns),
+      // Nothing was read, so nothing is known about which criteria the answer reached: the engine's
+      // "nobody asked" is only half the rule, and half of it is not a reason to drop a criterion.
+      notAssessedCriteria: [],
       evidenceFlags: [],
       provider: "unknown",
       model: "unknown",
@@ -171,6 +184,10 @@ export class EvaluationProcessor {
     const forReport: AnswerForReport[] = answers.map((answer) => {
       const row = stored.get(answer.sessionQuestionId);
       const prompted = row?.promptedCriteria ?? [];
+      // Read back rather than recomputed, for the reason the column exists: `overall` was worked out
+      // against this list under whichever `SCORING_VERSION` stored it, and a report that named a
+      // different set than the number was computed from would be unreadable against the transcript.
+      const notAssessed = row?.notAssessedCriteria ?? [];
       return {
         position: answer.position,
         type: answer.snapshot.type,
@@ -183,6 +200,7 @@ export class EvaluationProcessor {
         })),
         followUpsAsked: followUpsAsked(answer.turns),
         promptedCriteria: prompted,
+        notAssessedCriteria: notAssessed,
         evaluation: row?.evaluation ?? null,
         score:
           row?.evaluation && row.overall !== null && row.overallRaw !== null
@@ -190,6 +208,7 @@ export class EvaluationProcessor {
                 overall: row.overall,
                 overallRaw: row.overallRaw,
                 promptedCriteria: prompted,
+                notAssessedCriteria: notAssessed,
                 scoringVersion: SCORING_VERSION,
               }
             : null,

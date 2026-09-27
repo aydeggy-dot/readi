@@ -43,6 +43,12 @@ import { sessionOverall } from "./scoring";
  *   turns into one sentence per question. Not a per-criterion grid: "you covered two of the three
  *   before I asked" is advice, and a table of which ones is an answer key with extra steps.
  *
+ * And one thing the spec does not ask for at all, added after the first paid run (owner's decision,
+ * 2026-09-27): **a criterion the interview never asked about is named, and is not in the score**. An
+ * answer scored on two of three criteria has to say which one is missing, or its number cannot be
+ * checked against the transcript — and a candidate who finds nothing in their own interview that asked
+ * about a point they lost 35% of an answer to has been told something untrue by us.
+ *
  * And what is never in it: a criterion's `description`, its `weight`, or any of the five level
  * descriptors. `CandidateCriterionFeedback` is a separate, smaller shape rather than the admin one
  * with fields omitted (ADR-0014 decision 3), because an omission is one careless `.extend()` from a
@@ -65,6 +71,12 @@ export interface AnswerForReport {
    */
   followUpsAsked: number;
   promptedCriteria: number[];
+  /**
+   * The criteria this answer was **not scored on** — never asked about, and not covered anyway
+   * (`notAssessedCriteria()`). Read from the stored row rather than recomputed, so the report names
+   * exactly the set `overall` was computed from.
+   */
+  notAssessedCriteria: number[];
   /** Null when this answer could not be scored; the rest of the report still stands. */
   evaluation: AnswerEvaluation | null;
   score: AnswerScore | null;
@@ -214,12 +226,20 @@ function byType(scored: readonly AnswerForReport[]): ReportTypeScore[] {
  * gate makes that unreachable, and inventing a 0 for it would be putting words in the rubric's mouth.
  * Only `dimension`, the score, the quotes and the reasoning cross; the description, the weight and the
  * ladder do not.
+ *
+ * A criterion the interview never asked about goes in `not_assessed` **instead of** `criteria`, by its
+ * dimension and with no number beside it (owner's decision, 2026-09-27). Showing it as "0 of 4" is the
+ * thing that was wrong: the score it is not in cannot explain a 0 it does not contain, and a candidate
+ * reading their own transcript would find nothing that asked. Exactly one of the two lists holds it,
+ * so the page cannot say both.
  */
 function questionReport(answer: AnswerForReport): CandidateQuestionReport {
   const scoreAt = new Map(
     (answer.evaluation?.criteria ?? []).map((criterion) => [criterion.criterion, criterion]),
   );
-  const criteria: CandidateCriterionFeedback[] = answer.criteria.flatMap((pinned) => {
+  const notAssessedSet = new Set(answer.notAssessedCriteria);
+  const assessed = answer.criteria.filter((pinned) => !notAssessedSet.has(pinned.position));
+  const criteria: CandidateCriterionFeedback[] = assessed.flatMap((pinned) => {
     const scored = scoreAt.get(pinned.position);
     if (!scored) return [];
     return [
@@ -248,11 +268,18 @@ function questionReport(answer: AnswerForReport): CandidateQuestionReport {
     strong_answer_covers: answer.idealPoints,
     improvement_tip: answer.evaluation?.improvement_tip ?? null,
     red_flags: answer.evaluation?.red_flags ?? [],
+    // Named in rubric order, because that is the order the criteria above are in.
+    not_assessed: answer.criteria
+      .filter((pinned) => notAssessedSet.has(pinned.position))
+      .map((pinned) => pinned.dimension),
     prompting: {
-      criteria_total: answer.criteria.length,
+      // The points this answer was scored on, which is the denominator of the sentence the candidate
+      // reads. "You covered 2 of 3 before I asked" is a lie about the interview if the third was
+      // never put to them.
+      criteria_total: assessed.length,
       // Everything the engine did not have to ask about. Clamped, so a snapshot and a transcript that
       // disagree cannot produce a negative count on a candidate's screen.
-      criteria_volunteered: Math.max(0, answer.criteria.length - answer.promptedCriteria.length),
+      criteria_volunteered: Math.max(0, assessed.length - answer.promptedCriteria.length),
       follow_ups_asked: answer.followUpsAsked,
     },
   };

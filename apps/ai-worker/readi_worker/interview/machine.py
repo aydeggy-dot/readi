@@ -448,8 +448,12 @@ def _past_current_question(
     if budgets.out_of_time(bundle.ends_at, now):
         return _to_wrap_up(state, "out_of_time")
     following = _current(state) + 1
+    # The reserve is the answer **plus one probe** (`SECONDS_TO_OPEN_A_QUESTION`): a question the
+    # clock cannot follow up on is a question the candidate is asked once and scored on one
+    # criterion of, and ending a question sooner is better than starting one we cannot finish
+    # (owner's decision, 2026-09-27).
     if _room_in_the_count(state, bundle, following) and budgets.has_time_for(
-        budgets.SECONDS_FOR_A_QUESTION, bundle.ends_at, now
+        budgets.SECONDS_TO_OPEN_A_QUESTION, bundle.ends_at, now
     ):
         return replace(state, state="question", current_question=following, awaiting=False)
     if not budgets.has_time_for(budgets.SECONDS_FOR_CANDIDATE_QUESTIONS, bundle.ends_at, now):

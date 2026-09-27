@@ -7017,6 +7017,15 @@
               "maxLength": 300
             }
           },
+          "not_assessed": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
           "prompting": {
             "$ref": "#/components/schemas/CandidatePrompting_Output"
           }
@@ -7033,6 +7042,7 @@
           "strong_answer_covers",
           "improvement_tip",
           "red_flags",
+          "not_assessed",
           "prompting"
         ],
         "additionalProperties": false

@@ -368,9 +368,15 @@ describe("candidate content never carries the answer key", () => {
     it("carries a dimension name only as a criterion's dimension", async () => {
       const response = await report();
       const body = response.body as SessionReportResponse;
-      const dimensions = body.questions.flatMap((question) =>
-        question.criteria.map((criterion) => criterion.dimension),
-      );
+      // Both lists, because a criterion is in exactly one of them: `criteria` when it was scored, and
+      // `not_assessed` when the interview never got to ask about it (owner's decision, 2026-09-27).
+      // Counting only the first would fail the day a report legitimately carries the second, which is
+      // a fairness fix rather than a leak — and the count is still exact, so a dimension smuggled into
+      // a `reasoning` string is still caught.
+      const dimensions = body.questions.flatMap((question) => [
+        ...question.criteria.map((criterion) => criterion.dimension),
+        ...question.not_assessed,
+      ]);
       expect(dimensions.length).toBeGreaterThan(0);
       const raw = JSON.stringify(body);
       for (const marker of fixture.dimensionMarkers) {

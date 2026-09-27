@@ -164,6 +164,7 @@ class EvaluationCriterion(BaseModel):
     dimension: str = Field(..., max_length=80, min_length=1)
     description: str = Field(..., max_length=300, min_length=1)
     levels: dict[str, Levels]
+    asked_about: bool
 
 
 class Description(RootModel[str]):

@@ -458,11 +458,16 @@ export const EVALUATION_LIMITS = {
  *
  * It versions **our code**, not the model: what the evaluator said is stored untouched in
  * `criteria`, `overall_raw` is those scores weighted, and `overall` is `overall_raw` after the
- * prompting adjustment below. Bump it whenever either step changes, so a report assembled under one
- * rule is never silently compared with one assembled under another — and so `/evals` can say which
- * arithmetic a number came out of.
+ * prompting adjustment below **and the not-assessed exclusion**. Bump it whenever any of those steps
+ * changes, so a report assembled under one rule is never silently compared with one assembled under
+ * another — and so `/evals` can say which arithmetic a number came out of.
+ *
+ * **2** (owner's decision, 2026-09-27): a criterion the interview never asked about, and which the
+ * candidate did not cover anyway, leaves the denominator entirely rather than scoring 0. Version 1
+ * charged for it, which cost the first paid run's fourth answer 30 points to the clock
+ * (`docs/progress/2026-09-27-m4-first-paid-evaluation.md` §1).
  */
-export const SCORING_VERSION = 1;
+export const SCORING_VERSION = 2;
 
 /**
  * What a criterion contributes when the engine had to ask about it.

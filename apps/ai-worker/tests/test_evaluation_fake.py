@@ -64,6 +64,24 @@ def test_an_answer_too_short_to_quote_is_scored_zero_with_no_evidence() -> None:
     assert len("yes") < MIN_QUOTE_CHARS
 
 
+def test_a_criterion_the_interview_never_asked_about_is_scored_zero_with_no_evidence() -> None:
+    """Which is what makes the not-assessed exclusion reachable without a paid model.
+
+    The stand-in has not read the answer, so it cannot claim the candidate volunteered a point they
+    were never asked for — and an e2e report for an interview that ran out of time then shows the
+    honest "we did not get to ask" rather than a 3 out of 4 nobody earned.
+    """
+    reading = read(
+        _prompt(criteria=[criterion(0, "Asked"), criterion(1, "Never asked", asked_about=False)])
+    )
+    by_position = {entry.criterion: entry for entry in reading.criteria}
+    assert by_position[0].score > 0
+    assert by_position[0].evidence != []
+    assert by_position[1].score == 0
+    assert by_position[1].evidence == []
+    assert "did not get to ask" in by_position[1].reasoning
+
+
 def test_it_gives_a_different_mark_when_the_candidate_explained_themselves() -> None:
     explained = read(_prompt())
     assert "because" in ANSWER

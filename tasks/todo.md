@@ -2600,30 +2600,46 @@ returned empty; and then the evaluator scored the whole pinned rubric, because i
 probes were asked. The 0.85 adjustment protects a candidate who **needed** a nudge and there is
 nothing for one who was never **offered** one.
 
-- [ ] **Remedy (a), one constant:** do not open a question unless
-      `SECONDS_FOR_A_QUESTION + SECONDS_FOR_A_FOLLOW_UP` (165 s) remains, so a question is only
-      started if a probe could follow. Makes the reserve mean what its own comment says
-- [ ] **Remedy (b), more correct:** exclude from the denominator a criterion whose probe was never
-      asked and whose answer did not cover it — the mirror of the prompting discount, keyed on the
-      same engine fact. Needs a decision about what the report then says: a question scored on two of
-      three criteria has to admit that on the page
-- [ ] Not exclusive; the owner's call. Until one lands, the report cannot explain the 55
+- [x] **Remedy (b), the guarantee — done first, `SCORING_VERSION` 2.** A criterion the interview
+      never asked about **and** which the answer did not reach (0 with no evidence) leaves the
+      denominator; volunteered unasked, or addressed and wrong, still scores. `unaskedCriteria()` +
+      `notAssessedCriteria()`, keyed on the engine fact and the model's own reading, never on the
+      coverage verdict. Never excludes the whole rubric. The report names them by `dimension` in
+      `not_assessed`, and `criteria_total` is now the assessed count
+- [x] **Remedy (a), the improvement — `SECONDS_TO_OPEN_A_QUESTION` (165 s).** End sooner with fewer
+      questions rather than open one the clock cannot probe. The reserve now means what its own
+      comment said; the 127-second case is a named test parameter
+- [x] **The evaluator is told which criteria were asked** (`asked_about`, `evaluate_answer.v2.md`) —
+      so its **prose** stops blaming a candidate for a question nobody put to them. It may not move a
+      score, and does not: the exclusion is arithmetic in `scoring.ts`
+- [x] **Tested on the real question 4**: 55 before, **85** after, `overall_raw` still 55; the session
+      goes 73 → 81. Written up in `docs/progress/2026-09-27-fairness-and-cost-levers.md`
 
 **2. Evaluation is 83% of the bill** — 23.38¢ against 4.79¢, **4.9× the interview**, where the M4 plan
 projected ≈12¢. A 30-minute session (eight answers) is ≈50¢ of evaluation at this rate.
 
-- [ ] **Measure the cacheable prefix before building anything.** All four answers were scored within
-      **17 seconds** of each other, and every call shares a system prompt and evaluator instructions
-      while the rubric and exchange differ. On a guess of ~1,500 shared tokens of ~4,350, four cached
-      reads save ~10% — worth having, not transformative, and **unmeasured**
-- [ ] **The fan-out defeats caching as it stands:** `EVALUATION_CONCURRENCY = 4` starts all four calls
-      together, so all four miss a cache none has written. Caching only pays if the first answer is
-      scored alone and the rest follow, which trades latency against spec §8's 60 s. Measure both
-- [ ] The model is the bigger lever: the same five calls on `claude-sonnet-5` would have been ≈9.4¢
-      (2/10 µUSD per token against 5/25), taking the session to ≈14¢. Phase 5 then phase 7 decide it
-      on agreement, not on taste
-- [ ] One retry of five calls bought nothing (~4.7¢). That is the gates working, and it belongs in any
+- [x] **Measured, not guessed.** The cacheable prefix is the **system prompt and nothing else** —
+      render order is `tools → system → messages` and the user message diverges at its first
+      interpolation. `evaluate_answer.v2.md` is 6,281 chars ≈ **1,700 tokens**, which is ~39% of the
+      4,352-token average call. Saving: **2.84¢ cold (12.2%)**, **3.82¢ warm (16.3%)** of 23.38¢;
+      identical percentages on sonnet-5. Minimum cacheable prefix is 512 tokens on opus-5 and 1,024
+      on sonnet-5 — both cleared
+- [x] **The prefix is global, not per-session**, so under any traffic at all the write amortises and
+      warm is the normal case. A scheduled keep-alive is **not** worth it below ~9 sessions/day
+      (a refresh is a cache read, ~$7.50/month)
+- [x] **The fan-out fix is a `max_tokens: 0` pre-warm**, not scoring the first answer alone: same
+      write, ~1 s instead of the measured ~15 s of latency against spec §8's 60 s
+- [x] **Recorded with the sonnet comparison as M8 pricing inputs** —
+      `docs/progress/2026-09-27-fairness-and-cost-levers.md`. sonnet-5 is 60%, caching 12–16%, they
+      compose to 66%: 28.17¢ → ≈12.6–13.0¢ for a 15-minute session. A 30-minute session is ≈50¢ on
+      opus, ≈16–17¢ on sonnet with caching
+- [ ] **Not built.** Caching is a phase 7 change at the earliest, after the model decision — the
+      percentage is the same either way, so there is nothing to learn by doing it first
+- [x] One retry of five calls bought nothing (~4.7¢). That is the gates working, and it belongs in any
       per-session estimate
+- [ ] **The larger caching opportunity is the interview, not the evaluator**: 14 calls sharing a
+      system prompt *and* a session bundle, sequential by construction so it needs no pre-warm. Worth
+      only 12–16% of 4.79¢, so it is not urgent
 
 **3. Four questions did not fit fifteen minutes** at this candidate's pace: 14m 38s used, **95% of it
 the candidate typing** (13m 51s; the model spent 43 s), and **question 1 alone took 9m 12s — 63% of the
@@ -2661,12 +2677,52 @@ but nothing sends an account that has _already_ completed onboarding back for a 
       a future `CONSENT_VERSIONS` bump re-ask, as ADR-0017 intends. Not applied unasked: it changes
       routing for every signed-in user, and `/onboarding/consent` needs checking for a redirect loop
       and for what its Continue does on an account that is already onboarded
+- [ ] **Reported done on 2026-09-27 and is not** (checked while doing the fairness fix):
+      `nextOnboardingPath` still reads `completed_at`, the working tree is clean, and no branch has
+      touched `navigation.ts` since M2. Still the phase 6 blocker
 - [ ] **It gates phase 6.** The calibration tool samples through `usersGranting("transcript_review")`,
       which is correct and currently returns nobody — so the tool would be built against an empty set
       and look like it worked. Safe by default, useless in practice, and a promise in an accepted ADR
       that the product does not keep
 - [ ] A test that would have caught it: `nextOnboardingPath` for a state with `completed_at` set and
       `consents_completed` false must not be null
+
+### Phase 4.6 — the fairness fix, the reserve, and the caching measurement (2026-09-27)
+
+The owner's decision on finding 1: **implement both**, the guarantee first. Full write-up in
+`docs/progress/2026-09-27-fairness-and-cost-levers.md`.
+
+- [x] `SCORING_VERSION` 2, `not_assessed_criteria` column (migration read by hand; Prisma proposed
+      `DROP INDEX questions_embedding_hnsw` for the **tenth** time and it was deleted; applied with
+      `migrate deploy`)
+- [x] `unaskedCriteria()` — the exact complement of `promptedCriteria()` over the criteria that have
+      probes, per probe and never per criterion
+- [x] `notAssessedCriteria()` — the engine fact **and** the model's 0-with-no-evidence, with the
+      "never the whole rubric" guard for the two seeded questions that probe every criterion
+- [x] `asked_about` on `EvaluationCriterion`, `NOT_ASKED_LABEL`, `evaluate_answer.v2.md` (v1 is
+      released and scored the paid run, so it was not edited; only that one entry of `PROMPT_VERSIONS`
+      moved)
+- [x] `not_assessed` on the candidate report, its own frame on the page, `criteria_total` narrowed to
+      the assessed count; the leak test's dimension count now spans both lists
+- [x] `SECONDS_TO_OPEN_A_QUESTION` in `budgets.py`, used by `_past_current_question`
+- [x] Tests: the real question 4 in `scoring.spec.ts` (55 → 85), `unaskedCriteria` including the
+      two-probe case, report assembly, the end-to-end case through the real queue
+      (`FakeInterviewEngine.followUps`), the 127-second reserve, the worker's criteria block and v2
+      prompt, the stand-in scoring a `NOT ASKED` criterion 0, and the web sentence
+- [x] Lint, typecheck, 584 API + 349 worker + 168 web tests green
+- [ ] **Not run: `pnpm test:e2e`** — the owner's dev servers are up and a build would write
+      `apps/web/.next`. Worth a run before the phase is called done
+- [x] **Every stored report is now unreadable to this release, and that is the designed path.**
+      `not_assessed` is a required field, so `SessionReportResponse.safeParse` fails on the paid run's
+      stored `summary` — which is exactly what `safeParse` plus the sweep exist for: the route answers
+      `report_not_ready`, queues the job, and re-assembly **makes no model call** because every answer
+      already has a row. The candidate sees the processing screen once. Deliberately not given a Zod
+      `.default([])`: the contract is better required, and the recovery is free
+- [ ] **But the 30 points are not given back to it.** An answer with a row is never re-scored, and
+      re-assembly reads `not_assessed_criteria`, which is empty for rows written under
+      `scoring_version = 1` — so the paid run's report re-assembles at 55 and 73. Re-scoring a session
+      means deleting its `answer_evaluations` rows and paying again: an operator's call, and there is
+      one real session it would apply to
 
 ### Phase 5 — the eval harness
 

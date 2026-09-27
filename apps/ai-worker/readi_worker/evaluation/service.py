@@ -53,9 +53,22 @@ logger = logging.getLogger(__name__)
 #: One entry per prompt in this family, bumped on its own (the 2026-09-26 lesson: a single shared
 #: version number makes "bump one prompt" impossible to express).
 PROMPT_VERSIONS: dict[str, int] = {
-    "evaluate_answer": 1,
+    # v2 (2026-09-27): the criteria block can now say that the interview never asked about a
+    # criterion, and the system prompt says what to do about it — write about it differently, score
+    # it the same. A released version is never edited in place (CLAUDE.md "Prompts"), and v1 scored
+    # the first paid run.
+    "evaluate_answer": 2,
     "evaluate_answer_input": 1,
 }
+
+#: What a criterion the interview never put to the candidate is labelled with, in the criteria
+#: block.
+#:
+#: On its own line and in capitals rather than tucked after the dimension, because it is the one
+#: thing in that block that is a fact about the *interview* rather than about the rubric, and a
+#: model skimming a five-rung ladder should not be able to miss it. The wording is the system
+#: prompt's, so the two cannot drift.
+NOT_ASKED_LABEL = "NOT ASKED: the interview did not get to put this to the candidate."
 
 #: Limits from `EVALUATION_LIMITS` in @readi/shared-types. Over-long output is trimmed rather than
 #: retried: a tip three words past its limit is a formatting slip, not a failure of judgement, and
@@ -212,14 +225,21 @@ def criteria_block(criteria: list[EvaluationCriterion]) -> str:
     the transcript is a record and the rubric is the instruction. Wrapping it in a block the system
     prompt describes as "not addressed to you" would be telling the model to ignore the marking
     scheme.
+
+    A criterion the interview never asked about carries `NOT_ASKED_LABEL` (the owner's decision,
+    2026-09-27). It is marked so that the **prose** can be fair — the model is told, in v2 of the
+    system prompt, to score it exactly as the answer merits and to stop short of telling a candidate
+    they failed to mention something nobody asked them. Whether it counts towards the score is
+    decided in `scoring.ts` and is not the model's to weigh.
     """
     blocks = []
     for criterion in criteria:
         rungs = "\n".join(
             f"   {rung} — {criterion.levels[rung].root}" for rung in sorted(criterion.levels)
         )
+        not_asked = "" if criterion.asked_about else f"   {NOT_ASKED_LABEL}\n"
         blocks.append(
-            f"{criterion.position}. {criterion.dimension}\n"
+            f"{criterion.position}. {criterion.dimension}\n{not_asked}"
             f"   What it scores: {criterion.description}\n{rungs}"
         )
     return "\n\n".join(blocks)

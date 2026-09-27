@@ -1725,6 +1725,7 @@ export interface components {
             strong_answer_covers: string[];
             improvement_tip: string | null;
             red_flags: string[];
+            not_assessed: string[];
             prompting: components["schemas"]["CandidatePrompting_Output"];
         };
         CandidateCriterionFeedback_Output: {

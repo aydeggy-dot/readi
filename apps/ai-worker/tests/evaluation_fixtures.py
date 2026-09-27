@@ -32,10 +32,11 @@ ANSWER = (
 FOLLOW_UP_ANSWER = "Wetin I go do na to load the relation upfront with a join, one query"
 
 
-def criterion(position: int, dimension: str) -> dict[str, Any]:
+def criterion(position: int, dimension: str, *, asked_about: bool = True) -> dict[str, Any]:
     return {
         "position": position,
         "dimension": dimension,
+        "asked_about": asked_about,
         "description": "Inspects the queries and their plans rather than reasoning from the code.",
         "levels": {
             "0": "Guesses at a cause and starts changing code.",

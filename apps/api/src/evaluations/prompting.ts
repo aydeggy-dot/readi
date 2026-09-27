@@ -52,6 +52,37 @@ export function promptedCriteria(
 }
 
 /**
+ * The other half of the same engine fact: criteria the interview **never asked about at all**.
+ *
+ * A criterion carries probes precisely because the opening prompt does not ask for it (owner's
+ * decision, 2026-09-23) — so a criterion with probes, none of which was asked, is one the candidate
+ * was never invited to talk about. Three ordinary things cause it and none of them is the candidate's
+ * doing: the deadline arrived before a follow-up would fit, they ended the interview early, or the
+ * follow-up cap was spent on another criterion.
+ *
+ * This is the exact complement of `promptedCriteria` over the criteria that have probes, which is what
+ * makes it safe to reason about: **prompted ∪ unasked = every criterion with a probe**, and a criterion
+ * with no probe is in neither, because the prompt itself asked it. Per probe, never per criterion, for
+ * the reason in the header — a criterion with two probes of which one was asked is *prompted*, not
+ * unasked, and a `Map` keyed by criterion would have got that backwards half the time.
+ *
+ * Being unasked is not by itself a reason to leave a criterion out of the score: a candidate who
+ * covered it anyway is scored on it as normal. `notAssessedCriteria()` in `scoring.ts` is where the
+ * two facts meet.
+ */
+export function unaskedCriteria(
+  plannedFollowUps: readonly PlannedFollowUp[],
+  turns: readonly TurnForPrompting[],
+): number[] {
+  const prompted = new Set(promptedCriteria(plannedFollowUps, turns));
+  const unasked = new Set<number>();
+  for (const probe of plannedFollowUps) {
+    if (!prompted.has(probe.criterion)) unasked.add(probe.criterion);
+  }
+  return [...unasked].sort((a, b) => a - b);
+}
+
+/**
  * How many follow-ups were asked in this exchange — one per interviewer turn that named a probe.
  *
  * Counted from the transcript rather than read from `interview_session_questions.follow_ups_asked`

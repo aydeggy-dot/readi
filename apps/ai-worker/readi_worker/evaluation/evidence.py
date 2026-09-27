@@ -21,7 +21,7 @@ rounding error, it is the failure mode.
 The defence has two halves and the first one matters more:
 
 1. **The prompt tells the model to quote verbatim** — never to correct spelling, grammar or
-   punctuation, and never to render Pidgin into standard English (`evaluate_answer.v1.md`).
+   punctuation, and never to render Pidgin into standard English (`evaluate_answer.v2.md`).
    A quote that has been tidied is unusable, and the prompt says so.
 2. **The matcher absorbs what is left**: case, punctuation, curly quotes, whitespace, and a
    few characters' worth of difference. It asks how much of the quote appears **in order**

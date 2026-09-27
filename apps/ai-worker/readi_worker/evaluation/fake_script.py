@@ -16,6 +16,13 @@ real checks look satisfied when they are not. So it does what the real evaluator
 
 That last case is why this is a stand-in and not a stub: an e2e test that skips a question gets a
 report which honestly says the answer was empty, rather than one that invented a mark for it.
+
+It also reads the **NOT ASKED** label off the criteria block and scores that criterion 0 with no
+evidence, which is the same thing said about a criterion nobody put to the candidate: the stand-in
+has not read the answer, so it has nothing to say a point was covered. It matters because that is
+what makes the score's not-assessed exclusion reachable without a paid model — the e2e report for an
+interview that ran out of time shows the honest "we did not get to ask" rather than a 3 out of 4 the
+stand-in invented.
 """
 
 import re
@@ -27,8 +34,10 @@ from readi_worker.evaluation.evidence import MIN_QUOTE_CHARS
 from readi_worker.llm.base import LLMClient, LLMResult
 
 #: `0. <dimension>` at the start of a line in the criteria block: the numbering the prompt hands
-#: the model, and the one it must answer with.
-_CRITERION = re.compile(r"^(\d+)\. ", re.MULTILINE)
+#: the model, and the one it must answer with. The optional group is the `NOT ASKED` label, which
+#: `criteria_block` writes on the line underneath when the interview never put that criterion to the
+#: candidate — matched here rather than assumed, like the numbering itself.
+_CRITERION = re.compile(r"^(\d+)\. .*\n(   NOT ASKED)?", re.MULTILINE)
 _ANSWER = re.compile(r"<answer>\n(.*?)\n</answer>", re.DOTALL)
 
 #: Long enough to be evidence, short enough to read as a quotation rather than the whole answer.
@@ -75,7 +84,7 @@ class FakeEvaluatorLLMClient:
 
 def read(user: str) -> AnswerReading:
     """A bland reading of whatever the prompt describes."""
-    positions = [int(match) for match in _CRITERION.findall(user)]
+    criteria = [(int(position), bool(label)) for position, label in _CRITERION.findall(user)]
     said = "\n".join(block.strip() for block in _ANSWER.findall(user)).strip()
     quote = _quotable(said)
     # "Because" is the cheapest signal that somebody explained rather than named. It is not a
@@ -87,14 +96,19 @@ def read(user: str) -> AnswerReading:
             CriterionReading(
                 criterion=position,
                 reasoning=(
-                    "Development stand-in (LLM_PROVIDER=fake): no model read this answer."
+                    "Development stand-in: the interview did not get to ask about this."
+                    if not_asked
+                    else "Development stand-in (LLM_PROVIDER=fake): no model read this answer."
                     if quote
                     else "Development stand-in: there was nothing in the answer to score."
                 ),
-                evidence=[quote] if quote else [],
-                score=(3 if explained else 2) if quote else 0,
+                # A criterion nobody asked about gets the same reading as an answer that said
+                # nothing: 0, with nothing to quote. The stand-in did not read the answer, so it
+                # cannot claim the candidate volunteered a point they were never asked for.
+                evidence=[] if not_asked or not quote else [quote],
+                score=0 if not_asked or not quote else (3 if explained else 2),
             )
-            for position in positions
+            for position, not_asked in criteria
         ],
         covered_points=["Answered in their own words"] if quote else [],
         missing_points=[] if quote else ["Nothing to assess"],

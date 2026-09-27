@@ -13,6 +13,7 @@ import { formatDate, t } from "@/i18n";
 import {
   bandKey,
   catalogueLine,
+  notAssessedSentence,
   promptedSentence,
   questionPromptingSentence,
   reportDate,
@@ -50,12 +51,15 @@ import { ScoreMeter } from "./score-meter";
  * descriptors — not because this file is careful but because `CandidateCriterionFeedback` does not have
  * them, and `content-no-answer-key.int.spec.ts` counts the ones that do cross.
  *
- * ## Three honest states, none of them hidden
+ * ## Four honest states, none of them hidden
  *
  * An answer the evaluator could not read says so, in its own words, and still shows what a strong
  * answer covers — which is the useful half of a lost score. A session where **nothing** could be scored
- * shows no number at all rather than a 0. And a role with no published study track says there is
- * nothing to link to yet, which is true of five of the eight role × level pairs.
+ * shows no number at all rather than a 0. A role with no published study track says there is
+ * nothing to link to yet, which is true of five of the eight role × level pairs. And a criterion the
+ * interview never got to ask about is named as **not scored** rather than shown at 0 of 4 (the owner's
+ * decision, 2026-09-27) — the first paid run lost 30 points of an answer to that, and neither the
+ * report nor the transcript could explain where they went.
  *
  * The copy is a draft for the owner, like the landing page's
  * (`docs/progress/2026-09-20-d1-landing-copy.md`).
@@ -386,6 +390,16 @@ function QuestionSection({ question }: { question: CandidateQuestionReport }) {
         )
       )}
 
+      {/*
+        The points nobody put to this candidate, named because they are **not in the number above**
+        (the owner's decision, 2026-09-27). It sits immediately after the criteria so the arithmetic
+        reads in one place: three criteria in the rubric, two of them scored, and here is the third
+        with the reason it is absent. Before this, a criterion the clock never reached was shown at
+        0 of 4 — the first paid run lost 30 points of an answer that way, and nothing on the page or
+        in the transcript could explain it.
+      */}
+      {question.not_assessed.length > 0 && <NotAssessed dimensions={question.not_assessed} />}
+
       {question.covered_points.length > 0 && (
         <Points title={t("interview.report.coveredTitle")} points={question.covered_points} />
       )}
@@ -485,6 +499,34 @@ function Criterion({ criterion }: { criterion: CandidateCriterionFeedback }) {
       </div>
       <Note as="p">{criterion.reasoning}</Note>
     </Margined>
+  );
+}
+
+/**
+ * The points nobody put to this candidate — named, with the reason, and **not in the number above**.
+ *
+ * Framed rather than run in with the rest, for the same reason "what a strong answer covers" is: it is
+ * a statement about the interview rather than about the answer, and a candidate reconciling a score
+ * against their own transcript has to be able to find it. It is not styled as a fault or as an error,
+ * because it is neither — it is us admitting the interview had a clock.
+ */
+function NotAssessed({ dimensions }: { dimensions: readonly string[] }) {
+  const sentence = notAssessedSentence(dimensions.length);
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-frame p-4">
+      <h4 className="font-serif text-lg leading-snug text-heading">
+        {t("interview.report.notAssessedTitle")}
+      </h4>
+      <p className="leading-relaxed">{t(sentence.key, sentence.vars)}</p>
+      <ul className="flex list-disc flex-col gap-2 pl-5 marker:text-pen">
+        {dimensions.map((dimension) => (
+          <li key={dimension} className="leading-relaxed">
+            {dimension}
+          </li>
+        ))}
+      </ul>
+      <Note as="p">{t("interview.report.notAssessedWhy")}</Note>
+    </div>
   );
 }
 

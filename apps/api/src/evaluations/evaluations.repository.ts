@@ -35,6 +35,7 @@ export interface StoredEvaluation {
   overall: number | null;
   overallRaw: number | null;
   promptedCriteria: number[];
+  notAssessedCriteria: number[];
 }
 
 export interface EvaluationToSave {
@@ -44,6 +45,8 @@ export interface EvaluationToSave {
   score: AnswerScore | null;
   /** The engine fact, stored whether or not there is a score to apply it to. */
   promptedCriteria: number[];
+  /** The criteria left out of `overall` — the engine fact **and** the model's reading together. */
+  notAssessedCriteria: number[];
   evidenceFlags: string[];
   provider: string;
   model: string;
@@ -105,6 +108,7 @@ export class EvaluationsRepository {
       overall: row.score?.overall ?? null,
       overallRaw: row.score?.overallRaw ?? null,
       promptedCriteria: row.promptedCriteria,
+      notAssessedCriteria: row.notAssessedCriteria,
       // A `failed` row has no score, but it was still written by this version of the arithmetic, and
       // that is the useful fact about a failure too.
       scoringVersion: row.score?.scoringVersion ?? SCORING_VERSION,
@@ -148,6 +152,7 @@ export class EvaluationsRepository {
       overall: row.overall,
       overallRaw: row.overallRaw,
       promptedCriteria: row.promptedCriteria,
+      notAssessedCriteria: row.notAssessedCriteria,
     }));
   }
 
