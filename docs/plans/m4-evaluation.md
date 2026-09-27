@@ -98,6 +98,27 @@ What may cross into a scored report, and what may not:
 11. **Phases 0 and 6 stay in M4.** Phase 0 fixes things that need fixing regardless, and expert
     reviewers are being lined up, so the calibration tool will have users.
 
+### Decision 12, taken 2026-09-27 after the first paid run (phase 4.6)
+
+**A criterion the interview never asked about is not assessed, and both remedies ship** — the
+guarantee first, the improvement second (`docs/progress/2026-09-27-fairness-and-cost-levers.md`).
+
+- **The guarantee** (`SCORING_VERSION` 2): a criterion whose probes were all left unasked — for any
+  reason, the clock or an early end or the cap — **and** which the evaluator found nothing for (a 0
+  with no evidence) leaves `overall`'s denominator. Volunteered unasked still scores, at full weight;
+  addressed and wrong still scores, and is the 0 *with* a quote. `overall_raw` carries neither
+  adjustment, so `/evals` keeps comparing a human to the model. It never excludes a whole rubric.
+  The report names them by `dimension` in `not_assessed` — a score over two of three criteria that
+  does not say which one is missing cannot be checked against the transcript.
+- **The improvement**: `SECONDS_TO_OPEN_A_QUESTION` is the answer plus one probe, so the engine ends
+  sooner with fewer questions rather than opening one it cannot follow up.
+- **`asked_about` is the one engine fact the evaluator gets**, and it may not move a score. It exists
+  so the model's *prose* stops blaming a candidate for a question nobody put to them — "volunteered or
+  prompted" is a grading fact and stays hidden; "asked at all" is a fact about us.
+
+This narrows decision 2 rather than replacing it: the 0.85 was half a rule, protecting a candidate who
+needed a nudge and leaving nothing for one who was never offered one.
+
 ## Costs, measured and projected
 
 M3's second paid run: **7.8¢** for a 15-minute interview (20 calls, `claude-sonnet-5`). `INTERVIEW_PLANS`

@@ -295,7 +295,9 @@ describe("notAssessedCriteria", () => {
      * they were wrong, and the rubric descriptors were rewritten in September 2026 for exactly that
      * answer. Excluding it would delete the most useful mark in the report.
      */
-    const wrong: ReadCriterion[] = [{ criterion: 1, score: 0, evidence: ["I would just retry it"] }];
+    const wrong: ReadCriterion[] = [
+      { criterion: 1, score: 0, evidence: ["I would just retry it"] },
+    ];
     expect(notAssessedCriteria(criteria, wrong, [1])).toEqual([]);
   });
 

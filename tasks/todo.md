@@ -2638,7 +2638,7 @@ projected ≈12¢. A 30-minute session (eight answers) is ≈50¢ of evaluation 
 - [x] One retry of five calls bought nothing (~4.7¢). That is the gates working, and it belongs in any
       per-session estimate
 - [ ] **The larger caching opportunity is the interview, not the evaluator**: 14 calls sharing a
-      system prompt *and* a session bundle, sequential by construction so it needs no pre-warm. Worth
+      system prompt _and_ a session bundle, sequential by construction so it needs no pre-warm. Worth
       only 12–16% of 4.79¢, so it is not urgent
 
 **3. Four questions did not fit fifteen minutes** at this candidate's pace: 14m 38s used, **95% of it

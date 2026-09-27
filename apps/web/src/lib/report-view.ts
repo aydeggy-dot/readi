@@ -130,7 +130,10 @@ export function questionPromptingSentence(prompting: CandidatePrompting): Senten
  */
 export function notAssessedSentence(count: number): Sentence {
   const vars = { count };
-  return { key: count === 1 ? "interview.report.notAssessedOne" : "interview.report.notAssessed", vars };
+  return {
+    key: count === 1 ? "interview.report.notAssessedOne" : "interview.report.notAssessed",
+    vars,
+  };
 }
 
 /**

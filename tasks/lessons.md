@@ -857,20 +857,20 @@ then scored the whole pinned rubric, correctly, because nothing had ever told it
 asked. Every one of those three is right on its own terms and each has passing tests.
 
 **The rule:** when a value is computed by one component and consumed by another, ask what the consumer
-would do if the producer had done *less* than usual. Here the consumer's input was "the rubric" when
+would do if the producer had done _less_ than usual. Here the consumer's input was "the rubric" when
 it should have been "the rubric, and which of it we actually asked about" — a missing fact rather than
 a wrong one, which is why no assertion could fail. Unit tests cover components; the gap between two
 correct components is only visible in an end-to-end run against real content, which is what the paid
 run was for and why it is worth its cost.
 
 **And the symmetry is a design smell worth naming.** The 0.85 prompting discount existed for a
-candidate who *needed* a nudge; there was nothing at all for one who was never *offered* one. A rule
+candidate who _needed_ a nudge; there was nothing at all for one who was never _offered_ one. A rule
 that penalises one side of a situation without saying what happens on the other side is half a rule.
 
 ## A required field on a stored artefact invalidates every stored artefact (2026-09-27, M4 phase 4.6)
 
 `not_assessed` became a required field on `SessionReportResponse`, so every `session_reports.summary`
-written before it stopped parsing. That was *fine* — the route reads with `safeParse`, answers
+written before it stopped parsing. That was _fine_ — the route reads with `safeParse`, answers
 `report_not_ready`, re-queues, and re-assembly makes no model call because every answer already has a
 row — but it was fine by luck of a decision taken for another reason, not by design of this change.
 
