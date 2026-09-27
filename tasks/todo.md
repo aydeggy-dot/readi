@@ -2466,13 +2466,25 @@ the stale sweep only looks at `in_progress` sessions. `GET /api/interviews/:id/r
 when a completed session with answers has no report — the cheapest possible recovery, and it belongs
 with the route rather than here.
 
-### Phase 4 — the report the candidate reads
+### Phase 4 — the report the candidate reads · **done 2026-09-27**
 
-- [ ] Flip `feedback_ready`; replace `interview.complete.scoringTitle` / `.scoring`
-- [ ] `GET /api/interviews/:id/report`, and **re-queue on a miss**: a completed session with answers and
-      no report is a lost enqueue, and nothing else will notice (the stale sweep reads `in_progress`
-      only). The cheapest recovery, and it belongs with the route.
-- [ ] **A periodic sweep for ended sessions with answers and no evaluation** (owner, 2026-09-27) —
+- [x] Flip `feedback_ready`; replace `interview.complete.scoringTitle` / `.scoring`
+- [x] `GET /api/interviews/:id/report`, and **re-queue on a miss**. Three codes rather than one,
+      because the honest screen for each is different: `interview_not_ended` (409),
+      `report_not_ready` (409, and the read queued one) and `report_not_found` (404 — nobody answered,
+      so there will never be one)
+- [x] **The report route reads the stored `summary` with `safeParse`, not `parse`.** It is the artefact
+      a candidate was given, written by whichever release assembled it; a shape that has moved since
+      must not 500 their report page. An unreadable one is treated exactly as a missing one — re-queued
+      — and re-assembly is free, because every answer already has a row and is never re-scored
+- [x] **A completed job blocks the re-queue, and that made the recovery a no-op.** The job id is the
+      session id (so two doors closing at once enqueue one job), BullMQ keeps completed jobs
+      (`removeOnComplete: { count: 1000 }`) and `Queue.add` with an existing id silently returns the
+      existing job — so re-queueing a session it had already scored did **nothing**, the route answered
+      "still being scored" for ever and the sweep queued into a void. `enqueue` now removes a
+      **completed or failed** job under that id first and leaves a waiting, delayed or active one
+      alone, which is where the dedupe was always meant to be. Found by the route test failing
+- [x] **A periodic sweep for ended sessions with answers and no evaluation** (owner, 2026-09-27) —
       queueing on a report-route miss is not enough on its own, because **it only fires if somebody
       opens the report**. A candidate who never opens theirs would go unscored for good, and that is not
       only a missing page: `answer_evaluations` is what `weakTopics` reads, so an unscored session
@@ -2486,10 +2498,175 @@ with the route rather than here.
       for the same refusal every ten minutes for ever. Bound it (oldest first, a batch at a time) so a
       backlog cannot become a stampede of paid calls, and give it a test that plants an ended, answered,
       unevaluated session and watches it get queued.
-- [ ] `content-no-answer-key.int.spec.ts`: `idealPointMarkers` asserted as a **count** on the report
-      route and their absence everywhere else — the assertion phase 1 had nowhere to put
-- [ ] `(session)/interview/[id]/report/page.tsx`; 360px; Slow 4G weight; the card carries no transcript
-- [ ] Honest states: a failed answer, and a session with no published track behind it
+      **The query turned out to be one predicate, and the trap answered itself**: "ended, answered, no
+      `session_reports` row", oldest first, 20 at a time, 15 minutes' grace. It cannot pay twice for a
+      refusal, and the reason is structural rather than a special case — `assemble()` stores a `failed`
+      report even when nothing could be scored, so a refused session leaves the query for good; and an
+      answer with a row is never re-scored, so a session that stored answers but not its report
+      re-assembles for **no model call at all**. The only thing it can spend money on is a session that
+      was never evaluated, which is exactly the lost enqueue
+- [x] **The sweep returns ids, not a count.** Its first test asserted "nothing was swept" and failed
+      against sessions other tests in the same file had left behind — the sweep reads the whole
+      database and every spec in the suite shares one. An assertion that names its own session is the
+      only kind that can be trusted here
+- [x] `content-no-answer-key.int.spec.ts`: a **scored** session, run through the engine and the real
+      queue, and the narrowed rule asserted as three separate claims — the unconditional key absent,
+      the ideal points appearing exactly as many times as `strong_answer_covers` shows them, and a
+      dimension appearing only as a criterion's `dimension`. Plus `allowKeys` on the detector for the
+      three field names a report legitimately has (`criteria`, `criteria_total`,
+      `criteria_volunteered`), with a control proving the allowance is doing something _and_ that a
+      grafted rubric still fails with it in place
+- [x] `content-fixtures.ts` gained `idealPointMarkers` and `dimensionMarkers` as **subsets** of
+      `answerKeyMarkers` rather than as replacements: `interviews-advance.int.spec.ts` asserts the
+      bundle carries none of the key, and that claim has to keep covering ideal points and dimensions
+- [x] `(session)/interview/[id]/report/page.tsx`; 360px; **no client JavaScript on the route** — the
+      report is text, bars and links, and the waiting belongs to the completion screen
+- [x] Honest states: a failed answer (its own frame, and it still shows what a strong answer covers), a
+      session where **nothing** could be scored (no number at all, never a 0), a session nobody answered
+      (no polling — the transcript already says there is nothing to score), scoring that takes longer
+      than three minutes (spec §8 wants 60 s; a spinner that outlives its job is the failure), and no
+      published track (five of eight role × level pairs)
+- [x] **The lessons are a reading list, not links.** There is no candidate-facing lesson page in the app
+      yet, and a title that looks like a link and answers 404 is worse than one that admits what it is.
+      Naming the lesson written for the topic somebody went worst on is most of the value; the day the
+      page exists it becomes a list of links with no other change
+- [x] **Contract: `strengths` and `fixes` carry the question they came from** (`ReportHighlight`).
+      Chosen in code from the best and worst answers, so each is a claim about one specific answer, and
+      without saying which, "say what you measured" is advice a candidate cannot check. They carry a
+      **position, not a quote**: the quote belongs to a criterion, where the evaluator paired it with
+      its own reasoning, and pairing a session-level tip with a criterion-level quote would assert a
+      link nothing made. The summary attributes; the breakdown quotes
+- [x] **Contract: the report carries the pinned catalogue and `ended_at`.** A report is read months
+      later and CLAUDE.md's rule is that renaming a role must not rewrite one somebody has already
+      read — so the names travel with the artefact rather than being joined at read time. `ended_at`
+      because a report the sweep recovers days later must not date itself by its own assembly
+- [x] The visual capture extended (`39-interview-report`), and `runInterview` now waits for the report
+      through the candidate's own path — so screen 38 is photographed settled rather than mid-spinner
+
+### Phase 4.5 — the first paid evaluation run (set up 2026-09-27, owner runs it)
+
+One 15-minute interview on `claude-sonnet-5` with evaluation on `claude-opus-5`, before phases 5 and
+6: the evaluator has never met a real model, and the report is only as good as what is in it.
+
+- [x] `pnpm db:seed -- --check` — **clean**. 104 questions, 102 rubrics, 4 roles, all unchanged; no
+      published row the files have stopped naming (the `api-error-shape` retirement held)
+- [x] **The dev API is running pre-phase-4 code** — `/api/interviews/:id/report` answers 404 where
+      `/status` answers 401, so the route is not there. It must be restarted before anything
+- [x] **Ten ended sessions in the dev database have no evaluation and no report, and eight of them
+      have answers.** The new sweep will queue all eight on the first tick after a restart — roughly
+      30 evaluator calls, which is about **$1 on opus** and would land in the middle of the run being
+      measured. So the order is: restart the API **while the worker is still `fake`**, let the sweep
+      drain the backlog for nothing, and only then arm. It is also the first time the sweep runs
+      against real rows, which is worth watching
+- [x] **A startup line naming the armed provider** (`readi_worker/main.py`). `fake` is the resting
+      state and a paid run is armed on the command line for its own length, so the one thing an
+      operator needs before spending money is a way to tell the two apart from outside the process —
+      and `.env.example` already recorded that the first two paid runs were each diagnosed twice
+      partly because there was not one. Names only; the key is a `SecretStr`
+- [ ] **The run**: `aydeggy5@gmail.com`, Backend · Mid-level, 15 minutes, the preset mixed types.
+      That account has **no prior sessions**, so no question history to exclude and no weak-topic
+      weighting, and it owns none of the backlog, so the fake scores cannot reach it
+- [x] Costs reported **separately** (2026-09-27, session `742150d9`): interview **4.79¢** (14 calls,
+      `claude-sonnet-5`), evaluation **23.38¢** (5 calls, `claude-opus-5`), **28.17¢** total. The
+      evaluation is 83% of it and ~4.9× the interview — the plan projected ≈12¢ for four answers on
+      opus and it came in at nearly double, on 4,350 input and 1,000 output tokens per call plus one
+      retry
+- [x] **The first paid evaluation worked.** Four answers scored, all `high` confidence, one retry on a
+      `rejected_criteria` gate, no refusals, no provider errors, no evidence flags. The prompting
+      discount is visible and small where it should be: 83→75, 85→82, 84→80, and 55→55 where nothing
+      was prompted
+- [ ] **A 15-minute session did not reach the candidate's own questions, and that is a real finding**
+      rather than a bug. The four questions took 14m 35s of a 15m budget, the engine needs
+      `SECONDS_FOR_CANDIDATE_QUESTIONS` (90) to open the state, and 25 seconds remained. **95% of the
+      session was the candidate typing** (13m 51s of 14m 38s; the model spent 43s), and **question 1
+      alone took 9m 12s** — a 236-second first answer and a 224-second answer to its second probe.
+      The owner's call: is the 15-minute plan four questions or three, and should `INTERVIEW_PLANS`
+      reserve the invitation rather than letting the question budget consume it? `interviews:pace` is
+      the tool that should answer it with more than one session
+- [ ] **`transcript_review` is never asked of an existing account** — see the blocker below
+- [x] The worker disarmed back to `fake` after the run, confirmed by its own startup line
+- [x] **Written up in full: `docs/progress/2026-09-27-m4-first-paid-evaluation.md`** — the session id,
+      both cost tables, the per-answer table, the timing table, and the four findings below
+
+### What the paid run found, for the next session to act on
+
+**1. A candidate can lose 35 points to the clock, and nothing says so.** Question 4 scored 55 because
+criterion 2 (35% — "Deals with the rows that are already wrong") scored 0 with no quotes. Its probe
+existed and was **never asked**: `criteria_covered` is `not_judged` for all three criteria and there
+is **no coverage call in `ai_call_log` for that question at all**. Three correct rules composed into
+it — the engine opened the question with 127 s left (`SECONDS_FOR_A_QUESTION` is 120), the answer took
+99 s, so at submission 25 s remained against `SECONDS_FOR_A_FOLLOW_UP` (45) and `probes_to_judge`
+returned empty; and then the evaluator scored the whole pinned rubric, because it has no idea which
+probes were asked. The 0.85 adjustment protects a candidate who **needed** a nudge and there is
+nothing for one who was never **offered** one.
+
+- [ ] **Remedy (a), one constant:** do not open a question unless
+      `SECONDS_FOR_A_QUESTION + SECONDS_FOR_A_FOLLOW_UP` (165 s) remains, so a question is only
+      started if a probe could follow. Makes the reserve mean what its own comment says
+- [ ] **Remedy (b), more correct:** exclude from the denominator a criterion whose probe was never
+      asked and whose answer did not cover it — the mirror of the prompting discount, keyed on the
+      same engine fact. Needs a decision about what the report then says: a question scored on two of
+      three criteria has to admit that on the page
+- [ ] Not exclusive; the owner's call. Until one lands, the report cannot explain the 55
+
+**2. Evaluation is 83% of the bill** — 23.38¢ against 4.79¢, **4.9× the interview**, where the M4 plan
+projected ≈12¢. A 30-minute session (eight answers) is ≈50¢ of evaluation at this rate.
+
+- [ ] **Measure the cacheable prefix before building anything.** All four answers were scored within
+      **17 seconds** of each other, and every call shares a system prompt and evaluator instructions
+      while the rubric and exchange differ. On a guess of ~1,500 shared tokens of ~4,350, four cached
+      reads save ~10% — worth having, not transformative, and **unmeasured**
+- [ ] **The fan-out defeats caching as it stands:** `EVALUATION_CONCURRENCY = 4` starts all four calls
+      together, so all four miss a cache none has written. Caching only pays if the first answer is
+      scored alone and the rest follow, which trades latency against spec §8's 60 s. Measure both
+- [ ] The model is the bigger lever: the same five calls on `claude-sonnet-5` would have been ≈9.4¢
+      (2/10 µUSD per token against 5/25), taking the session to ≈14¢. Phase 5 then phase 7 decide it
+      on agreement, not on taste
+- [ ] One retry of five calls bought nothing (~4.7¢). That is the gates working, and it belongs in any
+      per-session estimate
+
+**3. Four questions did not fit fifteen minutes** at this candidate's pace: 14m 38s used, **95% of it
+the candidate typing** (13m 51s; the model spent 43 s), and **question 1 alone took 9m 12s — 63% of the
+interview**. The candidate's own questions were then skipped with 25 s left against a 90 s reserve.
+
+- [ ] One session is not a pace. `interviews:pace` (phase 7) reports median and p90 before anything
+      changes. The options on the table: `INTERVIEW_PLANS[15].questions` from 4 to 3; reserve the
+      invitation up front rather than letting the question budget consume it; or leave it and accept
+      that a thorough candidate trades their own questions for a fourth interview question
+
+**4. The consent-routing bug** — see the blocker below, unchanged by the run except that the run is
+what exposed it.
+
+### Blocker found by the paid run — the consent nobody is asked for (2026-09-27)
+
+`transcript_review` joined `allDecided` in phase 0 so that "every existing account is asked once"
+(ADR-0017). **It is not.** The owner's account has four consent records from 2026-09-19 and no
+`transcript_review` row of either kind, and the interview intro correctly omitted the v3 clause
+because `hasGranted` correctly returned false. Everything downstream of the decision works; the
+decision is never requested.
+
+The cause is one line. `nextOnboardingPath` (`apps/web/src/lib/navigation.ts`) routes on
+`completed_at`, not on the value `allDecided` computes:
+
+```ts
+if (!state.profile_completed) return "/onboarding/profile";
+if (!state.completed_at) return "/onboarding/consent"; // ← already set on 2026-09-19
+return null;
+```
+
+`OnboardingService.state` does return `consents_completed: false`, and `complete()` refuses on it —
+but nothing sends an account that has _already_ completed onboarding back for a new consent type.
+
+- [ ] **The fix is `if (!state.consents_completed) return "/onboarding/consent";`**, which also makes
+      a future `CONSENT_VERSIONS` bump re-ask, as ADR-0017 intends. Not applied unasked: it changes
+      routing for every signed-in user, and `/onboarding/consent` needs checking for a redirect loop
+      and for what its Continue does on an account that is already onboarded
+- [ ] **It gates phase 6.** The calibration tool samples through `usersGranting("transcript_review")`,
+      which is correct and currently returns nobody — so the tool would be built against an empty set
+      and look like it worked. Safe by default, useless in practice, and a promise in an accepted ADR
+      that the product does not keep
+- [ ] A test that would have caught it: `nextOnboardingPath` for a state with `completed_at` set and
+      `consents_completed` false must not be null
 
 ### Phase 5 — the eval harness
 
@@ -2510,6 +2687,14 @@ with the route rather than here.
 
 ### Phase 7 — measurement, one paid run, the handover
 
+- [ ] **A worker 422 is not a transport failure**: `AiWorkerClient.post` turns every non-2xx into
+      `AiWorkerUnavailableError`, so a request the worker will _never_ accept is retried three times
+      with backoff and stored as `provider_error`. Found on 2026-09-27, when `EvaluationTurn.text`
+      was too short for a real answer: the diagnosis took measuring turn lengths against report gaps
+      because the only thing in the log was `attempt failed: AiWorkerUnavailableError`. Two changes,
+      both small: **log the status code** (the queue logs `error.name`, not `error.message`, so
+      "worker answered HTTP 422" never reaches anyone), and **do not retry a 4xx** — a contract
+      violation is a bug to fix, not a condition to wait out. Keep 408, 429 and every 5xx retryable
 - [ ] `interviews:pace` — median and p90 answer seconds and words, minutes against `planned_minutes`, how many questions fit 45; sample size on its face
 - [ ] **sonnet-5 vs opus-5 agreement, with a recommendation** (owner's decision 7; opus roughly triples session cost)
 - [ ] One paid interview → evaluation → report, with costs; a stratified ~60-answer harness run

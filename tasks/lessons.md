@@ -802,3 +802,48 @@ is logged rather than raised — a lost report, not a broken interview.
 **The rule:** when ADR-0016's "nothing may throw in here" meets new work, the question is not "will this
 throw?" but "what happens to the response if it does?" — and the answer is usually to do the work
 outside the stream.
+
+## A redaction pattern is not a guard (2026-09-27, M4 phase 4.5)
+
+An `ANTHROPIC_API_KEY` was printed into a session transcript by a `grep` over an env file whose
+`sed` redaction did not match the line it was meant to redact — the filter looked for `KEY` in the
+_value_, and the value was a key that does not contain the word. CLAUDE.md's "never print secrets"
+was being followed as far as its author could tell; what failed was a regex.
+
+**The rule:** when a rule's enforcement depends on getting a pattern right, the rule is a wish. Guard
+the step that can be checked exactly — here, opening the file — not the step that cannot, which is
+redacting what came out of it. `.claude/hooks/secret-guard.mjs` is that guard, checked in, with the
+failing command as its first test case, and `scripts/env-has.sh` is the one narrow hole (it answers
+"is this variable set?" with `set` / `empty` / `missing` and never a value).
+
+**Two things the exercise taught that the proposal had wrong.** Scanning _output_ and redacting it is
+not buildable: `PostToolUse` runs after the output is already in the transcript and nothing in the
+hook contract lets it unsee. And a guard blocks its own author within minutes — this one refused
+`grep -n "\.claude\|\.env" .gitignore`, where the pattern mentions the file and the command opens
+nothing. A guard that blocks ordinary work gets switched off, and then it guards nothing, so the
+allow cases matter as much as the deny cases and both live in the test file.
+
+## An idempotent job id also blocks the retry you wanted (2026-09-27, M4 phase 4)
+
+The evaluation queue uses the session id as the BullMQ job id, so two doors closing at once enqueue
+one job. BullMQ keeps completed jobs (`removeOnComplete: { count: 1000 }`) and `Queue.add` with an
+existing id **silently returns the existing job** — so phase 4's whole lost-enqueue recovery was a
+no-op: the report route answered "still being scored" for ever and the sweep queued into a void.
+
+**The rule:** a custom job id is a claim about jobs _in flight_. Before re-adding one, drop a job
+under that id that has already completed or failed, and leave a waiting, delayed or active one alone.
+Found only because the route's own test asserted the recovery actually recovered something.
+
+## Arithmetic that looks like a bound is not a bound (2026-09-27, M4 phase 4.5)
+
+`EvaluationTurn.text` was capped at `questionPromptMaxLength + evidenceMaxLength` = 2,400 characters —
+a plausible-looking sum of two numbers that govern neither side of a real turn. A candidate may type
+`INTERVIEW_LIMITS.answerMaxLength` (8,000) and the interviewer is truncated at `speechMaxLength`
+(1,200). Every session in the dev database with an answer over ~2,400 characters had a gap in its
+report, including two of the three M3 paid-run transcripts, and **a thorough answer was the one kind
+that could not be scored**.
+
+**The rule:** a length limit on a contract field must be the limit of the thing it carries, named as
+that constant — not a sum of two others that happens to be in the right region. And the failure was
+invisible because a worker 422 is reported as `AiWorkerUnavailableError` and logged as `error.name`:
+the log said "unavailable" about a worker that was up and answering. See phase 7.

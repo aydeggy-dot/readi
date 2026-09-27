@@ -89,7 +89,7 @@ pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
-E2E_SCREENSHOTS=before pnpm test:e2e visual   # 152 before/after screenshots for a visual change (apps/web/e2e/visual)
+E2E_SCREENSHOTS=before pnpm test:e2e visual   # 156 before/after screenshots for a visual change (apps/web/e2e/visual)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
@@ -284,6 +284,18 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   coverage model's private verdict, which M3 wrote may reach the evaluator "as a prior and never as a
   score". **A criterion may carry two probes**, so the menu is read **per probe** and collapsed to a set
   of criteria at the end: anything keyed by criterion drops the second probe, as `review-doc.ts` did.
+- **A report is served once and recovered twice.** `GET /api/interviews/:id/report` reads
+  `session_reports.summary` with `safeParse` — it is the artefact a candidate was given, written by
+  whichever release assembled it, and a shape that has moved since must not 500 their page. Missing or
+  unreadable is the same answer: queue the scoring and refuse with `report_not_ready`, which costs
+  nothing when the answers are already stored because re-assembly makes no model call.
+  **That is only half a recovery**, because it fires only if somebody opens their report, so
+  `EvaluationSweepQueue` sweeps the database every ten minutes for ended, answered sessions with no
+  report row (oldest first, bounded, fifteen minutes' grace). It cannot pay twice for a refusal:
+  `assemble()` stores a `failed` report even when nothing could be scored, so a refused session leaves
+  the query for good. The session id is the job id, and `enqueue` **removes a completed or failed job
+  under that id first** — BullMQ silently returns the existing job otherwise, which made the whole
+  recovery a no-op until a test caught it.
 - **Scoring is triggered by a session reaching `ended`, and there are three doors.** The engine wrapping
   up, the candidate ending early, and a session being abandoned — by the stale sweep or by the candidate
   starting a new one. All of them go through `EvaluationsService.onSessionsEnded`, and an **abandoned**
@@ -337,6 +349,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   any payload: not in a content response, not in a question the session has not reached, not in a
   state frame. The fixture marks them apart (`plannedFollowUpMarkers`) and the leak test asserts
   that count, which is a stronger claim than the old blanket one over every surface that never speaks.
+  **A scored session's own report is the second such moment, and the only other one** (M4 phase 4,
+  owner's decisions 4–5 of 2026-09-26). `GET /api/interviews/:id/report` may carry that session's
+  pinned `ideal_points`, as "what a strong answer covers", and its criteria's `dimension` names, as the
+  vocabulary the feedback is written in — and nothing else: never a criterion's `description`, never a
+  `weight`, never one of the five level descriptors. The fixture marks those two apart as
+  `idealPointMarkers` and `dimensionMarkers` (**subsets** of `answerKeyMarkers`, because the worker's
+  bundle must still carry neither), and the leak test asserts each as a count on the report route and
+  their absence everywhere else. `answerKeyLeaks`'s `allowKeys` exists for that one route's three
+  legitimate field names and for nothing else.
 - **A question's `planned_follow_ups` are where the criteria its prompt does not ask for get asked**
   (owner's decision, 2026-09-23; `docs/progress/2026-09-23-planned-follow-ups.md`). The opening prompt
   asks one thing, the way an interviewer does; each remaining criterion carries `{ criterion, probe }`,
