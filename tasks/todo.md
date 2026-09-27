@@ -2333,7 +2333,8 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
       the interviewer, claiming to be staff, closing the data block, asking for the answer key) ×
       three layers. **And the boundary is a test, not a silence**: a model quoting the injection
       itself produces a real quote, so the score stands — that is the prompt's problem, `/evals`' to
-      measure and calibration's to keep honest
+      measure and calibration's to keep honest. The owner has since decided what to do about it: see
+      "Decided for phase 3" below
 - [x] The evidence rule's Python twin, held to the **same** `evidence-cases.json` as the TypeScript
       one (ADR-0003 decision 5). The file now has both readers it was written for
 - [x] A fake evaluator that reads the real prompt and quotes the real transcript, so CI and e2e never
@@ -2345,6 +2346,36 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
 - [x] Found on the way: CLAUDE.md asked for evaluation "with low temperature", which current Claude
       models **reject** — they take no sampling parameters. Corrected in CLAUDE.md, and what actually
       holds a score still is written down where the constant would have been
+
+### Decided for phase 3 (owner, 2026-09-27) — flag an answer whose evidence reads like an instruction
+
+Phase 2's injection gate stops a model **inventing** evidence, and a test records the line it cannot
+hold: if the model quotes the injection _itself_, the quote is genuinely something the candidate typed,
+it verifies, and an inflated score stands. The owner's answer is not to try to score around it but to
+**make it visible**.
+
+- **Detect** instruction-shaped text in the evidence quotes that were actually stored — `award`,
+  `full marks`, `SYSTEM:`, `ignore the rubric`, `as the interviewer`, and the like. The phrase list
+  lives in one place with the payloads that motivated it, so adding a phrase and adding a test case
+  are the same edit.
+- **Flag the evaluation.** A column on `answer_evaluations` (so it needs a migration of its own —
+  phase 1's is already applied). **It is not shown to the candidate and it does not change the
+  score**: a flag is a reason for a person to look, not a penalty applied by a regex, and a candidate
+  who wrote "ignore the rubric" inside an otherwise real answer has not earned a worse mark for it.
+- **Surface flagged sessions to admins.** A list is enough — `/admin` already hosts staff screens, and
+  phase 6's calibration area is the natural home, so the list may land there rather than in phase 3 as
+  long as the flag is being written from phase 3 onward. Data with no reader rots; say which phase
+  draws the list.
+- **Test it with the seven payloads that already exist** (`test_evaluation_injection.py`): each one,
+  quoted back as evidence by an obedient model, must set the flag — and the ordinary fixtures must
+  not, or the list fills with noise and nobody reads it.
+
+Open questions for whoever implements it: whether the flag is a boolean or the matched phrases (the
+phrases are more useful to an admin and are our own words, not the candidate's, so they are safe to
+store); whether the worker returns it on `EvaluateAnswerResponse` (it already holds the verified
+quotes, so it is the cheapest place — at the cost of a contract field) or the API derives it from the
+stored `criteria`; and whether a flagged session should also be excluded from the calibration sample
+until a person has looked at it.
 
 ### Phase 3 — the job, the scoring rule, the report in code
 
