@@ -256,7 +256,12 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   (turns, latency samples, AI-call records) that the API persists idempotently. Ephemeral engine state lives in Redis.
 
 ### Evaluation
-- Evaluation runs **per answer**, against that question's rubric, with low temperature and **schema-validated structured output** (Pydantic model ↔ Zod schema in `shared-types`).
+- Evaluation runs **per answer**, against that question's rubric, with **schema-validated structured
+  output** (Pydantic model ↔ Zod schema in `shared-types`). This line used to say "with low
+  temperature", which is not something current Claude models accept — they reject sampling parameters
+  outright (`llm/anthropic_client.py`). What keeps a score from wandering between two runs is the
+  constrained schema, `effort: low`, and a fixed 0–4 ladder instead of a free scale; whether that is
+  stable enough is a measurement the `/evals` harness makes, not an assumption.
 - Every **non-zero** criterion score must include `evidence` quoted from the transcript; reject and retry outputs
   that violate this. A score of 0 may have empty evidence only when the criterion was not addressed at all (spec §6.2).
 - The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call.

@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     #: worst case one exchange puts in front of them, which is what `AI_WORKER_TIMEOUT_MS` is sized
     #: from on the API side.
     interview_llm_timeout_s: float = Field(default=45.0, gt=0, le=600)
+    #: The evaluator (M4): scoring one answer against its rubric. A **stronger** model than the
+    #: interviewer, because this is the judgement the product is selling (product principle 1), and
+    #: it is made once per answer rather than once per turn. It costs roughly three times as much
+    #: per session; whether that buys better agreement with human scorers is what the `/evals`
+    #: harness is for, and the owner asked for that comparison explicitly.
+    llm_model_evaluator: str = Field(default="claude-opus-5", min_length=1)
+    #: Per evaluator call. Nobody is watching a spinner — it runs in a queue once the session has
+    #: ended — but the report is promised within 60 s of that (spec §8) and the API scores several
+    #: answers at once, so a call slower than this has already lost the race and is better retried.
+    evaluation_llm_timeout_s: float = Field(default=60.0, gt=0, le=600)
 
     # The interview engine (M3). Redis caches the session bundle and the live engine state so the
     # API need not resend the pinned questions on every turn; the snapshot the API sends is always

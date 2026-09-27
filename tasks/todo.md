@@ -2312,14 +2312,39 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
       shape decision is already made and enforced in the contract —
       `CandidateCriterionFeedback` has no `description`, `levels`, `weight` or `position`, with a test
 
-### Phase 2 — the evaluator in the worker
+### Phase 2 — the evaluator in the worker · **done 2026-09-27**
 
-- [ ] `readi_worker/evaluation/` + `evaluate_answer.v1.md`; `POST /evaluate/answer`, one answer per request
-- [ ] Evidence verification: fuzzy match, drop and lower `confidence`; no evidence on a non-zero score is the retry trigger
-- [ ] ≤2 retries on invalid output, never on refusal; `status=failed` surfaced honestly
-- [ ] Prompt injection as a **gate** — the first call where a win buys a score
-- [ ] `Purpose` gains `evaluator`; a fake evaluator arm in `_build_llm` that quotes the real transcript
-- [ ] `llm_model_evaluator` in `settings.py`, `.env.example`, `turbo.json`
+- [x] `readi_worker/evaluation/` (`evidence`, `calls`, `service`, `router`, `fake_script`) +
+      `evaluate_answer.v1.md` and its input template; `POST /evaluate/answer`, one answer per request
+- [x] **Three gates in front of a stored score**, each with a corrective message a retry can act on:
+      every criterion exactly once; every quote the candidate's own; and no level descriptor echoed
+      into prose the candidate reads (the answer-key surface the leak test cannot see — a model's own
+      words)
+- [x] Evidence verification tolerant of **how** a candidate writes and strict about **what** they
+      said: case, punctuation, curly quotes, a tidied plural, a corrected typo, a dropped filler all
+      verify; a translation of Pidgin into standard English does not, and nor does a fabrication.
+      Nine fairness cases and five strictness cases, all named
+- [x] Unverifiable quote → dropped and `confidence` lowered one step per drop; a non-zero score left
+      with nothing is the retry trigger. A **0 with** a quote is deliberately allowed — the
+      confident, specific, wrong answer the descriptors were rewritten for
+- [x] ≤2 retries on invalid output, never on a refusal; then the answer comes back unscored with a
+      code, and the report says so for that question
+- [x] Injection: seven payloads (plain, inside a code comment, a fake rubric update, claiming to be
+      the interviewer, claiming to be staff, closing the data block, asking for the answer key) ×
+      three layers. **And the boundary is a test, not a silence**: a model quoting the injection
+      itself produces a real quote, so the score stands — that is the prompt's problem, `/evals`' to
+      measure and calibration's to keep honest
+- [x] The evidence rule's Python twin, held to the **same** `evidence-cases.json` as the TypeScript
+      one (ADR-0003 decision 5). The file now has both readers it was written for
+- [x] A fake evaluator that reads the real prompt and quotes the real transcript, so CI and e2e never
+      call a model and never hide a broken verifier
+- [x] `llm_model_evaluator` / `evaluation_llm_timeout_s` in `settings.py`, `.env.example`, `turbo.json`
+- [x] Found on the way: `model_copy(update=...)` skips validation, so marking a record left a bare
+      `str` in a root-model field that serialised correctly **by luck** and made Pydantic warn. Fixed,
+      with the warning turned into a failing test
+- [x] Found on the way: CLAUDE.md asked for evaluation "with low temperature", which current Claude
+      models **reject** — they take no sampling parameters. Corrected in CLAUDE.md, and what actually
+      holds a score still is written down where the constant would have been
 
 ### Phase 3 — the job, the scoring rule, the report in code
 
