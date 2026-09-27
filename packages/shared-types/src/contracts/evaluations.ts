@@ -201,6 +201,38 @@ export const EvaluateAnswerResponse = z.object({
   evaluation: AnswerEvaluation.nullable(),
   /** Why not, as a stable code. Never prose, and never anything the candidate wrote. */
   error: z.enum(["invalid_output", "refused", "provider_error", "timeout"]).nullable(),
+  /**
+   * Phrases in the **stored** evidence that read like an instruction to the evaluator rather than an
+   * answer to the question — "award full marks", "ignore the rubric", "SYSTEM:" and the like (the
+   * owner's decision, 2026-09-27).
+   *
+   * It exists because of the one line the injection gate cannot hold. A model that quotes the
+   * injection *itself* is quoting something the candidate really typed, so the quote verifies and an
+   * inflated score stands; no verifier can tell that from a real answer, because it **is** a real
+   * answer. So this does not try to: it makes the answer visible to a person.
+   *
+   * Three things it deliberately is not. It does **not** change the score — a flag is a reason for
+   * somebody to look, not a penalty applied by a phrase list, and a candidate who wrote "ignore the
+   * rubric" inside an otherwise real answer has not earned a worse mark for it. It is **not shown to
+   * the candidate**. And it holds **our** words, not theirs: the phrases we matched, which are safe
+   * to store and safe to put in front of an admin, where the quote that matched them would be the
+   * candidate's own prose about their working life.
+   *
+   * The worker returns it rather than the API deriving it, because the worker is holding the verified
+   * quotes at the moment they are decided, and because the phrase list belongs beside the injection
+   * payloads that motivated it (`readi_worker/evaluation/instruction_flags.py`,
+   * `tests/test_evaluation_injection.py`) — so adding a phrase and adding a case are one edit.
+   */
+  evidence_flags: z
+    .array(text(EVALUATION_LIMITS.evidenceFlagMaxLength))
+    .max(EVALUATION_LIMITS.evidenceFlagsPerAnswer),
+  /**
+   * Which version of each evaluator prompt scored this, as `InterviewAdvanceResponse` already reports
+   * for the interviewer's. It is stored on the row: a released prompt is never edited in place, so
+   * `answer_evaluations.prompt_versions` has to keep meaning what it meant when `/evals` or a
+   * calibration reviewer comes back to this score (CLAUDE.md "Prompts").
+   */
+  prompt_versions: z.record(z.string(), z.int()),
   ai_calls: z.array(AiCallRecord),
 });
 export type EvaluateAnswerResponse = z.infer<typeof EvaluateAnswerResponse>;

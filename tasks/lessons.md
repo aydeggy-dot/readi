@@ -743,3 +743,62 @@ instead of the `dist` that `nest start --watch` owns. `pnpm gen:contracts` and `
 build `shared-types` and `api-client` with `tsc` and nothing else, and the footgun is gone rather than
 documented. **When a lesson's rule is "remember this", check first whether the thing can be made
 untrue instead.**
+
+## A pinning test that edits after the fact proves nothing about scoring (2026-09-27, M4 phase 3)
+
+The pinning test was extended to scoring in the obvious order: run a session, let it be scored, then
+edit the question and the rubric as an admin, then assert the report has not moved. It passed. Then it
+was mutated — weighting the criteria from the live `rubric_criteria` instead of the pinned snapshot —
+and **it still passed**.
+
+The reason is a correct piece of design elsewhere: an answer that already has an `answer_evaluations`
+row is never re-scored, so after the edit nothing read the rubric again and the stale read never
+happened. The test was asserting that a stored number stays stored, which a `SELECT` would also prove.
+
+Fixed by editing the content **while the interview is still running** — start the session, edit the
+question and invert the rubric's weights through the admin API, then let the candidate finish and the
+queue score it. Both mutations then failed, and that ordering is also the real sequence: a session runs
+for fifteen to thirty minutes and an expert can rework a rubric inside that window. "Pinned" has to
+mean pinned at the moment of **scoring**, not at the moment of asking.
+
+A second thing the exercise settled: with both criteria scoring alike, any weighting gives the same
+number, so the fixture scores 4 on the first criterion and 0 on the second. A weights test whose
+fixture is symmetric is a test of nothing.
+
+**The rule:** watching a test fail is not a formality to perform after it passes — it is how you find
+out what the test is actually asserting. Mutate the specific line you believe the test is protecting,
+and if the test survives, the test is wrong before the code is.
+
+## Two shapes of "it compiled, so it must be right" in generated Pydantic (2026-09-27, M4 phase 3)
+
+Phase 2 found that `model_copy(update=...)` skips validation and left a bare `str` in a root-model
+field. Phase 3 found the same family twice more, both in five minutes of `mypy --strict`:
+
+- **The constructor skips it too.** `EvaluateAnswerResponse(evidence_flags=[...], prompt_versions={...})`
+  is an `arg-type` error, because the generated fields are `list[EvidenceFlag]` and
+  `dict[str, PromptVersions]`. The fix is the shape `interview/service.py` already used:
+  `Model.model_validate({...})` with plain values and `model_dump(mode="json")` for nested models.
+- **Reading one back needs `.root`.** `response.evidence_flags` is a list of root models, so
+  `assert "ignore the rubric" in response.evidence_flags` fails with a message that looks like a logic
+  bug (`assert 'x' in [EvidenceFlag(root='x')]`). The fixtures already had `code_of()` for exactly this;
+  it now has `flags_of()` beside it.
+
+**The rule:** in the worker, build a generated contract with `model_validate` and read a scalar field
+out of one through a named helper. Both are one line, and both failures are silent or misleading.
+
+## BullMQ refuses a colon in a custom job id (2026-09-27, M4 phase 3)
+
+`queue.add("evaluate", job, { jobId: "evaluate:" + sessionId })` throws
+`Error: Custom Id cannot contain :` from inside `Job.validateOptions`. The prefix was there for
+readability and bought nothing: the session id is already unique, and namespacing is what `QUEUE_PREFIX`
+is for.
+
+The real lesson is where it surfaced. The enqueue was awaited **inside** the SSE exchange, so the throw
+landed after the candidate had already been sent every frame including `done`, and Nest's exception
+filter then tried to write a 500 onto an open `text/event-stream`. ADR-0016 already says nothing between
+`open()` and `close()` may throw; the enqueue has moved after the stream closes, wrapped, and a failure
+is logged rather than raised — a lost report, not a broken interview.
+
+**The rule:** when ADR-0016's "nothing may throw in here" meets new work, the question is not "will this
+throw?" but "what happens to the response if it does?" — and the answer is usually to do the work
+outside the stream.

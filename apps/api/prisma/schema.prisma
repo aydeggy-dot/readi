@@ -1137,6 +1137,15 @@ model AnswerEvaluation {
   /// never anything the candidate wrote.
   failureReason     String? @map("failure_reason")
 
+  /// Phrases in the **stored** evidence that read like an instruction to the evaluator rather than
+  /// an answer — the line the injection gate cannot hold, made visible instead of scored around
+  /// (owner's decision, 2026-09-27). **It changes no score and no candidate ever sees it**: a flag
+  /// is a reason for a person to look, not a penalty applied by a phrase list. What is stored is
+  /// **our** phrases, never the quote that matched them, so an admin list needs no transcript — and
+  /// reading the answer behind it still needs `transcript_review` (ADR-0017). Empty is the normal
+  /// case. M4 phase 6 draws the list, in the calibration area.
+  evidenceFlags String[] @map("evidence_flags")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

@@ -725,6 +725,26 @@
             }
           ]
         },
+        "evidence_flags": {
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          }
+        },
+        "prompt_versions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
         "ai_calls": {
           "type": "array",
           "items": {
@@ -736,6 +756,8 @@
         "position",
         "evaluation",
         "error",
+        "evidence_flags",
+        "prompt_versions",
         "ai_calls"
       ],
       "additionalProperties": false

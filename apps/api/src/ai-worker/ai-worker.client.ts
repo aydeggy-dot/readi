@@ -4,6 +4,8 @@ import {
   CvParseResponse,
   type EmbedRequest,
   EmbedResponse,
+  type EvaluateAnswerRequest,
+  EvaluateAnswerResponse,
   type InterviewAdvanceRequest,
   InterviewAdvanceResponse,
   type TraceDeleteRequest,
@@ -23,6 +25,11 @@ export abstract class AiWorkerClient {
   abstract embed(request: EmbedRequest): Promise<EmbedResponse>;
   /** One interview exchange (ADR-0004/0016). The engine lives in the worker; this asks it. */
   abstract advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse>;
+  /**
+   * Scores one answer against the rubric the session pinned (M4). One answer per request, so each is
+   * retried, paid for and stored on its own, and the API decides how many run at once.
+   */
+  abstract evaluateAnswer(request: EvaluateAnswerRequest): Promise<EvaluateAnswerResponse>;
   /**
    * Delete LLM traces — a user's, on erasure, or everything past retention (ADR-0008). The worker
    * holds the Langfuse credentials, so this is how the API reaches them.
@@ -48,6 +55,16 @@ export class HttpAiWorkerClient extends AiWorkerClient {
 
   async advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse> {
     return this.post("/interview/advance", request, InterviewAdvanceResponse, request.session_id);
+  }
+
+  async evaluateAnswer(request: EvaluateAnswerRequest): Promise<EvaluateAnswerResponse> {
+    return this.post(
+      "/evaluate/answer",
+      request,
+      EvaluateAnswerResponse,
+      // The answer's identity, so a worker log line and an `answer_evaluations` row can be lined up.
+      `${request.session_id}:${request.position}`,
+    );
   }
 
   async deleteTraces(request: TraceDeleteRequest): Promise<TraceDeleteResponse> {

@@ -7,7 +7,7 @@ fixture in polished textbook prose would never test it.
 
 from typing import Any
 
-from readi_worker.contracts import AiCallRecord, EvaluateAnswerRequest
+from readi_worker.contracts import AiCallRecord, EvaluateAnswerRequest, EvaluateAnswerResponse
 from readi_worker.evaluation.calls import AnswerReading, CriterionReading, Evaluator
 from readi_worker.evaluation.service import EvaluationService
 from readi_worker.llm.fake import ScriptedLLMClient, Step
@@ -135,6 +135,11 @@ def reading(**overrides: Any) -> AnswerReading:
 def code_of(call: AiCallRecord) -> str | None:
     """`ai_call_log.error_code` as a plain string. It is a root model on the generated contract."""
     return None if call.error_code is None else call.error_code.root
+
+
+def flags_of(response: EvaluateAnswerResponse) -> list[str]:
+    """`evidence_flags` as plain strings; they are root models on the generated contract."""
+    return [flag.root for flag in response.evidence_flags]
 
 
 def service(steps: list[Step]) -> tuple[EvaluationService, ScriptedLLMClient]:

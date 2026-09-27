@@ -99,6 +99,8 @@ export async function removeCataloguePair(
 export interface ContentFixture {
   topicId: string;
   topicSlug: string;
+  /** The topic's name, which is how a topic reaches a prompt — there is no enum (ADR-0015). */
+  topicName: string;
   rubricId: string;
   questionId: string;
   questionSlug: string;
@@ -239,6 +241,7 @@ export async function seedPublishedContent(
   return {
     topicId: topic.id,
     topicSlug: topic.slug,
+    topicName: topic.name,
     rubricId: rubric.id,
     questionId: question.id,
     questionSlug: question.slug,

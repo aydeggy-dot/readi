@@ -433,4 +433,48 @@ export const EVALUATION_LIMITS = {
   reportHighlights: 3,
   /** Lessons recommended by topic. Often none: five of eight role × level pairs have no track. */
   lessonsPerReport: 6,
+  /**
+   * Phrases in the stored evidence that read like an instruction rather than an answer (the owner's
+   * decision, 2026-09-27). Our own words, not the candidate's, so they are safe to store and safe to
+   * show an admin — and capped because a list of forty is a list nobody reads.
+   */
+  evidenceFlagsPerAnswer: 8,
+  evidenceFlagMaxLength: 60,
+  /**
+   * A topic the candidate is weak on: mean answer score below this, over their most recent scored
+   * answers. 60 is spec §7's own line for "practised" in the readiness coverage bucket, so a topic
+   * that does not count as practised is exactly a topic worth naming.
+   */
+  weakTopicScore: 60,
+  /** How many recent scored answers a weak-topic read looks at. */
+  weakTopicAnswers: 40,
+  /** `InterviewCandidateContext.weak_topics` is capped at ten; this must not exceed it. */
+  weakTopics: 10,
 } as const;
+
+/**
+ * The version of the scoring arithmetic, stored on every `answer_evaluations` and `session_reports`
+ * row (owner's decision, 2026-09-26).
+ *
+ * It versions **our code**, not the model: what the evaluator said is stored untouched in
+ * `criteria`, `overall_raw` is those scores weighted, and `overall` is `overall_raw` after the
+ * prompting adjustment below. Bump it whenever either step changes, so a report assembled under one
+ * rule is never silently compared with one assembled under another — and so `/evals` can say which
+ * arithmetic a number came out of.
+ */
+export const SCORING_VERSION = 1;
+
+/**
+ * What a criterion contributes when the engine had to ask about it.
+ *
+ * A candidate who covers a criterion only after the interviewer probes for it has still covered it —
+ * so this is a discount, not a zero. 0.85 applies to **any non-zero score** rather than scaling with
+ * it, because "you lose a bit for needing the nudge" is a sentence a candidate can check against
+ * their own transcript, and a curve is not. The arithmetic is deliberately small: a 3 out of 4 on a
+ * criterion worth 40% of the answer loses about 4.5 points of it.
+ *
+ * It is keyed on what the **engine** did — which probes it asked — never on the coverage model's
+ * private verdict, and the weight is discounted in the numerator only: the denominator stays the
+ * rubric's full weight, so the adjustment cannot be gamed into raising a score.
+ */
+export const PROMPTED_CRITERION_WEIGHT = 0.85;

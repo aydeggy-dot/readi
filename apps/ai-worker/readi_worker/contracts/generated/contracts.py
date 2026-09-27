@@ -144,6 +144,14 @@ class EngineQuestionProgress(BaseModel):
     probes_covered: list[ProbesCoveredItem] = Field(..., max_length=10)
 
 
+class EvidenceFlag(RootModel[str]):
+    root: str = Field(..., max_length=60, min_length=1)
+
+
+class PromptVersions(RootModel[int]):
+    root: int = Field(..., ge=-9007199254740991, le=9007199254740991)
+
+
 class Levels(RootModel[str]):
     root: str = Field(..., max_length=300, min_length=1)
 
@@ -337,6 +345,8 @@ class EvaluateAnswerResponse(BaseModel):
     position: int = Field(..., ge=0, le=9007199254740991)
     evaluation: AnswerEvaluation | None
     error: Literal["invalid_output", "refused", "provider_error", "timeout"] | None
+    evidence_flags: list[EvidenceFlag] = Field(..., max_length=8)
+    prompt_versions: dict[str, PromptVersions]
     ai_calls: list[AiCallRecord]
 
 

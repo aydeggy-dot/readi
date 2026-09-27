@@ -264,9 +264,53 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   stable enough is a measurement the `/evals` harness makes, not an assumption.
 - Every **non-zero** criterion score must include `evidence` quoted from the transcript; reject and retry outputs
   that violate this. A score of 0 may have empty evidence only when the criterion was not addressed at all (spec §6.2).
-- The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call.
+- The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call
+  (`apps/api/src/evaluations/report-assembly.ts`, pure). Spec §4.4's "per-dimension scores" is
+  corrected to **by topic and by question type**: a rubric's dimensions are free prose written for one
+  question, so they do not aggregate across a session; per-criterion scores stay inside each question's
+  breakdown. The top 3 strengths come from the answers that went best and the top 3 fixes from the ones
+  that went worst — chosen in code, so the list is reproducible and cannot flatter.
+- **A score is three columns, not one, and the split is what makes the harness mean anything.**
+  `answer_evaluations.criteria` is the model's per-criterion reading untouched; `overall_raw` is those
+  scores weighted by the **pinned** rubric; `overall` is `overall_raw` after the prompting adjustment.
+  `/evals` compares a human to `criteria`, because that is what a human scores; the candidate reads
+  `overall`. All of it is versioned by `SCORING_VERSION`, which versions **our arithmetic** rather than
+  the model.
+- **A criterion the engine had to ask about contributes at 0.85 of its weight** (owner's decision,
+  2026-09-26; `scoring.ts`, `prompting.ts`). Applied to **any non-zero** score rather than as a curve,
+  because a candidate can check "you lose a little for needing the nudge" against their own transcript;
+  applied to the **numerator only**, so it can never raise a score. It is keyed on the **engine fact** —
+  which probes were really asked, as `session_turns.follow_up_index` records them — never on the
+  coverage model's private verdict, which M3 wrote may reach the evaluator "as a prior and never as a
+  score". **A criterion may carry two probes**, so the menu is read **per probe** and collapsed to a set
+  of criteria at the end: anything keyed by criterion drops the second probe, as `review-doc.ts` did.
+- **Scoring is triggered by a session reaching `ended`, and there are three doors.** The engine wrapping
+  up, the candidate ending early, and a session being abandoned — by the stale sweep or by the candidate
+  starting a new one. All of them go through `EvaluationsService.onSessionsEnded`, and an **abandoned**
+  session with answers in it is still scored: which door a session left through is invisible to the
+  candidate, and "sometimes there is a report" is a worse product than one report per set of answers.
+  A session with **no** candidate turn gets no job and no report (`endedWithAnswers`, one place).
+  The enqueue happens **after** the SSE stream is closed, because ADR-0016 forbids anything between
+  `open()` and `close()` from throwing.
+- One answer per worker request, fanned out with bounded concurrency (`EVALUATION_CONCURRENCY`): spec §8
+  wants a report within 60 s and a 30-minute session is eight answers, so the fan-out is in the design
+  rather than an optimisation. **An answer that already has a row is never re-scored** — the unique
+  constraint on `session_question_id` is the idempotency — so a re-run is free and a `failed` answer
+  stays failed until somebody decides otherwise, which costs money and is an operator's call.
+- **Evidence that reads like an instruction is flagged, never scored around** (owner's decision,
+  2026-09-27). The injection gate stops a model *inventing* a quote; it cannot stop one quoting the
+  injection itself, because that quote is real. So `answer_evaluations.evidence_flags` records **our**
+  matched phrases (`readi_worker/evaluation/instruction_flags.py`, beside the payloads that motivated
+  them), and it **changes no score and reaches no candidate**: a flag is a reason for a person to look.
+  M4 phase 6's calibration area draws the list.
 - The readiness score formula lives in code (see spec §7), is versioned, and is unit-tested.
 - Any change to evaluator prompts or models must pass `/evals` regression (agreement with human scores must not drop).
+- **A session pins what it is scored against, not merely what it was asked.** A session lasts fifteen to
+  thirty minutes and an expert can rework a rubric inside that window, so the report's words and its
+  number both come from `interview_session_questions.snapshot` — never from `questions` or
+  `rubric_criteria`. `interview-pinning.int.spec.ts` edits the question **mid-interview** and has been
+  watched failing in both halves; written the other way round (edit after scoring) it passes with the
+  weights read live, because a scored answer is never re-scored.
 
 ### Learning content
 - Statuses are `draft → in_review → published → retired`. A content expert writes, edits and submits; an

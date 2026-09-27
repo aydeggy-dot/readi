@@ -44,6 +44,7 @@ from readi_worker.evaluation.evidence import (
     is_quoted,
     normalise,
 )
+from readi_worker.evaluation.instruction_flags import instruction_flags
 from readi_worker.prompts import as_data, render
 from readi_worker.tracing import Tracer, TraceSubject
 
@@ -70,6 +71,7 @@ LIMITS = {
     "tip": 300,
     "red_flags": 4,
     "red_flag": 300,
+    "evidence_flags": 8,
 }
 
 #: A stretch of a level descriptor this long, reproduced word for word in prose the candidate reads,
@@ -154,15 +156,39 @@ class EvaluationService:
                 failure = "invalid_output"
                 continue
             calls.append(reading.record)
-            return EvaluateAnswerResponse(
-                position=request.position,
-                evaluation=_evaluation(reading.output, checked),
-                error=None,
-                ai_calls=calls,
+            # `model_validate` rather than the constructor, as `InterviewAdvanceResponse` is built:
+            # several of these fields are root models on the generated contract, and passing plain
+            # values through the constructor skips validation and leaves bare `str`s in them — the
+            # `model_copy(update=...)` lesson from phase 2, in a different disguise.
+            return EvaluateAnswerResponse.model_validate(
+                {
+                    "position": request.position,
+                    "evaluation": _evaluation(reading.output, checked).model_dump(mode="json"),
+                    "error": None,
+                    # Over the quotes that survived verification, so the flag describes what was
+                    # really stored. It changes no score (owner's decision, 2026-09-27) — see
+                    # `instruction_flags.py` for the line it exists to make visible.
+                    "evidence_flags": instruction_flags(
+                        (quote.root for score in checked.criteria for quote in score.evidence),
+                        limit=LIMITS["evidence_flags"],
+                    ),
+                    "prompt_versions": PROMPT_VERSIONS,
+                    "ai_calls": [call.model_dump(mode="json") for call in calls],
+                }
             )
         logger.info("evaluation position %d could not be scored: %s", request.position, failure)
-        return EvaluateAnswerResponse(
-            position=request.position, evaluation=None, error=failure, ai_calls=calls
+        return EvaluateAnswerResponse.model_validate(
+            {
+                "position": request.position,
+                "evaluation": None,
+                "error": failure,
+                # Nothing was stored, so there is nothing to have noticed about it.
+                "evidence_flags": [],
+                # Reported even when nothing was scored: the prompts that failed to get an answer
+                # out of the model are the ones somebody debugging this needs named.
+                "prompt_versions": PROMPT_VERSIONS,
+                "ai_calls": [call.model_dump(mode="json") for call in calls],
+            }
         )
 
 

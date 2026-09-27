@@ -21,6 +21,7 @@ import type { AuthenticatedUser } from "../auth/auth.service";
 import { cursorWhere, paginate } from "../content/content-cursor";
 import type { CareerLevel, CareerRole, Stack } from "../generated/prisma/client";
 import { ApiError, fieldError } from "../http/api-error";
+import { EvaluationsService } from "../evaluations/evaluations.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisRateLimiter } from "../rate-limit/redis-rate-limiter";
 import { REDIS } from "../redis/redis.module";
@@ -61,6 +62,7 @@ export class InterviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly repository: InterviewSessionsRepository,
+    private readonly evaluations: EvaluationsService,
     @Inject(REDIS) redis: Redis,
   ) {
     this.limiter = new RedisRateLimiter(redis);
@@ -96,7 +98,14 @@ export class InterviewsService {
       }),
     );
     const seed = randomUUID();
-    const chosen = selectQuestions({ pool, count: plan.questions, seed, types });
+    /*
+     * The other seam M3 left for M4: a topic this candidate scores badly on is three times as likely
+     * to come up (`SelectionInput.weakTopicIds`). Ids here and names in the bundle, from one query —
+     * selection is weighting a pool it already holds, and the worker has no catalogue to look an id up
+     * in (ADR-0015).
+     */
+    const weakTopicIds = (await this.evaluations.weakTopics(user.id)).map((topic) => topic.topicId);
+    const chosen = selectQuestions({ pool, count: plan.questions, seed, types, weakTopicIds });
     if (chosen.length === 0) {
       /*
        * Nothing published for this role, level, stack and set of types. A 409 rather than a 404:
@@ -132,7 +141,7 @@ export class InterviewsService {
           " — the engine will ask each once and move on; is the seeded content current?",
       );
     const now = new Date();
-    const session = await this.repository.create({
+    const created = await this.repository.create({
       userId: user.id,
       careerRoleId: audience.role.id,
       roleVersion: audience.role.version,
@@ -154,7 +163,13 @@ export class InterviewsService {
       selectionSeed: seed,
       questions: pinned,
     });
-    return toSessionResponse(session);
+    /*
+     * Starting an interview abandons the one this candidate had running, and an abandoned session
+     * with answers in it is still scored for what they answered (M4). Awaited rather than fired and
+     * forgotten: it is one enqueue, and a lost job would be a report that silently never arrives.
+     */
+    await this.evaluations.onSessionsEnded(created.abandoned);
+    return toSessionResponse(created.session);
   }
 
   async list(user: AuthenticatedUser, query: InterviewListQuery): Promise<InterviewListResponse> {

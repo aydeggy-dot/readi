@@ -2307,10 +2307,13 @@ Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded t
       three tables to `users` and fails on any hop that is not `CASCADE` — with a planted
       counter-example, because every real path in this schema cascades and a walker that finds nothing
       would otherwise pass
-- [ ] **Moved to phase 3/4** (`content-no-answer-key.int.spec.ts`: `idealPointMarkers`, asserted as a
-      count): there is no report route yet, so the markers would have no assertions to belong to. The
-      shape decision is already made and enforced in the contract —
-      `CandidateCriterionFeedback` has no `description`, `levels`, `weight` or `position`, with a test
+- [ ] **Moved to phase 4** (`content-no-answer-key.int.spec.ts`: `idealPointMarkers`, asserted as a
+      count): there is still no report _route_ — phase 3 stores the report, phase 4 serves it — so the
+      markers would have no assertions to belong to. The shape decision is enforced in the contract
+      (`CandidateCriterionFeedback` has no `description`, `levels`, `weight` or `position`) and now also
+      over the assembled report: `report-assembly.spec.ts` asserts the exact five keys of a criterion's
+      feedback, and `evaluations.int.spec.ts` checks every `ANSWERKEY-…` marker of the real fixture
+      against the stored report
 
 ### Phase 2 — the evaluator in the worker · **done 2026-09-27**
 
@@ -2377,17 +2380,99 @@ quotes, so it is the cheapest place — at the cost of a contract field) or the 
 stored `criteria`; and whether a flagged session should also be excluded from the calibration sample
 until a person has looked at it.
 
-### Phase 3 — the job, the scoring rule, the report in code
+**Answered in phase 3 (2026-09-27):**
 
-- [ ] `apps/api/src/evaluations/` on the `cv-parse.queue.ts` pattern; enqueued on all three paths to `ENDED`
-- [ ] `scoring.ts`: weighted 0–100 + the 0.85 prompting adjustment under `SCORING_VERSION`, **two probes per criterion handled**
-- [ ] `report-assembly.ts`: topic and question-type aggregates, top 3 strengths / fixes, breakdown, lessons by topic
-- [ ] `weak_topics` filled (the seam `interview-advance.service.ts` left at `[]`)
-- [ ] The pinning test extended to scoring and **watched failing, both halves**
+- **The matched phrases, not a boolean.** They are our own words, so they are safe to store and safe to
+  put in front of an admin, and they say at a glance which shape of injection this was. The quote that
+  matched them is the candidate's prose and is not copied anywhere — reading it still needs
+  `transcript_review` (ADR-0017), and a flag list is not a way round that.
+- **The worker returns it**, on `EvaluateAnswerResponse.evidence_flags`. It is holding the verified
+  quotes at the moment they are decided, and — the deciding reason — the phrase list then lives beside
+  the payloads that motivated it (`readi_worker/evaluation/instruction_flags.py` next to
+  `tests/test_evaluation_injection.py`), which is what the decision asked for. The coverage test asserts
+  **both** directions: every payload sets a flag, and every phrase is reached by some payload, so a
+  phrase added without a case fails in CI.
+- **Punctuation is kept** when matching, unlike `evidence.py`'s `normalise`. `SYSTEM:` is a phrase;
+  `system` is a word most technical answers contain, and a list that flagged every answer mentioning a
+  system would be read once and then ignored.
+- **A flagged answer is not excluded from the calibration sample** — it is the most interesting answer
+  in it. But the agreement metric has to be able to report **with and without** flagged answers, because
+  a gamed score looks exactly like a miscalibrated evaluator until you separate them. That is phase 6's
+  to build; the flag it needs is written from here on.
+- **Phase 6 draws the list**, in the calibration area: `answer_evaluations` is indexed
+  `(status, created_at)` for the sampler already, and a flagged-answers list is the same query with one
+  more predicate. Until then the flag is also logged when it is set (phrases and ids only).
+
+### Phase 3 — the job, the scoring rule, the report in code · **done 2026-09-27**
+
+- [x] `apps/api/src/evaluations/` on the `cv-parse.queue.ts` pattern — queue, processor, repository,
+      service and two pure modules. `EvaluationsModule` does **not** import `InterviewsModule`: the
+      dependency runs the other way, and a cycle would be the engine and the scorer knowing about each
+      other. What crosses is one pure function, `evaluationRequest()`
+- [x] **Enqueued on all three doors to `ended`**, through one method (`onSessionsEnded`) and one rule
+      (`endedWithAnswers`): the engine wrapping up, the candidate ending early, the stale sweep — **and
+      a fourth the plan had not listed**, a candidate starting a new interview, which abandons the one
+      they left. `abandonStale` and `create` both had to start returning ids instead of a count
+- [x] **An abandoned session with answers in it is still scored.** Which door a session left through is
+      invisible to the candidate, and "sometimes there is a report" is a worse product than one report
+      per set of answers. It costs a paid evaluation for a session somebody walked away from, which is a
+      real cost and is written down as one
+- [x] A session with **no candidate turn** gets no job and no report — an honest empty state rather than
+      a report reading "0 of 0"
+- [x] **The enqueue is outside the SSE stream**, after `close()`. ADR-0016 says nothing between
+      `open()` and `close()` may throw, and the first version put an awaited `queue.add` in there: BullMQ
+      refused the job id (`Custom Id cannot contain :`) and every advance request 500'd **after** the
+      candidate had already been sent every frame. Now it is after the stream, wrapped, and logged
+      rather than raised
+- [x] `scoring.ts`: weighted 0–100 + the 0.85 adjustment under `SCORING_VERSION`, on **any non-zero**
+      score and on the **numerator only** (off both sides it would _raise_ a prompted criterion's
+      contribution — the kind of arithmetic a candidate finds before we do). 14 unit tests, every number
+      worked out in the assertion rather than copied from a run
+- [x] **Two probes per criterion handled** — `prompting.ts` reads the pinned menu **per probe** and
+      collapses to a set of criteria at the end, so a criterion probed twice is discounted once rather
+      than 0.85². Keyed on `session_turns.follow_up_index`, the engine fact, and never on the coverage
+      model's verdict
+- [x] `report-assembly.ts`, pure: topic and question-type aggregates (weakest first — the top of the
+      list is what a candidate acts on), top 3 strengths from the answers that went best and top 3 fixes
+      from the ones that went worst, the per-question breakdown, the pinned ideal points as "what a
+      strong answer covers", and the prompting counts as numbers the web turns into a sentence
+- [x] **`TrackTopic` finally has a reader.** `lessonsForTopics` joins `TrackTopic.isCore` × `Lesson.topicId`
+      through the published track for the session's role and level; core topics first. It returns nothing
+      for five of eight role × level pairs, so the empty state is the part that ships
+- [x] **Both** `weak_topics` seams filled, from one query: the bundle takes the topic **names** (the
+      worker has no catalogue) and `selectQuestions` takes the **ids** (it is weighting a pool it holds).
+      The second one was not in the plan's checklist and had the same "empty until M4" comment on it
+- [x] The injection-evidence flag: `instruction_flags.py` beside the payloads, a column with its own
+      migration (**the ninth** `DROP INDEX questions_embedding_hnsw`, in a migration that adds one
+      column to a table Prisma has never heard of), stored, logged, and shown to no candidate. See
+      "Answered in phase 3" above for the four open questions
+- [x] `EvaluateAnswerResponse` also gained `prompt_versions`, which phase 2 had missed: the column is
+      `NOT NULL` and there was nothing on the wire to fill it with
+- [x] The pinning test extended to scoring and **watched failing in both halves** (2026-09-27) —
+      the words (report assembled from the live `questions` row: prompt and ideal points moved) and the
+      number (weights read from live `rubric_criteria`: 90 became 10). 547 other tests passed under the
+      first mutation, which is the reason that file exists
+- [x] **And the test was wrong the first time, which the mutation found.** Written as "score, then
+      edit", it passed with the weights read live — because an answer that has a row is never re-scored,
+      so the stale read never happened. It now edits the question and the rubric **mid-interview**, which
+      is also the real sequence: a session lasts fifteen to thirty minutes and an expert can rework a
+      rubric inside that window
+- [x] An idempotent re-run (no model call, no second row), a failed answer (`status: failed`,
+      `attempts: 3`, an honest gap in the report, the engine fact stored anyway), and the flag stored
+      without moving the score — all in `test/evaluations.int.spec.ts`, against the real BullMQ queue
+
+**Left for phase 4, found here:** a lost enqueue currently means a report that never arrives, because
+the stale sweep only looks at `in_progress` sessions. `GET /api/interviews/:id/report` should queue one
+when a completed session with answers has no report — the cheapest possible recovery, and it belongs
+with the route rather than here.
 
 ### Phase 4 — the report the candidate reads
 
 - [ ] Flip `feedback_ready`; replace `interview.complete.scoringTitle` / `.scoring`
+- [ ] `GET /api/interviews/:id/report`, and **re-queue on a miss**: a completed session with answers and
+      no report is a lost enqueue, and nothing else will notice (the sweep reads `in_progress` only)
+- [ ] `content-no-answer-key.int.spec.ts`: `idealPointMarkers` asserted as a **count** on the report
+      route and their absence everywhere else — the assertion phase 1 had nowhere to put
 - [ ] `(session)/interview/[id]/report/page.tsx`; 360px; Slow 4G weight; the card carries no transcript
 - [ ] Honest states: a failed answer, and a session with no published track behind it
 

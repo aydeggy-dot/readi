@@ -84,6 +84,15 @@ export const EnvSchema = z
      */
     INTERVIEW_SSE_HEARTBEAT_MS: z.coerce.number().int().min(1000).max(60_000).default(15_000),
 
+    /*
+     * How many of one session's answers are scored at once (M4). Spec §8 asks for a report within 60 s
+     * of the session ending, and a 30-minute session is eight answers, so sequential scoring cannot
+     * meet it — the fan-out is in the design rather than an optimisation. The bound is what keeps it
+     * from being eight simultaneous paid requests: four covers the 15-minute session in one pass and
+     * the 30-minute one in two.
+     */
+    EVALUATION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(4),
+
     // Cosine similarity above which two questions are reported as near-duplicates (ADR-0006).
     // A warning to a content expert, never a refusal, so it is tuned rather than argued about.
     CONTENT_DUPLICATE_THRESHOLD: z.coerce
