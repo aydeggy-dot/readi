@@ -63,8 +63,26 @@ export class EvaluationQueue extends EvaluationJobs implements OnModuleInit, OnM
     });
   }
 
+  /**
+   * Queues one session, **and drops a job that has already finished under the same id first.**
+   *
+   * The job id is the session id, so two doors closing at once — a final exchange and the stale sweep
+   * racing — enqueue one job rather than two. That is the whole reason for the custom id, and it is
+   * about jobs that are *in flight*.
+   *
+   * A finished job is different, and getting this wrong made phase 4's recovery a no-op: BullMQ keeps
+   * completed jobs (`removeOnComplete: { count: 1000 }`) and silently returns the existing job instead
+   * of adding a new one, so re-queueing a session it had already scored did nothing at all — the report
+   * route answered "still being scored" for ever and the sweep queued into a void. A completed or
+   * failed job is removed and replaced; a waiting, delayed or active one is left alone, which keeps the
+   * dedupe exactly where it was meant to be.
+   */
   async enqueue(job: EvaluationJob, jobId: string): Promise<void> {
     if (!this.queue) throw new Error("EvaluationQueue used before initialisation");
+    const existing = await this.queue.getJob(jobId);
+    if (existing && ((await existing.isCompleted()) || (await existing.isFailed()))) {
+      await existing.remove();
+    }
     await this.queue.add("evaluate", job, { jobId });
   }
 

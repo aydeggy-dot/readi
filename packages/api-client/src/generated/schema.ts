@@ -644,6 +644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/interviews/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["InterviewsController_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/interviews/{id}": {
         parameters: {
             query?: never;
@@ -1668,6 +1684,93 @@ export interface components {
             /** Format: date-time */
             ended_at: string | null;
             feedback_ready: boolean;
+        };
+        /** @enum {string} */
+        SessionReportStatus_Output: "ready" | "partial" | "failed";
+        ReportHighlight_Output: {
+            text: string;
+            question_position: number;
+        };
+        ReportTopicScore_Output: {
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+            overall: number;
+            answers: number;
+        };
+        ReportTypeScore_Output: {
+            type: components["schemas"]["QuestionType_Output"];
+            overall: number;
+            answers: number;
+        };
+        CandidateQuestionReport_Output: {
+            position: number;
+            type: components["schemas"]["QuestionType_Output"];
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+            prompt: string;
+            overall: number | null;
+            criteria: components["schemas"]["CandidateCriterionFeedback_Output"][];
+            covered_points: string[];
+            missing_points: string[];
+            strong_answer_covers: string[];
+            improvement_tip: string | null;
+            red_flags: string[];
+            prompting: components["schemas"]["CandidatePrompting_Output"];
+        };
+        CandidateCriterionFeedback_Output: {
+            dimension: string;
+            score: number;
+            /** @enum {number} */
+            max_score: 4;
+            evidence: string[];
+            reasoning: string;
+        };
+        CandidatePrompting_Output: {
+            criteria_total: number;
+            criteria_volunteered: number;
+            follow_ups_asked: number;
+        };
+        RecommendedLesson_Output: {
+            slug: string;
+            title: string;
+            topic: {
+                slug: string;
+                name: string;
+                description: string | null;
+                /** Format: uuid */
+                id: string;
+            };
+        };
+        SessionReportResponseDto_Output: {
+            /** Format: uuid */
+            session_id: string;
+            status: components["schemas"]["SessionReportStatus_Output"];
+            role: components["schemas"]["InterviewCatalogueRef_Output"];
+            level: components["schemas"]["InterviewCatalogueRef_Output"];
+            stack: components["schemas"]["InterviewCatalogueRef_Output"] | null;
+            overall: number | null;
+            scored_answers: number;
+            total_answers: number;
+            strengths: components["schemas"]["ReportHighlight_Output"][];
+            fixes: components["schemas"]["ReportHighlight_Output"][];
+            by_topic: components["schemas"]["ReportTopicScore_Output"][];
+            by_type: components["schemas"]["ReportTypeScore_Output"][];
+            questions: components["schemas"]["CandidateQuestionReport_Output"][];
+            lessons: components["schemas"]["RecommendedLesson_Output"][];
+            /** Format: date-time */
+            ended_at: string | null;
+            /** Format: date-time */
+            generated_at: string;
         };
         DataExportDto_Output: {
             /** @enum {number} */
@@ -3489,6 +3592,41 @@ export interface operations {
             };
             /** @description Not this candidate's (code `interview_not_found`) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InterviewsController_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionReportResponseDto_Output"];
+                };
+            };
+            /** @description Not this candidate's (`interview_not_found`), or it answered nothing so there will never be a report (`report_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Still running (`interview_not_ended`), or scoring has not finished yet (`report_not_ready`) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

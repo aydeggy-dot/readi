@@ -16,6 +16,7 @@ import {
   InterviewListResponse,
   InterviewSessionResponse,
   InterviewStatusResponse,
+  SessionReportResponse,
 } from "@readi/shared-types";
 import type { Response } from "express";
 import { createZodDto, ZodSerializerDto } from "nestjs-zod";
@@ -32,6 +33,7 @@ class InterviewListResponseDto extends createZodDto(InterviewListResponse) {}
 class InterviewSessionResponseDto extends createZodDto(InterviewSessionResponse) {}
 class AdvanceInterviewRequestDto extends createZodDto(AdvanceInterviewRequest) {}
 class InterviewStatusResponseDto extends createZodDto(InterviewStatusResponse) {}
+class SessionReportResponseDto extends createZodDto(SessionReportResponse) {}
 class IdParamsDto extends createZodDto(z.object({ id: z.uuid() })) {}
 
 /**
@@ -116,9 +118,9 @@ export class InterviewsController {
   }
 
   /**
-   * Polled by the completion screen while it waits (the `cv-panel.tsx` pattern). In M3 there is
-   * nothing to wait for — `feedback_ready` is always false, and the screen says so rather than
-   * spinning for something that is not coming.
+   * Polled by the completion screen while it waits (the `cv-panel.tsx` pattern). `feedback_ready`
+   * means there is a report at `:id/report` — including one that honestly says nothing could be
+   * scored, because a screen that spins for ever is worse than a screen that says so.
    */
   @Get(":id/status")
   @ZodSerializerDto(InterviewStatusResponseDto)
@@ -129,6 +131,40 @@ export class InterviewsController {
     @Param() params: IdParamsDto,
   ): Promise<InterviewStatusResponse> {
     return this.interviews.status(user, params.id);
+  }
+
+  /**
+   * The session report (spec §4.4) — and the cheapest recovery there is for a lost enqueue.
+   *
+   * Scoring is queued after the exchange's SSE stream closes and logged rather than raised
+   * (ADR-0016), so it can be lost with nothing else noticing. Opening the report therefore queues one
+   * when a session that ended with answers has none: free when the answers are already stored, and
+   * the whole job when they are not. `EvaluationSweepQueue` is the half that does not wait for a
+   * candidate to look.
+   *
+   * **This is the one candidate route that carries part of the answer key**, narrowly: the pinned
+   * `ideal_points` as "what a strong answer covers", and criterion `dimension` names (owner's
+   * decisions 4 and 5, 2026-09-26). Allowed because the session has already been scored — the same
+   * narrowing M3 made for planned follow-ups. Never the criterion descriptions, the weights or the
+   * five level descriptors; `content-no-answer-key.int.spec.ts` asserts all of that here as a count.
+   */
+  @Get(":id/report")
+  @ZodSerializerDto(SessionReportResponseDto)
+  @ApiOkResponse({ type: SessionReportResponseDto.Output })
+  @ApiNotFoundResponse({
+    description:
+      "Not this candidate's (`interview_not_found`), or it answered nothing so there will never " +
+      "be a report (`report_not_found`)",
+  })
+  @ApiConflictResponse({
+    description:
+      "Still running (`interview_not_ended`), or scoring has not finished yet (`report_not_ready`)",
+  })
+  report(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: IdParamsDto,
+  ): Promise<SessionReportResponse> {
+    return this.interviews.report(user, params.id);
   }
 
   /** One session and its transcript so far. */

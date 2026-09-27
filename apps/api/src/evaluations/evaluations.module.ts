@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AiCallsModule } from "../ai-calls/ai-calls.module";
 import { AiWorkerModule } from "../ai-worker/ai-worker.module";
+import { EvaluationSweepQueue } from "./evaluation-sweep.queue";
 import { EvaluationProcessor } from "./evaluation.processor";
 import { EvaluationQueue } from "./evaluation.queue";
 import { EvaluationsRepository } from "./evaluations.repository";
@@ -23,6 +24,7 @@ import { EvaluationJobs, EvaluationsService } from "./evaluations.service";
     EvaluationsRepository,
     EvaluationProcessor,
     EvaluationQueue,
+    EvaluationSweepQueue,
     { provide: EvaluationJobs, useExisting: EvaluationQueue },
   ],
   exports: [EvaluationsService],

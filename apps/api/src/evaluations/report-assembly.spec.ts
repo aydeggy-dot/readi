@@ -91,12 +91,20 @@ function answer(overrides: Partial<AnswerForReport> = {}): AnswerForReport {
   };
 }
 
+const CATALOGUE = {
+  role: { slug: "backend", name: "Backend engineer" },
+  level: { slug: "mid", name: "Mid-level" },
+  stack: null,
+};
+
 const assemble = (answers: AnswerForReport[]) =>
   SessionReportResponse.parse(
     assembleReport({
       sessionId: "3b7d2a91-4c5e-4a2b-8e6f-1d9c0a5b3e77",
+      catalogue: CATALOGUE,
       answers,
       lessons: [],
+      endedAt: new Date("2026-09-27T09:58:00.000Z"),
       generatedAt: new Date("2026-09-27T10:00:00.000Z"),
     }),
   );
@@ -169,8 +177,13 @@ describe("assembleReport", () => {
       answer({ position: 0, evaluation: weak }),
       answer({ position: 1, evaluation: strong }),
     ]);
-    expect(report.strengths[0]).toBe("STRENGTH from the strong answer");
-    expect(report.fixes[0]).toBe("FIX from the weak answer");
+    // ...and each one says which answer it is about, so the summary is checkable against the
+    // breakdown rather than three claims floating above six questions.
+    expect(report.strengths[0]).toEqual({
+      text: "STRENGTH from the strong answer",
+      question_position: 1,
+    });
+    expect(report.fixes[0]).toEqual({ text: "FIX from the weak answer", question_position: 0 });
   });
 
   it("caps the highlights at three and does not repeat one", () => {
@@ -178,7 +191,34 @@ describe("assembleReport", () => {
     const report = assemble([
       answer({ position: 0, evaluation: many(["one", "two", "  ONE  ", "three", "four"]) }),
     ]);
-    expect(report.strengths).toEqual(["one", "two", "three"]);
+    expect(report.strengths.map((highlight) => highlight.text)).toEqual(["one", "two", "three"]);
+  });
+
+  it("attributes a repeated tip to the answer where following it gains the most", () => {
+    const same = "Say what you measured.";
+    const weak = evaluation({
+      criteria: [
+        { criterion: 0, score: 0, max_score: 4, evidence: [], reasoning: "No." },
+        { criterion: 1, score: 0, max_score: 4, evidence: [], reasoning: "No." },
+      ],
+      improvement_tip: same,
+    });
+    const report = assemble([
+      answer({ position: 0, evaluation: evaluation({ improvement_tip: same }) }),
+      answer({ position: 1, evaluation: weak }),
+    ]);
+    // One piece of advice, and it points at question 1 — the worse answer, which is the one the list
+    // is ordered by and the one where acting on it is worth the most.
+    expect(report.fixes).toEqual([{ text: same, question_position: 1 }]);
+  });
+
+  it("carries the catalogue the session pinned, not the live rows", () => {
+    const report = assemble([answer({})]);
+    expect(report.role).toEqual(CATALOGUE.role);
+    expect(report.level).toEqual(CATALOGUE.level);
+    expect(report.stack).toBeNull();
+    // The date a candidate means by "that interview" is when it ended, not when we got round to it.
+    expect(report.ended_at).toBe("2026-09-27T09:58:00.000Z");
   });
 
   it("aggregates by topic and by question type, weakest first", () => {

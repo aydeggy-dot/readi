@@ -4,7 +4,7 @@ import {
   EVALUATION_LIMITS,
   type RecommendedLesson,
   SCORING_VERSION,
-  type SessionReportResponse,
+  SessionReportResponse,
 } from "@readi/shared-types";
 import { Prisma } from "../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -178,6 +178,65 @@ export class EvaluationsRepository {
       create: { sessionId, ...data },
       update: data,
     });
+  }
+
+  /**
+   * The stored report, if there is one this release can still read.
+   *
+   * `safeParse`, not `parse`: `session_reports.summary` is the artefact a candidate was given, written
+   * by whichever release assembled it, and a shape that has moved since must not turn a candidate's
+   * report page into a 500. `null` here means "no readable report", which the route treats exactly as
+   * it treats a missing one — it re-queues, and re-assembly costs nothing because every answer already
+   * has a row and is never re-scored.
+   */
+  async report(sessionId: string): Promise<SessionReportResponse | null> {
+    const row = await this.prisma.sessionReport.findUnique({ where: { sessionId } });
+    if (!row) return null;
+    const parsed = SessionReportResponse.safeParse(row.summary);
+    return parsed.success ? parsed.data : null;
+  }
+
+  /** Whether a report row exists at all — what `feedback_ready` on the status route reports. */
+  async hasReport(sessionId: string): Promise<boolean> {
+    const row = await this.prisma.sessionReport.findUnique({
+      where: { sessionId },
+      select: { sessionId: true },
+    });
+    return row !== null;
+  }
+
+  /**
+   * Ended sessions that answered something and have **no report row** — oldest first, bounded.
+   *
+   * This is the query behind the sweep, and the reason it can be this simple is worth stating,
+   * because the obvious worry about a sweep that queues evaluations is that it pays for the same
+   * refusal for ever.
+   *
+   * It cannot. `assemble()` runs on every pass of the processor and upserts a report even when every
+   * answer came back `failed`, so a session whose answers all refused has a `failed` report row and is
+   * out of this query from then on. And an answer that already has an `answer_evaluations` row is
+   * never re-scored, so re-queueing a session that got as far as storing answers but not its report
+   * makes **no model call at all** — it re-assembles from rows that are already paid for. The only
+   * session this can spend money on is one that was never evaluated, which is exactly the lost
+   * enqueue it exists to recover.
+   *
+   * `before` keeps it off the normal path's heels: a session that ended a minute ago has a job in
+   * flight, and two enqueues for one session are harmless (the job id is the session id) but a sweep
+   * racing the exchange that queued it is noise in the logs nobody needs.
+   */
+  async endedWithoutReport(before: Date, limit: number): Promise<string[]> {
+    const rows = await this.prisma.interviewSession.findMany({
+      where: {
+        state: "ended",
+        endedAt: { lt: before },
+        turns: { some: { speaker: "candidate" } },
+        report: { is: null },
+      },
+      orderBy: { endedAt: "asc" },
+      take: limit,
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
   }
 
   /**

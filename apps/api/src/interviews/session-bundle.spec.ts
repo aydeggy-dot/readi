@@ -1,3 +1,4 @@
+import { EvaluateAnswerRequest, INTERVIEW_LIMITS } from "@readi/shared-types";
 import { describe, expect, it } from "vitest";
 import {
   bundleQuestion,
@@ -289,5 +290,30 @@ describe("evaluationRequest", () => {
     expect(request.session_id).toBe(SESSION.id);
     expect(request.position).toBe(2);
     expect(request.user_id).toBe(SESSION.userId);
+  });
+
+  /**
+   * **The longest thing a candidate can type must survive the trip to the evaluator.**
+   *
+   * `EvaluationTurn.text` was bounded by `questionPromptMaxLength + evidenceMaxLength` — 2,400
+   * characters, which is neither of the limits a real turn obeys. The consequence was invisible from
+   * the API side and total from the candidate's: the worker rejected the request as invalid, the API
+   * read the 422 as "worker unavailable", retried three times and stored `provider_error`, so a
+   * thorough answer was the one kind that could not be scored. Every dev session with a turn over
+   * ~2,400 characters had a gap in its report, including two of the three M3 paid-run transcripts.
+   *
+   * Parsed through the contract rather than read off the object: what broke was validation at the
+   * boundary, so the assertion has to be validation at the boundary.
+   */
+  it("carries an answer as long as a candidate is allowed to type", () => {
+    const longest = "a".repeat(INTERVIEW_LIMITS.answerMaxLength);
+    const built = evaluationRequest(SESSION, 0, snapshotOf(question()), [
+      { seq: 0, speaker: "interviewer", followUpIndex: null, text: "The question." },
+      { seq: 1, speaker: "candidate", followUpIndex: null, text: longest },
+    ]);
+    expect(() => EvaluateAnswerRequest.parse(built)).not.toThrow();
+    expect(EvaluateAnswerRequest.parse(built).exchange[1]?.text).toHaveLength(
+      INTERVIEW_LIMITS.answerMaxLength,
+    );
   });
 });

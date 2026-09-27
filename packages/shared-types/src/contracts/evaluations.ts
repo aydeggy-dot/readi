@@ -3,11 +3,12 @@ import {
   CONTENT_LIMITS,
   EVALUATION_CONFIDENCE,
   EVALUATION_LIMITS,
+  INTERVIEW_LIMITS,
   MAX_CRITERION_SCORE,
 } from "../constants.js";
 import { QuestionType, Topic } from "./content.js";
 import { AiCallRecord } from "./cv.js";
-import { TurnSpeaker } from "./interviews.js";
+import { SessionCatalogue, TurnSpeaker } from "./interviews.js";
 import { Slug } from "./slug.js";
 
 /**
@@ -111,7 +112,22 @@ export const EvaluationTurn = z
     speaker: TurnSpeaker,
     /** Which planned probe the interviewer was asking, if this turn was a follow-up. */
     follow_up_index: z.int().min(0).nullable(),
-    text: text(CONTENT_LIMITS.questionPromptMaxLength + EVALUATION_LIMITS.evidenceMaxLength),
+    /**
+     * **Bounded by what a turn can actually hold, not by what one is expected to.**
+     *
+     * This was `questionPromptMaxLength + evidenceMaxLength` — 2,400 characters, which is neither of
+     * the two limits that govern a real `session_turns.text`: a candidate may type
+     * `INTERVIEW_LIMITS.answerMaxLength` (8,000) and the interviewer is truncated at
+     * `speechMaxLength` (1,200). The arithmetic looked plausible and was not a bound on anything.
+     *
+     * What it cost, found on 2026-09-27 while draining eight unscored sessions: the worker rejected
+     * the request with a 422, the API read that as "worker unavailable", retried three times with
+     * backoff and stored `provider_error`. Every session in the dev database with an answer over
+     * ~2,400 characters had a gap in its report, and the three M3 paid-run transcripts — real answers
+     * from a real candidate, longest turn 4,396 — were the worst affected. A thorough answer was the
+     * one thing that could not be scored.
+     */
+    text: text(INTERVIEW_LIMITS.answerMaxLength),
   })
   .meta({ id: "EvaluationTurn" });
 export type EvaluationTurn = z.infer<typeof EvaluationTurn>;
@@ -383,6 +399,32 @@ export const RecommendedLesson = z
   .meta({ id: "RecommendedLesson" });
 export type RecommendedLesson = z.infer<typeof RecommendedLesson>;
 
+/**
+ * One of the report's three strengths or three fixes, and **which answer it came from**.
+ *
+ * The position is not decoration. A session's strengths and fixes are chosen in code from the answers
+ * that went best and worst (`report-assembly.ts`), so every one of them is a claim about one specific
+ * answer — and without saying which, "say what you measured" is advice a candidate cannot check. With
+ * it, the summary at the top of the report is three taps from the words it was written about, which is
+ * the whole difference between feedback and a verdict (product principle 1).
+ *
+ * It carries the position rather than a quote on purpose. The quote belongs to a **criterion**, where
+ * the evaluator paired it with its own reasoning; pairing a session-level tip with a criterion-level
+ * quote would be asserting a link nothing made, and a plausible-looking mis-pairing is worse than no
+ * quote at all. So the summary attributes and the per-question breakdown quotes.
+ *
+ * Duplicates are merged by text (same advice twice is one piece of advice), and the first occurrence
+ * keeps its position — the best answer's for a strength, the worst answer's for a fix.
+ */
+export const ReportHighlight = z
+  .object({
+    text: text(Math.max(EVALUATION_LIMITS.strengthMaxLength, EVALUATION_LIMITS.tipMaxLength)),
+    /** The `CandidateQuestionReport.position` this was written about. */
+    question_position: z.int().min(0),
+  })
+  .meta({ id: "ReportHighlight" });
+export type ReportHighlight = z.infer<typeof ReportHighlight>;
+
 /** `ready` is every answer scored; `partial` is some; `failed` is none, and says so plainly. */
 export const SessionReportStatus = z
   .enum(["ready", "partial", "failed"])
@@ -396,19 +438,30 @@ export type SessionReportStatus = z.infer<typeof SessionReportStatus>;
 export const SessionReportResponse = z.object({
   session_id: z.uuid(),
   status: SessionReportStatus,
+  /**
+   * What the session said it was, from `interview_sessions.catalogue` — the **pinned** names, not the
+   * live rows. A role renamed after the interview must not rewrite a report the candidate has already
+   * read (CLAUDE.md §5), and this is the surface where that would show: the line at the top of the
+   * page saying which interview this was.
+   */
+  ...SessionCatalogue.shape,
   /** Null only when nothing could be scored. */
   overall: z.int().min(0).max(100).nullable(),
   scored_answers: z.int().min(0),
   total_answers: z.int().min(0),
-  strengths: z
-    .array(text(EVALUATION_LIMITS.strengthMaxLength))
-    .max(EVALUATION_LIMITS.reportHighlights),
-  fixes: z.array(text(EVALUATION_LIMITS.tipMaxLength)).max(EVALUATION_LIMITS.reportHighlights),
+  strengths: z.array(ReportHighlight).max(EVALUATION_LIMITS.reportHighlights),
+  fixes: z.array(ReportHighlight).max(EVALUATION_LIMITS.reportHighlights),
   by_topic: z.array(ReportTopicScore),
   by_type: z.array(ReportTypeScore),
   questions: z.array(CandidateQuestionReport),
   /** Often empty: five of eight role × level pairs have no published track to recommend from. */
   lessons: z.array(RecommendedLesson).max(EVALUATION_LIMITS.lessonsPerReport),
+  /**
+   * When the interview ended, which is the date a candidate means by "that interview". Nullable
+   * because the column is: a session is only ever assembled after it ended, but a report recovered by
+   * the sweep long afterwards must not claim its own assembly time was the interview.
+   */
+  ended_at: z.iso.datetime().nullable(),
   generated_at: z.iso.datetime(),
 });
 export type SessionReportResponse = z.infer<typeof SessionReportResponse>;

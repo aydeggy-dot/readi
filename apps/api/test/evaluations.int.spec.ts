@@ -7,6 +7,7 @@ import {
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AiWorkerClient } from "../src/ai-worker/ai-worker.client";
+import { EvaluationSweepQueue } from "../src/evaluations/evaluation-sweep.queue";
 import { EvaluationProcessor } from "../src/evaluations/evaluation.processor";
 import { PrismaService } from "../src/prisma/prisma.service";
 import {
@@ -277,6 +278,151 @@ describe("evaluating an ended session", () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(worker.evaluator.requests).toHaveLength(0);
     expect(await prisma.sessionReport.findUnique({ where: { sessionId: session.id } })).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------------------
+  // The route, and the two recoveries for an enqueue that was lost (M4 phase 4).
+
+  describe("GET /api/interviews/:id/report", () => {
+    const get = (cookie: string, id: string) =>
+      http().get(`/api/interviews/${id}/report`).set("cookie", cookie);
+
+    it("serves it to its candidate, and to nobody else", async () => {
+      const cookie = await candidate();
+      const session = await completed(cookie);
+      await report(session.id);
+
+      const mine = await get(cookie, session.id);
+      expect(mine.status).toBe(200);
+      const body = mine.body as SessionReportResponse;
+      expect(body.session_id).toBe(session.id);
+      // The pinned catalogue travels with the report, so renaming a role cannot rewrite a page
+      // somebody has already read.
+      expect(body.role.slug).toBe(fixture.role);
+      expect(body.ended_at).not.toBeNull();
+
+      // Another candidate's session is a 404 rather than a 403: "not yours" and "not there" are
+      // deliberately the same answer on every interview route.
+      const theirs = await get(await candidate(), session.id);
+      expect(theirs.status).toBe(404);
+      expect((theirs.body as { code?: string }).code).toBe("interview_not_found");
+    });
+
+    it("refuses an interview that has not finished", async () => {
+      const cookie = await candidate();
+      const session = await started(cookie);
+      await advance(cookie, session.id, { action: "start" });
+
+      const response = await get(cookie, session.id);
+      expect(response.status).toBe(409);
+      expect((response.body as { code?: string }).code).toBe("interview_not_ended");
+    });
+
+    it("says plainly that a session nobody answered will never have a report", async () => {
+      const cookie = await candidate();
+      const session = await started(cookie);
+      await advance(cookie, session.id, { action: "end" });
+
+      const response = await get(cookie, session.id);
+      // `report_not_found`, not `report_not_ready`: the completion screen polls through one and shows
+      // an empty state for the other, so they cannot be the same code.
+      expect(response.status).toBe(404);
+      expect((response.body as { code?: string }).code).toBe("report_not_found");
+    });
+
+    it("queues the scoring when a session that answered something has no report", async () => {
+      /*
+       * A lost enqueue, reproduced: the report and the stored answers are deleted, which is what a
+       * session looks like when the queue never got the job — and nothing else would ever notice,
+       * because the stale sweep reads `in_progress` sessions only.
+       */
+      const cookie = await candidate();
+      const session = await completed(cookie);
+      await report(session.id);
+      await prisma.sessionReport.delete({ where: { sessionId: session.id } });
+      await prisma.answerEvaluation.deleteMany({
+        where: { sessionQuestion: { sessionId: session.id } },
+      });
+      worker.evaluator.requests.length = 0;
+
+      const missed = await get(cookie, session.id);
+      expect(missed.status).toBe(409);
+      expect((missed.body as { code?: string }).code).toBe("report_not_ready");
+
+      // ...and opening it was the recovery: the job it queued scores the answer and the report arrives.
+      const recovered = await report(session.id);
+      expect(recovered.scored_answers).toBe(1);
+      expect(worker.evaluator.requests).toHaveLength(1);
+    });
+
+    it("tells the completion screen when there is something to read", async () => {
+      const cookie = await candidate();
+      const session = await completed(cookie);
+      await report(session.id);
+
+      const status = await http().get(`/api/interviews/${session.id}/status`).set("cookie", cookie);
+      expect(status.status).toBe(200);
+      expect((status.body as { feedback_ready: boolean }).feedback_ready).toBe(true);
+    });
+  });
+
+  describe("the sweep for reports that were never assembled", () => {
+    const sweep = (now: Date) => app.get(EvaluationSweepQueue).sweep(now);
+
+    it("queues an ended, answered session with no report — the enqueue nobody would have missed", async () => {
+      const cookie = await candidate();
+      const session = await completed(cookie);
+      await report(session.id);
+      await prisma.sessionReport.delete({ where: { sessionId: session.id } });
+      await prisma.answerEvaluation.deleteMany({
+        where: { sessionQuestion: { sessionId: session.id } },
+      });
+      worker.evaluator.requests.length = 0;
+
+      // Not yet: a session that ended a moment ago has a job in flight, and a sweep racing it is
+      // noise nobody needs. The grace is measured from the time the sweep is given.
+      expect(await sweep(new Date())).not.toContain(session.id);
+
+      // An hour later, with still no report, it is a lost enqueue.
+      const swept = await sweep(new Date(Date.now() + 60 * 60 * 1000));
+      expect(swept).toContain(session.id);
+      const recovered = await report(session.id);
+      expect(recovered.scored_answers).toBe(1);
+      expect(worker.evaluator.requests).toHaveLength(1);
+    });
+
+    it("never pays twice for a refusal, because a refusal still has a report", async () => {
+      /*
+       * The trap this sweep had to avoid: a session whose answers all came back `failed` must not be
+       * re-queued every ten minutes for ever. It is not, and the reason is structural rather than a
+       * special case — `assemble()` stores a `failed` report even when nothing could be scored, so the
+       * session is out of the query from then on, and an answer that has a row is never re-scored.
+       */
+      worker.evaluator.outcome = "failed";
+      const cookie = await candidate();
+      const session = await completed(cookie);
+      const summary = await report(session.id);
+      expect(summary.status).toBe("failed");
+
+      const before = worker.evaluator.requests.length;
+      // Not this session — the assertion names it rather than expecting an empty sweep, because the
+      // sweep reads the whole database and every spec in the suite shares one.
+      expect(await sweep(new Date(Date.now() + 60 * 60 * 1000))).not.toContain(session.id);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(worker.evaluator.requests).toHaveLength(before);
+    });
+
+    it("leaves alone a session nobody answered", async () => {
+      const cookie = await candidate();
+      const session = await started(cookie);
+      await advance(cookie, session.id, { action: "end" });
+
+      await sweep(new Date(Date.now() + 60 * 60 * 1000));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(
+        await prisma.sessionReport.findUnique({ where: { sessionId: session.id } }),
+      ).toBeNull();
+    });
   });
 
   it("recommends the track's lessons for the topic that went worst, and tells the next interview", async () => {

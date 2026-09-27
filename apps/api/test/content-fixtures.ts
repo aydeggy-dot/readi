@@ -118,6 +118,22 @@ export interface ContentFixture {
   answerKeyMarkers: string[];
   /** Only ever inside a turn the interviewer has spoken — see the note where they are planted. */
   plannedFollowUpMarkers: string[];
+  /**
+   * The ideal points, which are **also** in `answerKeyMarkers` — a subset, not a replacement.
+   *
+   * They are answer key everywhere except one surface: a **scored** session's own report shows them
+   * as "what a strong answer covers" (spec §4.4, owner's decision 4, 2026-09-26). So the unconditional
+   * list keeps them, because every other route must still be clean of them, and the report route
+   * subtracts this subset and asserts a **count** instead — the shape M3 found for planned follow-ups.
+   */
+  idealPointMarkers: string[];
+  /**
+   * The criterion `dimension` names, likewise a subset of `answerKeyMarkers`. Allowed in a scored
+   * report (owner's decision 5) because a dimension is the vocabulary the feedback is written in and
+   * is useless as an answer key on its own; the criterion *descriptions* and the five level
+   * descriptors are not allowed anywhere and stay in the unconditional list alone.
+   */
+  dimensionMarkers: string[];
   /** Strings a candidate is supposed to see, so an empty response cannot pass for a clean one. */
   visibleMarkers: { prompt: string; lessonBody: string; trackTitle: string };
 }
@@ -261,6 +277,8 @@ export async function seedPublishedContent(
       ]),
     ],
     plannedFollowUpMarkers: plannedFollowUps.map((plan) => plan.probe),
+    idealPointMarkers: [...idealPoints],
+    dimensionMarkers: criteria.map((criterion) => criterion.dimension),
     visibleMarkers: { prompt, lessonBody, trackTitle },
   };
 }

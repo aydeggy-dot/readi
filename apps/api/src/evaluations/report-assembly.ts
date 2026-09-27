@@ -6,8 +6,10 @@ import {
   MAX_CRITERION_SCORE,
   type QuestionType,
   type RecommendedLesson,
+  type ReportHighlight,
   type ReportTopicScore,
   type ReportTypeScore,
+  type SessionCatalogue,
   type SessionReportResponse,
   type SessionReportStatus,
   type Topic,
@@ -70,10 +72,17 @@ export interface AnswerForReport {
 
 export interface ReportInput {
   sessionId: string;
+  /**
+   * What the session said it was interviewing for — `interview_sessions.catalogue`, the pinned names.
+   * Never the live rows: renaming a role must not rewrite a report somebody has already read.
+   */
+  catalogue: SessionCatalogue;
   /** Answered questions, in the order they were asked. A question nobody answered is not here. */
   answers: readonly AnswerForReport[];
   /** Lessons for the topics that went worst, from the repository. Often none. */
   lessons: readonly RecommendedLesson[];
+  /** When the interview ended. Null only if a session somehow reached scoring without it set. */
+  endedAt: Date | null;
   generatedAt: Date;
 }
 
@@ -84,6 +93,7 @@ export function assembleReport(input: ReportInput): SessionReportResponse {
   return {
     session_id: input.sessionId,
     status: statusOf(input.answers.length, scored.length),
+    ...input.catalogue,
     overall: sessionOverall(overalls),
     scored_answers: scored.length,
     total_answers: input.answers.length,
@@ -93,6 +103,7 @@ export function assembleReport(input: ReportInput): SessionReportResponse {
     by_type: byType(scored),
     questions: input.answers.map(questionReport),
     lessons: input.lessons.slice(0, EVALUATION_LIMITS.lessonsPerReport),
+    ended_at: input.endedAt?.toISOString() ?? null,
     generated_at: input.generatedAt.toISOString(),
   };
 }
@@ -120,26 +131,35 @@ function statusOf(total: number, scored: number): SessionReportStatus {
  * three fixes and a one-question session yields one. Fewer than three is the honest number, not a
  * shortfall to pad.
  */
-function highlights(scored: readonly AnswerForReport[], kind: "strengths" | "fixes"): string[] {
+function highlights(
+  scored: readonly AnswerForReport[],
+  kind: "strengths" | "fixes",
+): ReportHighlight[] {
   const order = [...scored].sort((a, b) =>
     kind === "strengths"
       ? (b.score?.overall ?? 0) - (a.score?.overall ?? 0)
       : (a.score?.overall ?? 0) - (b.score?.overall ?? 0),
   );
   const items = order.flatMap((answer) =>
-    kind === "strengths"
+    (kind === "strengths"
       ? (answer.evaluation?.strengths ?? [])
-      : [answer.evaluation?.improvement_tip].filter((tip): tip is string => Boolean(tip)),
+      : [answer.evaluation?.improvement_tip].filter((tip): tip is string => Boolean(tip))
+    ).map((text) => ({ text, question_position: answer.position })),
   );
   return dedupe(items).slice(0, EVALUATION_LIMITS.reportHighlights);
 }
 
-/** Same advice twice is one piece of advice. Compared case- and space-insensitively. */
-function dedupe(items: readonly string[]): string[] {
+/**
+ * Same advice twice is one piece of advice. Compared case- and space-insensitively, and the **first**
+ * occurrence keeps its question — which is the best answer's for a strength and the worst answer's for
+ * a fix, because the list is already in that order. A tip that two answers earned is attributed to the
+ * one where following it gains the most.
+ */
+function dedupe(items: readonly ReportHighlight[]): ReportHighlight[] {
   const seen = new Set<string>();
-  const kept: string[] = [];
+  const kept: ReportHighlight[] = [];
   for (const item of items) {
-    const key = item.toLowerCase().replace(/\s+/g, " ").trim();
+    const key = item.text.toLowerCase().replace(/\s+/g, " ").trim();
     if (key === "" || seen.has(key)) continue;
     seen.add(key);
     kept.push(item);

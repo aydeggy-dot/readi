@@ -371,7 +371,7 @@ class EvaluationTurn(BaseModel):
     seq: int = Field(..., ge=0, le=9007199254740991)
     speaker: Literal["interviewer", "candidate"]
     follow_up_index: FollowUpIndex | None
-    text: str = Field(..., max_length=2400, min_length=1)
+    text: str = Field(..., max_length=8000, min_length=1)
 
 
 class HealthCheckResult(BaseModel):

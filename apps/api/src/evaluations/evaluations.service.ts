@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import type { SessionReportResponse } from "@readi/shared-types";
 import type { EvaluationJob } from "./evaluation.processor";
 import { EvaluationsRepository, type WeakTopic } from "./evaluations.repository";
 
@@ -49,6 +50,61 @@ export class EvaluationsService {
       await this.jobs.enqueue({ sessionId }, sessionId);
     }
     if (toScore.length > 0) this.logger.log(`queued evaluation for ${toScore.length} session(s)`);
+  }
+
+  /**
+   * The report for a session, and the cheapest recovery there is for a lost enqueue.
+   *
+   * The enqueue happens after the SSE stream closes and is deliberately logged rather than raised
+   * (ADR-0016: nothing between `open()` and `close()` may throw), so it **can** be lost — and nothing
+   * else would notice, because the stale sweep looks at `in_progress` sessions only. So opening the
+   * report is itself a recovery: no report and something to score means queue it, which is free when
+   * the answers are already stored and is the whole job when they are not.
+   *
+   * It is not the only recovery, because it only fires if somebody opens their report
+   * (`EvaluationSweepQueue` is the other half). Both are needed: a candidate who never opens theirs
+   * would otherwise go unscored for good, and an unscored session is not merely a missing page —
+   * `weakTopics` reads `answer_evaluations`, so it quietly degrades the *next* interview, and M6's
+   * readiness score is computed from stored scores, where a gap is a wrong number rather than a blank.
+   *
+   * Returns `null` when there is nothing to show yet. Whether that is "not yet" or "never" is the
+   * caller's to say, and it needs `endedWithAnswers` to tell them apart.
+   */
+  async report(sessionId: string): Promise<SessionReportResponse | null> {
+    const report = await this.repository.report(sessionId);
+    if (report) return report;
+    await this.onSessionsEnded([sessionId]);
+    return null;
+  }
+
+  /** Whether this session has a report to read — `feedback_ready` on the status route. */
+  hasReport(sessionId: string): Promise<boolean> {
+    return this.repository.hasReport(sessionId);
+  }
+
+  /** Whether this session ended with something to score, which says "not yet" rather than "never". */
+  async willBeScored(sessionId: string): Promise<boolean> {
+    return (await this.repository.endedWithAnswers([sessionId])).length > 0;
+  }
+
+  /**
+   * The sweep's own pass: ended, answered, no report, oldest first and bounded.
+   *
+   * Bounded because a backlog must not become a stampede of paid calls — a day of lost enqueues
+   * discovered at once should drain over several sweeps, not all in one minute. The query's own comment
+   * explains why this cannot pay twice for the same refusal.
+   */
+  async sweepUnreported(before: Date, limit: number): Promise<string[]> {
+    const sessionIds = await this.repository.endedWithoutReport(before, limit);
+    for (const sessionId of sessionIds) await this.jobs.enqueue({ sessionId }, sessionId);
+    if (sessionIds.length > 0) {
+      this.logger.warn(
+        `sweep queued ${sessionIds.length} ended session(s) with no report — a lost enqueue`,
+      );
+    }
+    // The ids rather than the count, so a test can say "not this session" instead of "nothing at
+    // all": the sweep reads the whole database, and every spec in the suite shares one.
+    return sessionIds;
   }
 
   /**

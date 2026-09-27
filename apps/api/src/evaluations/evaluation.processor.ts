@@ -4,6 +4,7 @@ import {
   EVALUATION_LIMITS,
   type EvaluateAnswerResponse,
   SCORING_VERSION,
+  SessionCatalogue,
   SessionQuestionSnapshot,
 } from "@readi/shared-types";
 import { AiCallLogService } from "../ai-calls/ai-call-log.service";
@@ -209,8 +210,11 @@ export class EvaluationProcessor {
 
     const report = assembleReport({
       sessionId: session.id,
+      // The pinned names, so a renamed role cannot rewrite a report the candidate has already read.
+      catalogue: SessionCatalogue.parse(session.catalogue),
       answers: forReport,
       lessons,
+      endedAt: session.endedAt,
       generatedAt: new Date(),
     });
     await this.repository.saveReport(session.id, report, SCORING_VERSION);
