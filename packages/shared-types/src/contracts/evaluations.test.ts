@@ -69,6 +69,7 @@ describe("what the evaluator may be sent", () => {
       "3": "Counts.",
       "4": "Reads a plan.",
     },
+    asked_about: true,
   };
   const request = {
     session_id: "11111111-1111-4111-8111-111111111111",
@@ -139,6 +140,25 @@ describe("what the evaluator may be sent", () => {
     });
     expect(parsed.question).not.toHaveProperty("planned_follow_ups");
   });
+
+  it("requires saying whether the interview asked about each criterion", () => {
+    /*
+     * The one engine fact the evaluator is given (the owner's decision, 2026-09-27), and it is
+     * **required** rather than defaulted to true. A default would mean a caller that forgot it said
+     * "the interview asked about this" — which is the exact claim the first paid run made wrongly, for
+     * 35% of an answer. Silence here has to be a validation error, not an optimistic guess.
+     */
+    const { asked_about: _omitted, ...withoutIt } = criterion;
+    expect(() =>
+      EvaluateAnswerRequest.parse({
+        ...request,
+        question: {
+          ...request.question,
+          rubric: { ...request.question.rubric, criteria: [withoutIt] },
+        },
+      }),
+    ).toThrow();
+  });
 });
 
 describe("what a candidate may read", () => {
@@ -155,10 +175,15 @@ describe("what a candidate may read", () => {
       weight: 35,
       position: 1,
       criterion: 1,
+      asked_about: false,
     });
     for (const key of ["description", "levels", "weight", "position", "criterion"]) {
       expect(parsed).not.toHaveProperty(key);
     }
+    // Nor whether the interview asked about it: a criterion the candidate reads a score for was
+    // assessed by definition, and the ones that were not are `CandidateQuestionReport.not_assessed`
+    // instead — a criterion is in exactly one of the two lists (the owner's decision, 2026-09-27).
+    expect(parsed).not.toHaveProperty("asked_about");
   });
 });
 

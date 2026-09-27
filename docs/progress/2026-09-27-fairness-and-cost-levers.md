@@ -249,8 +249,14 @@ pre-warm at all, because the interview is sequential by construction.
 
 ## What is verified
 
-- `pnpm lint`, `pnpm typecheck` clean. 584 API tests, 349 worker tests, 168 web tests — all green,
-  including the integration test that runs the fairness case end to end through the real queue.
+- `pnpm lint`, `pnpm typecheck`, `pnpm check:contracts` clean. `pnpm test` green: **588** API, 349
+  worker, 169 web, 119 shared-types, 56 ui, 3 api-client — including the integration test that runs
+  the fairness case end to end through the real queue.
+- **One API test failed once and did not reproduce.** The first full `pnpm test` after the change
+  reported `1 failed | 587 passed`; two further full runs and a direct `vitest run` in `apps/api` were
+  all green, and the name was not captured. Worth knowing about because these specs share one
+  database and a six-interviews-an-hour rate limit, so a timing flake under turbo's parallelism is the
+  likely cause — but it is unidentified rather than explained.
 - The scoring rule is unit-tested on the real question 4's own numbers, in both directions: 55 under
   the old rule, 85 under the new one.
 - `evaluate_answer.v2.md` added rather than v1 edited; `PROMPT_VERSIONS` bumped for that one prompt
