@@ -2673,13 +2673,27 @@ return null;
 `OnboardingService.state` does return `consents_completed: false`, and `complete()` refuses on it —
 but nothing sends an account that has _already_ completed onboarding back for a new consent type.
 
-- [ ] **The fix is `if (!state.consents_completed) return "/onboarding/consent";`**, which also makes
-      a future `CONSENT_VERSIONS` bump re-ask, as ADR-0017 intends. Not applied unasked: it changes
-      routing for every signed-in user, and `/onboarding/consent` needs checking for a redirect loop
-      and for what its Continue does on an account that is already onboarded
-- [ ] **Reported done on 2026-09-27 and is not** (checked while doing the fairness fix):
-      `nextOnboardingPath` still reads `completed_at`, the working tree is clean, and no branch has
-      touched `navigation.ts` since M2. Still the phase 6 blocker
+- [x] **Fixed 2026-09-27 (phase 4.7), and it was not one line.**
+      `docs/progress/2026-09-27-consent-routing.md`. `nextOnboardingPath` routes on
+      `consents_completed`; **and the redirect loop was real** — the consent page bounced anybody with
+      `completed_at` to `/profile/consent`, which is behind `requireOnboarded`, so with the one-liner
+      alone every existing account would have ping-ponged between the two screens and been unable to
+      load any page. Closed by extracting `consentStepPath()` as a pure function reading the _same_
+      fact, with the invariant asserted over all eight states and a termination walk beside it — both
+      watched failing with the bug put back
+- [x] **Continue checked, not assumed**: prior decisions come back pre-ticked so nobody silently loses
+      a consent; an unticked new type records an explicit `false`, which satisfies `allDecided`
+      ("refusable at no cost"); and `complete()` is idempotent, so the onboarding-mode submit has no
+      error path on an already-onboarded account
+- [x] **No e2e spec depended on the old routing**, checked rather than reasoned:
+      `pnpm test:e2e onboarding` passes on the new routing, including the whole sign-up → profile → CV
+      → consent → home walk. `onboard()` clicks Continue with nothing ticked, which records an explicit
+      `false` for every type and satisfies `allDecided`
+- [ ] **No e2e test for the re-ask itself** — the state needs an onboarded account with an undecided
+      consent, which means database surgery the e2e specs have no route to. Covered at the unit level
+- [ ] **Phase 6 is unblocked but nobody has been asked yet**: `usersGranting("transcript_review")`
+      returns nobody until accounts pass through the screen. The owner's account is the first, on its
+      next page load
 - [ ] **It gates phase 6.** The calibration tool samples through `usersGranting("transcript_review")`,
       which is correct and currently returns nobody — so the tool would be built against an empty set
       and look like it worked. Safe by default, useless in practice, and a promise in an accepted ADR
