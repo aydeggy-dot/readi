@@ -847,3 +847,48 @@ that could not be scored**.
 that constant — not a sum of two others that happens to be in the right region. And the failure was
 invisible because a worker 422 is reported as `AiWorkerUnavailableError` and logged as `error.name`:
 the log said "unavailable" about a worker that was up and answering. See phase 7.
+
+## Three correct rules can compose into a wrong outcome, and no test is looking (2026-09-27, M4 phase 4.6)
+
+The first paid evaluation cost a candidate 30 points of one answer. The engine opened a question with
+127 seconds left, which cleared its 120-second reserve; the answer took 99 seconds, so at submission
+there was no room for a follow-up and `probes_to_judge` correctly returned nothing; and the evaluator
+then scored the whole pinned rubric, correctly, because nothing had ever told it which probes were
+asked. Every one of those three is right on its own terms and each has passing tests.
+
+**The rule:** when a value is computed by one component and consumed by another, ask what the consumer
+would do if the producer had done *less* than usual. Here the consumer's input was "the rubric" when
+it should have been "the rubric, and which of it we actually asked about" — a missing fact rather than
+a wrong one, which is why no assertion could fail. Unit tests cover components; the gap between two
+correct components is only visible in an end-to-end run against real content, which is what the paid
+run was for and why it is worth its cost.
+
+**And the symmetry is a design smell worth naming.** The 0.85 prompting discount existed for a
+candidate who *needed* a nudge; there was nothing at all for one who was never *offered* one. A rule
+that penalises one side of a situation without saying what happens on the other side is half a rule.
+
+## A required field on a stored artefact invalidates every stored artefact (2026-09-27, M4 phase 4.6)
+
+`not_assessed` became a required field on `SessionReportResponse`, so every `session_reports.summary`
+written before it stopped parsing. That was *fine* — the route reads with `safeParse`, answers
+`report_not_ready`, re-queues, and re-assembly makes no model call because every answer already has a
+row — but it was fine by luck of a decision taken for another reason, not by design of this change.
+
+**The rule:** before adding a required field to a schema that is read back out of a database, find the
+read and check what it does with the old shape. If the answer is "500s a candidate's page", the field
+wants a default; if the answer is a free recovery, say so in the commit rather than discovering it.
+The cheap check is to `safeParse` a hand-written old payload — it takes a minute and it is the only
+evidence.
+
+## Calibrate an estimate on the part that does not vary (2026-09-27, M4 phase 4.6)
+
+Estimating the evaluator's cacheable prefix, the first attempt divided a rendered prompt's characters
+by the paid run's measured tokens per call to get chars-per-token. It returned 2.58, which is far
+outside any plausible range for English — because the reconstruction's transcript was ~1,000
+characters and the real answers were several times that. The ratio was measuring the difference
+between two prompts, not a tokenizer.
+
+**The rule:** calibrate on the fixed part and let the variable part be the unknown, never the other
+way round. The usable estimate came from the system prompt's own character count and a stated
+chars-per-token band, with the sensitivity printed (3.5 / 3.7 / 4.0 → 12.9% / 12.2% / 11.2%) so the
+decision could be seen not to turn on the guess.
