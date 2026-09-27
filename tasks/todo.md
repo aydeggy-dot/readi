@@ -2470,7 +2470,22 @@ with the route rather than here.
 
 - [ ] Flip `feedback_ready`; replace `interview.complete.scoringTitle` / `.scoring`
 - [ ] `GET /api/interviews/:id/report`, and **re-queue on a miss**: a completed session with answers and
-      no report is a lost enqueue, and nothing else will notice (the sweep reads `in_progress` only)
+      no report is a lost enqueue, and nothing else will notice (the stale sweep reads `in_progress`
+      only). The cheapest recovery, and it belongs with the route.
+- [ ] **A periodic sweep for ended sessions with answers and no evaluation** (owner, 2026-09-27) —
+      queueing on a report-route miss is not enough on its own, because **it only fires if somebody
+      opens the report**. A candidate who never opens theirs would go unscored for good, and that is not
+      only a missing page: `answer_evaluations` is what `weakTopics` reads, so an unscored session
+      silently degrades the _next_ interview's question selection and interviewer context, and **M6's
+      readiness score is computed from stored scores** — a gap there is a wrong number, not a blank one.
+      So the scoring queue gets its own sweep, on the `StaleSessionsQueue` / `AccountErasureQueue`
+      pattern: a scheduled job, over the **database** rather than a delayed job per session, so nothing
+      is lost to a Redis flush and a failed sweep is retried by the next one. Its query is
+      `endedWithAnswers` narrowed to sessions with no `answer_evaluations` row and no `session_reports`
+      row — and it must **not** re-queue a session whose answers all came back `failed`, or it will pay
+      for the same refusal every ten minutes for ever. Bound it (oldest first, a batch at a time) so a
+      backlog cannot become a stampede of paid calls, and give it a test that plants an ended, answered,
+      unevaluated session and watches it get queued.
 - [ ] `content-no-answer-key.int.spec.ts`: `idealPointMarkers` asserted as a **count** on the report
       route and their absence everywhere else — the assertion phase 1 had nowhere to put
 - [ ] `(session)/interview/[id]/report/page.tsx`; 360px; Slow 4G weight; the card carries no transcript
