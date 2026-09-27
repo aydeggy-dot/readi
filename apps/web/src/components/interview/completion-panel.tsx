@@ -4,7 +4,7 @@ import type { InterviewSessionResponse, InterviewStatusResponse } from "@readi/s
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/components/ui/margin";
@@ -15,16 +15,30 @@ import { useClock } from "@/lib/use-clock";
 import { Transcript } from "./transcript";
 
 const POLL_MS = 2_000;
+/**
+ * How long to keep polling for a report before saying so.
+ *
+ * Spec §8 asks for a report within 60 s of the session ending; three minutes is comfortably past that
+ * and short enough that nobody watches a spinner wondering. **A screen that spins for ever is the
+ * failure this bound exists to prevent** — beyond it the job has either died or is being retried with
+ * backoff, and "come back in a few minutes" is both true and actionable, where a spinner is neither.
+ */
+const POLL_LIMIT_MS = 3 * 60 * 1_000;
 
 /**
  * What a candidate sees when the interview ends (the owner's decision, 2026-09-22): the real
  * processing screen — polled, in the `cv-panel.tsx` shape — above the full transcript.
  *
- * **It does not spin for something that is not coming.** M3 scores nothing, so `feedback_ready` is
- * always false and the screen says plainly that scoring is not built yet. The only thing it waits
- * for is the session settling, which is the case where the candidate arrives here a beat before the
- * last exchange has been written down. M4 makes `feedback_ready` true and puts the report beside
- * this, which is why the polling is here now rather than added then.
+ * **It does not spin for something that is not coming**, and there are three different things that
+ * could mean, each with its own state rather than one shared spinner:
+ *
+ * - the session has not been written down yet, which is a candidate arriving here while an exchange
+ *   is still in flight;
+ * - it is being scored, which is the ordinary case and lasts seconds — `feedback_ready` turns true
+ *   when there is a report to read, **including** one that says nothing could be scored, because a
+ *   spinner is a worse answer than a report with a gap in it;
+ * - nobody answered anything, so there will never be a report. That is known from the transcript
+ *   without asking: no candidate turn, no score, and the screen says so instead of polling.
  *
  * It also **does not promise a study plan**: five of the eight role × level combinations have no
  * published track, so "here is your programme" would be a promise we could not keep.
@@ -39,6 +53,22 @@ export function CompletionPanel({
 }) {
   const router = useRouter();
   const clock = useClock(now);
+  /*
+   * When this screen started waiting, filled on mount rather than during a render — reading the clock
+   * in a render body is impure (`react-hooks/purity`, the rule `serverNow()` exists for). Mount time
+   * rather than `ended_at`, deliberately: a candidate opening a week-old interview whose scoring was
+   * lost waits the same three minutes as one who has just finished, because opening the report is
+   * what queued it.
+   */
+  const startedWaiting = useRef<number | null>(null);
+  const [scoringSlow, setScoringSlow] = useState(false);
+  /*
+   * Whether there is anything to score, decided from the transcript rather than by asking: a session
+   * with no candidate turn gets no evaluation job and no report (`endedWithAnswers` in the API), so
+   * polling for one would be waiting for something nobody is making. Declared before the query
+   * because `refetchInterval` reads it and can be called while `useQuery` is still running.
+   */
+  const answered = session.turns.some((turn) => turn.speaker === "candidate");
   const { data: status } = useQuery({
     queryKey: ["interview", session.id, "status"],
     queryFn: async (): Promise<InterviewStatusResponse> => {
@@ -55,11 +85,32 @@ export function CompletionPanel({
       ended_at: session.ended_at,
       feedback_ready: false,
     },
-    refetchInterval: (query) =>
-      query.state.data?.status === "in_progress" ? POLL_MS : (false as const),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return POLL_MS;
+      // Still being written down, or still being scored — and only until the bound below lapses,
+      // because a page that polls for ever is how a spinner outlives the job behind it.
+      if (data.status === "in_progress") return POLL_MS;
+      if (data.feedback_ready || !answered || scoringSlow) return false as const;
+      return POLL_MS;
+    },
   });
 
   const settling = status.status === "in_progress";
+  const scoring = !settling && answered && !status.feedback_ready;
+
+  /*
+   * The bound, owned here and read by the poll: when it lapses the copy has to change too, and the
+   * poll stopping does not by itself re-render anything. The state is set from the timer rather than
+   * from the effect body, which would be a cascading render (`react-hooks/set-state-in-effect`).
+   */
+  useEffect(() => {
+    if (!scoring) return;
+    startedWaiting.current ??= Date.now();
+    const left = POLL_LIMIT_MS - (Date.now() - startedWaiting.current);
+    const timer = setTimeout(() => setScoringSlow(true), Math.max(0, left));
+    return () => clearTimeout(timer);
+  }, [scoring]);
 
   /*
    * The transcript is server-rendered, so when the poll sees the session settle the page has to be
@@ -115,10 +166,43 @@ export function CompletionPanel({
         </Alert>
       )}
 
-      {/* Honest, and in the mentor's own voice: the work is kept, the scoring is not written yet. */}
+      {/*
+        The report, in whichever of its three states this session is in. It is the first thing under
+        the heading in every one of them, because it is what the candidate came here for.
+      */}
       <section className="flex flex-col gap-3 rounded-lg border border-frame bg-card p-5 sm:p-6">
-        <h2 className="text-2xl leading-tight">{t("interview.complete.scoringTitle")}</h2>
-        <p className="text-lg leading-relaxed">{t("interview.complete.scoring")}</p>
+        {status.feedback_ready ? (
+          <>
+            <h2 className="text-2xl leading-tight">{t("interview.complete.readyTitle")}</h2>
+            <p className="text-lg leading-relaxed">{t("interview.complete.ready")}</p>
+            <Button asChild size="lg" className="mt-1 w-full sm:w-auto sm:self-start">
+              <Link href={`/interview/${session.id}/report`}>
+                {t("interview.complete.readReport")}
+              </Link>
+            </Button>
+          </>
+        ) : !answered ? (
+          <>
+            <h2 className="text-2xl leading-tight">{t("interview.complete.nothingTitle")}</h2>
+            <p className="text-lg leading-relaxed">{t("interview.complete.nothing")}</p>
+          </>
+        ) : scoringSlow ? (
+          <>
+            <h2 className="text-2xl leading-tight">{t("interview.complete.scoringSlowTitle")}</h2>
+            <p className="text-lg leading-relaxed">{t("interview.complete.scoringSlow")}</p>
+          </>
+        ) : (
+          <>
+            <h2 className="flex items-center gap-3 text-2xl leading-tight">
+              <span
+                aria-hidden
+                className="size-4 shrink-0 rounded-full border-2 border-primary border-t-transparent motion-safe:animate-spin"
+              />
+              {t("interview.complete.scoringTitle")}
+            </h2>
+            <p className="text-lg leading-relaxed">{t("interview.complete.scoring")}</p>
+          </>
+        )}
       </section>
 
       {/*

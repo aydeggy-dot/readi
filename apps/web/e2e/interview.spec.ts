@@ -297,15 +297,43 @@ test("set up an interview, answer it, and end it with the transcript kept", asyn
     await expect(page).toHaveURL(/\/interview\/[0-9a-f-]{36}\/complete$/, { timeout: 60_000 });
   });
 
-  await test.step("the completion screen is honest about what is not built yet", async () => {
-    await expect(page.getByRole("heading", { name: "Scoring is not built yet" })).toBeVisible({
-      timeout: 30_000,
-    });
-    await expect(page.getByText(/none of what you just did is thrown away/)).toBeVisible();
-    // The transcript is the whole of it, and the first question is still in it.
+  await test.step("the completion screen keeps the transcript and waits for the scoring", async () => {
+    // The transcript is the whole of what the candidate said, and the first question is still in it.
     await expect(page.getByRole("list", { name: "The interview so far" })).toBeVisible();
     await expect(page.getByText(`Question 0 for ${mark}`)).toBeVisible();
     expect(await turnCount(page)).toBeGreaterThan(5);
+
+    /*
+     * And then the report arrives on its own, because the screen polls `/status` for it (M4 phase 4).
+     * Generous, because the whole chain is in it: the enqueue after the stream closed, the BullMQ
+     * job, one evaluator call per answered question and the assembly.
+     */
+    await expect(page.getByRole("link", { name: "Read your report" })).toBeVisible({
+      timeout: 120_000,
+    });
+  });
+
+  await test.step("the report quotes the candidate and shows the key only now", async () => {
+    await page.getByRole("link", { name: "Read your report" }).click();
+    await expect(page).toHaveURL(/\/interview\/[0-9a-f-]{36}\/report$/);
+    await expect(page.getByRole("heading", { name: "Your report" })).toBeVisible();
+
+    // The score, the criterion dimensions it was made of, and the pinned ideal point as "what a
+    // strong answer covers" — the two parts of the answer key a scored report may show.
+    await expect(page.getByRole("heading", { name: "This interview" })).toBeVisible();
+    await expect(page.getByText("Approach", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Says what they did, in order.").first()).toBeVisible();
+
+    /*
+     * And the parts it may never show, on the rendered page rather than in a payload. The leak test
+     * asserts this over the JSON of every candidate route; this is the same claim one layer out, and
+     * it is worth making twice because a component is perfectly capable of rendering a field the
+     * route never sent.
+     */
+    await expect(page.getByText("Says how they knew it worked.")).toHaveCount(0);
+    await expect(page.getByText("Excellent", { exact: true })).toHaveCount(0);
+    // Nor a probe: a report is not a turn an interviewer has spoken.
+    await expect(page.getByText(`Probe one on question 0 for ${mark}`)).toHaveCount(0);
   });
 
   await test.step("the interview is on the Practice list, finished", async () => {

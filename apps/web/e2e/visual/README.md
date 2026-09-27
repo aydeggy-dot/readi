@@ -23,12 +23,13 @@ gitignored — **screenshots are never committed**. Delete the folder when you a
 their own ports (3010/4010/8010), so a run never disturbs `pnpm dev`. The spec then seeds four
 accounts, each parked where a group of screens becomes reachable:
 
-| State    | How it is left                                | Screens it unlocks                      |
-| -------- | --------------------------------------------- | --------------------------------------- |
-| `fresh`  | signed up, nothing filled in                  | `/onboarding/profile`                   |
-| `mid`    | profile done, no CV                           | `/onboarding/cv`, `/onboarding/consent` |
-| `done`   | onboarded, CV parsed, admin granted           | `/home`, `/profile/*`, `/admin`         |
-| `expert` | content_expert, with `/content/seed` imported | `/admin/content/*`                      |
+| State          | How it is left                                 | Screens it unlocks                      |
+| -------------- | ---------------------------------------------- | --------------------------------------- |
+| `fresh`        | signed up, nothing filled in                   | `/onboarding/profile`                   |
+| `mid`          | profile done, no CV                            | `/onboarding/cv`, `/onboarding/consent` |
+| `done`         | onboarded, CV parsed, admin granted            | `/home`, `/profile/*`, `/admin`         |
+| `expert`       | content_expert, with `/content/seed` imported  | `/admin/content/*`                      |
+| `interviewing` | one finished, scored interview and one running | `/practice`, `/interview/*`, the report |
 
 `expert` runs `pnpm db:seed` against the e2e database first: an empty CMS is not worth looking at,
 and the seeded bank is what the screens will really hold.

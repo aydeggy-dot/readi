@@ -3,6 +3,7 @@ import type {
   InterviewListResponse,
   InterviewSessionResponse,
   InterviewSummary,
+  SessionReportResponse,
 } from "@readi/shared-types";
 import { serverApi } from "./session";
 
@@ -27,6 +28,27 @@ export async function getInterview(id: string): Promise<InterviewSessionResponse
   ).GET("/api/interviews/{id}", { params: { path: { id } } });
   if (response.status === 404) return null;
   if (!data) throw new Error(`GET /api/interviews/{id} failed with HTTP ${response.status}`);
+  return data;
+}
+
+/**
+ * A session's report, or `null` when there is not one to read.
+ *
+ * Every refusal is one `null`, deliberately, because the page has one answer for all of them: send the
+ * candidate to the completion screen, which is where both "still scoring" and "you answered nothing"
+ * are explained, and which answers 404 itself if the session is not theirs. The API keeps the three
+ * cases apart in its codes (`interview_not_ended`, `report_not_ready`, `report_not_found`) for the
+ * screens that will need them; this page does not.
+ *
+ * Asking for it is also what recovers a lost enqueue — the API queues the scoring when a session that
+ * ended with answers has no report — so a candidate opening this page is the cheapest repair there is.
+ */
+export async function getReport(id: string): Promise<SessionReportResponse | null> {
+  const { data, response } = await (
+    await serverApi()
+  ).GET("/api/interviews/{id}/report", { params: { path: { id } } });
+  if (response.status === 404 || response.status === 409) return null;
+  if (!data) throw new Error(`GET /api/interviews/{id}/report failed with HTTP ${response.status}`);
   return data;
 }
 

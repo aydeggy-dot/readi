@@ -72,6 +72,10 @@ const SCREENS = [
   ["36-practice-new", "/practice/new", "interviewing"],
   ["37-interview", "/interview/{live}", "interviewing"],
   ["38-interview-complete", "/interview/{finished}/complete", "interviewing"],
+  // The report (M4). `runInterview` waits for it before this account's cookies are saved, so by the
+  // time anything is photographed the session really has been scored — against `LLM_PROVIDER=fake`,
+  // whose evaluator quotes real substrings of the transcript, so the quotes on the page are real.
+  ["39-interview-report", "/interview/{finished}/report", "interviewing"],
 ] as const satisfies ReadonlyArray<readonly [string, string, StateKey | null]>;
 
 /** 360px is the narrowest width we support; 1280px is where the desktop layout applies. */
@@ -216,7 +220,21 @@ async function runInterview(page: Page, { end }: { end: boolean }): Promise<stri
   if (end) {
     await page.getByRole("button", { name: "End the interview" }).click();
     await page.getByRole("button", { name: "End it now" }).click();
-    await page.getByRole("link", { name: "See where you got to" }).waitFor({ timeout: 60_000 });
+    /*
+     * **Wait for the URL, never click that link.** The interview screen navigates itself once the
+     * `state` frame says the session is over (`router.replace` in `interview-screen.tsx`), so "See
+     * where you got to" is the fallback for when it cannot — and clicking it races the redirect that
+     * detaches it. Playwright has no default action timeout here, so a click that can never settle
+     * does not fail, it **hangs**: twenty minutes of this spec producing nothing, on 2026-09-27.
+     */
+    await page.waitForURL(/\/complete$/, { timeout: 60_000 });
+    /*
+     * Then wait for the scoring, so the completion screen is photographed in its settled state and
+     * the report exists at all. Through the candidate's own polling rather than a back door, and
+     * generous because the enqueue, the queue, an evaluator call per answer and the assembly are all
+     * in it.
+     */
+    await page.getByRole("link", { name: "Read your report" }).waitFor({ timeout: 120_000 });
   }
   return id;
 }
@@ -228,7 +246,7 @@ test.describe("visual review", () => {
     browser,
   }) => {
     /*
-     * 38 screens × 2 widths × 2 themes is 152 full-page screenshots, and the whole run takes about
+     * 39 screens × 2 widths × 2 themes is 156 full-page screenshots, and the whole run takes about
      * three minutes. The ceiling is this high because the failure it guards against is a
      * *hang* — a locator in `seedAccounts` that will never match, which is how this spec spent
      * twenty minutes producing nothing when a field was renamed under it. A generous timeout costs
