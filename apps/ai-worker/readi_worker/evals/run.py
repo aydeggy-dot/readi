@@ -8,7 +8,7 @@
     --model claude-sonnet-5       which model to score with
     --compare a.json b.json       two finished runs, read back and compared
     --retry-unscored run.json     only the answers that run could not score, merged back into it
-    --strict-criteria             the per-rubric schema that cannot omit or invent one (unmeasured)
+    --no-strict-criteria          score without the per-rubric schema (on by default, as production)
     --max-cost 1.60               stop before the answer that could cross this, keep what was paid
 
 It does not load `Settings`, and that is deliberate: the server's configuration wants Redis and a
@@ -690,9 +690,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--strict-criteria",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        # Tracks `Settings.evaluator_strict_criteria_schema`, and `test_evals_run.py` asserts they
+        # are the same value — a harness whose default was the *other* evaluator would measure a
+        # shape no candidate is ever scored with, which is the one thing it exists not to do. The
+        # module does not load `Settings` (see the docstring), hence a test rather than an import.
+        default=True,
         help="per-rubric output schema: a criterion cannot be omitted or invented "
-        "(unmeasured — see evaluation/strict_schema.py)",
+        "(on, as production; --no-strict-criteria measures the old shape)",
     )
     parser.add_argument("--out", default=None, help="where to write the result JSON")
     parser.add_argument("--report", default=None, help="also write the markdown report here")

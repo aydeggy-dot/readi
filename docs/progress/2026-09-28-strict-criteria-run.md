@@ -103,3 +103,74 @@ gone, the scores unmoved, fairness and both separations unchanged, and a third o
 default changes, so that strict has been measured over the same twelve as the earlier non-strict runs.
 Priced at **≈$1.00** (30 answers at the 3.33¢ this run measured), cap **$1.20**. `--rubric` was added
 to the harness for it: the complement of a sample cannot be expressed as a sample.
+
+---
+
+# The second run, and the switch
+
+**Ran at 20:17, `evals/results/20260928T201710Z-claude-opus-5.json`, $1.04 of a $1.20 cap.** Also
+**0 rejected readings over 30 calls**, 0 unscoreable, both separations **6 of 6**, fairness **0 of 18
+criteria outside the band**, 80% exact against the expectations.
+
+## Both runs, against the same twelve rubrics the non-strict runs used
+
+| | answers | calls | rejected | rate | retried | unscored | cost | ¢/answer |
+| --- | --: | --: | --: | --: | --: | --: | --: | --: |
+| v2 baseline (three opus runs) | 180 | 297 | 74 | **25%** | 58/180 | 20/180 | $7.64 | 4.24 |
+| **strict, both runs** | 60 | 60 | **0** | **0%** | **0/60** | **0/60** | $2.04 | **3.40** |
+| sonnet-5 v2, reference | 60 | 60 | 0 | 0% | 0/60 | 0/60 | $0.75 | 1.26 |
+
+Under the baseline per-call rate, the chance of 0 rejections in 60 calls is **3 × 10⁻⁸**. One call per
+answer, sixty times.
+
+**Cost per session: 13.6¢ at 15 minutes, 27.2¢ at 30**, from 3.40¢ an answer measured over all 60.
+(The first run alone read 13.3¢ / 26.6¢; the second is slightly dearer, and the combined figure is the
+one to quote.) Against the 40.3¢ the model decision was taken on, a 30-minute session is now **two
+thirds of what it was**, and the gap to sonnet narrows from 4.0× to 2.7×.
+
+## One finding that is not clean, and what it is worth
+
+`EVALUATOR_STRICT_CRITERIA_SCHEMA` is **on by default** as of this run. But the agreement figures are
+not identical to v2's, and on one of the two rubric sets the difference is **larger than the
+evaluator's own run-to-run noise**. The noise floor is measurable because two v2 runs scored the same
+sample with the same configuration:
+
+| | noise floor (v2 vs v2) | strict vs v2 | v2 vs expected | strict vs expected |
+| --- | --: | --: | --: | --: |
+| six `backend` rubrics | 93% / 0.07 | **92% / 0.08** | 80% / 0.20 | **81% / 0.19** |
+| six `frontend`+`qa` rubrics | 88% / 0.12 | **80% / 0.20** | 89% / 0.11 | **80% / 0.20** |
+
+On the backend six, strict is indistinguishable from a repeat run. On the frontend and qa six it is
+not: it agrees with the expectations 9 points less than v2 did on the same answers, and it disagrees
+with v2 by more than v2 disagrees with itself. The drop is **spread across all five answer kinds**
+(`weak` −17, `correct-poorly-explained` −11, the rest −6) rather than concentrated, and **every
+disagreement is within one rung** — 100% within one, in every comparison in that table. Mean criterion
+score moved −0.02.
+
+Fairness moved in the same direction and stayed inside the band: on the frontend and qa six, v2's
+`strong` minus `nigerian-english` drift was −0.06 to −0.13 and strict's is **+0.17**, with 3 of 18
+criteria one rung below `strong` where v2 had one or none. Still 0 of 18 outside the band, and v2 runs
+on those rubrics already had a worst of +1, so a one-rung criterion is not new there.
+
+**How much this is worth knowing, honestly.** The expectations are model-written, and
+`evals/README.md` says agreement with them is a regression baseline and nothing about whether a score
+is right. CLAUDE.md's rule is that agreement with **human** scores must not drop, and there are no
+human scores — `evals/datasets/gold` is empty. So nothing measurable today says the strict evaluator is
+worse; what is measurable says it reads six of the twelve rubrics slightly differently, by one rung on
+about 8 criteria in 90 more than a repeat run would.
+
+**What would settle it, and it is cheap: one repeat strict run on the same frontend and qa six,
+≈$1.04.** Two strict runs on one sample give the strict noise floor, which is the only thing that
+separates "the schema reads these rubrics differently" from "this run read these rubrics differently".
+Until that exists, the switch rests on the two measurements that do mean something today — fairness
+inside the band on all 36 criteria and both separations 12 of 12 — plus the rejection rate it was
+built for. Reverting is one line in `settings.py`.
+
+## What was not decided
+
+**Nothing records, per stored evaluation, which schema scored it.** `answer_evaluations` keeps the
+provider, the evaluator model, `prompt_versions` and `SCORING_VERSION`; the schema shape is none of
+those. It changes what can be rejected and what a call costs, not the score's meaning, so a column
+would be an operational detail rather than a part of the artefact — and the deployment's configuration
+plus the date answers it. Left alone deliberately; worth revisiting if the flag is ever toggled in
+production, because then the date stops answering it.

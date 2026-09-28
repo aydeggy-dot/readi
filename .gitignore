@@ -66,3 +66,9 @@ screenshots/
 
 # Word copies of a document whose source is the Markdown beside it: generate on demand
 docs/*.docx
+
+# A harness run on the stand-in evaluator. `evals/results/` is the record of what paid runs
+# measured and every report is recomputed from it, so a free run that scores on whether the word
+# "because" appears does not belong in it — and two of them reached a commit by `git add -A`
+# before this line existed.
+evals/results/*-fake.json

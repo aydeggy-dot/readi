@@ -550,6 +550,21 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   measured on those and running v3 would put an unmeasured evaluator in front of candidates for no
   measured gain. The files are kept **and kept tested**: an untested prompt file rots quietly, and the
   structural fix phase 7 owes builds on them.
+- **What fixed `rejected_criteria` was a schema, not wording** (measured 2026-09-28,
+  `docs/progress/2026-09-28-strict-criteria-run.md`). `evaluation/strict_schema.py` builds the reading
+  model per request from that rubric's own criterion positions: `criteria` is an **object keyed by
+  position**, every key `required`, `additionalProperties: false`, so omitting or inventing a criterion
+  is invalid output rather than a gate rejection after the fact. **0 rejected readings over 60 calls**
+  across all twelve rubrics of the paid comparison, against a matched v2 baseline of 74 over 297 (25%);
+  nothing unscoreable, both separations 12 of 12, fairness inside the band on all 36 criteria, and
+  3.40¢ an answer against 4.24¢. `EVALUATOR_STRICT_CRITERIA_SCHEMA` is therefore **on by default**, and
+  setting it false is a diagnostic rather than a fallback — it returns to an evaluator that threw away
+  a quarter of its readings. The natural shape does **not** work and the test that says so must stay:
+  `anthropic.transform_schema` folds `prefixItems`, `minItems` and `maxItems` into the schema's
+  *description*, so a fixed-length tuple would reach the provider as an unconstrained array with a
+  sentence about tuples. The three gates in `service.py` stay live as a backstop, which is why the
+  `Evaluator` constructor's own default stays off: its tests need a shape the `rejected_criteria` check
+  can still fire on.
 - **Which version is in use is one table per family, not one number.** The interview prompts are
   `PROMPT_VERSIONS` in `interview/service.py`, and a change bumps one entry. They shared a single
   `VERSION = 1` until 2026-09-26, which made "bump one prompt" impossible to express — and every

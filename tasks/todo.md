@@ -3102,7 +3102,40 @@ falls, and the sizing for it is at the end of this section.
       `--sample 6` is a strict subset of `--sample 12` at seed 7 — because if the round-robin sampler's
       prefix ever stopped being stable, two runs that looked like one measurement of twelve would
       silently overlap or leave a gap
-- [ ] **Owner's decision, 2026-09-28: complete the evidence, then switch.** The other six of
+- [x] **Done, and the schema is the default (2026-09-28).** The second strict run scored the six
+      `frontend`/`qa` rubrics — $1.04 of a $1.20 cap, **0 rejected over 30 calls** again, 0 unscoreable,
+      separations 6 of 6, fairness 0 of 18 outside the band. Over both runs and all twelve rubrics:
+      **0 rejected over 60 calls** against the v2 baseline's 74 over 297 (25%), which under that rate
+      has a probability of 3e-8. `EVALUATOR_STRICT_CRITERIA_SCHEMA` now defaults **true**, `.env.example`
+      and CLAUDE.md say so, and `--strict-criteria` in the harness is `BooleanOptionalAction` defaulting
+      on — with a test asserting the harness default and the setting are the same value, because a
+      harness defaulting to the _other_ evaluator would measure a shape no candidate is scored with
+- [x] **Cost per session: 13.6¢ / 27.2¢**, from 3.40¢ an answer over all 60. The first run alone read
+      13.3¢ / 26.6¢ and the second is slightly dearer; the combined figure is the one to quote. A
+      30-minute session is two thirds of the 40.3¢ the model decision was taken on, and the gap to
+      sonnet narrows from 4.0x to 2.7x
+- [x] **The `Evaluator` constructor's own default stays off, deliberately.** `main.py` passes the
+      setting, so production is strict either way; flipping the constructor broke 60 `service.py` tests
+      because their stubs answer in the list shape. Those tests exercise the three gates — including the
+      `rejected_criteria` check the schema is meant to make unreachable, which is still live code and
+      still the last line if a provider ignores the schema, so it needs a shape it can fire on
+- [ ] **Not clean, and worth one more run (~$1.04): strict reads the frontend/qa six differently.**
+      Two v2 runs on one sample give the evaluator's noise floor, so this is measurable rather than
+      arguable. On the backend six strict is a repeat run (92%/0.08 against a 93%/0.07 floor, and 81%
+      vs 80% against the expectations). On the frontend/qa six it is not: **80%/0.20 against an
+      88%/0.12 floor**, and **80% against v2's 89%** on the same answers. Spread across all five kinds
+      (`weak` -17, `correct-poorly-explained` -11), **every disagreement within one rung**, mean
+      criterion -0.02. Fairness moved the same way and stayed in the band: drift +0.17 against v2's
+      -0.06 to -0.13, 3 of 18 criteria one rung below `strong`. The expectations are **model-written**,
+      so nothing here says strict is worse — CLAUDE.md's rule is about human scores and there are none.
+      **A second strict run on the same six gives the strict noise floor**, which is the only thing
+      that separates "the schema reads these differently" from "this run did". Reverting is one line
+- [ ] **Nobody records which schema scored a stored evaluation.** `answer_evaluations` keeps provider,
+      model, `prompt_versions` and `SCORING_VERSION`; the schema shape is none of them. It changes what
+      can be rejected and what a call costs, not the score's meaning, so the deployment's config plus
+      the date answers it and a column would be an operational detail. Revisit **if the flag is ever
+      toggled in production**, because the date stops answering it then
+- [ ] **Superseded — owner's decision, 2026-09-28: complete the evidence, then switch.** The other six of
       `--sample 12 --seed 7` are `async-ordering-understanding`, `async-unblocking`,
       `client-boundary-reasoning`, `help-seeking-judgement` (frontend) and `raising-a-quality-concern`,
       `test-data-judgement` (qa) — so this closes the **role** gap, the only one of the three limits a

@@ -166,9 +166,23 @@ async def test_the_whole_pipeline_runs_on_the_stand_in_with_it_on() -> None:
     assert [entry.criterion for entry in response.evaluation.criteria] == [0, 1]
 
 
-def test_it_is_off_unless_asked_for() -> None:
-    """Everything M4 measured was measured without it, so the default may not change quietly."""
-    assert Settings(service_token=SecretStr("x" * 32)).evaluator_strict_criteria_schema is False
+def test_it_is_what_production_scores_with() -> None:
+    """On since 2026-09-28, measured over 60 answers and all twelve rubrics of the comparison.
+
+    Off is now the diagnostic: it goes back to an evaluator that threw away a quarter of its
+    readings. The default may not change back quietly any more than it could change forward quietly.
+    """
+    assert Settings(service_token=SecretStr("x" * 32)).evaluator_strict_criteria_schema is True
+
+
+def test_the_evaluators_own_default_stays_off_and_that_is_deliberate() -> None:
+    """`main.py` passes the setting, so this default reaches no candidate — it reaches the tests.
+
+    `service.py`'s suite constructs an `Evaluator` without the flag, and the three gates it covers
+    include the `rejected_criteria` check the schema is meant to make unreachable. That check is
+    still live code and still the last line if a provider ignores the schema, so it needs a shape it
+    can fire on.
+    """
     assert Evaluator(_NoLLM(), "fake")._strict_criteria is False  # type: ignore[arg-type]
 
 

@@ -115,8 +115,14 @@ class Evaluator:
         self._model = model
         self._timeout_s = timeout_s
         #: Ask for a per-rubric output schema that cannot omit or invent a criterion
-        #: (`strict_schema.py`). **Off by default**: everything M4 measured was measured without it,
-        #: and it has never been sent to a real provider.
+        #: (`strict_schema.py`). **On in production since 2026-09-28** — `main.py` passes
+        #: `Settings.evaluator_strict_criteria_schema`, which now defaults true — and off here,
+        #: which is deliberate rather than a leftover. This default is what `service.py`'s own tests
+        #: construct, and the three gates they exercise include the `rejected_criteria` check that
+        #: the schema is meant to make unreachable. That check is still live code and still the last
+        #: line if a provider ever ignores the schema, so it needs a shape it can fire on. What
+        #: stops the two drifting is `test_evals_run.py`, which asserts the harness's default and
+        #: the setting's are the same value.
         self._strict_criteria = strict_criteria
 
     @property

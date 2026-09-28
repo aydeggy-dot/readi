@@ -439,6 +439,23 @@ def test_a_retry_refuses_a_different_model_before_it_spends_anything(
     assert "--model fake" in printed, "it must name the model that would make the file coherent"
 
 
+def test_the_harness_scores_with_the_same_schema_production_does() -> None:
+    """The harness's default and the worker's setting are one decision, asserted in one place.
+
+    A harness whose default was the *other* evaluator would measure a shape no candidate is ever
+    scored with — the one thing it exists not to do. `run.py` deliberately does not load `Settings`
+    (its docstring says why), so the two cannot be wired together and this is the guard instead.
+    """
+    from pydantic import SecretStr
+
+    import readi_worker.evals.run as module
+    from readi_worker.settings import Settings
+
+    default = module._parser().parse_args([]).strict_criteria
+    assert default is Settings(service_token=SecretStr("x" * 32)).evaluator_strict_criteria_schema
+    assert default is True, "measured 2026-09-28 over 60 answers; see the handover"
+
+
 def test_a_retry_refuses_a_different_criteria_schema_before_it_spends_anything(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -449,12 +466,19 @@ def test_a_retry_refuses_a_different_criteria_schema_before_it_spends_anything(
     it — and the rejection rate is the one figure that flag exists to be read against.
     """
     previous = tmp_path / "previous.json"
-    assert main(["--smoke", "--out", str(previous)]) == 0
+    assert main(["--smoke", "--no-strict-criteria", "--out", str(previous)]) == 0
     _with_one_unscored(previous)
-    assert main(["--smoke", "--retry-unscored", str(previous), "--strict-criteria"]) == 2
+    # The retry takes the default, which is on — so the two shapes differ and it is refused.
+    assert main(["--smoke", "--retry-unscored", str(previous)]) == 2
     printed = capsys.readouterr().err
     assert "strict criteria schema off" in printed
     assert "would score on" in printed
+    # And the other way round, so the guard is not accidentally one-directional.
+    strict_previous = tmp_path / "strict-previous.json"
+    assert main(["--smoke", "--out", str(strict_previous)]) == 0
+    _with_one_unscored(strict_previous)
+    assert main(["--smoke", "--retry-unscored", str(strict_previous), "--no-strict-criteria"]) == 2
+    assert "strict criteria schema on" in capsys.readouterr().err
 
 
 def test_a_strict_run_says_so_on_its_own_file_and_in_its_report(
@@ -467,9 +491,9 @@ def test_a_strict_run_says_so_on_its_own_file_and_in_its_report(
     reconstructed from cache-read counts because the run had recorded too little of itself.
     """
     plain, strict = tmp_path / "plain.json", tmp_path / "strict.json"
-    assert main(["--smoke", "--out", str(plain)]) == 0
+    assert main(["--smoke", "--no-strict-criteria", "--out", str(plain)]) == 0
     assert "the per-rubric criteria schema: **off**" in capsys.readouterr().out
-    assert main(["--smoke", "--strict-criteria", "--out", str(strict)]) == 0
+    assert main(["--smoke", "--out", str(strict)]) == 0, "on is the default since 2026-09-28"
     assert "the per-rubric criteria schema: **on**" in capsys.readouterr().out
 
     assert RunResult.read(plain).strict_criteria is False
