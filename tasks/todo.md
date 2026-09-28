@@ -2854,13 +2854,177 @@ go-ahead. Full write-up: `docs/progress/2026-09-28-m4-phase-5.md`.
 
 ### Waiting on the owner
 
-- [ ] **The paid run.** 12 rubrics x 5 = **60 answers** per model, `--seed 7`, three roles, four
-      question types, both levels. Estimated (input at 3.7 chars/token; the counted figure is one free
-      flag away with a key): **opus-5 $1.92, sonnet-5 $0.77 cached; $2.31 / $0.92 with a 20% retry
-      allowance — $3.23 for both.** The 20% is the first paid run's own rejected-reading rate
-- [ ] **The recommendation** decision 7 asks for, which cannot be written before the run. It follows
-      from fairness, then the separations, then agreement, then cost — in that order, because product
-      principle 1 puts the quality of the feedback above what it costs
+- [x] **The paid run — done, 2026-09-28**, and the results are the next three sections. What it was
+      approved on: **$3.23 for both models**. What it cost: **$5.93**, over four runs. Where the
+      difference went, because an estimate that is beaten teaches something — counted input was 19%
+      above the 3.7-chars/token estimate (207,887 tokens against 174,157, the prefix 2,055 rather
+      than 1,698), opus's rejected-reading rate was 33% rather than the 20% allowed for, its output
+      ran 1,194 tokens a call against 1,000, the account ran out of credit mid-run so ten answers
+      needed a second paid pass, and **two opus runs overlapped** — only one of them launched from
+      the Claude session, and the other has no log on this machine, no crontab and no timer behind it
+- [x] **The recommendation** decision 7 asks for: it is the last of the three sections below, and it
+      is to stay on opus for now
+
+### The paid runs, 2026-09-28 — both models measured, and the model decision
+
+**$5.93 spent in total** over four runs: two overlapping opus runs ($2.46 + $2.16), sonnet ($0.75) and
+the opus retry ($0.56). Four result files in `evals/results/`, **none committed** — the owner's call.
+
+- [x] **The fairness band held on both models, and the sonnet sample is the complete one.** Per
+      criterion with the dimension named: **opus 0 of 36 outside the band** (mean drift −0.06 rungs,
+      worst +1, two criteria at +1), **sonnet 0 of 36** (mean drift +0.00, worst +1, three at +1 and
+      three at −1). Quote it as "fair to model-written Nigerian English", never as "fair": 12 idiom
+      answers per model, AI-written, scored by the same family of model
+- [x] **Both separations, both models, on every rubric**: opus 12 of 12 and 12 of 12, sonnet the same.
+      Smallest fluency gap +1.25 (opus, `incident-ownership`) against the 0.8 margin
+- [x] **Caching is observed working against the real API** — the open item from 5a. One write of 2,966
+      tokens and a read on every billed call after it; 66% (opus) and 67% (sonnet) of prompt tokens
+      served from cache. The real cached prefix is **2,966 tokens, not the 2,055 `count_tokens`
+      reports**: `count_tokens` takes no `output_config`, so the schema's tokens are inside the cached
+      block and outside the count, exactly as `count_input_tokens`'s docstring warns
+- [x] **opus scores are stable between runs.** The two accidental runs and the merged one agree at
+      **89–90% exact, 100% within one rung, MAE 0.10–0.11, bias +0.01** per criterion over 47–50
+      answers. CLAUDE.md said whether the constrained schema and `effort: low` are enough was "a
+      measurement the `/evals` harness makes, not an assumption" — this is that measurement
+- [ ] **sonnet stability is not measured**, and needs a second sonnet run (~75¢). Not run because the
+      authorised runs were sonnet once and opus's ten missing answers
+
+### What the rejection causes turned out to be (the reason to record them)
+
+- [x] **`ai_calls` error codes are now in the run file** (`CaseResult.call_errors`), and the report has
+      a `## Why calls bought nothing` section: per cause, with its share of calls and what the gate is
+- [x] **One cause, and it is opus's alone: `rejected_criteria`** — a reading that left a criterion out
+      or invented one the rubric does not have. **7 of the opus retry's 17 calls; 0 of sonnet's 60.**
+      Sonnet threw away **nothing** across 60 answers, where opus discarded 32 readings over its 110
+      calls. The 33% was never the model being careful; it is this one gate, on this one model
+- [x] **`invalid_output` as a case-level error was hiding it.** `service.py` sets
+      `failure = "invalid_output"` when a gate rejects, so an answer rejected three times reads as
+      schema-invalid output in the run report. The four opus answers that failed that way in the first
+      run all scored on retry — they were `rejected_criteria` all along, and the per-call codes are
+      what say so
+- [ ] **Worth trying before phase 7 quotes a cost**: the opening of `evaluate_answer.v2.md` asking for
+      exactly one entry per listed criterion, or the retry correction naming the positions it wants
+      back. A third of opus's bill is one fixable gate, which is a bigger lever than the model choice —
+      and it is a **v3**, because v2 is released and named in these runs' `prompt_versions`
+- [ ] **25 of opus's 32 rejections have no recorded cause** and never will: they are from the run
+      written before the codes existed. The merged report says so where the table is rather than
+      presenting the attributed 7 as the total
+
+### Two counting flaws fixed, both of which flattered
+
+- [x] **An unmeasurable pair is no longer a pass** (`report.py`, `Separation.fairness_measured`). The
+      denominators are the rubrics where the comparison could be made, and the rest are **named**: the
+      first opus run printed "fluency: 11 of 11" on 9 measured rubrics and "0 of 12" on 9 comparable
+      ones. `tests/test_evals_report.py`, **watched failing** against the old formula. `--smoke` can
+      never catch this, because the stand-in scores every answer it is given
+- [x] **A merge may not add up `failed`.** It is one per answer, not one per attempt, so the first
+      merged file reported 10 unscoreable answers in a run where all 60 had scores. The failed
+      attempt's tokens and money stay additive; what went wrong with it stays in `call_errors`
+- [ ] **`Usage.failed` is derivable from `CaseResult.error`** and is stored anyway, which is why it
+      could disagree with it at all. Making it a property would remove the possibility rather than fix
+      the instance
+- [ ] **There is no way to re-render a stored run**, though "every figure is recomputed from the file"
+      is the whole design. Re-reporting the merged run took a scratchpad script; a `--render RESULT`
+      flag is a few lines and would make the promise real
+
+### `--retry-unscored`, and why it is in the harness rather than in a shell
+
+- [x] **`--retry-unscored <result.json>`** re-scores only the answers a run has no score for and writes
+      the two **merged as one whole run**, so the file stays comparable with another model's. It
+      refuses a different model or dataset **before** it spends anything — a file holding one model's
+      readings of some answers and another's of the rest would be a lie nothing downstream could
+      detect. A retried answer carries both attempts' cost, because the first attempt was paid for
+      (ADR-0007). Verified free with `--dry-run` before the paid run
+- [x] `evals/README.md` and CLAUDE.md §4 document it; 417 worker tests, ruff and mypy green. Nothing
+      outside `apps/ai-worker` changed, so no contract regeneration and no API or web work
+
+### `evaluate_answer.v3` — the fix for `rejected_criteria` (2026-09-28, waiting on a paid check)
+
+**Nothing paid has been spent on this.** Proved on the stand-in; only a paid run can show the rate
+falls, and the sizing for it is at the end of this section.
+
+- [x] **What the gate actually refuses, and what could not be recovered.** `rejected_criteria` fires
+      when the returned set of `criterion` numbers is not the rubric's — one left out, or one invented.
+      The runs recorded the **code and not the detail**, so which of the two it was is a guess: the
+      shape of the mistake was thrown away with the reading. Fixed for next time — `_Checked.detail`
+      carries `expected 0, 1, 2; got 1, 2, 3` into the log line, integers only, so it names no
+      candidate words and no rubric prose
+- [x] **The root cause both mechanisms share is in the rendering.** `criteria_block` numbers criteria
+      from **0** and prints each criterion's five rungs, also labelled 0 to 4, directly underneath. The
+      criterion number and the score are the same kind of token in the same block, and neither prompt
+      said which was which or what the expected set was — v2's instruction was "use the number it is
+      given here", which is only unambiguous if you already know where to look
+- [x] **`evaluate_answer.v3.md`** states it as a rule and early: one entry per listed criterion and no
+      others; the numbers start at 0 and are **not** scores (`criterion` is the number before the
+      dimension, `score` is the rung under it); an answer that reaches a criterion not at all is a 0
+      with empty evidence, **never a missing entry** — which is the failure the rule would otherwise
+      invite. And what it costs, because that is the part a model cannot know: the whole reading is
+      discarded, so every criterion loses its mark, including the ones it read well
+- [x] **`evaluate_answer_input.v2.md`** prints the expected numbers instead of leaving them to be
+      inferred (`exactly these numbers, one entry each: 0, 1, 2`), from the same list `_check` builds,
+      so the instruction and the gate cannot disagree about what was asked for
+- [x] **The retry correction names the whole expected set**, not only what the last attempt got wrong.
+      A reading numbered 1,2,3 against a rubric numbered 0,1,2 is *both* a missing criterion and an
+      invented one, and being told each separately leaves the off-by-one that caused both to be
+      inferred
+- [x] **Proved on fake, and the limit of that is the point.** A scripted reading numbered from 1 is
+      rejected, retried with a correction naming `0, 1`, and scored — so the retry carries the
+      information; the rendered prompts are asserted to carry the rule and the set; `--smoke` is green
+      with `prompt_versions` reading `evaluate_answer 3, evaluate_answer_input 2`. None of that is
+      evidence the **rate** falls, which needs a real model
+- [x] 421 worker tests, ruff, mypy green. `apps/api`'s fake worker still reports
+      `evaluate_answer: 2` in its fixtures — deliberately untouched, because those tests assert the
+      API stores what a worker told it, not what the real worker sends
+- [x] **The paid check ran and v3 did not fix it (2026-09-28).** Approved at $1.60, **stopped at $1.23**
+      with 22 of 30 answers when the projection crossed the cap — the standing rule's first test, and it
+      applied to me. **17 rejected readings over 39 calls (44%)** against a matched v2 baseline of
+      **42 over 112 (38%)** on the same five rubrics with credit-failure calls excluded; answers needing
+      a retry **50% (11/22) against 29% (20/70)**. Both differences are inside the noise, and neither is
+      a fall. **Clearer instructions are not the fix.** The lead v3 never touched: the rejections
+      concentrate in `weak`, `fluent-but-wrong` and `correct-poorly-explained`, where a rubric's lower
+      descriptors do the work — 11 of the 11 retried answers were those three kinds
+- [ ] **Decide what to do with v3, because it is in use.** `PROMPT_VERSIONS` says `evaluate_answer: 3`,
+      so the worker renders it now, for no measured gain and a slightly worse price (the prefix grew from
+      2,966 to 3,291 tokens, read at 0.1x on every call). It is better written than v2 and states a true
+      rule; it simply does not do what it was written for. Either revert the two entries to v2 and keep
+      the files for a further iteration, or keep v3 and stop claiming it as the fix
+- [ ] **A killed run loses everything.** The result file is written after the last answer, so stopping at
+      a cap left only stderr — the 44% had to be derived from cache-read counts, and the per-call causes
+      were lost with it. Checkpoint per answer, or write what exists on SIGTERM
+- [ ] **The rejection detail never printed.** `_Checked.detail` carries `expected 0, 1, 2; got 1, 2, 3`
+      into a `logger.info`, and `run.py` configures no logging, so the root logger drops INFO at
+      WARNING. Two lines in the harness (`logging.basicConfig` for `readi_worker`) and the next run
+      diagnoses itself; without them the field is dead weight in exactly the case it was built for
+- [ ] **Superseded — what the check run was sized as.** `--sample 6 --seed 7` = **30 answers over
+      6 rubrics**, and the sample matters: it holds `transaction-boundary-reasoning` (14 rejections
+      over 41 calls, the worst in the corpus), `scaling-out-reasoning` (10/24), `incident-ownership`
+      (9/23), `stale-write-diagnosis` (6/21) and `unfamiliar-code-approach`, whose five answers failed
+      outright in the first run. **$1.05 if the rejections go, $1.51 at the old rate** — quoted from
+      the measured 5.03¢ and 3.5¢ per answer rather than the estimator, which undercounts input by 19%
+      and allows for 20% rejections where the truth is 25–33%. The cheaper option is `--sample 4`
+      (20 answers, 70¢–$1.01), which leaves out the worst offender
+- [ ] **The baseline to beat, over three opus runs and 180 answers**: **74 rejections over 297 calls
+      (25%)**, and **39 of 180 answers (22%)** had at least one. So if v3 works, 30 answers should show
+      close to none: at the old rate the chance of seeing zero is about 0.1%, which is what makes a
+      run this small decisive in the direction that matters
+- [ ] **What it cannot settle.** A halving would not be distinguishable from noise at n=30 — only
+      "near zero, like sonnet" or "unchanged" would be. If it comes back ambiguous the next step is
+      the full 60, not a bigger guess
+
+### The recommendation decision 7 asked for (2026-09-28)
+
+- [x] **Agreed by the owner, 2026-09-28: `claude-opus-5` for the MVP and the pilot, decided again on
+      the gold set.** The reasoning it was agreed on:
+- [ ] **Keep `LLM_MODEL_EVALUATOR=claude-opus-5` for the MVP, and revisit on the gold set.** Both
+      models are fair on this sample and separate every rubric, so the tie is broken lower down:
+      opus agrees with the written expectations at 84% exact / MAE 0.16 against sonnet's 73% / 0.28,
+      and sonnet is harshest exactly where a candidate would notice — `weak` at 58% exact, MAE 0.42.
+      Those expectations are model-written, so this is a **regression baseline and not proof of
+      quality**; it is the only evidence there is, and product principle 1 puts the feedback above
+      what it costs. **The cost is real**: 40.3¢ against 10.1¢ per 30-minute session, four times.
+      The two things that would change the answer: sonnet's 0-in-60 rejection rate against opus's 32
+      (fix `rejected_criteria` and opus's bill drops by about a third), and a **gold set**, where
+      "agrees with a model" stops being the tie-breaker. Neither is a reason to switch today
 
 ### The fairness result is not proof until real candidates have been scored (2026-09-28)
 

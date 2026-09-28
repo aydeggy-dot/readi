@@ -114,6 +114,7 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run --smoke        # th
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5   # the sample and its cost, input tokens counted, before anything is spent
 cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5   # PAID. fairness, the two separations, agreement, cost (evals/README.md)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --compare ../../evals/results/<a>.json ../../evals/results/<b>.json   # two finished runs, free and repeatable
+cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --model <same model> --retry-unscored ../../evals/results/<run>.json   # PAID. only the answers that run could not score, merged back into it
 ```
 
 ## 5. Architecture rules
@@ -682,6 +683,14 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run --compare ../../eva
 5. Keep this file and the spec current: if you add a command, module, or convention, update the docs in the same change.
 6. Never weaken security, privacy, or billing rules to make a test pass.
 7. Don't generate large volumes of interview content and present it as final — seed content is marked `status: draft` until a human expert reviews it.
+8. **A paid run spends only what the owner approved, and only one at a time** (owner's standing rule,
+   2026-09-28). Before starting one, price it with `--dry-run` and get an explicit go-ahead for that
+   amount. If the real cost is going to pass it — a counted figure above the estimate, a rejection
+   rate above the allowance, answers that need a second pass — **stop and ask** rather than finish
+   the run and report the overrun afterwards. **Never start a paid run while another is in
+   progress**: on 2026-09-28 two opus runs overlapped, which doubled the bill, exhausted the
+   account's credit mid-run and left ten answers unscored. Sequential is also what makes the prompt
+   cache pay (`evals/README.md`, "Why sequential").
 
 ## 8. Definition of done (every feature)
 
