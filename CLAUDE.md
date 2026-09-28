@@ -92,7 +92,7 @@ pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
-E2E_SCREENSHOTS=before pnpm test:e2e visual   # 156 before/after screenshots for a visual change (apps/web/e2e/visual)
+E2E_SCREENSHOTS=before pnpm test:e2e visual   # 172 before/after screenshots for a visual change (apps/web/e2e/visual)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output

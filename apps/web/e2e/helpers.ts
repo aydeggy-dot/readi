@@ -93,7 +93,17 @@ export const E2E_PASSWORD = "correct horse battery staple";
  */
 export async function signUpAndOnboard(
   page: Page,
-  options: { name?: string; role?: string; level?: string } = {},
+  options: {
+    name?: string;
+    role?: string;
+    level?: string;
+    /**
+     * Consent labels to tick before continuing. The default is none, which is the screen's own
+     * default and a no to every type — so a caller that needs a grant has to say so, rather than
+     * inheriting one from a helper.
+     */
+    consents?: readonly string[];
+  } = {},
 ): Promise<string> {
   const email = uniqueEmail();
   await page.goto("/signup");
@@ -118,6 +128,7 @@ export async function signUpAndOnboard(
 
   await page.getByRole("link", { name: "Skip for now" }).click();
   await page.waitForURL(/\/onboarding\/consent$/);
+  for (const consent of options.consents ?? []) await page.getByText(consent).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.waitForURL(/\/home$/);
   return email;

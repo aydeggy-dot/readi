@@ -300,7 +300,13 @@ test("set up an interview, answer it, and end it with the transcript kept", asyn
   await test.step("the completion screen keeps the transcript and waits for the scoring", async () => {
     // The transcript is the whole of what the candidate said, and the first question is still in it.
     await expect(page.getByRole("list", { name: "The interview so far" })).toBeVisible();
-    await expect(page.getByText(`Question 0 for ${mark}`)).toBeVisible();
+    /*
+     * The **whole** prompt, not `Question 0 for ${mark}`: `getByText` matches a substring, and each
+     * probe reads "Probe one on question 0 for <mark>…", so the short form matches the question and
+     * both of its probes and fails on strict mode. It passed for as long as the selection happened
+     * to leave question 0 unprobed — a latent flake that only showed when the order changed.
+     */
+    await expect(page.getByText(`Question 0 for ${mark}. How did you approach it?`)).toBeVisible();
     expect(await turnCount(page)).toBeGreaterThan(5);
 
     /*
