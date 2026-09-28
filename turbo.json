@@ -17,7 +17,7 @@
       ]
     },
     "gen:contracts": {
-      "dependsOn": ["^gen:contracts", "build"],
+      "dependsOn": ["^gen:contracts"],
       "outputs": ["generated/**", "readi_worker/contracts/generated/**"]
     },
     "typecheck": {
@@ -54,6 +54,7 @@
         "EMBEDDING_PROVIDER",
         "EMBEDDING_TIMEOUT_S",
         "ENVIRONMENT",
+        "EVALUATION_CONCURRENCY",
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "HEALTH_CHECK_TIMEOUT_MS",
@@ -61,6 +62,7 @@
         "JOBS_ENABLED",
         "INTERVIEW_LLM_TIMEOUT_S",
         "INTERVIEW_SSE_HEARTBEAT_MS",
+        "EVALUATION_LLM_TIMEOUT_S",
         "INTERVIEW_STATE_TTL_S",
         "LANGFUSE_HOST",
         "LANGFUSE_PUBLIC_KEY",
@@ -68,6 +70,7 @@
         "LANGFUSE_SECRET_KEY",
         "LANGFUSE_TIMEOUT_S",
         "LLM_MODEL_CV_PARSE",
+        "LLM_MODEL_EVALUATOR",
         "LLM_MODEL_INTERVIEWER",
         "LLM_PROVIDER",
         "LLM_TIMEOUT_S",

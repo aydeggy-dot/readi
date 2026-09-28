@@ -1,7 +1,9 @@
+import { EvaluateAnswerRequest, INTERVIEW_LIMITS } from "@readi/shared-types";
 import { describe, expect, it } from "vitest";
 import {
   bundleQuestion,
   candidateQuestion,
+  evaluationRequest,
   type QuestionForSnapshot,
   questionsWithNoProbes,
   sessionBundle,
@@ -9,7 +11,7 @@ import {
 } from "./session-bundle";
 
 /**
- * The two doors out of a pinned snapshot, and what each one is not allowed to carry.
+ * The three doors out of a pinned snapshot, and what each one is not allowed to carry.
  *
  * Built like the leak test it is the unit-level half of: every answer-key string in the fixture is
  * a unique marker, and the first assertion proves the snapshot really holds them. A test that
@@ -148,6 +150,7 @@ describe("sessionBundle", () => {
         endsAt: new Date("2026-09-25T10:15:00.000Z"),
         questionBudget: 4,
         maxFollowUps: 2,
+        transcriptReviewGranted: false,
       },
       [snapshotOf(question())],
       {
@@ -204,5 +207,158 @@ describe("a question the engine cannot follow up on", () => {
       rubric: { ...base.rubric, criteria: base.rubric.criteria.slice(0, 1) },
     };
     expect(questionsWithNoProbes([snapshotOf(single)])).toEqual([]);
+  });
+});
+
+describe("evaluationRequest", () => {
+  const SESSION = {
+    id: "11111111-1111-4111-8111-111111111111",
+    userId: "22222222-2222-4222-8222-222222222222",
+  };
+  const turns = [
+    {
+      seq: 3,
+      speaker: "candidate" as const,
+      followUpIndex: 0,
+      text: "And the plan says a seq scan.",
+    },
+    {
+      seq: 0,
+      speaker: "interviewer" as const,
+      followUpIndex: null,
+      text: "Spoken wording of the question.",
+    },
+    {
+      seq: 1,
+      speaker: "candidate" as const,
+      followUpIndex: null,
+      text: "I would look at what ran.",
+    },
+    {
+      seq: 2,
+      speaker: "interviewer" as const,
+      followUpIndex: 0,
+      text: "Spoken wording of the probe.",
+    },
+  ];
+  const request = evaluationRequest(SESSION, 2, snapshotOf(question()), turns);
+
+  it("is the one door the rubric goes through", () => {
+    // The opposite assertion to `bundleQuestion`'s, and the reason this door is the careful one.
+    const raw = json(request);
+    for (const marker of [DIMENSION, DESCRIPTION, DESCRIPTOR, RUBRIC_NAME, IDEAL]) {
+      expect(raw).toContain(marker);
+    }
+  });
+
+  it("carries no criterion weight, because the weighting is ours", () => {
+    for (const criterion of request.question.rubric.criteria) {
+      expect(criterion).not.toHaveProperty("weight");
+    }
+    // Belt and braces: the fixture's weights are 40/30/30, so a leak would put one of them in the
+    // JSON even if the key were renamed on the way out.
+    expect(json(request)).not.toContain('"weight"');
+  });
+
+  it("carries no planned follow-ups, only the probes that were actually spoken", () => {
+    expect(request.question).not.toHaveProperty("planned_follow_ups");
+    // The probe markers live in `planned_follow_ups`; the spoken wording in the transcript is its
+    // own text, so a request built from real turns contains neither marker.
+    expect(json(request)).not.toContain(PROBE);
+    expect(json(request)).toContain("Spoken wording of the probe.");
+  });
+
+  it("orders the exchange by seq, so the answer reads in the order it was said", () => {
+    expect(request.exchange.map((turn) => turn.seq)).toEqual([0, 1, 2, 3]);
+    expect(request.exchange.map((turn) => turn.speaker)).toEqual([
+      "interviewer",
+      "candidate",
+      "interviewer",
+      "candidate",
+    ]);
+  });
+
+  it("keeps which probe a follow-up was, so code can weigh prompting without the model knowing", () => {
+    expect(request.exchange.map((turn) => turn.follow_up_index)).toEqual([null, null, 0, 0]);
+  });
+
+  /**
+   * **The one engine fact the evaluator is given** (the owner's decision, 2026-09-27).
+   *
+   * The fixture probes criteria 1 and 2, and the transcript asked probe 0 — criterion 1's. So
+   * criterion 0 is `asked_about` because the opening prompt asks it and it has no probe; criterion 1
+   * because its probe really was asked; and criterion 2 is not, because nothing in this interview put
+   * it to the candidate.
+   *
+   * It is here so the model's **prose** can be fair, not so it can adjust a mark: "was it volunteered
+   * or prompted" stays hidden, because that is a grading fact, and "was it asked at all" does not,
+   * because the evaluator's words are printed in the candidate's report.
+   */
+  it("says which criteria the interview actually put to the candidate", () => {
+    expect(request.question.rubric.criteria.map((criterion) => criterion.asked_about)).toEqual([
+      true,
+      true,
+      false,
+    ]);
+  });
+
+  it("says every criterion was asked when every probe was", () => {
+    const both = evaluationRequest(SESSION, 0, snapshotOf(question()), [
+      { seq: 0, speaker: "interviewer", followUpIndex: null, text: "The question." },
+      { seq: 1, speaker: "candidate", followUpIndex: null, text: "An answer." },
+      { seq: 2, speaker: "interviewer", followUpIndex: 0, text: "First probe." },
+      { seq: 3, speaker: "candidate", followUpIndex: 0, text: "More." },
+      { seq: 4, speaker: "interviewer", followUpIndex: 1, text: "Second probe." },
+      { seq: 5, speaker: "candidate", followUpIndex: 1, text: "More still." },
+    ]);
+    expect(both.question.rubric.criteria.every((criterion) => criterion.asked_about)).toBe(true);
+  });
+
+  it("says nothing but the opening was asked when the engine asked no probe at all", () => {
+    // The first paid run's fourth question: two probes in play, the clock left no room for either.
+    const none = evaluationRequest(SESSION, 0, snapshotOf(question()), [
+      { seq: 0, speaker: "interviewer", followUpIndex: null, text: "The question." },
+      { seq: 1, speaker: "candidate", followUpIndex: null, text: "An answer." },
+    ]);
+    expect(none.question.rubric.criteria.map((criterion) => criterion.asked_about)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it("tags every turn with a kind, so a coding answer can join rather than rename", () => {
+    expect(request.exchange.every((turn) => turn.kind === "text")).toBe(true);
+  });
+
+  it("identifies the answer by session and position, and the user only for the trace", () => {
+    expect(request.session_id).toBe(SESSION.id);
+    expect(request.position).toBe(2);
+    expect(request.user_id).toBe(SESSION.userId);
+  });
+
+  /**
+   * **The longest thing a candidate can type must survive the trip to the evaluator.**
+   *
+   * `EvaluationTurn.text` was bounded by `questionPromptMaxLength + evidenceMaxLength` — 2,400
+   * characters, which is neither of the limits a real turn obeys. The consequence was invisible from
+   * the API side and total from the candidate's: the worker rejected the request as invalid, the API
+   * read the 422 as "worker unavailable", retried three times and stored `provider_error`, so a
+   * thorough answer was the one kind that could not be scored. Every dev session with a turn over
+   * ~2,400 characters had a gap in its report, including two of the three M3 paid-run transcripts.
+   *
+   * Parsed through the contract rather than read off the object: what broke was validation at the
+   * boundary, so the assertion has to be validation at the boundary.
+   */
+  it("carries an answer as long as a candidate is allowed to type", () => {
+    const longest = "a".repeat(INTERVIEW_LIMITS.answerMaxLength);
+    const built = evaluationRequest(SESSION, 0, snapshotOf(question()), [
+      { seq: 0, speaker: "interviewer", followUpIndex: null, text: "The question." },
+      { seq: 1, speaker: "candidate", followUpIndex: null, text: longest },
+    ]);
+    expect(() => EvaluateAnswerRequest.parse(built)).not.toThrow();
+    expect(EvaluateAnswerRequest.parse(built).exchange[1]?.text).toHaveLength(
+      INTERVIEW_LIMITS.answerMaxLength,
+    );
   });
 });

@@ -2251,3 +2251,1057 @@ without them, correct and disabled, and `docs/runbooks/langfuse-enable.md` is th
 takes. The paid end-to-end run and the 360px look are both done (two runs, `2026-09-25-m3-paid-run.md`
 and `2026-09-26-m3-second-paid-run.md`). What is left for the owner before phase 6 is retiring
 `api-error-shape` and `api-error-contract` in the CMS, which `pnpm db:seed -- --check` still fails on.
+
+## M4 — evaluation, the session report, the eval harness, calibration (branch `feat/m4-evaluation`, from `main` at `3c91422`)
+
+Plan: `docs/plans/m4-evaluation.md`. The owner's eleven decisions are recorded there, taken
+2026-09-26 before any code was written.
+
+### Phase 0 — the blocker: staff reading transcripts · **done 2026-09-26**
+
+- [x] `transcript_review` in `CONSENT_TYPES` / `CONSENT_VERSIONS`; it **joins `allDecided`**, so
+      every existing account is asked once
+- [x] **A Prisma enum value, so it needed a migration** — `ConsentType` is a database enum, which the
+      plan had not accounted for. `20260926223512_consent_transcript_review`, and it proposed
+      `DROP INDEX questions_embedding_hnsw` for the **seventh** time, in a migration that touches
+      nothing but an enum
+- [x] `consent.types.transcript_review.v1.{title,body}` copy; both consent screens pick it up from
+      `CONSENT_TYPES`, so neither form changed
+- [x] `interview_intro.v3.md` — one conditional clause; the boolean is on the **bundle root**, not
+      `InterviewCandidateContext` (it is not context a model may act on), and it is read when the
+      bundle is built rather than pinned, because `session_turns` already records what was said
+- [x] `docs/privacy/subprocessors.md`: the calibration reviewers, **and the stale Anthropic row** —
+      it had described CV parsing alone since M1, and candidate answers have gone there since M3
+- [x] ADR-0017 — the lawful basis, what the consent does not permit, and the self-selection caveat
+      the agreement metric now carries
+- [x] `isCurrentGrant` as the one rule, with a truth table; `usersGranting()` filters the set through
+      the same predicate rather than restating it in SQL; `hasGranted()` for the single-user check
+- [x] The intro clause appears only with the grant (worker), and the bundle carries the real decision
+      (API integration) — **watched failing** by hardcoding `false` in `bundleFor`
+- [x] CLAUDE.md: the consent list, and that adding a type is three things plus a re-ask
+- [x] **Answered 2026-09-26: contractors, so processors.** Recorded in `subprocessors.md` and in
+      ADR-0017 decision 6 (amended in place while unmerged, as ADR-0014 did — the decision as written
+      asked the question rather than answering it). `docs/privacy/reviewer-agreement.md` is the draft
+      template, marked on its face as needing an NDPA-familiar lawyer before anyone signs
+- [ ] **Gate on phase 6:** no real reviewer is given access until a reviewed, signed agreement exists.
+      The tool is built and demonstrated against staff-authored answers until then, which is what the
+      gold set is made of anyway, so nothing in the schedule waits on the paperwork
+
+### Phase 1 — contracts, schema, `evaluationRequest()` · **done 2026-09-27**
+
+- [x] `contracts/evaluations.ts` + `registry.ts` + `index.ts`; 47 JSON Schema definitions, Pydantic regenerated
+- [x] `session-bundle.ts` gains `evaluationQuestion` / `evaluationTurns` / `evaluationRequest` — the
+      **fourth** width, in the one place widths cross. It carries the rubric and **not** the weights
+      (the roll-up is arithmetic, and a model told one criterion is 45% will skim the rest) and not the
+      planned follow-ups (the probes that were asked are already in the exchange). Both asserted, and
+      the weight assertion **watched failing** by spreading the snapshot's criteria
+- [x] `EVALUATION_LIMITS`, `MAX_CRITERION_SCORE`, `EVALUATION_CONFIDENCE` in `constants.ts`
+- [x] The evidence rule as a function, not a `.refine` (a refinement cannot reach Pydantic), with
+      `src/evidence-cases.json` as the shared case set — `ask-vectors.json`'s precedent. **Its Python
+      twin is phase 2**, and until then the file has one reader
+- [x] Prisma `answer_evaluations`, `session_reports`, `calibration_scores` + three enums; one
+      migration, read by hand — it proposed `DROP INDEX questions_embedding_hnsw` for the **eighth**
+      time, in a migration that only creates tables
+- [x] Erasure: `calibration_scores.expert_user_id` tombstoned (the measurement outlives the reviewer);
+      the candidate's side cascades. A new guard walks **every** foreign-key path from each of the
+      three tables to `users` and fails on any hop that is not `CASCADE` — with a planted
+      counter-example, because every real path in this schema cascades and a walker that finds nothing
+      would otherwise pass
+- [ ] **Moved to phase 4** (`content-no-answer-key.int.spec.ts`: `idealPointMarkers`, asserted as a
+      count): there is still no report _route_ — phase 3 stores the report, phase 4 serves it — so the
+      markers would have no assertions to belong to. The shape decision is enforced in the contract
+      (`CandidateCriterionFeedback` has no `description`, `levels`, `weight` or `position`) and now also
+      over the assembled report: `report-assembly.spec.ts` asserts the exact five keys of a criterion's
+      feedback, and `evaluations.int.spec.ts` checks every `ANSWERKEY-…` marker of the real fixture
+      against the stored report
+
+### Phase 2 — the evaluator in the worker · **done 2026-09-27**
+
+- [x] `readi_worker/evaluation/` (`evidence`, `calls`, `service`, `router`, `fake_script`) +
+      `evaluate_answer.v1.md` and its input template; `POST /evaluate/answer`, one answer per request
+- [x] **Three gates in front of a stored score**, each with a corrective message a retry can act on:
+      every criterion exactly once; every quote the candidate's own; and no level descriptor echoed
+      into prose the candidate reads (the answer-key surface the leak test cannot see — a model's own
+      words)
+- [x] Evidence verification tolerant of **how** a candidate writes and strict about **what** they
+      said: case, punctuation, curly quotes, a tidied plural, a corrected typo, a dropped filler all
+      verify; a translation of Pidgin into standard English does not, and nor does a fabrication.
+      Nine fairness cases and five strictness cases, all named
+- [x] Unverifiable quote → dropped and `confidence` lowered one step per drop; a non-zero score left
+      with nothing is the retry trigger. A **0 with** a quote is deliberately allowed — the
+      confident, specific, wrong answer the descriptors were rewritten for
+- [x] ≤2 retries on invalid output, never on a refusal; then the answer comes back unscored with a
+      code, and the report says so for that question
+- [x] Injection: seven payloads (plain, inside a code comment, a fake rubric update, claiming to be
+      the interviewer, claiming to be staff, closing the data block, asking for the answer key) ×
+      three layers. **And the boundary is a test, not a silence**: a model quoting the injection
+      itself produces a real quote, so the score stands — that is the prompt's problem, `/evals`' to
+      measure and calibration's to keep honest. The owner has since decided what to do about it: see
+      "Decided for phase 3" below
+- [x] The evidence rule's Python twin, held to the **same** `evidence-cases.json` as the TypeScript
+      one (ADR-0003 decision 5). The file now has both readers it was written for
+- [x] A fake evaluator that reads the real prompt and quotes the real transcript, so CI and e2e never
+      call a model and never hide a broken verifier
+- [x] `llm_model_evaluator` / `evaluation_llm_timeout_s` in `settings.py`, `.env.example`, `turbo.json`
+- [x] Found on the way: `model_copy(update=...)` skips validation, so marking a record left a bare
+      `str` in a root-model field that serialised correctly **by luck** and made Pydantic warn. Fixed,
+      with the warning turned into a failing test
+- [x] Found on the way: CLAUDE.md asked for evaluation "with low temperature", which current Claude
+      models **reject** — they take no sampling parameters. Corrected in CLAUDE.md, and what actually
+      holds a score still is written down where the constant would have been
+
+### Decided for phase 3 (owner, 2026-09-27) — flag an answer whose evidence reads like an instruction
+
+Phase 2's injection gate stops a model **inventing** evidence, and a test records the line it cannot
+hold: if the model quotes the injection _itself_, the quote is genuinely something the candidate typed,
+it verifies, and an inflated score stands. The owner's answer is not to try to score around it but to
+**make it visible**.
+
+- **Detect** instruction-shaped text in the evidence quotes that were actually stored — `award`,
+  `full marks`, `SYSTEM:`, `ignore the rubric`, `as the interviewer`, and the like. The phrase list
+  lives in one place with the payloads that motivated it, so adding a phrase and adding a test case
+  are the same edit.
+- **Flag the evaluation.** A column on `answer_evaluations` (so it needs a migration of its own —
+  phase 1's is already applied). **It is not shown to the candidate and it does not change the
+  score**: a flag is a reason for a person to look, not a penalty applied by a regex, and a candidate
+  who wrote "ignore the rubric" inside an otherwise real answer has not earned a worse mark for it.
+- **Surface flagged sessions to admins.** A list is enough — `/admin` already hosts staff screens, and
+  phase 6's calibration area is the natural home, so the list may land there rather than in phase 3 as
+  long as the flag is being written from phase 3 onward. Data with no reader rots; say which phase
+  draws the list.
+- **Test it with the seven payloads that already exist** (`test_evaluation_injection.py`): each one,
+  quoted back as evidence by an obedient model, must set the flag — and the ordinary fixtures must
+  not, or the list fills with noise and nobody reads it.
+
+Open questions for whoever implements it: whether the flag is a boolean or the matched phrases (the
+phrases are more useful to an admin and are our own words, not the candidate's, so they are safe to
+store); whether the worker returns it on `EvaluateAnswerResponse` (it already holds the verified
+quotes, so it is the cheapest place — at the cost of a contract field) or the API derives it from the
+stored `criteria`; and whether a flagged session should also be excluded from the calibration sample
+until a person has looked at it.
+
+**Answered in phase 3 (2026-09-27):**
+
+- **The matched phrases, not a boolean.** They are our own words, so they are safe to store and safe to
+  put in front of an admin, and they say at a glance which shape of injection this was. The quote that
+  matched them is the candidate's prose and is not copied anywhere — reading it still needs
+  `transcript_review` (ADR-0017), and a flag list is not a way round that.
+- **The worker returns it**, on `EvaluateAnswerResponse.evidence_flags`. It is holding the verified
+  quotes at the moment they are decided, and — the deciding reason — the phrase list then lives beside
+  the payloads that motivated it (`readi_worker/evaluation/instruction_flags.py` next to
+  `tests/test_evaluation_injection.py`), which is what the decision asked for. The coverage test asserts
+  **both** directions: every payload sets a flag, and every phrase is reached by some payload, so a
+  phrase added without a case fails in CI.
+- **Punctuation is kept** when matching, unlike `evidence.py`'s `normalise`. `SYSTEM:` is a phrase;
+  `system` is a word most technical answers contain, and a list that flagged every answer mentioning a
+  system would be read once and then ignored.
+- **A flagged answer is not excluded from the calibration sample** — it is the most interesting answer
+  in it. But the agreement metric has to be able to report **with and without** flagged answers, because
+  a gamed score looks exactly like a miscalibrated evaluator until you separate them. That is phase 6's
+  to build; the flag it needs is written from here on.
+- **Phase 6 draws the list**, in the calibration area: `answer_evaluations` is indexed
+  `(status, created_at)` for the sampler already, and a flagged-answers list is the same query with one
+  more predicate. Until then the flag is also logged when it is set (phrases and ids only).
+
+### Phase 3 — the job, the scoring rule, the report in code · **done 2026-09-27**
+
+- [x] `apps/api/src/evaluations/` on the `cv-parse.queue.ts` pattern — queue, processor, repository,
+      service and two pure modules. `EvaluationsModule` does **not** import `InterviewsModule`: the
+      dependency runs the other way, and a cycle would be the engine and the scorer knowing about each
+      other. What crosses is one pure function, `evaluationRequest()`
+- [x] **Enqueued on all three doors to `ended`**, through one method (`onSessionsEnded`) and one rule
+      (`endedWithAnswers`): the engine wrapping up, the candidate ending early, the stale sweep — **and
+      a fourth the plan had not listed**, a candidate starting a new interview, which abandons the one
+      they left. `abandonStale` and `create` both had to start returning ids instead of a count
+- [x] **An abandoned session with answers in it is still scored.** Which door a session left through is
+      invisible to the candidate, and "sometimes there is a report" is a worse product than one report
+      per set of answers. It costs a paid evaluation for a session somebody walked away from, which is a
+      real cost and is written down as one
+- [x] A session with **no candidate turn** gets no job and no report — an honest empty state rather than
+      a report reading "0 of 0"
+- [x] **The enqueue is outside the SSE stream**, after `close()`. ADR-0016 says nothing between
+      `open()` and `close()` may throw, and the first version put an awaited `queue.add` in there: BullMQ
+      refused the job id (`Custom Id cannot contain :`) and every advance request 500'd **after** the
+      candidate had already been sent every frame. Now it is after the stream, wrapped, and logged
+      rather than raised
+- [x] `scoring.ts`: weighted 0–100 + the 0.85 adjustment under `SCORING_VERSION`, on **any non-zero**
+      score and on the **numerator only** (off both sides it would _raise_ a prompted criterion's
+      contribution — the kind of arithmetic a candidate finds before we do). 14 unit tests, every number
+      worked out in the assertion rather than copied from a run
+- [x] **Two probes per criterion handled** — `prompting.ts` reads the pinned menu **per probe** and
+      collapses to a set of criteria at the end, so a criterion probed twice is discounted once rather
+      than 0.85². Keyed on `session_turns.follow_up_index`, the engine fact, and never on the coverage
+      model's verdict
+- [x] `report-assembly.ts`, pure: topic and question-type aggregates (weakest first — the top of the
+      list is what a candidate acts on), top 3 strengths from the answers that went best and top 3 fixes
+      from the ones that went worst, the per-question breakdown, the pinned ideal points as "what a
+      strong answer covers", and the prompting counts as numbers the web turns into a sentence
+- [x] **`TrackTopic` finally has a reader.** `lessonsForTopics` joins `TrackTopic.isCore` × `Lesson.topicId`
+      through the published track for the session's role and level; core topics first. It returns nothing
+      for five of eight role × level pairs, so the empty state is the part that ships
+- [x] **Both** `weak_topics` seams filled, from one query: the bundle takes the topic **names** (the
+      worker has no catalogue) and `selectQuestions` takes the **ids** (it is weighting a pool it holds).
+      The second one was not in the plan's checklist and had the same "empty until M4" comment on it
+- [x] The injection-evidence flag: `instruction_flags.py` beside the payloads, a column with its own
+      migration (**the ninth** `DROP INDEX questions_embedding_hnsw`, in a migration that adds one
+      column to a table Prisma has never heard of), stored, logged, and shown to no candidate. See
+      "Answered in phase 3" above for the four open questions
+- [x] `EvaluateAnswerResponse` also gained `prompt_versions`, which phase 2 had missed: the column is
+      `NOT NULL` and there was nothing on the wire to fill it with
+- [x] The pinning test extended to scoring and **watched failing in both halves** (2026-09-27) —
+      the words (report assembled from the live `questions` row: prompt and ideal points moved) and the
+      number (weights read from live `rubric_criteria`: 90 became 10). 547 other tests passed under the
+      first mutation, which is the reason that file exists
+- [x] **And the test was wrong the first time, which the mutation found.** Written as "score, then
+      edit", it passed with the weights read live — because an answer that has a row is never re-scored,
+      so the stale read never happened. It now edits the question and the rubric **mid-interview**, which
+      is also the real sequence: a session lasts fifteen to thirty minutes and an expert can rework a
+      rubric inside that window
+- [x] An idempotent re-run (no model call, no second row), a failed answer (`status: failed`,
+      `attempts: 3`, an honest gap in the report, the engine fact stored anyway), and the flag stored
+      without moving the score — all in `test/evaluations.int.spec.ts`, against the real BullMQ queue
+
+**Left for phase 4, found here:** a lost enqueue currently means a report that never arrives, because
+the stale sweep only looks at `in_progress` sessions. `GET /api/interviews/:id/report` should queue one
+when a completed session with answers has no report — the cheapest possible recovery, and it belongs
+with the route rather than here.
+
+### Phase 4 — the report the candidate reads · **done 2026-09-27**
+
+- [x] Flip `feedback_ready`; replace `interview.complete.scoringTitle` / `.scoring`
+- [x] `GET /api/interviews/:id/report`, and **re-queue on a miss**. Three codes rather than one,
+      because the honest screen for each is different: `interview_not_ended` (409),
+      `report_not_ready` (409, and the read queued one) and `report_not_found` (404 — nobody answered,
+      so there will never be one)
+- [x] **The report route reads the stored `summary` with `safeParse`, not `parse`.** It is the artefact
+      a candidate was given, written by whichever release assembled it; a shape that has moved since
+      must not 500 their report page. An unreadable one is treated exactly as a missing one — re-queued
+      — and re-assembly is free, because every answer already has a row and is never re-scored
+- [x] **A completed job blocks the re-queue, and that made the recovery a no-op.** The job id is the
+      session id (so two doors closing at once enqueue one job), BullMQ keeps completed jobs
+      (`removeOnComplete: { count: 1000 }`) and `Queue.add` with an existing id silently returns the
+      existing job — so re-queueing a session it had already scored did **nothing**, the route answered
+      "still being scored" for ever and the sweep queued into a void. `enqueue` now removes a
+      **completed or failed** job under that id first and leaves a waiting, delayed or active one
+      alone, which is where the dedupe was always meant to be. Found by the route test failing
+- [x] **A periodic sweep for ended sessions with answers and no evaluation** (owner, 2026-09-27) —
+      queueing on a report-route miss is not enough on its own, because **it only fires if somebody
+      opens the report**. A candidate who never opens theirs would go unscored for good, and that is not
+      only a missing page: `answer_evaluations` is what `weakTopics` reads, so an unscored session
+      silently degrades the _next_ interview's question selection and interviewer context, and **M6's
+      readiness score is computed from stored scores** — a gap there is a wrong number, not a blank one.
+      So the scoring queue gets its own sweep, on the `StaleSessionsQueue` / `AccountErasureQueue`
+      pattern: a scheduled job, over the **database** rather than a delayed job per session, so nothing
+      is lost to a Redis flush and a failed sweep is retried by the next one. Its query is
+      `endedWithAnswers` narrowed to sessions with no `answer_evaluations` row and no `session_reports`
+      row — and it must **not** re-queue a session whose answers all came back `failed`, or it will pay
+      for the same refusal every ten minutes for ever. Bound it (oldest first, a batch at a time) so a
+      backlog cannot become a stampede of paid calls, and give it a test that plants an ended, answered,
+      unevaluated session and watches it get queued.
+      **The query turned out to be one predicate, and the trap answered itself**: "ended, answered, no
+      `session_reports` row", oldest first, 20 at a time, 15 minutes' grace. It cannot pay twice for a
+      refusal, and the reason is structural rather than a special case — `assemble()` stores a `failed`
+      report even when nothing could be scored, so a refused session leaves the query for good; and an
+      answer with a row is never re-scored, so a session that stored answers but not its report
+      re-assembles for **no model call at all**. The only thing it can spend money on is a session that
+      was never evaluated, which is exactly the lost enqueue
+- [x] **The sweep returns ids, not a count.** Its first test asserted "nothing was swept" and failed
+      against sessions other tests in the same file had left behind — the sweep reads the whole
+      database and every spec in the suite shares one. An assertion that names its own session is the
+      only kind that can be trusted here
+- [x] `content-no-answer-key.int.spec.ts`: a **scored** session, run through the engine and the real
+      queue, and the narrowed rule asserted as three separate claims — the unconditional key absent,
+      the ideal points appearing exactly as many times as `strong_answer_covers` shows them, and a
+      dimension appearing only as a criterion's `dimension`. Plus `allowKeys` on the detector for the
+      three field names a report legitimately has (`criteria`, `criteria_total`,
+      `criteria_volunteered`), with a control proving the allowance is doing something _and_ that a
+      grafted rubric still fails with it in place
+- [x] `content-fixtures.ts` gained `idealPointMarkers` and `dimensionMarkers` as **subsets** of
+      `answerKeyMarkers` rather than as replacements: `interviews-advance.int.spec.ts` asserts the
+      bundle carries none of the key, and that claim has to keep covering ideal points and dimensions
+- [x] `(session)/interview/[id]/report/page.tsx`; 360px; **no client JavaScript on the route** — the
+      report is text, bars and links, and the waiting belongs to the completion screen
+- [x] Honest states: a failed answer (its own frame, and it still shows what a strong answer covers), a
+      session where **nothing** could be scored (no number at all, never a 0), a session nobody answered
+      (no polling — the transcript already says there is nothing to score), scoring that takes longer
+      than three minutes (spec §8 wants 60 s; a spinner that outlives its job is the failure), and no
+      published track (five of eight role × level pairs)
+- [x] **The lessons are a reading list, not links.** There is no candidate-facing lesson page in the app
+      yet, and a title that looks like a link and answers 404 is worse than one that admits what it is.
+      Naming the lesson written for the topic somebody went worst on is most of the value; the day the
+      page exists it becomes a list of links with no other change
+- [x] **Contract: `strengths` and `fixes` carry the question they came from** (`ReportHighlight`).
+      Chosen in code from the best and worst answers, so each is a claim about one specific answer, and
+      without saying which, "say what you measured" is advice a candidate cannot check. They carry a
+      **position, not a quote**: the quote belongs to a criterion, where the evaluator paired it with
+      its own reasoning, and pairing a session-level tip with a criterion-level quote would assert a
+      link nothing made. The summary attributes; the breakdown quotes
+- [x] **Contract: the report carries the pinned catalogue and `ended_at`.** A report is read months
+      later and CLAUDE.md's rule is that renaming a role must not rewrite one somebody has already
+      read — so the names travel with the artefact rather than being joined at read time. `ended_at`
+      because a report the sweep recovers days later must not date itself by its own assembly
+- [x] The visual capture extended (`39-interview-report`), and `runInterview` now waits for the report
+      through the candidate's own path — so screen 38 is photographed settled rather than mid-spinner
+
+### Phase 4.5 — the first paid evaluation run (set up 2026-09-27, owner runs it)
+
+One 15-minute interview on `claude-sonnet-5` with evaluation on `claude-opus-5`, before phases 5 and
+6: the evaluator has never met a real model, and the report is only as good as what is in it.
+
+- [x] `pnpm db:seed -- --check` — **clean**. 104 questions, 102 rubrics, 4 roles, all unchanged; no
+      published row the files have stopped naming (the `api-error-shape` retirement held)
+- [x] **The dev API is running pre-phase-4 code** — `/api/interviews/:id/report` answers 404 where
+      `/status` answers 401, so the route is not there. It must be restarted before anything
+- [x] **Ten ended sessions in the dev database have no evaluation and no report, and eight of them
+      have answers.** The new sweep will queue all eight on the first tick after a restart — roughly
+      30 evaluator calls, which is about **$1 on opus** and would land in the middle of the run being
+      measured. So the order is: restart the API **while the worker is still `fake`**, let the sweep
+      drain the backlog for nothing, and only then arm. It is also the first time the sweep runs
+      against real rows, which is worth watching
+- [x] **A startup line naming the armed provider** (`readi_worker/main.py`). `fake` is the resting
+      state and a paid run is armed on the command line for its own length, so the one thing an
+      operator needs before spending money is a way to tell the two apart from outside the process —
+      and `.env.example` already recorded that the first two paid runs were each diagnosed twice
+      partly because there was not one. Names only; the key is a `SecretStr`
+- [ ] **The run**: `aydeggy5@gmail.com`, Backend · Mid-level, 15 minutes, the preset mixed types.
+      That account has **no prior sessions**, so no question history to exclude and no weak-topic
+      weighting, and it owns none of the backlog, so the fake scores cannot reach it
+- [x] Costs reported **separately** (2026-09-27, session `742150d9`): interview **4.79¢** (14 calls,
+      `claude-sonnet-5`), evaluation **23.38¢** (5 calls, `claude-opus-5`), **28.17¢** total. The
+      evaluation is 83% of it and ~4.9× the interview — the plan projected ≈12¢ for four answers on
+      opus and it came in at nearly double, on 4,350 input and 1,000 output tokens per call plus one
+      retry
+- [x] **The first paid evaluation worked.** Four answers scored, all `high` confidence, one retry on a
+      `rejected_criteria` gate, no refusals, no provider errors, no evidence flags. The prompting
+      discount is visible and small where it should be: 83→75, 85→82, 84→80, and 55→55 where nothing
+      was prompted
+- [ ] **A 15-minute session did not reach the candidate's own questions, and that is a real finding**
+      rather than a bug. The four questions took 14m 35s of a 15m budget, the engine needs
+      `SECONDS_FOR_CANDIDATE_QUESTIONS` (90) to open the state, and 25 seconds remained. **95% of the
+      session was the candidate typing** (13m 51s of 14m 38s; the model spent 43s), and **question 1
+      alone took 9m 12s** — a 236-second first answer and a 224-second answer to its second probe.
+      The owner's call: is the 15-minute plan four questions or three, and should `INTERVIEW_PLANS`
+      reserve the invitation rather than letting the question budget consume it? `interviews:pace` is
+      the tool that should answer it with more than one session
+- [ ] **`transcript_review` is never asked of an existing account** — see the blocker below
+- [x] The worker disarmed back to `fake` after the run, confirmed by its own startup line
+- [x] **Written up in full: `docs/progress/2026-09-27-m4-first-paid-evaluation.md`** — the session id,
+      both cost tables, the per-answer table, the timing table, and the four findings below
+
+### What the paid run found, for the next session to act on
+
+**1. A candidate can lose 35 points to the clock, and nothing says so.** Question 4 scored 55 because
+criterion 2 (35% — "Deals with the rows that are already wrong") scored 0 with no quotes. Its probe
+existed and was **never asked**: `criteria_covered` is `not_judged` for all three criteria and there
+is **no coverage call in `ai_call_log` for that question at all**. Three correct rules composed into
+it — the engine opened the question with 127 s left (`SECONDS_FOR_A_QUESTION` is 120), the answer took
+99 s, so at submission 25 s remained against `SECONDS_FOR_A_FOLLOW_UP` (45) and `probes_to_judge`
+returned empty; and then the evaluator scored the whole pinned rubric, because it has no idea which
+probes were asked. The 0.85 adjustment protects a candidate who **needed** a nudge and there is
+nothing for one who was never **offered** one.
+
+- [x] **Remedy (b), the guarantee — done first, `SCORING_VERSION` 2.** A criterion the interview
+      never asked about **and** which the answer did not reach (0 with no evidence) leaves the
+      denominator; volunteered unasked, or addressed and wrong, still scores. `unaskedCriteria()` +
+      `notAssessedCriteria()`, keyed on the engine fact and the model's own reading, never on the
+      coverage verdict. Never excludes the whole rubric. The report names them by `dimension` in
+      `not_assessed`, and `criteria_total` is now the assessed count
+- [x] **Remedy (a), the improvement — `SECONDS_TO_OPEN_A_QUESTION` (165 s).** End sooner with fewer
+      questions rather than open one the clock cannot probe. The reserve now means what its own
+      comment said; the 127-second case is a named test parameter
+- [x] **The evaluator is told which criteria were asked** (`asked_about`, `evaluate_answer.v2.md`) —
+      so its **prose** stops blaming a candidate for a question nobody put to them. It may not move a
+      score, and does not: the exclusion is arithmetic in `scoring.ts`
+- [x] **Tested on the real question 4**: 55 before, **85** after, `overall_raw` still 55; the session
+      goes 73 → 81. Written up in `docs/progress/2026-09-27-fairness-and-cost-levers.md`
+
+**2. Evaluation is 83% of the bill** — 23.38¢ against 4.79¢, **4.9× the interview**, where the M4 plan
+projected ≈12¢. A 30-minute session (eight answers) is ≈50¢ of evaluation at this rate.
+
+- [x] **Measured, not guessed.** The cacheable prefix is the **system prompt and nothing else** —
+      render order is `tools → system → messages` and the user message diverges at its first
+      interpolation. `evaluate_answer.v2.md` is 6,281 chars ≈ **1,700 tokens**, which is ~39% of the
+      4,352-token average call. Saving: **2.84¢ cold (12.2%)**, **3.82¢ warm (16.3%)** of 23.38¢;
+      identical percentages on sonnet-5. Minimum cacheable prefix is 512 tokens on opus-5 and 1,024
+      on sonnet-5 — both cleared
+- [x] **The prefix is global, not per-session**, so under any traffic at all the write amortises and
+      warm is the normal case. A scheduled keep-alive is **not** worth it below ~9 sessions/day
+      (a refresh is a cache read, ~$7.50/month)
+- [x] **The fan-out fix is a `max_tokens: 0` pre-warm**, not scoring the first answer alone: same
+      write, ~1 s instead of the measured ~15 s of latency against spec §8's 60 s
+- [x] **Recorded with the sonnet comparison as M8 pricing inputs** —
+      `docs/progress/2026-09-27-fairness-and-cost-levers.md`. sonnet-5 is 60%, caching 12–16%, they
+      compose to 66%: 28.17¢ → ≈12.6–13.0¢ for a 15-minute session. A 30-minute session is ≈50¢ on
+      opus, ≈16–17¢ on sonnet with caching
+- [ ] **Not built.** Caching is a phase 7 change at the earliest, after the model decision — the
+      percentage is the same either way, so there is nothing to learn by doing it first
+- [x] One retry of five calls bought nothing (~4.7¢). That is the gates working, and it belongs in any
+      per-session estimate
+- [ ] **The larger caching opportunity is the interview, not the evaluator**: 14 calls sharing a
+      system prompt _and_ a session bundle, sequential by construction so it needs no pre-warm. Worth
+      only 12–16% of 4.79¢, so it is not urgent
+
+**3. Four questions did not fit fifteen minutes** at this candidate's pace: 14m 38s used, **95% of it
+the candidate typing** (13m 51s; the model spent 43 s), and **question 1 alone took 9m 12s — 63% of the
+interview**. The candidate's own questions were then skipped with 25 s left against a 90 s reserve.
+
+- [ ] One session is not a pace. `interviews:pace` (phase 7) reports median and p90 before anything
+      changes. The options on the table: `INTERVIEW_PLANS[15].questions` from 4 to 3; reserve the
+      invitation up front rather than letting the question budget consume it; or leave it and accept
+      that a thorough candidate trades their own questions for a fourth interview question
+
+**4. The consent-routing bug** — see the blocker below, unchanged by the run except that the run is
+what exposed it.
+
+### Blocker found by the paid run — the consent nobody is asked for (2026-09-27)
+
+`transcript_review` joined `allDecided` in phase 0 so that "every existing account is asked once"
+(ADR-0017). **It is not.** The owner's account has four consent records from 2026-09-19 and no
+`transcript_review` row of either kind, and the interview intro correctly omitted the v3 clause
+because `hasGranted` correctly returned false. Everything downstream of the decision works; the
+decision is never requested.
+
+The cause is one line. `nextOnboardingPath` (`apps/web/src/lib/navigation.ts`) routes on
+`completed_at`, not on the value `allDecided` computes:
+
+```ts
+if (!state.profile_completed) return "/onboarding/profile";
+if (!state.completed_at) return "/onboarding/consent"; // ← already set on 2026-09-19
+return null;
+```
+
+`OnboardingService.state` does return `consents_completed: false`, and `complete()` refuses on it —
+but nothing sends an account that has _already_ completed onboarding back for a new consent type.
+
+- [x] **Fixed 2026-09-27 (phase 4.7), and it was not one line.**
+      `docs/progress/2026-09-27-consent-routing.md`. `nextOnboardingPath` routes on
+      `consents_completed`; **and the redirect loop was real** — the consent page bounced anybody with
+      `completed_at` to `/profile/consent`, which is behind `requireOnboarded`, so with the one-liner
+      alone every existing account would have ping-ponged between the two screens and been unable to
+      load any page. Closed by extracting `consentStepPath()` as a pure function reading the _same_
+      fact, with the invariant asserted over all eight states and a termination walk beside it — both
+      watched failing with the bug put back
+- [x] **Continue checked, not assumed**: prior decisions come back pre-ticked so nobody silently loses
+      a consent; an unticked new type records an explicit `false`, which satisfies `allDecided`
+      ("refusable at no cost"); and `complete()` is idempotent, so the onboarding-mode submit has no
+      error path on an already-onboarded account
+- [x] **No e2e spec depended on the old routing**, checked rather than reasoned:
+      `pnpm test:e2e onboarding` passes on the new routing, including the whole sign-up → profile → CV
+      → consent → home walk. `onboard()` clicks Continue with nothing ticked, which records an explicit
+      `false` for every type and satisfies `allDecided`
+- [ ] **No e2e test for the re-ask itself** — the state needs an onboarded account with an undecided
+      consent, which means database surgery the e2e specs have no route to. Covered at the unit level
+- [ ] **Phase 6 is unblocked but nobody has been asked yet**: `usersGranting("transcript_review")`
+      returns nobody until accounts pass through the screen. The owner's account is the first, on its
+      next page load
+- [ ] **It gates phase 6.** The calibration tool samples through `usersGranting("transcript_review")`,
+      which is correct and currently returns nobody — so the tool would be built against an empty set
+      and look like it worked. Safe by default, useless in practice, and a promise in an accepted ADR
+      that the product does not keep
+- [ ] A test that would have caught it: `nextOnboardingPath` for a state with `completed_at` set and
+      `consents_completed` false must not be null
+
+### Phase 4.6 — the fairness fix, the reserve, and the caching measurement (2026-09-27)
+
+The owner's decision on finding 1: **implement both**, the guarantee first. Full write-up in
+`docs/progress/2026-09-27-fairness-and-cost-levers.md`.
+
+- [x] `SCORING_VERSION` 2, `not_assessed_criteria` column (migration read by hand; Prisma proposed
+      `DROP INDEX questions_embedding_hnsw` for the **tenth** time and it was deleted; applied with
+      `migrate deploy`)
+- [x] `unaskedCriteria()` — the exact complement of `promptedCriteria()` over the criteria that have
+      probes, per probe and never per criterion
+- [x] `notAssessedCriteria()` — the engine fact **and** the model's 0-with-no-evidence, with the
+      "never the whole rubric" guard for the two seeded questions that probe every criterion
+- [x] `asked_about` on `EvaluationCriterion`, `NOT_ASKED_LABEL`, `evaluate_answer.v2.md` (v1 is
+      released and scored the paid run, so it was not edited; only that one entry of `PROMPT_VERSIONS`
+      moved)
+- [x] `not_assessed` on the candidate report, its own frame on the page, `criteria_total` narrowed to
+      the assessed count; the leak test's dimension count now spans both lists
+- [x] `SECONDS_TO_OPEN_A_QUESTION` in `budgets.py`, used by `_past_current_question`
+- [x] Tests: the real question 4 in `scoring.spec.ts` (55 → 85), `unaskedCriteria` including the
+      two-probe case, report assembly, the end-to-end case through the real queue
+      (`FakeInterviewEngine.followUps`), the 127-second reserve, the worker's criteria block and v2
+      prompt, the stand-in scoring a `NOT ASKED` criterion 0, and the web sentence
+- [x] Lint, typecheck, 584 API + 349 worker + 168 web tests green
+- [x] **`pnpm test:e2e` green** (2026-09-28, once WSL restarted and the dev servers were down):
+      9 passed, 6 skipped — the opt-in visual and slow-network specs. It covers the interview but
+      **not the report**; "e2e interview → report" is still owed by phase 7
+- [x] **Every stored report is now unreadable to this release, and that is the designed path.**
+      `not_assessed` is a required field, so `SessionReportResponse.safeParse` fails on the paid run's
+      stored `summary` — which is exactly what `safeParse` plus the sweep exist for: the route answers
+      `report_not_ready`, queues the job, and re-assembly **makes no model call** because every answer
+      already has a row. The candidate sees the processing screen once. Deliberately not given a Zod
+      `.default([])`: the contract is better required, and the recovery is free
+- [ ] **But the 30 points are not given back to it.** An answer with a row is never re-scored, and
+      re-assembly reads `not_assessed_criteria`, which is empty for rows written under
+      `scoring_version = 1` — so the paid run's report re-assembles at 55 and 73. Re-scoring a session
+      means deleting its `answer_evaluations` rows and paying again: an operator's call, and there is
+      one real session it would apply to
+
+### The intermittent API test failure — hunted, not caught (2026-09-28)
+
+`docs/progress/2026-09-28-flaky-test-hunt.md`. **Twenty runs, no reproduction**, so the cause is
+unconfirmed rather than explained.
+
+- [x] 10 × the API suite alone, and 10 × `pnpm test --force` through turbo: all clean (588 each)
+- [x] **The one lead**: all three failures happened while `pnpm dev` and `dev:worker` were up; all
+      twenty clean runs happened with them stopped. On 6 cores and 7 GB — ~2 GB free _without_ them —
+      six concurrent package suites plus the API's own four Nest apps is a materially different load
+- [x] **The named suspect**: five specs polled a real background job with a hand-rolled 10-second
+      budget that was never measured. Unified into `test/poll.ts` (`pollFor`,
+      `BACKGROUND_JOB_BUDGET_MS = 25_000`, still under `testTimeout` so the poll names what it waited
+      for), with `poll.test.ts` — seven cases, because a poll that returns too eagerly fails _silently_
+- [x] **The first finding cost the most**: no test name was ever captured, because the grep matched
+      turbo's counts and not its `×` lines, and ANSI codes defeated the pattern that would have. The
+      write-up says how to capture it next time
+- [ ] **Still possible it recurs.** The widened budget is a mitigation for an unconfirmed diagnosis. If
+      it does, the four steps in the write-up say what to do, and the five polls now name themselves
+
+### Phase 5 — the eval harness
+
+- [ ] `readi_worker.evals.run` over the 510 synthetic answers; rubrics read from `content/seed`, no database
+- [ ] The two separations and the `nigerian-english` one-point band, measured on the **real** evaluator
+- [ ] `evals/datasets/gold/` format, `evals/thresholds.yaml`, a README that keeps synthetic and gold apart
+- [ ] `--smoke` on the fake provider inside `pnpm test`, so the harness cannot rot
+- [ ] `.github/workflows/evals.yml`, `workflow_dispatch` only, reason in the file
+
+### Phase 6 — the calibration tool (done, 2026-09-28; handover `docs/progress/2026-09-28-m4-phase-6.md`)
+
+- [x] **The gate is in code, not in a convention.** `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` is off
+      and while it is, only **staff-written** answers are offered — so the whole path was built and
+      demonstrated, consent and all, without one candidate's words reaching a reviewer. A test opens
+      the flag and watches the same answer appear, so the gate is proved in both positions. Flipping
+      it is the only change needed when a signed `reviewer-agreement.md` exists (ADR-0017 decision 6)
+- [x] `/admin/calibration`: the queue, the answer with the **pinned** rubric and no AI marks, the
+      flagged-evidence list, and agreement per rubric and per question. `calibration_scores` already
+      existed from the phase 0 migration, already in `TOMBSTONED_COLUMNS` — **no migration was needed**
+- [x] **Nothing is sampled except through `usersGranting("transcript_review")`.** Held in four
+      directions: never granted, granted then withdrawn (the _read_ as well as the list, because a
+      reviewer may hold a link), granted against an older version of the wording, and granted by
+      somebody who is not staff while the gate is closed
+- [x] **A read is the audited event**, not the score — consent was asked for a person _reading_ a
+      candidate's words. One row per read, ids and counts only; a refused read writes nothing
+- [x] **Blindness asserted over the raw JSON**, as the leak test does: `CalibrationAnswer` is a
+      separate shape rather than an `Omit<>` of the evaluation, because a field omitted by subtraction
+      comes back the first time somebody widens the parent. No name, no email, no user id either
+- [x] **No second status machine**, which is what the plan's "reuse `content-workflow.ts`" was warning
+      against: a review has no lifecycle. Nothing was bent to reuse it
+- [x] The agreement dashboard is **admin-only and aggregate-only** — an aggregate a reviewer reads
+      before marking is still the model's opinion reaching them first, and a row naming one answer
+      would undo the blindness for everyone who has not marked it yet
+- [x] `apps/web/e2e/calibration.spec.ts` at 360px: staff sits a real interview, grants consent on the
+      candidate's own screen, a second member of staff marks it; flags, dashboard, and a 404 for a
+      candidate at every URL. Five screenshots in `apps/web/e2e/.artifacts/`
+- [ ] **Nobody has been asked for `transcript_review` in a real deployment**, so a production queue
+      is empty and says `no_consent` until they are
+- [ ] **The visual capture does not include these screens** (`e2e/visual`), and the header change is
+      worth a before/after across the whole set, since it touches every signed-in page
+- [ ] **A reviewer cannot see their own agreement.** Admin-only is the conservative reading; showing
+      a reviewer aggregates over answers they have _already_ marked would be safe and is probably the
+      first thing they ask for
+
+### What the calibration work cost the chrome, and what it is owed
+
+- [x] **Two header regressions at 360px, both found in the screenshots rather than by a test.** A
+      third nav link wrapped the wordmark ("Readı" across two lines, fixed with `shrink-0`), and then
+      the first fix — letting the nav scroll — put `Admin` outside the viewport with no affordance.
+      The header **wraps** now: a nav may not hide a destination. The candidate header carries at most
+      one staff link below `sm`, so it never overflows and is unchanged
+- [x] **The dashboard was a table** in a horizontal scroller with `Exact` off the right edge, against
+      the CMS layout's own note that "nothing here is a table". It is rows now
+- [ ] **No test would have caught either**, and that is the honest state: the e2e asserts the links
+      are reachable, not that they are on screen. A width assertion or a visual diff is what would
+
+### Phase 7 — measurement, one paid run, the handover
+
+- [ ] **The full before/after visual capture, across every signed-in page** (owner's decision,
+      2026-09-28). `E2E_SCREENSHOTS=before pnpm test:e2e visual`, then again after: M4 phase 6 changed
+      `AppHeader` so the bar wraps when crowded, and that is shared chrome on every signed-in screen.
+      Add the four calibration screens to the capture while doing it — no test would have caught
+      either header regression, and both were found by looking
+
+- [ ] **A worker 422 is not a transport failure**: `AiWorkerClient.post` turns every non-2xx into
+      `AiWorkerUnavailableError`, so a request the worker will _never_ accept is retried three times
+      with backoff and stored as `provider_error`. Found on 2026-09-27, when `EvaluationTurn.text`
+      was too short for a real answer: the diagnosis took measuring turn lengths against report gaps
+      because the only thing in the log was `attempt failed: AiWorkerUnavailableError`. Two changes,
+      both small: **log the status code** (the queue logs `error.name`, not `error.message`, so
+      "worker answered HTTP 422" never reaches anyone), and **do not retry a 4xx** — a contract
+      violation is a bug to fix, not a condition to wait out. Keep 408, 429 and every 5xx retryable
+- [ ] `interviews:pace` — median and p90 answer seconds and words, minutes against `planned_minutes`, how many questions fit 45; sample size on its face
+- [ ] **sonnet-5 vs opus-5 agreement, with a recommendation** (owner's decision 7; opus roughly triples session cost)
+- [ ] One paid interview → evaluation → report, with costs; a stratified ~60-answer harness run
+- [ ] e2e interview → report; the visual capture extended; `measure()` in `slow-network.spec.ts` fixed (the M3 leftover)
+- [ ] CLAUDE.md, the spec §4.4/§6.2 amendments, `docs/PROMPTS.md`'s "~20 sample cases", ADRs, handover, lessons
+- [ ] `docs/diagrams/figure-10-evaluation-to-readiness.svg` checked against what was built
+
+## M4 phase 5 — the eval harness, the fairness measurement, and the model decision
+
+**Built and proved on the stand-in. Nothing spent yet** — the paid run is waiting on the owner's
+go-ahead. Full write-up: `docs/progress/2026-09-28-m4-phase-5.md`.
+
+### 5a — prompt caching at the LLM seam (a prerequisite, not a detour)
+
+- [x] `LLMClient.parse` gains `cache_system`; the Anthropic client sends the system prompt as one block
+      with an **explicit** breakpoint on it (top-level automatic caching would place it after the
+      per-call tail and write an entry nothing could read); `LLMResult` carries the two counts
+- [x] `pricing.py` prices them at 1.25x (write) and 0.1x (read) of the input rate, so
+      `cost_micro_usd` is still the sum of its own row's units at three rates
+- [x] `AiCallRecord.cache_write_units` / `cache_read_units`, the two `ai_call_log` columns, and the
+      migration read by hand — Prisma proposed `DROP INDEX questions_embedding_hnsw` for the
+      **eleventh** time in a migration that adds two integers to `ai_call_log`; deleted, applied with
+      `migrate deploy`
+- [x] **The fan-out lost its first place.** Four parallel calls on a cold prefix each pay the 1.25x
+      write and read nothing — `4 x 1.25` against `4 x 1.00` uncached — so caching plus the old
+      fan-out was a net loss at MVP volume, where cold is the normal case. The first answer is scored
+      alone and the rest fan out behind it: ≈15 s of the 60 s budget, for ≈9% of the bill cold and more
+      under traffic (the entry is **global** — one system prompt for every answer of every session)
+- [x] **Pre-warming is not available to us**, whatever phase 4.6 preferred: `max_tokens: 0` is an
+      `invalid_request_error` together with `output_config.format`, which every evaluator call uses.
+      Recorded in `evaluation/calls.py`
+- [x] `evaluation.processor.spec.ts` — the head, **watched failing** with `concurrently(all)` put back,
+      and the tail proved genuinely concurrent so the test cannot pass on a sequential loop
+- [ ] **Caching has not been observed working against the real API.** `cache_read_input_tokens > 0` is
+      the only ground truth and needs a paid call. The report says so loudly if caching was asked for
+      and nothing was read back, naming the three causes — so the first paid run verifies this too
+
+### 5b — the harness
+
+- [x] `readi_worker/evals/`: `dataset.py`, `requests.py`, `metrics.py` (pure), `results.py`,
+      `report.py`, `run.py`. Reads `content/seed` and `evals/datasets`; no database, no Redis, no
+      service token — which is what makes it runnable in CI and from a dispatch job
+- [x] Every call goes through the real `EvaluationService` over the real contract, so the three gates,
+      the retry loop and the evidence verifier that run in production are what is measured
+- [x] Fairness **per criterion with the dimension named** (an average hides the one descriptor that
+      cost three rungs), one-sided; the two separations on `check-stress.mjs`'s own 0.8 margin;
+      agreement as five figures, because each hides what the others show
+- [x] **`test_the_written_scores_pass_their_own_checks`** — the corpus's own expected scores through the
+      Python harness must reach `check-stress.mjs`'s verdict on the same numbers: 102 rubrics, no
+      problems. Two implementations of one rule in two languages, agreeing on the real corpus
+- [x] `--dry-run` prints the sample and each model's cost, with the input tokens **counted** when a key
+      is present (`count_input_tokens`, free, tested against a mock transport) rather than estimated
+- [x] `--compare` reads two result files: free, repeatable, and the reason the run file holds every
+      per-criterion score and every call's usage rather than a summary
+- [x] Sequential by default; `--concurrency` exists to be left alone
+- [x] `evals/thresholds.yaml` (agreement only — the separation margin and fairness band stay in
+      `metrics.py` beside the code that applies them, because three copies of 0.8 is how three drift),
+      `evals/datasets/gold/` with its format and a skipped `*.template.yaml`, `evals/README.md`,
+      `evals/results/README.md`
+- [x] `--smoke` inside `pnpm test`: it asserts the machinery and **refuses** to assert the fairness band
+      or the separations, because the stand-in scores on the word "because". The §6.2 evidence check was
+      watched failing
+- [x] `.github/workflows/evals.yml`, `workflow_dispatch` only, path filter written and commented with
+      the reason
+- [x] Lint, typecheck green. `pnpm test`: 599 API, 396 worker, 176 web, 119 shared-types, 56 ui, 3
+      api-client
+
+### Waiting on the owner
+
+- [x] **The paid run — done, 2026-09-28**, and the results are the next three sections. What it was
+      approved on: **$3.23 for both models**. What it cost: **$5.93**, over four runs. Where the
+      difference went, because an estimate that is beaten teaches something — counted input was 19%
+      above the 3.7-chars/token estimate (207,887 tokens against 174,157, the prefix 2,055 rather
+      than 1,698), opus's rejected-reading rate was 33% rather than the 20% allowed for, its output
+      ran 1,194 tokens a call against 1,000, the account ran out of credit mid-run so ten answers
+      needed a second paid pass, and **two opus runs overlapped** — only one of them launched from
+      the Claude session, and the other has no log on this machine, no crontab and no timer behind it
+- [x] **The recommendation** decision 7 asks for: it is the last of the three sections below, and it
+      is to stay on opus for now
+
+### The paid runs, 2026-09-28 — both models measured, and the model decision
+
+**$5.93 spent in total** over four runs: two overlapping opus runs ($2.46 + $2.16), sonnet ($0.75) and
+the opus retry ($0.56). Four result files in `evals/results/`, **none committed** — the owner's call.
+
+- [x] **The fairness band held on both models, and the sonnet sample is the complete one.** Per
+      criterion with the dimension named: **opus 0 of 36 outside the band** (mean drift −0.06 rungs,
+      worst +1, two criteria at +1), **sonnet 0 of 36** (mean drift +0.00, worst +1, three at +1 and
+      three at −1). Quote it as "fair to model-written Nigerian English", never as "fair": 12 idiom
+      answers per model, AI-written, scored by the same family of model
+- [x] **Both separations, both models, on every rubric**: opus 12 of 12 and 12 of 12, sonnet the same.
+      Smallest fluency gap +1.25 (opus, `incident-ownership`) against the 0.8 margin
+- [x] **Caching is observed working against the real API** — the open item from 5a. One write of 2,966
+      tokens and a read on every billed call after it; 66% (opus) and 67% (sonnet) of prompt tokens
+      served from cache. The real cached prefix is **2,966 tokens, not the 2,055 `count_tokens`
+      reports**: `count_tokens` takes no `output_config`, so the schema's tokens are inside the cached
+      block and outside the count, exactly as `count_input_tokens`'s docstring warns
+- [x] **opus scores are stable between runs.** The two accidental runs and the merged one agree at
+      **89–90% exact, 100% within one rung, MAE 0.10–0.11, bias +0.01** per criterion over 47–50
+      answers. CLAUDE.md said whether the constrained schema and `effort: low` are enough was "a
+      measurement the `/evals` harness makes, not an assumption" — this is that measurement
+- [ ] **sonnet stability is not measured**, and needs a second sonnet run (~75¢). Not run because the
+      authorised runs were sonnet once and opus's ten missing answers
+
+### What the rejection causes turned out to be (the reason to record them)
+
+- [x] **`ai_calls` error codes are now in the run file** (`CaseResult.call_errors`), and the report has
+      a `## Why calls bought nothing` section: per cause, with its share of calls and what the gate is
+- [x] **One cause, and it is opus's alone: `rejected_criteria`** — a reading that left a criterion out
+      or invented one the rubric does not have. **7 of the opus retry's 17 calls; 0 of sonnet's 60.**
+      Sonnet threw away **nothing** across 60 answers, where opus discarded 32 readings over its 110
+      calls. The 33% was never the model being careful; it is this one gate, on this one model
+- [x] **`invalid_output` as a case-level error was hiding it.** `service.py` sets
+      `failure = "invalid_output"` when a gate rejects, so an answer rejected three times reads as
+      schema-invalid output in the run report. The four opus answers that failed that way in the first
+      run all scored on retry — they were `rejected_criteria` all along, and the per-call codes are
+      what say so
+- [ ] **Worth trying before phase 7 quotes a cost**: the opening of `evaluate_answer.v2.md` asking for
+      exactly one entry per listed criterion, or the retry correction naming the positions it wants
+      back. A third of opus's bill is one fixable gate, which is a bigger lever than the model choice —
+      and it is a **v3**, because v2 is released and named in these runs' `prompt_versions`
+- [ ] **25 of opus's 32 rejections have no recorded cause** and never will: they are from the run
+      written before the codes existed. The merged report says so where the table is rather than
+      presenting the attributed 7 as the total
+
+### Two counting flaws fixed, both of which flattered
+
+- [x] **An unmeasurable pair is no longer a pass** (`report.py`, `Separation.fairness_measured`). The
+      denominators are the rubrics where the comparison could be made, and the rest are **named**: the
+      first opus run printed "fluency: 11 of 11" on 9 measured rubrics and "0 of 12" on 9 comparable
+      ones. `tests/test_evals_report.py`, **watched failing** against the old formula. `--smoke` can
+      never catch this, because the stand-in scores every answer it is given
+- [x] **A merge may not add up `failed`.** It is one per answer, not one per attempt, so the first
+      merged file reported 10 unscoreable answers in a run where all 60 had scores. The failed
+      attempt's tokens and money stay additive; what went wrong with it stays in `call_errors`
+- [ ] **`Usage.failed` is derivable from `CaseResult.error`** and is stored anyway, which is why it
+      could disagree with it at all. Making it a property would remove the possibility rather than fix
+      the instance
+- [ ] **There is no way to re-render a stored run**, though "every figure is recomputed from the file"
+      is the whole design. Re-reporting the merged run took a scratchpad script; a `--render RESULT`
+      flag is a few lines and would make the promise real
+
+### `--retry-unscored`, and why it is in the harness rather than in a shell
+
+- [x] **`--retry-unscored <result.json>`** re-scores only the answers a run has no score for and writes
+      the two **merged as one whole run**, so the file stays comparable with another model's. It
+      refuses a different model or dataset **before** it spends anything — a file holding one model's
+      readings of some answers and another's of the rest would be a lie nothing downstream could
+      detect. A retried answer carries both attempts' cost, because the first attempt was paid for
+      (ADR-0007). Verified free with `--dry-run` before the paid run
+- [x] `evals/README.md` and CLAUDE.md §4 document it; 417 worker tests, ruff and mypy green. Nothing
+      outside `apps/ai-worker` changed, so no contract regeneration and no API or web work
+
+### `evaluate_answer.v3` — the fix for `rejected_criteria` (2026-09-28, waiting on a paid check)
+
+**Nothing paid has been spent on this.** Proved on the stand-in; only a paid run can show the rate
+falls, and the sizing for it is at the end of this section.
+
+- [x] **What the gate actually refuses, and what could not be recovered.** `rejected_criteria` fires
+      when the returned set of `criterion` numbers is not the rubric's — one left out, or one invented.
+      The runs recorded the **code and not the detail**, so which of the two it was is a guess: the
+      shape of the mistake was thrown away with the reading. Fixed for next time — `_Checked.detail`
+      carries `expected 0, 1, 2; got 1, 2, 3` into the log line, integers only, so it names no
+      candidate words and no rubric prose
+- [x] **The root cause both mechanisms share is in the rendering.** `criteria_block` numbers criteria
+      from **0** and prints each criterion's five rungs, also labelled 0 to 4, directly underneath. The
+      criterion number and the score are the same kind of token in the same block, and neither prompt
+      said which was which or what the expected set was — v2's instruction was "use the number it is
+      given here", which is only unambiguous if you already know where to look
+- [x] **`evaluate_answer.v3.md`** states it as a rule and early: one entry per listed criterion and no
+      others; the numbers start at 0 and are **not** scores (`criterion` is the number before the
+      dimension, `score` is the rung under it); an answer that reaches a criterion not at all is a 0
+      with empty evidence, **never a missing entry** — which is the failure the rule would otherwise
+      invite. And what it costs, because that is the part a model cannot know: the whole reading is
+      discarded, so every criterion loses its mark, including the ones it read well
+- [x] **`evaluate_answer_input.v2.md`** prints the expected numbers instead of leaving them to be
+      inferred (`exactly these numbers, one entry each: 0, 1, 2`), from the same list `_check` builds,
+      so the instruction and the gate cannot disagree about what was asked for
+- [x] **The retry correction names the whole expected set**, not only what the last attempt got wrong.
+      A reading numbered 1,2,3 against a rubric numbered 0,1,2 is _both_ a missing criterion and an
+      invented one, and being told each separately leaves the off-by-one that caused both to be
+      inferred
+- [x] **Proved on fake, and the limit of that is the point.** A scripted reading numbered from 1 is
+      rejected, retried with a correction naming `0, 1`, and scored — so the retry carries the
+      information; the rendered prompts are asserted to carry the rule and the set; `--smoke` is green
+      with `prompt_versions` reading `evaluate_answer 3, evaluate_answer_input 2`. None of that is
+      evidence the **rate** falls, which needs a real model
+- [x] 421 worker tests, ruff, mypy green. `apps/api`'s fake worker still reports
+      `evaluate_answer: 2` in its fixtures — deliberately untouched, because those tests assert the
+      API stores what a worker told it, not what the real worker sends
+- [x] **The paid check ran and v3 did not fix it (2026-09-28).** Approved at $1.60, **stopped at $1.23**
+      with 22 of 30 answers when the projection crossed the cap — the standing rule's first test, and it
+      applied to me. **17 rejected readings over 39 calls (44%)** against a matched v2 baseline of
+      **42 over 112 (38%)** on the same five rubrics with credit-failure calls excluded; answers needing
+      a retry **50% (11/22) against 29% (20/70)**. Both differences are inside the noise, and neither is
+      a fall. **Clearer instructions are not the fix.** The lead v3 never touched: the rejections
+      concentrate in `weak`, `fluent-but-wrong` and `correct-poorly-explained`, where a rubric's lower
+      descriptors do the work — 11 of the 11 retried answers were those three kinds
+- [x] **v3 is written, tested and not in use** (owner's decision, 2026-09-28). `PROMPT_VERSIONS` names
+      `evaluate_answer` v2 and `evaluate_answer_input` v1, because every figure M4 rests on was
+      measured on those; the v3 files stay and stay under test, because an untested prompt file rots
+      and the structural attempt builds on them. **One piece is code, not a prompt, and is still
+      live**: the retry correction names the whole expected set of criterion numbers. Not reverted —
+      the decision named `PROMPT_VERSIONS` — and it is one line if it should go too
+- [x] **The lead: it is not a counting failure.** Every one of the eleven retried answers was a
+      `weak`, a `fluent-but-wrong` or a `correct-poorly-explained` — the three kinds where a rubric's
+      _lower_ descriptors do the work, and never a `strong` or a `nigerian-english`. That is a model
+      **leaving out the criteria an answer did not reach** rather than scoring them 0 with no
+      evidence (spec §6.2), which is a thing wording has now failed to prevent twice
+- [x] **The structural fix is built and off**: `evaluation/strict_schema.py` builds the reading model
+      per request from that rubric's positions — `criteria` an object keyed by position, every key
+      `required`, `additionalProperties: false`. Omission and invention are invalid output rather
+      than a gate rejection after the fact. Proved on the stand-in end to end
+      (`--smoke --strict-criteria`); **never sent to a real provider**
+- [x] **`prefixItems` would have arrived as prose.** The natural shape — a fixed-length tuple with a
+      `const` per entry — is folded by `anthropic.transform_schema` into the schema's _description_,
+      so the provider would have received an unconstrained array and a sentence about tuples. A
+      guarantee that looked real and enforced nothing. `required` and `additionalProperties` survive,
+      which is why the shape is an object; both halves are pinned in
+      `test_evaluation_strict_schema.py` so nobody improves it back
+- [ ] **Phase 7 owes it a measured run**, and the first thing that run must check is that the provider
+      **accepts** the schema at all — a 400 on the first call answers it for a fraction of a cent.
+      Only then is it worth measuring the rejection rate against the 38% v2 baseline
+- [x] **A run now records which evaluator shape it asked for** (2026-09-28). `RunResult.strict_criteria`
+      is on the file, on the report header of **every** run and not only a strict one, and named in a
+      `--compare` when the two sides differ — two runs of one model otherwise read as "opus against
+      opus". And `--retry-unscored` refuses a mismatch, as it already did for the model: `merge_retry`
+      carries the **retry's** flag, so a strict retry of a plain run would write `strict_criteria: true`
+      over a file most of whose answers were scored without it, and the rejection rate is the one
+      figure that flag exists to be read against. This is the 2026-09-28 lesson in its second form —
+      the v3 check's rate had to be reconstructed from cache-read counts because the run recorded too
+      little of itself
+- [x] **Re-proved on the stand-in, 2026-09-28.** `--smoke --strict-criteria`: 10 answers, 10 calls, 3
+      scores on every one, nothing rejected, nothing unscoreable, the evidence rule clean, and the file
+      reads `strict_criteria: true`. `anthropic.transform_schema` hands the provider
+      `required: ["0","1","2"]` and `additionalProperties: false` on `StrictCriteria`. 437 worker tests,
+      ruff and mypy green
+- [x] **`--max-cost` (2026-09-28), because a cap nobody is watching is not a cap.** The standing rule
+      was enforced by a person reading the cost column — the v3 check was approved at $1.60 and
+      stopped by hand at $1.23. Now the run stops itself, writes its file and exits 1, and the reason
+      is on the file (`RunResult.stopped`) as well as on stderr: a partial run read back next week has
+      to say whether the money ran out or the provider did. Two deliberate choices that would
+      otherwise read as bugs, both written down in `evals/README.md`: it stops **between answers**,
+      because an answer is up to `MAX_ATTEMPTS` calls whose cost is assembled once at the end and
+      aborting inside one would lose the record of calls already paid for (ADR-0007); and it stops
+      **with money left over**, because the bound on the next answer is `MAX_ATTEMPTS` times the
+      dearest call seen, which no answer already scored can beat. A cap plus `--concurrency` above 1
+      is refused outright — the calls that would cross it are in flight before the answer ahead of
+      them is recorded
+- [x] **The paid check ran and the schema works (2026-09-28).** Handover:
+      `docs/progress/2026-09-28-strict-criteria-run.md`; run file
+      `evals/results/20260928T195502Z-claude-opus-5.json`. Approved at $1.60, spent **99.86¢**.
+      **0 rejected readings over 30 calls** against a matched v2 baseline of **44 over 179 (25%)** on
+      the same six rubrics, and **0 of 30 answers needed a retry** against 41 of 90. One call per
+      answer, thirty times; under the baseline rate the chance of that is about 0.02%. The provider
+      accepted the schema on the first call, which was the question the run had to settle first
+- [x] **And it did not move the scores**, which is the regression half of the claim. On the 21 answers
+      it and `013035Z` both scored the two readings agree **89% exact, MAE 0.11, r 0.97, bias +0.02**,
+      and against the written expectations **76% exact / MAE 0.24 against v2's 75% / 0.25** — not a
+      drop. Fairness **0 of 18 criteria outside the band**, both separations **6 of 6**, 0 evidence-rule
+      violations over 183 quotes, 0 unscoreable. The perfect fairness figure is not new: the v2 runs
+      were already clean on these rubrics (worst +0)
+- [x] **3.33¢ an answer against 5.03¢ — a 34% fall**, almost exactly the third the model-choice decision
+      predicted from fixing `rejected_criteria`. A 30-minute session drops from 40.3¢ to **26.6¢**, and
+      the gap to sonnet narrows from 4.0x to 2.6x. That does not overturn opus, which was chosen on
+      agreement rather than price, but it is the first of the two things that decision named as able to
+- [x] **`--rubric SLUG` (repeatable), because the complement of a sample is not a sample.** The strict
+      check scored the six rubrics of `--sample 6 --seed 7`; extending it to the same twelve the earlier
+      non-strict runs used means scoring the other six **without paying again for the first six**, and
+      no combination of `--sample`/`--seed` expresses that. A test pins the premise it rests on — that
+      `--sample 6` is a strict subset of `--sample 12` at seed 7 — because if the round-robin sampler's
+      prefix ever stopped being stable, two runs that looked like one measurement of twelve would
+      silently overlap or leave a gap
+- [x] **Done, and the schema is the default (2026-09-28).** The second strict run scored the six
+      `frontend`/`qa` rubrics — $1.04 of a $1.20 cap, **0 rejected over 30 calls** again, 0 unscoreable,
+      separations 6 of 6, fairness 0 of 18 outside the band. Over both runs and all twelve rubrics:
+      **0 rejected over 60 calls** against the v2 baseline's 74 over 297 (25%), which under that rate
+      has a probability of 3e-8. `EVALUATOR_STRICT_CRITERIA_SCHEMA` now defaults **true**, `.env.example`
+      and CLAUDE.md say so, and `--strict-criteria` in the harness is `BooleanOptionalAction` defaulting
+      on — with a test asserting the harness default and the setting are the same value, because a
+      harness defaulting to the _other_ evaluator would measure a shape no candidate is scored with
+- [x] **Cost per session: 13.6¢ / 27.2¢**, from 3.40¢ an answer over all 60. The first run alone read
+      13.3¢ / 26.6¢ and the second is slightly dearer; the combined figure is the one to quote. A
+      30-minute session is two thirds of the 40.3¢ the model decision was taken on, and the gap to
+      sonnet narrows from 4.0x to 2.7x
+- [x] **The `Evaluator` constructor's own default stays off, deliberately.** `main.py` passes the
+      setting, so production is strict either way; flipping the constructor broke 60 `service.py` tests
+      because their stubs answer in the list shape. Those tests exercise the three gates — including the
+      `rejected_criteria` check the schema is meant to make unreachable, which is still live code and
+      still the last line if a provider ignores the schema, so it needs a shape it can fire on
+- [x] **Settled 2026-09-28: it was run-to-run noise, and strict stays the default.** The repeat run on
+      the frontend/qa six (`20260928T205141Z`, $1.02 of a $1.20 cap) killed the finding three ways.
+      **The strict noise floor is 84%/0.16** on these rubrics, and "strict vs v2" **straddles** it
+      rather than sitting below: run 1 was 80%/0.20, run 2 is **89%/0.11** — better agreement with v2
+      than either configuration manages with itself, and a difference that reverses on a re-run is not
+      one. Against the expectations the distributions **overlap**: v2's three runs are 85/91/89 and
+      strict's two are 80/87, with v2's own runs 6 points apart — the same order as the 9-point gap that
+      raised the flag. And **the fairness drift reverted exactly**: +0.17 with 3 criteria a rung below
+      `strong` became **-0.06 with none**, which is v2's figure to the decimal. Every run of both
+      configurations stayed inside the band
+- [x] **Three strict runs: 90 answers, 90 calls, 0 rejected, 0 unscored, 3.40¢ an answer** — the same
+      figure to the penny all three times. P(90 clean calls at the 25% baseline rate) is 6e-12.
+      Sessions stand at **13.6¢ / 27.2¢**. What no run can settle is that all of it is agreement with
+      **model-written** expectations; only `evals/datasets/gold` can say whether a score is right, and
+      it is empty
+- [ ] **Superseded — not clean, and worth one more run (~$1.04): strict reads the frontend/qa six differently.**
+      Two v2 runs on one sample give the evaluator's noise floor, so this is measurable rather than
+      arguable. On the backend six strict is a repeat run (92%/0.08 against a 93%/0.07 floor, and 81%
+      vs 80% against the expectations). On the frontend/qa six it is not: **80%/0.20 against an
+      88%/0.12 floor**, and **80% against v2's 89%** on the same answers. Spread across all five kinds
+      (`weak` -17, `correct-poorly-explained` -11), **every disagreement within one rung**, mean
+      criterion -0.02. Fairness moved the same way and stayed in the band: drift +0.17 against v2's
+      -0.06 to -0.13, 3 of 18 criteria one rung below `strong`. The expectations are **model-written**,
+      so nothing here says strict is worse — CLAUDE.md's rule is about human scores and there are none.
+      **A second strict run on the same six gives the strict noise floor**, which is the only thing
+      that separates "the schema reads these differently" from "this run did". Reverting is one line
+- [ ] **Nobody records which schema scored a stored evaluation.** `answer_evaluations` keeps provider,
+      model, `prompt_versions` and `SCORING_VERSION`; the schema shape is none of them. It changes what
+      can be rejected and what a call costs, not the score's meaning, so the deployment's config plus
+      the date answers it and a column would be an operational detail. Revisit **if the flag is ever
+      toggled in production**, because the date stops answering it then
+- [ ] **Superseded — owner's decision, 2026-09-28: complete the evidence, then switch.** The other six of
+      `--sample 12 --seed 7` are `async-ordering-understanding`, `async-unblocking`,
+      `client-boundary-reasoning`, `help-seeking-judgement` (frontend) and `raising-a-quality-concern`,
+      `test-data-judgement` (qa) — so this closes the **role** gap, the only one of the three limits a
+      bigger sample can close. **≈$1.00** (30 answers at the measured 3.33¢), cap **$1.20**: the
+      estimator can be trusted now that rejections are gone — it said $0.97 for the first strict run and
+      the bill was 99.86¢. If it comes back clean, make the schema the default and update the handover
+      with 13.3¢ / 26.6¢ per session
+- [x] **Corrected: the "five-criterion rubric" limit does not exist.** The first write-up of this run
+      said a wider rubric had never been sent to a real provider and that the 12-rubric run was where it
+      would be seen. Counting says otherwise: **all 102** rubrics in `evals/datasets/synthetic` and
+      **all 102** in `content/seed` (29 backend, 30 frontend, 33 qa, 10 shared) have exactly three
+      criteria. `check-bank.mjs` permits 3–5, but nobody has written one, so no run over this corpus can
+      exercise it and no candidate can meet it. The schema is measured at exactly the width the product
+      uses; the thing to measure is the **first** 4- or 5-criterion rubric, not a bigger sample For: the rejection
+      rate gone, the scores unmoved, fairness and both separations unchanged, a third off the bill.
+      Against: **all six rubrics are `backend` and all have exactly three criteria**, so a five-criterion
+      rubric has still never been sent to a real provider under this schema. The keys are the rubric's
+      own positions so the mechanism does not obviously depend on the count, but it is untested
+- [ ] **Superseded — the paid check, priced and awaiting the owner (2026-09-28).** `--sample 6 --seed 7
+--strict-criteria` = **30 answers over 6 rubrics**, the **same sample the v3 check used**, which is
+      what makes it comparable with that run's 17-over-39 and its matched v2 baseline of 42 over 112.
+      **$1.05 if the rejections go, $1.51 if nothing changes**, from the measured 3.5¢ and 5.03¢ per
+      answer rather than the estimator (which quotes $0.97/$1.16 and undercounts input by 19%).
+      Proposed cap **$1.60**. Acceptance costs nothing to find out: a 400 on call 1 is unbilled, the
+      file is written after every answer, and the run would be stopped there. The cheaper alternatives
+      are `--sample 2 --seed 7` (10 answers, 35¢–50¢, `incident-ownership` +
+      `unfamiliar-code-approach`) and `--sample 1 --seed 7` (5 answers, 18¢–25¢), both of which answer
+      acceptance and neither of which can be read against a baseline. **Approved at $1.60 by the
+      owner, 2026-09-28**, and the run now carries that figure as `--max-cost 1.60`
+- [ ] **Superseded — what to do with v3 while it was in use.** `PROMPT_VERSIONS` says `evaluate_answer: 3`,
+      so the worker renders it now, for no measured gain and a slightly worse price (the prefix grew from
+      2,966 to 3,291 tokens, read at 0.1x on every call). It is better written than v2 and states a true
+      rule; it simply does not do what it was written for. Either revert the two entries to v2 and keep
+      the files for a further iteration, or keep v3 and stop claiming it as the fix
+- [x] **A killed run no longer loses everything.** The file is written **after every answer**, and the
+      run records what it `planned` to score — so `--retry-unscored` finishes a stopped run rather
+      than merely re-running its failures. `merge_retry` needed the same lesson: walking only the
+      previous run's `cases` silently dropped every answer the stop never reached, which a test caught
+- [x] **The rejection detail prints now.** The harness lets `readi_worker`'s own INFO through for the
+      length of a run, so `expected 0, 1, 2; got 1, 2, 3` reaches the log it was written for. That is
+      why the causes of those 17 rejections are unknown and the next run's will not be
+- [ ] **Superseded — what the check run was sized as.** `--sample 6 --seed 7` = **30 answers over
+      6 rubrics**, and the sample matters: it holds `transaction-boundary-reasoning` (14 rejections
+      over 41 calls, the worst in the corpus), `scaling-out-reasoning` (10/24), `incident-ownership`
+      (9/23), `stale-write-diagnosis` (6/21) and `unfamiliar-code-approach`, whose five answers failed
+      outright in the first run. **$1.05 if the rejections go, $1.51 at the old rate** — quoted from
+      the measured 5.03¢ and 3.5¢ per answer rather than the estimator, which undercounts input by 19%
+      and allows for 20% rejections where the truth is 25–33%. The cheaper option is `--sample 4`
+      (20 answers, 70¢–$1.01), which leaves out the worst offender
+- [ ] **The baseline to beat, over three opus runs and 180 answers**: **74 rejections over 297 calls
+      (25%)**, and **39 of 180 answers (22%)** had at least one. So if v3 works, 30 answers should show
+      close to none: at the old rate the chance of seeing zero is about 0.1%, which is what makes a
+      run this small decisive in the direction that matters
+- [ ] **What it cannot settle.** A halving would not be distinguishable from noise at n=30 — only
+      "near zero, like sonnet" or "unchanged" would be. If it comes back ambiguous the next step is
+      the full 60, not a bigger guess
+
+### Phase 7 — measurement, the visual review, the handover · **done 2026-09-28**
+
+Handover: `docs/progress/2026-09-28-m4-phase-7.md`.
+
+- [x] **`pnpm --filter @readi/api interviews:pace`** — pure module + thin CLI, the sample size on its
+      face. On the dev data: 4 real sessions, 20 answers, opening answers median 74 s / p90 198 s,
+      follow-up answers median 61 s / p90 224 s. **`SECONDS_FOR_A_FOLLOW_UP` is 45 s and 5 of 8
+      follow-up answers ran past it** — the reserve that decides whether to _ask_ a probe, so the
+      engine starts probes the clock cannot finish. Median pace gives 4 questions per 15 minutes,
+      exactly `INTERVIEW_PLANS`
+- [x] **Acted on 2026-09-29: `SECONDS_FOR_A_FOLLOW_UP` 45 -> 75** (owner's decision), taking
+      `SECONDS_TO_OPEN_A_QUESTION` to 195 and the report's count from 5 of 8 past the reserve to 3 of 8. **Provisional on n=8** and written down as such in `budgets.py`, with the way to revisit it:
+      "follow-up answers that ran past it" on `interviews:pace`, which refuses to read as a constant
+      under 40 answers. Over-reserving is the safe direction — an unasked criterion is not assessed
+      and leaves the denominator, so the cost is a shorter interview and never a lower score. The TS
+      mirror in `pace-reserves.ts` moved with it and the drift test was **watched failing**
+- [x] **Running it found three defects in it**, one of them impossible-on-its-face (6 questions
+      answered against a budget of 4, because the candidate's own questions were counted as answers).
+      Also: stand-in-driven sessions were being averaged into a human-pace figure, and a session with
+      no answers made a pace out of latency alone. All three have tests
+- [x] **The e2e interview → report chain** already existed from phase 4 and is green: setup, answers,
+      the follow-up cap, the read-ahead leak, resume, Redis loss, ending early, the scoring poll, and
+      the report with its answer-key boundary asserted on the rendered page
+- [x] **The visual review as a real before/after**: 156 shared screens at `95c8386` and at the tip.
+      **Nothing moved** — every full-page height identical except the three interview screens, whose
+      content is their own transcript. `/admin` and the CMS at 360px changed as intended (the header
+      wraps to a second row, every destination visible); candidate pages under 0.5%
+- [x] **The four calibration screens joined the capture** (43 screens, 172 shots), needing a
+      `reviewer` state and a sixth account that is never photographed — the answer's author, who must
+      be somebody else and must be staff that granted transcript review
+- [x] **`measure()` fixed** (the M3 leftover): it timed our own `page.goto` call rather than the page
+      load, and on a prefetched route timed the swap. Now cold, cache dropped, and read from
+      `PerformanceNavigationTiming` after the load event; a cached navigation fails instead of passing
+- [x] **A latent flake in `interview.spec.ts`**: `getByText` matches substrings and every probe
+      contains its question's identifying fragment
+- [x] Spec §4.4 and §6.2 amended in place; `figure-10` corrected (it called M4 "not yet written" and
+      the evaluator "low temperature", which current Claude models reject); CLAUDE.md §4 and §5
+- [ ] **Not fixed, deliberately: the before/after workflow trips over `apps/web/.next/types`.**
+      `tsconfig.json` includes the **dev** build's generated route validator, so the e2e build
+      type-checks against it and a capture on another commit fails naming routes that do not exist
+      there. `rm -rf apps/web/.next/types apps/web/.next/dev/types` unblocks it and the directory is a
+      cache. Every fix creates the same failure in the other direction or is a bigger change than the
+      trap deserves; it is written down in the visual README instead
+
+### The recommendation decision 7 asked for (2026-09-28)
+
+- [x] **Agreed by the owner, 2026-09-28: `claude-opus-5` for the MVP and the pilot, decided again on
+      the gold set.** The reasoning it was agreed on:
+- [ ] **Keep `LLM_MODEL_EVALUATOR=claude-opus-5` for the MVP, and revisit on the gold set.** Both
+      models are fair on this sample and separate every rubric, so the tie is broken lower down:
+      opus agrees with the written expectations at 84% exact / MAE 0.16 against sonnet's 73% / 0.28,
+      and sonnet is harshest exactly where a candidate would notice — `weak` at 58% exact, MAE 0.42.
+      Those expectations are model-written, so this is a **regression baseline and not proof of
+      quality**; it is the only evidence there is, and product principle 1 puts the feedback above
+      what it costs. **The cost is real**: 40.3¢ against 10.1¢ per 30-minute session, four times.
+      The two things that would change the answer: sonnet's 0-in-60 rejection rate against opus's 32
+      (fix `rejected_criteria` and opus's bill drops by about a third), and a **gold set**, where
+      "agrees with a model" stops being the tie-breaker. Neither is a reason to switch today
+
+### The fairness result is not proof until real candidates have been scored (2026-09-28)
+
+- [ ] **Validate the fairness band against real Nigerian-English answers from pilot candidates, with
+      consent, before treating the evaluator as proven.** The `nigerian-english` answers in
+      `evals/datasets/synthetic` are **AI-written** — a model's idea of the idiom, written by the same
+      family of model that then scores them. A passing band therefore shows the evaluator is fair to
+      _that_, and it is the strongest thing measurable today, but it is **not** the claim the product
+      makes (CLAUDE.md product principle 3). The two ways it could pass and still be wrong: - the drafter wrote an idiom milder or more literary than the one candidates actually use, so the
+      answers never test the descriptors that would punish real speech; - the same model reads its own register more charitably than a human's, which no amount of
+      sampling from the synthetic set can detect.
+- [ ] **What it needs, and what it is behind.** Real answers mean `transcript_review` consent
+      (ADR-0017), a signed `reviewer-agreement.md`, and a route into `evals/datasets/gold/` — so this
+      sits behind **phase 6 and the pilot**, not behind phase 5. The format and loader are already
+      there (`evals/datasets/gold/README.md`, `*.template.yaml` skipped), and the harness runs against
+      `--dataset gold` unchanged: it is the answers that are missing, not the machinery
+- [ ] **Until then, say so where the number is quoted.** `evals/README.md` and the phase 5 handover both
+      carry the caveat; anything that repeats the fairness figure to anyone — a handover, a pitch, an
+      investor page — repeats it as "fair to model-written Nigerian English", never as "fair"
+
+### Carried into phase 7 from here
+
+- [x] **The intermittent API failure is caught and named** (`docs/progress/2026-09-28-flaky-test-hunt.md`,
+      appended). It is `test/content-no-answer-key.int.spec.ts`, and it is a **Postgres connection
+      timeout in `beforeAll`** — a Failed Suite, not a failed test, which is why the counts read
+      `568 passed | 31 skipped`. Saving the whole log instead of tailing it is what found it
+- [x] **The second error was ours and hid the first.** That spec's `afterAll` ran
+      `deleteMany({ userId: { in: [undefined, undefined, undefined] } })` — a `beforeAll` that dies
+      before the three `giveProfile` calls leaves every id unset — so a `PrismaClientValidationError`
+      is what the log showed. The hook now filters the ids it has, skips content it never created and
+      closes an app that may not exist
+- [ ] **The contention itself is not fixed, on purpose.** A pool timeout under six parallel package
+      suites on six cores and 7 GB is the machine; the remedies (bigger pool, fewer turbo lanes,
+      `--maxWorkers`) each trade something real against a failure seen about once in twenty local runs
+      and never in CI. What changed is that it names itself on the first occurrence now
+- [ ] **The interview's own caching is the larger prize and is untouched.** Fourteen calls a session
+      against the same system prompt _and_ the same session bundle — a per-session prefix worth far
+      more than a per-call one — and the interview is sequential by construction, so it needs no
+      reshaping. Only 4.79¢ to save 12-16% of, so not urgent; the seam is now in place

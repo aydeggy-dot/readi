@@ -25,6 +25,10 @@ export class AiCallLogService {
         inputUnits: call.input_units,
         outputUnits: call.output_units,
         unitKind: call.unit_kind,
+        // Zero for every purpose but `evaluator`, and the reason `cost_micro_usd` is still the sum
+        // of its own row's units at three different rates (2026-09-28).
+        cacheWriteUnits: call.cache_write_units,
+        cacheReadUnits: call.cache_read_units,
         costMicroUsd: BigInt(call.cost_micro_usd),
         // Null whenever the worker has no Langfuse keys, which is every local and CI run
         // (ADR-0008). When it is set, it is how a cost row leads back to the prompt behind it.

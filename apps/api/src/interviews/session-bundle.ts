@@ -1,28 +1,50 @@
 import {
   type BundleQuestion,
   type CandidateSessionQuestion,
+  type EvaluateAnswerRequest,
+  type EvaluationQuestion,
+  type EvaluationTurn,
   type InterviewCandidateContext,
   type InterviewSessionBundle,
   PlannedFollowUp,
   SessionQuestionSnapshot,
 } from "@readi/shared-types";
 import { z } from "zod";
+// The engine fact the evaluator's width carries, written once in `prompting.ts` so that the score and
+// the request cannot disagree about which criteria the interview asked. A leaf import: `prompting.ts`
+// depends on nothing but shared-types.
+import { unaskedCriteria } from "../evaluations/prompting";
 
 /**
- * The three widths of a question, and the two doors between them.
+ * The four widths of a question, and the three doors between them.
  *
- * `snapshotOf` freezes what the session was run against. `bundleQuestion` and `candidateQuestion`
- * are the **only** ways anything gets out of that snapshot, which is what makes "the worker never
- * sees the rubric" and "the candidate never sees the answer key" two functions with two tests
- * rather than a rule anybody has to remember at each call site.
+ * `snapshotOf` freezes what the session was run against. `bundleQuestion`, `candidateQuestion` and
+ * `evaluationQuestion` are the **only** ways anything gets out of that snapshot, which is what makes
+ * "the worker never sees the rubric", "the candidate never sees the answer key" and "the evaluator
+ * sees the rubric and nothing else it does not need" three functions with three tests rather than a
+ * rule anybody has to remember at each call site.
  *
  * - **Snapshot** (stored): prompt, context, ideal points, the rubric's criteria, planned
  *   follow-ups. Never sent anywhere.
- * - **Bundle** (to the worker): prompt, context, planned follow-ups, and how many criteria there
- *   are. No criteria, no weights, no level descriptors, no ideal points — the interviewer model
+ * - **Bundle** (to the interviewer, M3): prompt, context, planned follow-ups, and how many criteria
+ *   there are. No criteria, no weights, no level descriptors, no ideal points — the interviewer model
  *   phrases a probe and judges whether an answer already covered it, and neither needs the answer
  *   key (owner's decision, 2026-09-23).
+ * - **Evaluation** (to the evaluator, M4): prompt, context, ideal points, and the criteria with
+ *   their descriptions and ladders — the first and only model call that receives a rubric. Not the
+ *   **weights**, because the weighted roll-up is arithmetic and belongs in code (spec §6.2), and
+ *   telling a model one criterion is 45% of the answer invites it to skim the rest. Not the
+ *   **planned follow-ups** either: the probes the engine actually asked are already in the exchange,
+ *   and the unasked ones would have it scoring "did they answer the probe". It does carry one bit of
+ *   engine fact per criterion — `asked_about`, whether the interview put that criterion to the
+ *   candidate at all (owner's decision, 2026-09-27) — because the evaluator's prose is printed in the
+ *   candidate's report, and a model that does not know the interview ran out of time will tell them
+ *   off for not answering a question nobody asked.
  * - **Candidate** (to the browser): prompt, context, type, topic. And only once asked.
+ *
+ * The evaluator's width is wider than the interviewer's, so it is the one to be careful with. What
+ * keeps it honest is that it is used by exactly one caller, on one worker endpoint, after a session
+ * has ended — never during one.
  */
 
 /** Levels 0–4 as `rubric_criteria.levels` stores them. */
@@ -171,6 +193,8 @@ export interface BundleSession {
   endsAt: Date;
   questionBudget: number;
   maxFollowUps: number;
+  /** Whether this candidate has granted `transcript_review` (ADR-0017). Read, never pinned. */
+  transcriptReviewGranted: boolean;
 }
 
 /**
@@ -193,11 +217,102 @@ export function sessionBundle(
     mode: session.mode,
     persona: session.persona,
     is_diagnostic: session.isDiagnostic,
+    transcript_review_granted: session.transcriptReviewGranted,
     planned_minutes: session.plannedMinutes as InterviewSessionBundle["planned_minutes"],
     ends_at: session.endsAt.toISOString(),
     question_budget: session.questionBudget,
     max_follow_ups: session.maxFollowUps,
     candidate,
     questions: snapshots.map((snapshot, position) => bundleQuestion(snapshot, position)),
+  };
+}
+
+// -----------------------------------------------------------------------------------------------
+// The evaluator's width (M4). The one door the rubric goes through.
+
+/**
+ * The turns of one question's exchange, as the evaluator is given them.
+ *
+ * The **combined** answer is what gets scored — the first answer plus anything the candidate said
+ * after a follow-up — because a candidate who needed a nudge still said the thing. Whether they
+ * needed the nudge changes the weighting, in code, under `SCORING_VERSION`; the model is not told,
+ * for the same reason it is not told the weights.
+ *
+ * Interviewer turns are included so the model can see what was actually asked: the engine phrases
+ * questions and probes through a model, so the spoken wording is not the pinned wording, and scoring
+ * an answer against words nobody said is how a fair answer looks evasive.
+ */
+export interface TurnForEvaluation {
+  seq: number;
+  speaker: EvaluationTurn["speaker"];
+  followUpIndex: number | null;
+  text: string;
+}
+
+export function evaluationTurns(turns: readonly TurnForEvaluation[]): EvaluationTurn[] {
+  return [...turns]
+    .sort((a, b) => a.seq - b.seq)
+    .map((turn) => ({
+      // One member today, so that a coding answer can be a second one rather than a rename.
+      kind: "text" as const,
+      seq: turn.seq,
+      speaker: turn.speaker,
+      follow_up_index: turn.followUpIndex,
+      text: turn.text,
+    }));
+}
+
+/**
+ * The evaluator's view of a question, from the pinned snapshot and never from the live row.
+ *
+ * Reading `questions` here instead would mean an admin editing a published question after a session
+ * silently changed what the candidate was scored against — and the candidate's report would describe
+ * a rubric nobody scored them on (`tasks/todo.md` "Carried forward", ADR-0014 decision 2). That is
+ * the failure `interview-pinning.int.spec.ts` exists to catch, extended in M4 to scoring.
+ */
+export function evaluationQuestion(
+  snapshot: SessionQuestionSnapshot,
+  turns: readonly TurnForEvaluation[],
+): EvaluationQuestion {
+  // Which criteria the interview never put to the candidate. A criterion with no probe is asked by
+  // the opening prompt itself (the pilot rule of 2026-09-23, held as an error by `check-bank.mjs`),
+  // so it is never in here and is always `asked_about`.
+  const unasked = new Set(unaskedCriteria(snapshot.planned_follow_ups, turns));
+  return {
+    slug: snapshot.slug,
+    type: snapshot.type,
+    topic: snapshot.topic,
+    prompt: snapshot.prompt,
+    context: snapshot.context,
+    ideal_points: snapshot.ideal_points,
+    rubric: {
+      slug: snapshot.rubric.slug,
+      name: snapshot.rubric.name,
+      // Field by field, not spread: a spread would carry `weight` the day somebody adds a field to
+      // the snapshot's criteria, and the whole point of this file is that widening is deliberate.
+      criteria: snapshot.rubric.criteria.map((criterion) => ({
+        position: criterion.position,
+        dimension: criterion.dimension,
+        description: criterion.description,
+        levels: criterion.levels,
+        asked_about: !unasked.has(criterion.position),
+      })),
+    },
+  };
+}
+
+/** One answer, ready to score. `user_id` is here for the Langfuse trace alone (ADR-0008). */
+export function evaluationRequest(
+  session: { id: string; userId: string },
+  position: number,
+  snapshot: SessionQuestionSnapshot,
+  turns: readonly TurnForEvaluation[],
+): EvaluateAnswerRequest {
+  return {
+    session_id: session.id,
+    user_id: session.userId,
+    position,
+    question: evaluationQuestion(snapshot, turns),
+    exchange: evaluationTurns(turns),
   };
 }

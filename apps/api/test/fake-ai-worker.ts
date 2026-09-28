@@ -8,6 +8,8 @@ import {
   type CvParseResponse,
   type EmbedRequest,
   type EmbedResponse,
+  type EvaluateAnswerRequest,
+  type EvaluateAnswerResponse,
   type InterviewAdvanceRequest,
   type InterviewAdvanceResponse,
   type InterviewEndReason,
@@ -65,6 +67,8 @@ export class FakeAiWorker extends AiWorkerClient {
   traceDeleteOutcome: "ok" | "unavailable" = "ok";
   /** The interview half, kept in its own object so its state is obvious in a test. */
   readonly engine = new FakeInterviewEngine();
+  /** The evaluator half, likewise (M4). */
+  readonly evaluator = new FakeEvaluator();
   outcome: Outcome = "parsed";
   /** What the next embed call does: answer, report a provider failure, or be unreachable. */
   embedOutcome: "ok" | "failed" | "unavailable" = "ok";
@@ -94,6 +98,9 @@ export class FakeAiWorker extends AiWorkerClient {
           latency_ms: 3,
           input_units: failed ? 0 : 120,
           output_units: 0,
+          // Only the evaluator caches (`evaluation/calls.py`); everything else reports zero.
+          cache_write_units: 0,
+          cache_read_units: 0,
           unit_kind: "tokens",
           cost_micro_usd: 0,
           langfuse_trace_id: null,
@@ -104,6 +111,10 @@ export class FakeAiWorker extends AiWorkerClient {
 
   advanceInterview(request: InterviewAdvanceRequest): Promise<InterviewAdvanceResponse> {
     return this.engine.advance(request);
+  }
+
+  evaluateAnswer(request: EvaluateAnswerRequest): Promise<EvaluateAnswerResponse> {
+    return this.evaluator.evaluate(request);
   }
 
   /** What a worker with no Langfuse keys answers: nothing was traced, so nothing was deleted. */
@@ -137,6 +148,8 @@ export class FakeAiWorker extends AiWorkerClient {
               latency_ms: 1234,
               input_units: 3000,
               output_units: 1000,
+              cache_write_units: 0,
+              cache_read_units: 0,
               unit_kind: "tokens",
               cost_micro_usd: 16_000,
               langfuse_trace_id: null,
@@ -168,6 +181,20 @@ export class FakeInterviewEngine {
   outcome: "ok" | "unavailable" | "engine_error" = "ok";
   /** What a traced worker reports on each call; null is what a keyless one reports (ADR-0008). */
   langfuseTraceId: string | null = null;
+  /**
+   * Whether an answer earns the follow-up this question has a probe for.
+   *
+   * `false` is the shape of an exchange where the engine asked no probe at all, and the API cannot
+   * otherwise provoke it: the real engine does that when the deadline leaves no room for a follow-up,
+   * when the cap is spent, or when the coverage judgement says the answer already reached every probe
+   * — three different reasons with one shape, which is a turn whose coverage log is `not_judged`
+   * throughout. The first paid evaluation run's fourth question was exactly this, and the answer was
+   * then scored on a criterion nobody had asked about (2026-09-27).
+   *
+   * **Which of the three reasons applies is still the engine's business and is tested in Python.** The
+   * switch exists because the fairness rule on the API's side keys on the shape.
+   */
+  followUps = true;
   private readonly bundles = new Map<string, InterviewSessionBundle>();
 
   /** A Redis flush inside the worker: the next exchange must ask for the bundle again. */
@@ -250,11 +277,11 @@ export class FakeInterviewEngine {
             position,
             null,
             request.text?.trim() ?? "",
-            coverageFor(question, progress?.probes_asked.length === 0),
+            coverageFor(question, this.followUps && progress?.probes_asked.length === 0),
           ),
         );
       }
-      const probe = progress && progress.probes_asked.length === 0 ? 0 : null;
+      const probe = this.followUps && progress && progress.probes_asked.length === 0 ? 0 : null;
       const hasProbe = (question?.planned_follow_ups.length ?? 0) > 0;
       if (request.action === "answer" && probe !== null && hasProbe && progress) {
         progress.probes_asked = [probe];
@@ -357,9 +384,107 @@ function interviewerCall(langfuseTraceId: string | null): AiCallRecord {
     latency_ms: 7,
     input_units: 900,
     output_units: 40,
+    cache_write_units: 0,
+    cache_read_units: 0,
     unit_kind: "tokens",
     cost_micro_usd: 0,
     // Null as it is in every local run: the worker has no Langfuse keys (ADR-0008).
     langfuse_trace_id: langfuseTraceId,
+  };
+}
+
+/**
+ * Stands in for the evaluator (`apps/ai-worker/readi_worker/evaluation/`).
+ *
+ * As with the engine double: **it is not the evaluator and must never grow into one.** The judgement,
+ * the three gates, the evidence verifier and the retry loop are decided and tested in Python, where
+ * `fake_script.py` already provides a stand-in that reads the real prompt. What the API needs from a
+ * double is the *shape* of an answer's score, and control over two things the API's own code turns
+ * into behaviour: which criterion got what (so the weighting and the 0.85 prompting adjustment are
+ * observable), and whether the answer could be scored at all.
+ *
+ * The evidence it returns is a real substring of the candidate's own turns, because the API stores
+ * whatever it is given and a test whose fixtures could not have passed the worker's verifier would be
+ * testing a shape nothing can produce.
+ */
+export class FakeEvaluator {
+  readonly requests: EvaluateAnswerRequest[] = [];
+  /** `ok`, or the two other things that can happen to an answer. */
+  outcome: "ok" | "failed" | "unavailable" = "ok";
+  /** Score per criterion position; anything not listed gets `defaultScore`. */
+  scores: Record<number, number> = {};
+  defaultScore = 3;
+  /** What the worker's instruction-phrase check found, if a test is exercising the flag. */
+  evidenceFlags: string[] = [];
+  /** Why an answer could not be scored, when `outcome` is `failed`. */
+  failure: NonNullable<EvaluateAnswerResponse["error"]> = "invalid_output";
+
+  evaluate(request: EvaluateAnswerRequest): Promise<EvaluateAnswerResponse> {
+    this.requests.push(request);
+    if (this.outcome === "unavailable") {
+      return Promise.reject(new AiWorkerUnavailableError("connection refused"));
+    }
+    if (this.outcome === "failed") {
+      return Promise.resolve({
+        position: request.position,
+        evaluation: null,
+        error: this.failure,
+        evidence_flags: [],
+        prompt_versions: { evaluate_answer: 2, evaluate_answer_input: 1 },
+        // Three attempts, all rejected: what the worker really reports when it gives up.
+        ai_calls: [evaluatorCall("error"), evaluatorCall("error"), evaluatorCall("error")],
+      });
+    }
+    // A quote the candidate really gave, which is what the real verifier insists on.
+    const said = request.exchange.find((turn) => turn.speaker === "candidate")?.text ?? "";
+    const quote = said.slice(0, 120).trim() || "(nothing)";
+    return Promise.resolve({
+      position: request.position,
+      evaluation: {
+        criteria: request.question.rubric.criteria.map((criterion) => {
+          const score = this.scores[criterion.position] ?? this.defaultScore;
+          return {
+            criterion: criterion.position,
+            score,
+            max_score: 4,
+            // The evidence rule: a non-zero score needs a quote, a 0 may have none (spec §6.2).
+            evidence: score > 0 ? [quote] : [],
+            reasoning: `Scored ${score} of 4 on this criterion.`,
+          };
+        }),
+        covered_points: ["Counted what the request actually did"],
+        missing_points: ["Did not say what the fix costs elsewhere"],
+        strengths: [`Went and looked, on question ${request.position}`],
+        improvement_tip: `Practise the ${request.question.topic.name} path, on question ${request.position}.`,
+        red_flags: [],
+        confidence: "high",
+      },
+      error: null,
+      evidence_flags: this.evidenceFlags,
+      prompt_versions: { evaluate_answer: 2, evaluate_answer_input: 1 },
+      ai_calls: [evaluatorCall("ok")],
+    });
+  }
+}
+
+function evaluatorCall(status: "ok" | "error"): AiCallRecord {
+  return {
+    purpose: "evaluator",
+    provider: "fake",
+    model: "fake",
+    status,
+    error_code: status === "ok" ? null : "rejected_evidence",
+    latency_ms: 11,
+    // The three input figures the real evaluator reports separately, because they are billed at three
+    // rates: the uncached remainder, the cache write, and the read. A cached call is the ordinary case
+    // for this purpose — every answer of every session sends the same system prompt.
+    input_units: 2_400,
+    output_units: 300,
+    cache_write_units: 0,
+    cache_read_units: 1_700,
+    unit_kind: "tokens",
+    cost_micro_usd: 0,
+    // Null as it is in every local run: the worker has no Langfuse keys (ADR-0008).
+    langfuse_trace_id: null,
   };
 }

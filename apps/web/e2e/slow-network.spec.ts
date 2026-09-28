@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type CDPSession, type Page } from "@playwright/test";
 import { E2E_PASSWORD, grantRole, signUpAndOnboard, uniqueEmail } from "./helpers";
 
 /**
@@ -34,18 +34,49 @@ const SIGNED_IN_PAGES = [
   { path: "/admin/content/questions/new", name: "CMS question form" },
 ];
 
-/** What a page cost to load, with the connection already throttled. */
-async function measure(page: Page, path: string): Promise<{ loaded: number; kb: number }> {
-  const started = Date.now();
+/**
+ * What a page cost to load **cold**, with the connection already throttled.
+ *
+ * Three things here are the M3 leftover this finally fixes (`docs/progress/2026-09-26-m3.md`: "the
+ * CMS form reported a *negative* duration this run"). The old version started a wall clock, called
+ * `page.goto` and subtracted — which measures our own navigation call, not the page load, and on a
+ * route the **Next router had already prefetched** measures the swap instead. That is how a figure
+ * ends up implausibly small, and how the interview screen came out at 1221 ms when nothing else was
+ * under 2800.
+ *
+ * So the load is made genuinely cold and the browser is asked what it cost, rather than us timing
+ * it from outside:
+ *
+ * 1. **Leave the app first.** `about:blank` is a different document, so what follows is a real
+ *    navigation rather than a client-side transition into something already fetched.
+ * 2. **Drop the HTTP cache**, because the question this spec asks is what a first visit costs on a
+ *    phone connection. A warm cache answers a different question and answers it flatteringly.
+ * 3. **Take `PerformanceNavigationTiming.duration`**, which is `loadEventEnd - startTime` measured
+ *    inside the page. It is only final once the load event has fired, which `waitUntil: "load"`
+ *    has waited for — read any earlier it is 0, and a figure derived from a zero `loadEventEnd` is
+ *    where a negative duration comes from.
+ *
+ * It also reports whether the navigation really transferred anything, so a measurement that was
+ * served from cache announces itself instead of quietly passing.
+ */
+async function measure(
+  page: Page,
+  path: string,
+  client: CDPSession,
+): Promise<{ loaded: number; kb: number; cold: boolean }> {
+  await page.goto("about:blank");
+  await client.send("Network.clearBrowserCache");
   await page.goto(path, { waitUntil: "load" });
-  const loaded = Date.now() - started;
-  const kb = await page.evaluate(() => {
+  return page.evaluate(() => {
     const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
     const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
     const sum = entries.reduce((total, e) => total + (e.encodedBodySize || 0), 0);
-    return Math.round((sum + (nav.encodedBodySize || 0)) / 1024);
+    return {
+      loaded: Math.round(nav.duration),
+      kb: Math.round((sum + (nav.encodedBodySize || 0)) / 1024),
+      cold: nav.transferSize > 0,
+    };
   });
-  return { loaded, kb };
 }
 
 test.describe("on a Slow 4G connection", () => {
@@ -57,8 +88,9 @@ test.describe("on a Slow 4G connection", () => {
       await client.send("Network.enable");
       await client.send("Network.emulateNetworkConditions", SLOW_4G);
 
-      const { loaded, kb } = await measure(page, path);
+      const { loaded, kb, cold } = await measure(page, path, client);
       console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
+      expect(cold, `${name} was served from cache, so the figure is not a first visit`).toBe(true);
       expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
       expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
     });
@@ -84,8 +116,11 @@ test.describe("on a Slow 4G connection", () => {
 
     try {
       for (const { path, name } of SIGNED_IN_PAGES) {
-        const { loaded, kb } = await measure(coldPage, path);
+        const { loaded, kb, cold } = await measure(coldPage, path, client);
         console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
+        expect(cold, `${name} was served from cache, so the figure is not a first visit`).toBe(
+          true,
+        );
         expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
         expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
       }
@@ -127,8 +162,11 @@ test.describe("on a Slow 4G connection", () => {
         { path: "/practice", name: "Practice list" },
         { path: url, name: "interview screen" },
       ]) {
-        const { loaded, kb } = await measure(coldPage, path);
+        const { loaded, kb, cold } = await measure(coldPage, path, client);
         console.log(`${name}: ${loaded} ms, ${kb} KB (uncompressed over loopback)`);
+        expect(cold, `${name} was served from cache, so the figure is not a first visit`).toBe(
+          true,
+        );
         expect(loaded, `${name} took too long on Slow 4G`).toBeLessThan(15_000);
         expect(kb, `${name} is heavier than expected`).toBeLessThan(900);
       }

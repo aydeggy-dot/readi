@@ -143,6 +143,28 @@ async def test_the_intro_counts_the_questions_that_exist_not_the_budget() -> Non
     assert "2 questions" in opening.turns[0].text
 
 
+async def test_the_intro_mentions_a_human_reader_only_when_the_candidate_agreed_to_one() -> None:
+    """ADR-0017. The claim is conditional because the consent is, and silence is the honest default.
+
+    v1 of this prompt was retired for promising that "nobody else is listening"; a version that
+    reassured the candidate whenever they had declined would be making the same promise again in a
+    quieter voice. So the declining case asserts the absence of the sentence, not the presence of a
+    comforting one.
+    """
+    service, _ = build()
+    granted = await service.advance(
+        request("start", now=at(0), deck=bundle(transcript_review_granted=True))
+    )
+    assert "someone on our team read your answers" in granted.turns[0].text
+
+    service, _ = build()
+    declined = await service.advance(
+        request("start", now=at(0), deck=bundle(transcript_review_granted=False))
+    )
+    assert "our team" not in declined.turns[0].text
+    assert "nobody" not in declined.turns[0].text.lower()
+
+
 # ---- Coverage.
 
 
@@ -456,6 +478,7 @@ async def test_every_interview_call_carries_the_interviewer_deadline() -> None:
             output_type: type[T],
             max_tokens: int,
             timeout_s: float | None = None,
+            cache_system: bool = False,
         ) -> LLMResult[T]:
             deadlines.append(timeout_s)
             return await self._inner.parse(

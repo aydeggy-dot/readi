@@ -31,6 +31,12 @@ export const TOMBSTONED_COLUMNS = [
   { table: "career_roles", column: "reviewed_by_user_id" },
   { table: "career_levels", column: "reviewed_by_user_id" },
   { table: "stacks", column: "reviewed_by_user_id" },
+  // A calibration score is a measurement of our evaluator, not of the expert who took it, so it
+  // outlives their account like any other authorship column (ADR-0014 decision 4, ADR-0017). The
+  // candidate's side of the same row is the opposite case: `calibration_scores` cascades from
+  // `answer_evaluations`, which cascades from the session, so erasing a CANDIDATE takes the score
+  // with it — a score whose answer has been deleted measures nothing.
+  { table: "calibration_scores", column: "expert_user_id" },
 ] as const;
 
 /** Object-storage folder holding a user's files (their CV). */
@@ -102,6 +108,14 @@ export async function eraseUser(
     await tx.contentVersion.updateMany({
       where: { changedByUserId: userId },
       data: { changedByUserId: tombstone.id },
+    });
+    // A calibration score measures our evaluator, not the expert who took it, so it stays and only
+    // the name behind it goes (ADR-0017). The candidate's side of the same row needs nothing here:
+    // `calibration_scores` cascades from `answer_evaluations`, which cascades from the session, so
+    // erasing a candidate removes their scores with their answers.
+    await tx.calibrationScore.updateMany({
+      where: { expertUserId: userId },
+      data: { expertUserId: tombstone.id },
     });
     // Codes and reset tokens. Identifiers are sometimes the bare address or number and sometimes
     // suffixed (Better Auth writes `<phone>-request-password-reset`), so match by prefix too.

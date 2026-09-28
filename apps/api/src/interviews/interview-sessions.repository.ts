@@ -170,14 +170,21 @@ export class InterviewSessionsRepository {
    * Abandoning the old one rather than refusing the new one keeps a stuck session from becoming a
    * dead end — the alternative is a candidate who cannot start an interview until a sweep runs.
    */
-  async create(session: NewSession): Promise<SessionWithContent> {
+  async create(session: NewSession): Promise<CreatedSession> {
     const { questions, ...fields } = session;
     return this.prisma.$transaction(async (tx) => {
-      await tx.interviewSession.updateMany({
+      // Read before the update: `updateMany` returns a count, and M4 needs the ids — a session the
+      // candidate walked away from still gets scored for what they answered, and this is one of the
+      // three doors to `ended` (`EvaluationsService.onSessionsEnded`).
+      const running = await tx.interviewSession.findMany({
         where: { userId: session.userId, status: "in_progress" },
+        select: { id: true },
+      });
+      await tx.interviewSession.updateMany({
+        where: { id: { in: running.map((row) => row.id) } },
         data: { status: "abandoned", state: "ended", endedAt: new Date() },
       });
-      return tx.interviewSession.create({
+      const created = await tx.interviewSession.create({
         data: {
           ...fields,
           promptVersions: {},
@@ -186,6 +193,7 @@ export class InterviewSessionsRepository {
         },
         include: sessionInclude,
       });
+      return { session: created, abandoned: running.map((row) => row.id) };
     });
   }
 
@@ -210,13 +218,20 @@ export class InterviewSessionsRepository {
    * the reason `AccountErasureQueue` gives: the database stays the only record of what is due, a
    * failed sweep is retried by the next one, and a session that finished needs no job removed.
    */
-  async abandonStale(now: Date): Promise<number> {
+  async abandonStale(now: Date): Promise<string[]> {
     const deadline = new Date(now.getTime() - INTERVIEW_LIMITS.resumeGraceMinutes * 60 * 1_000);
-    const result = await this.prisma.interviewSession.updateMany({
+    // The ids, not the count: an abandoned session with answers in it is still scored (M4), so the
+    // sweep is one of the three doors to `ended` and has to be able to name what went through it.
+    const stale = await this.prisma.interviewSession.findMany({
       where: { status: "in_progress", endsAt: { lt: deadline } },
+      select: { id: true },
+    });
+    if (stale.length === 0) return [];
+    await this.prisma.interviewSession.updateMany({
+      where: { id: { in: stale.map((row) => row.id) } },
       data: { status: "abandoned", state: "ended", endedAt: now },
     });
-    return result.count;
+    return stale.map((row) => row.id);
   }
 
   /**
@@ -323,6 +338,16 @@ export class InterviewSessionsRepository {
     });
     return { session: applied, newlyAsked };
   }
+}
+
+/**
+ * A new session, and the sessions starting it ended. One live interview per candidate is the rule
+ * (see `create`), and what it abandons is scored like anything else that ends.
+ */
+export interface CreatedSession {
+  session: SessionWithContent;
+  /** Ids of the candidate's previously running sessions, now `abandoned`. Usually empty. */
+  abandoned: string[];
 }
 
 /**

@@ -48,6 +48,7 @@ class Recording:
         output_type: type[T],
         max_tokens: int,
         timeout_s: float | None = None,
+        cache_system: bool = False,
     ) -> LLMResult[T]:
         self.calls.append({"system": system, "user": user})
         return await self._inner.parse(

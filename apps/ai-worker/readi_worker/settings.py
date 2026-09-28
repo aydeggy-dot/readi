@@ -33,6 +33,25 @@ class Settings(BaseSettings):
     #: worst case one exchange puts in front of them, which is what `AI_WORKER_TIMEOUT_MS` is sized
     #: from on the API side.
     interview_llm_timeout_s: float = Field(default=45.0, gt=0, le=600)
+    #: The evaluator (M4): scoring one answer against its rubric. A **stronger** model than the
+    #: interviewer, because this is the judgement the product is selling (product principle 1), and
+    #: it is made once per answer rather than once per turn. It costs roughly three times as much
+    #: per session; whether that buys better agreement with human scorers is what the `/evals`
+    #: harness is for, and the owner asked for that comparison explicitly.
+    llm_model_evaluator: str = Field(default="claude-opus-5", min_length=1)
+    #: Per evaluator call. Nobody is watching a spinner — it runs in a queue once the session has
+    #: ended — but the report is promised within 60 s of that (spec §8) and the API scores several
+    #: answers at once, so a call slower than this has already lost the race and is better retried.
+    evaluation_llm_timeout_s: float = Field(default=60.0, gt=0, le=600)
+    #: Ask the evaluator for a **per-rubric** output schema in which a criterion cannot be left
+    #: out or invented (`evaluation/strict_schema.py`). **On** since 2026-09-28, measured over 60
+    #: answers and all twelve rubrics of the paid comparison: **0 rejected readings over 60 calls**
+    #: against a matched v2 baseline of 74 over 297 (25%), nothing unscoreable, both separations 12
+    #: of 12, fairness inside the band on all 36 criteria, and 3.40¢ an answer against 4.24¢
+    #: (`docs/progress/2026-09-28-strict-criteria-run.md`). Turning it **off** goes back to an
+    #: evaluator that threw away a quarter of its readings, so it is a diagnostic rather than a
+    #: fallback.
+    evaluator_strict_criteria_schema: bool = True
 
     # The interview engine (M3). Redis caches the session bundle and the live engine state so the
     # API need not resend the pinned questions on every turn; the snapshot the API sends is always

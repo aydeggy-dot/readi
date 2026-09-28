@@ -8,13 +8,15 @@ see the checklist at the end.
 Status: **M1**. Nothing here is a legal opinion; this file is what the system actually does, which is
 what legal review needs as input.
 
-Last reviewed: 2026-09-26 (M3 phase 5: Langfuse wired, still disabled — no keys anywhere yet).
+Last reviewed: 2026-09-26 (M4 phase 0: the reviewers recorded as contracted processors; the Anthropic row corrected — it had described CV parsing
+alone since M1, and candidate answers have gone there since M3 — and the calibration reviewers
+recorded below).
 
 ## In use today
 
 | Subprocessor | Purpose | Personal data it receives | Processing region | Retention there |
 |---|---|---|---|---|
-| **Anthropic** (Claude API) | Reads an uploaded CV into structured fields (ADR-0010) | CV text, including whatever contact details the file itself contains; plus the target role and level. No account id, email or phone | United States | Per Anthropic's API terms: inputs and outputs are not used for training, and are retained only briefly for abuse monitoring |
+| **Anthropic** (Claude API) | Three things, not one. Reads an uploaded CV into structured fields (ADR-0010); phrases the interviewer's questions and follow-ups and judges whether an answer has already covered a probe (M3); and from M4 scores each answer against its rubric | CV text, including whatever contact details the file itself contains; **the candidate's interview answers as they typed them**; the questions and rubrics our own staff wrote; and the role, level and stack as labels. No account id, email or phone — the opaque `user_id` that crosses to the worker goes on the Langfuse trace and reaches no prompt (ADR-0008) | United States | Per Anthropic's API terms: inputs and outputs are not used for training, and are retained only briefly for abuse monitoring |
 | **Resend** | Transactional email: address verification, password reset, account-deletion notice | Email address, message content | United States / EU (per account configuration) | Delivery logs per Resend's retention settings |
 | **Termii** | SMS: one-time codes, account-deletion notice, renewal reminders (from M8) | Phone number, message content | Nigeria | Per Termii's retention |
 | **Cloudflare R2** (production) | Object storage for uploaded CV files (ADR-0001, ADR-0010) | The CV file itself | Configurable; EU or US depending on the bucket | Until the user replaces or deletes the CV, or the account is erased (ADR-0011). Unconfirmed uploads expire after 1 day |
@@ -47,6 +49,33 @@ Add each to the table above — with its region and retention — in the milesto
 | Paystack | Payments in Naira | M8 |
 | Stripe | Payments in USD | M8 |
 | Meta (WhatsApp Cloud API) | Reminders on WhatsApp | Phase 2 |
+| Contracted calibration reviewers (people, not a service — see below) | Blind-scoring sampled answers so the evaluator's fairness can be measured | M4 |
+
+## People, not services: the calibration reviewers
+
+M4 adds an internal calibration tool (spec §4.4): a content expert is shown a sampled answer
+**without** the model's score and scores it by hand, so that agreement between the model and a human
+can be measured. That is a person reading what a candidate typed, and it is the one processing
+purpose in the product that no third-party service performs.
+
+- **The lawful basis is the candidate's consent**, `transcript_review` — opt-in, default off,
+  revocable, and declining costs the candidate nothing (ADR-0017). Nothing may sample an answer
+  without it; `ConsentsService.usersGranting("transcript_review")` is the only set a sampler may draw
+  from, and the rule behind it is `isCurrentGrant`, so a consent granted against older wording does
+  not count.
+- **What a reviewer sees** is the question, the rubric and the answer. Not the candidate's name,
+  email, phone number or CV — the tool identifies the answer by ids.
+- **The reviewers are contractors, so they are processors** (owner's decision, 2026-09-26). They are
+  senior engineers outside the company, paid per review, engaged under contract rather than employed.
+  Each therefore needs a data-processing and confidentiality agreement before they are given access:
+  `docs/privacy/reviewer-agreement.md` is the **draft** template, and it says on its face that a
+  lawyer familiar with the NDPA 2023 must review it before anybody signs.
+  **Phase 6 of M4 does not go live with real reviewers until a signed agreement is in place**, which
+  is a gate on the milestone rather than a note in it. Named, individual contractors are not listed
+  as rows in the table above — that table is for services we send data to — but they are processors
+  in exactly the same sense, and a DPA we sign with a customer or a partner has to be able to say so.
+- **Access is logged.** A staff member reading a candidate's words is an audited event, like every
+  other privileged action (ADR-0011's audit rules).
 
 ## What we promise users about these
 

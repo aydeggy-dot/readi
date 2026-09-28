@@ -178,10 +178,40 @@ def test_too_little_time_for_another_question_moves_to_their_questions() -> None
     deck = bundle()
     state, _ = drive(machine.start(machine.begin(deck)), deck, at(0))
     state, _ = machine.take_answer(state, "Answer.", covered=(0, 1))
-    # 100 seconds left: under SECONDS_FOR_A_QUESTION, over SECONDS_FOR_CANDIDATE_QUESTIONS.
+    # 100 seconds left: under SECONDS_TO_OPEN_A_QUESTION, over SECONDS_FOR_CANDIDATE_QUESTIONS.
     state, steps = drive(state, deck, at(15 - 100 / 60))
     assert steps == [InviteCandidateQuestions(seq=3)]
     assert state.state == "candidate_questions"
+
+
+@pytest.mark.parametrize(
+    ("left", "opens"),
+    [
+        (budgets.SECONDS_TO_OPEN_A_QUESTION + 5, True),
+        # The first paid run's own number: 127 seconds, which cleared the old 120-second reserve by
+        # seven seconds and then had no room for a probe when the answer came back.
+        (127, False),
+        (budgets.SECONDS_FOR_A_QUESTION - 5, False),
+    ],
+)
+def test_a_question_is_only_opened_if_a_probe_could_follow_it(left: int, opens: bool) -> None:
+    """The owner's decision of 2026-09-27: end sooner with fewer questions instead.
+
+    A question the clock cannot follow up on is a question the candidate is asked once and scored on
+    one criterion of. The first paid run opened its fourth question with 127 seconds left — past
+    `SECONDS_FOR_A_QUESTION` by seven — the answer took 99, and both of its probes went unasked. The
+    reserve is now the answer **plus** one probe, so it means what its own comment always claimed.
+    """
+    deck = bundle(questions=[question(0), question(1)], question_budget=4)
+    state, _ = drive(machine.start(machine.begin(deck)), deck, at(0))
+    state, _ = machine.take_answer(state, "Answer.", covered=(0, 1))
+    state, _ = drive(state, deck, at(15 - left / 60))
+    if opens:
+        assert state.state == "question"
+        assert state.current_question == 1
+    else:
+        assert state.current_question is None
+        assert state.state in ("candidate_questions", "wrap_up", "ended")
 
 
 def test_too_little_time_for_their_questions_goes_straight_to_the_close() -> None:

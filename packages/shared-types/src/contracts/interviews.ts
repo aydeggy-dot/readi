@@ -345,6 +345,17 @@ export const InterviewSessionBundle = z
     mode: InterviewMode,
     persona: InterviewPersona,
     is_diagnostic: z.boolean(),
+    /**
+     * Whether this candidate has granted `transcript_review` (ADR-0017), so the intro can say
+     * aloud that a person may read what they type. It is read when the bundle is built rather
+     * than pinned on the session, because the intro is spoken once and what it said is already
+     * recorded verbatim in `session_turns` — the honest record of the claim is the transcript
+     * itself, not a column.
+     *
+     * It reaches exactly one template. It is **not** candidate context: nothing about the
+     * interview changes, and no model is told to behave differently.
+     */
+    transcript_review_granted: z.boolean(),
     planned_minutes: InterviewLength,
     /** The wall-clock deadline; the engine's time budget is checked against it, not against a tick. */
     ends_at: z.iso.datetime(),

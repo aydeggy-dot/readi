@@ -1,8 +1,9 @@
 """FastAPI application factory for the AI worker."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 import sentry_sdk
 from fastapi import FastAPI
@@ -16,6 +17,10 @@ from readi_worker.embeddings.fake import FakeEmbeddingProvider
 from readi_worker.embeddings.router import build_embeddings_router
 from readi_worker.embeddings.service import EmbeddingService
 from readi_worker.embeddings.voyage import VoyageEmbeddingProvider
+from readi_worker.evaluation.calls import Evaluator
+from readi_worker.evaluation.fake_script import FakeEvaluatorLLMClient
+from readi_worker.evaluation.router import build_evaluation_router
+from readi_worker.evaluation.service import EvaluationService
 from readi_worker.health import SupportsPing, build_health_router
 from readi_worker.http_limits import BodySizeLimit
 from readi_worker.interview.calls import Interviewer
@@ -50,17 +55,37 @@ class RedisClient(SupportsPing, SupportsCache, Protocol):
     """What the worker asks of Redis: a ping for `/health`, and a small cache for the engine."""
 
 
-def _build_llm(settings: Settings) -> tuple[LLMClient, str, str]:
-    """The configured LLM client, and the models for CV parsing and for the live interviewer."""
+logger = logging.getLogger(__name__)
+
+
+class Models(NamedTuple):
+    """Which model each kind of call uses. Three, because they are three different trades."""
+
+    cv_parse: str
+    interviewer: str
+    evaluator: str
+
+
+def _build_llm(settings: Settings) -> tuple[LLMClient, Models]:
+    """The configured LLM client, and the model for each kind of call."""
     if settings.llm_provider == "fake":
-        # One client, two stand-ins: the interviewer shapes first, the CV keyword extractor behind.
-        return FakeInterviewerLLMClient(FunctionLLMClient(keyword_extraction)), "fake", "fake"
+        # One client, three stand-ins, tried in order: the evaluator's shape, then the
+        # interviewer's, then the CV keyword extractor behind both. Each recognises its own output
+        # type and passes anything else along, so a fourth call shape is a link, not an edit.
+        fake = FakeEvaluatorLLMClient(
+            FakeInterviewerLLMClient(FunctionLLMClient(keyword_extraction))
+        )
+        return fake, Models("fake", "fake", "fake")
     if settings.anthropic_api_key is None:  # guaranteed by Settings validation
         raise RuntimeError("ANTHROPIC_API_KEY missing")
     client = AnthropicLLMClient(
         settings.anthropic_api_key.get_secret_value(), timeout_s=settings.llm_timeout_s
     )
-    return client, settings.llm_model_cv_parse, settings.llm_model_interviewer
+    return client, Models(
+        settings.llm_model_cv_parse,
+        settings.llm_model_interviewer,
+        settings.llm_model_evaluator,
+    )
 
 
 def _build_embeddings(settings: Settings) -> tuple[EmbeddingProvider, str]:
@@ -104,14 +129,31 @@ def create_app(
 
     owned_llm: AnthropicLLMClient | None = None
     if llm is None:
-        llm, cv_model, interviewer_model = _build_llm(settings)
+        llm, models = _build_llm(settings)
         owned_llm = llm if isinstance(llm, AnthropicLLMClient) else None
     else:
-        cv_model = settings.llm_model_cv_parse
-        interviewer_model = settings.llm_model_interviewer
+        models = Models(
+            settings.llm_model_cv_parse,
+            settings.llm_model_interviewer,
+            settings.llm_model_evaluator,
+        )
     # Tracing goes on here, once, between the provider and everything that calls it: every model
     # call the worker will ever make is traced by construction rather than by remembering to.
     llm = TracedLLMClient(llm, tracer)
+
+    # Which provider this process is armed with, once, at startup. `fake` is the resting state and a
+    # paid run is armed on the command line for its own length (`.env.example`), so the one thing an
+    # operator needs before spending money is a way to tell the two apart from outside the process —
+    # and the first two paid runs were each diagnosed twice partly because there was not one. Names
+    # only: the key is a `SecretStr` and never goes near a log.
+    logger.info(
+        "llm provider=%s cv_parse=%s interviewer=%s evaluator=%s tracing=%s",
+        settings.llm_provider,
+        models.cv_parse,
+        models.interviewer,
+        models.evaluator,
+        "langfuse" if settings.langfuse_public_key else "off",
+    )
 
     owned_embeddings: VoyageEmbeddingProvider | None = None
     if embeddings is None:
@@ -144,7 +186,7 @@ def create_app(
     app.add_middleware(BodySizeLimit)
     app.include_router(build_health_router(redis, timeout_s))
     service_token = require_service_token(settings.service_token)
-    app.include_router(build_cv_router(CvParser(llm, cv_model, tracer), service_token))
+    app.include_router(build_cv_router(CvParser(llm, models.cv_parse, tracer), service_token))
     app.include_router(
         build_embeddings_router(
             EmbeddingService(embeddings, embedding_model, settings.embedding_dimensions),
@@ -154,8 +196,22 @@ def create_app(
     app.include_router(
         build_interview_router(
             InterviewService(
-                Interviewer(llm, interviewer_model, settings.interview_llm_timeout_s),
+                Interviewer(llm, models.interviewer, settings.interview_llm_timeout_s),
                 InterviewStateStore(redis, settings.interview_state_ttl_s),
+                tracer,
+            ),
+            service_token,
+        )
+    )
+    app.include_router(
+        build_evaluation_router(
+            EvaluationService(
+                Evaluator(
+                    llm,
+                    models.evaluator,
+                    settings.evaluation_llm_timeout_s,
+                    strict_criteria=settings.evaluator_strict_criteria_schema,
+                ),
                 tracer,
             ),
             service_token,

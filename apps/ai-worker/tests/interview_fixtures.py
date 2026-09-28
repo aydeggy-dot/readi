@@ -57,6 +57,7 @@ def bundle(
     ends_at: datetime | None = None,
     stack: str | None = "React",
     is_diagnostic: bool = False,
+    transcript_review_granted: bool = False,
 ) -> InterviewSessionBundle:
     return InterviewSessionBundle.model_validate(
         {
@@ -65,6 +66,7 @@ def bundle(
             "mode": "text",
             "persona": "friendly",
             "is_diagnostic": is_diagnostic,
+            "transcript_review_granted": transcript_review_granted,
             "planned_minutes": minutes,
             "ends_at": (ends_at or STARTED_AT + timedelta(minutes=minutes)).isoformat(),
             "question_budget": question_budget,

@@ -1,0 +1,108 @@
+name: Evaluator evals
+
+# `workflow_dispatch` only, and that is a cost decision rather than an oversight.
+#
+# A paid run over the approved sample is roughly $1-3 depending on the model (the harness's
+# `--dry-run` prints the exact figure), so it cannot be attached to `push` or `pull_request` without
+# spending money on every commit that touches a comment. The path filter that *would* make it
+# automatic is written out below and commented out on purpose: if it is ever turned on, it needs a
+# concurrency group and a decision about who pays for a busy afternoon of pushes to
+# `apps/ai-worker/readi_worker/prompts/`.
+#
+# What keeps the harness alive between dispatches is not this file: `--smoke` runs inside `pnpm test`
+# on every commit (`tests/test_evals_run.py`), because a test that only runs when asked is a test that
+# rots (the M2.5 lesson). This job is for the measurement, not for the wiring.
+#
+# on:
+#   pull_request:
+#     paths:
+#       - "apps/ai-worker/readi_worker/prompts/evaluate_answer*.md"
+#       - "apps/ai-worker/readi_worker/evaluation/**"
+#       - "evals/**"
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Which model scores the sample
+        type: choice
+        default: claude-opus-5
+        options: [claude-opus-5, claude-sonnet-5]
+      sample:
+        description: How many rubrics (each contributes five answers)
+        type: string
+        default: "12"
+      dataset:
+        description: evals/datasets/<name>
+        type: choice
+        default: synthetic
+        options: [synthetic, gold]
+      dry_run:
+        description: Price the run and stop, without scoring anything
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  # One paid run at a time, and never cancelled halfway: a cancelled run has already spent whatever it
+  # spent, and its result file is the only record of it.
+  group: evals
+  cancel-in-progress: false
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  evaluate:
+    name: ${{ inputs.dry_run && 'Price' || 'Score' }} ${{ inputs.sample }} rubrics with ${{ inputs.model }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/ai-worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.17"
+          enable-cache: true
+          cache-dependency-glob: apps/ai-worker/uv.lock
+      - run: uv sync --locked
+
+      # Free, and it fails on a corpus the harness cannot read — which is the failure to catch before
+      # asking for a key.
+      - name: Smoke the harness on the stand-in evaluator
+        run: uv run python -m readi_worker.evals.run --smoke
+
+      - name: Price the run
+        run: >-
+          uv run python -m readi_worker.evals.run --dry-run
+          --dataset '${{ inputs.dataset }}' --sample '${{ inputs.sample }}'
+          --model '${{ inputs.model }}'
+        env:
+          # Present so the input tokens are counted rather than estimated. Counting is free.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Score the sample
+        if: ${{ !inputs.dry_run }}
+        run: >-
+          uv run python -m readi_worker.evals.run
+          --dataset '${{ inputs.dataset }}' --sample '${{ inputs.sample }}'
+          --model '${{ inputs.model }}'
+          --report "$RUNNER_TEMP/report.md"
+          --out "$RUNNER_TEMP/result.json"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      # `if: always()`, because a run that failed its fairness band is the run whose numbers somebody
+      # most needs to read. The exit code has already recorded the verdict.
+      - name: Keep the run
+        if: ${{ always() && !inputs.dry_run }}
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: evals-${{ inputs.model }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/report.md
+            ${{ runner.temp }}/result.json
+          if-no-files-found: warn

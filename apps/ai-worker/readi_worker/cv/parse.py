@@ -167,6 +167,8 @@ def _record(result: LLMResult[CvExtraction]) -> AiCallRecord:
             "latency_ms": result.latency_ms,
             "input_units": result.input_tokens,
             "output_units": result.output_tokens,
+            "cache_write_units": 0,
+            "cache_read_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": token_cost_micro_usd(
                 result.provider, result.model, result.input_tokens, result.output_tokens
@@ -187,6 +189,8 @@ def _error_record(exc: LLMError) -> AiCallRecord:
             "latency_ms": exc.latency_ms,
             "input_units": 0,
             "output_units": 0,
+            "cache_write_units": 0,
+            "cache_read_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": 0,
             "langfuse_trace_id": current_trace_id(),

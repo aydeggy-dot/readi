@@ -71,7 +71,10 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
 /content
   seed/           Seed question banks, rubrics, lessons (YAML/JSON), reviewed by humans
 /evals
-  datasets/       Gold-standard answers with human scores for evaluator regression tests
+  datasets/synthetic/  510 model-written answers with model-written scores: a regression baseline
+  datasets/gold/       the same format, scored by people. Empty until experts have — README.md says why
+  thresholds.yaml      agreement thresholds (the separation margin and fairness band live in code)
+  results/             one JSON per harness run; every report is recomputed from these
 ```
 
 ## 4. Common commands
@@ -89,7 +92,7 @@ pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
-E2E_SCREENSHOTS=before pnpm test:e2e visual   # 152 before/after screenshots for a visual change (apps/web/e2e/visual)
+E2E_SCREENSHOTS=before pnpm test:e2e visual   # 172 before/after screenshots for a visual change (apps/web/e2e/visual)
 pnpm build                   # build all apps
 pnpm format                  # prettier (TS); `pnpm --filter @readi/ai-worker format` for ruff
 pnpm gen:contracts           # Zod → JSON Schema → Pydantic (ADR-0003) and OpenAPI → api-client (ADR-0012); commit the output
@@ -102,12 +105,17 @@ pnpm --filter @readi/api admin:grant -- --email <your-email> --role admin   # gr
 pnpm --filter @readi/api admin:cancel-deletion -- --email <their-email>      # keep an account during its 7-day grace period (audited, ADR-0011)
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
+pnpm --filter @readi/api interviews:pace   # what candidates really take to answer, against the engine's reserves; reads only, sample size on its face (`interviews/pace.ts`)
 node .claude/skills/question-bank/scripts/check-bank.mjs   # offline checks on the question banks: house style, slugs, blueprint targets, one ask per opening
 node scripts/sse-rewrite-proof.mjs   # does an event stream survive proxy.ts and the Next rewrite under `next start`? (ADR-0016)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
-cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite (from M4)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run --smoke        # the eval harness on the stand-in: no key, no cost (also inside `pnpm test`)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5   # the sample and its cost, input tokens counted, before anything is spent
+cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5 --max-cost 2.00   # PAID. fairness, the two separations, agreement, cost; --max-cost stops it before the answer that would cross the approved figure (evals/README.md)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run --compare ../../evals/results/<a>.json ../../evals/results/<b>.json   # two finished runs, free and repeatable
+cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --model <same model> --retry-unscored ../../evals/results/<run>.json   # PAID. only the answers that run could not score, merged back into it
 ```
 
 ## 5. Architecture rules
@@ -120,6 +128,21 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   which states exist, or what to probe.
 - Every session has a time budget and question budget enforced in code. The **time budget is the
   authoritative one**: `ends_at` is a wall-clock deadline, and the question count is a cap.
+- **A question is not opened unless a probe could follow it** — `SECONDS_TO_OPEN_A_QUESTION`, the
+  answer plus one follow-up (owner's decision, 2026-09-27). `SECONDS_FOR_A_QUESTION` alone knowingly
+  admitted a question it might not be able to probe, and the first paid run opened its fourth with
+  127 seconds left, took 99 on the answer, and had no room for either of its two probes. **End sooner
+  with fewer questions instead**: a question the clock cannot probe is one the candidate is asked
+  once and scored on one criterion of, which is a worse interview than three proper questions and
+  their own questions at the end.
+- **The reserves are measured now, and one of them moved** (owner's decision, 2026-09-29).
+  `SECONDS_FOR_A_FOLLOW_UP` is **75, provisionally, on a sample of eight**: it was 45, and
+  `pnpm --filter @readi/api interviews:pace` found the median follow-up answer taking 61 s with five
+  of eight past 45 — the engine was starting probes the clock could not finish. Over-reserving is
+  the safe direction, because an unasked criterion is **not assessed** and leaves the denominator, so
+  the cost is a slightly shorter interview and never a lower score. **Revisit it on pilot data**: the
+  figure to re-read is "follow-up answers that ran past it" on that report, which refuses to be read
+  as a constant under 40 answers.
 - Text mode and voice mode share the **same engine**; voice is just a different transport.
 - **A question exists at three widths, and the gaps between them are the product rules**
   (`apps/api/src/interviews/session-bundle.ts` is the only place they are crossed):
@@ -256,12 +279,135 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   (turns, latency samples, AI-call records) that the API persists idempotently. Ephemeral engine state lives in Redis.
 
 ### Evaluation
-- Evaluation runs **per answer**, against that question's rubric, with low temperature and **schema-validated structured output** (Pydantic model ↔ Zod schema in `shared-types`).
+- Evaluation runs **per answer**, against that question's rubric, with **schema-validated structured
+  output** (Pydantic model ↔ Zod schema in `shared-types`). This line used to say "with low
+  temperature", which is not something current Claude models accept — they reject sampling parameters
+  outright (`llm/anthropic_client.py`). What keeps a score from wandering between two runs is the
+  constrained schema, `effort: low`, and a fixed 0–4 ladder instead of a free scale; whether that is
+  stable enough is a measurement the `/evals` harness makes, not an assumption.
 - Every **non-zero** criterion score must include `evidence` quoted from the transcript; reject and retry outputs
   that violate this. A score of 0 may have empty evidence only when the criterion was not addressed at all (spec §6.2).
-- The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call.
+- The session report is assembled **from per-answer JSON in code**, not from one free-form LLM call
+  (`apps/api/src/evaluations/report-assembly.ts`, pure). Spec §4.4's "per-dimension scores" is
+  corrected to **by topic and by question type**: a rubric's dimensions are free prose written for one
+  question, so they do not aggregate across a session; per-criterion scores stay inside each question's
+  breakdown. The top 3 strengths come from the answers that went best and the top 3 fixes from the ones
+  that went worst — chosen in code, so the list is reproducible and cannot flatter.
+- **A score is three columns, not one, and the split is what makes the harness mean anything.**
+  `answer_evaluations.criteria` is the model's per-criterion reading untouched; `overall_raw` is those
+  scores weighted by the **pinned** rubric; `overall` is `overall_raw` after the prompting adjustment.
+  `/evals` compares a human to `criteria`, because that is what a human scores; the candidate reads
+  `overall`. All of it is versioned by `SCORING_VERSION`, which versions **our arithmetic** rather than
+  the model.
+- **A criterion the engine had to ask about contributes at 0.85 of its weight** (owner's decision,
+  2026-09-26; `scoring.ts`, `prompting.ts`). Applied to **any non-zero** score rather than as a curve,
+  because a candidate can check "you lose a little for needing the nudge" against their own transcript;
+  applied to the **numerator only**, so it can never raise a score. It is keyed on the **engine fact** —
+  which probes were really asked, as `session_turns.follow_up_index` records them — never on the
+  coverage model's private verdict, which M3 wrote may reach the evaluator "as a prior and never as a
+  score". **A criterion may carry two probes**, so the menu is read **per probe** and collapsed to a set
+  of criteria at the end: anything keyed by criterion drops the second probe, as `review-doc.ts` did.
+- **A criterion the interview never asked about is not assessed, and leaves the denominator**
+  (owner's decision, 2026-09-27; `SCORING_VERSION` 2). Two facts, from two places, and both are
+  needed: the **engine fact** that the criterion carries probes and the interview asked none of them
+  (`unaskedCriteria`, the exact complement of `promptedCriteria` over the criteria that have probes),
+  and the **model's own reading** that the answer did not reach it — a 0 with no evidence, which spec
+  §6.2 already defines as "never addressed at all". A candidate who volunteered it unasked scores on
+  it as normal, and so does one who addressed it and was wrong, which is the 0 *with* a quote. Any
+  reason counts: the clock, an early end, or the follow-up cap spent on another criterion. It is the
+  mirror of the 0.85: that protects a candidate who **needed** a nudge, and there was nothing at all
+  for one who was never **offered** one — the first paid run's fourth answer lost 30 points that way,
+  and neither the report nor the transcript could say where. `overall_raw` carries neither adjustment,
+  because `/evals` compares a human to the model and not to our arithmetic. **It never excludes the
+  whole rubric**: two of the 104 seeded questions probe every criterion, and an answer that reached
+  none of them is a 0 the candidate earned on the thing the prompt did ask.
+  **The report has to admit it** — `CandidateQuestionReport.not_assessed` names those criteria by
+  `dimension`, and a criterion is in exactly one of `criteria` and that list. A score assembled over
+  two of three criteria which does not say which one is missing cannot be checked against the
+  transcript, which is the whole basis of the report (product principle 1).
+- **`asked_about` is the one engine fact the evaluator is given**, and it may not move a score. The
+  model is told whether the interview put each criterion to the candidate (`EvaluationCriterion`,
+  `NOT_ASKED_LABEL`, `evaluate_answer.v2.md`) — because its prose is printed in the report, and a
+  model that does not know the interview ran out of time tells the candidate off for not answering a
+  question nobody asked. "Volunteered or prompted" stays hidden, because that is a *grading* fact;
+  "asked at all" does not, because it is a fact about us. The exclusion itself is arithmetic in
+  `scoring.ts`, keyed on the same engine fact and on the model's 0-with-no-evidence.
+- **A report is served once and recovered twice.** `GET /api/interviews/:id/report` reads
+  `session_reports.summary` with `safeParse` — it is the artefact a candidate was given, written by
+  whichever release assembled it, and a shape that has moved since must not 500 their page. Missing or
+  unreadable is the same answer: queue the scoring and refuse with `report_not_ready`, which costs
+  nothing when the answers are already stored because re-assembly makes no model call.
+  **That is only half a recovery**, because it fires only if somebody opens their report, so
+  `EvaluationSweepQueue` sweeps the database every ten minutes for ended, answered sessions with no
+  report row (oldest first, bounded, fifteen minutes' grace). It cannot pay twice for a refusal:
+  `assemble()` stores a `failed` report even when nothing could be scored, so a refused session leaves
+  the query for good. The session id is the job id, and `enqueue` **removes a completed or failed job
+  under that id first** — BullMQ silently returns the existing job otherwise, which made the whole
+  recovery a no-op until a test caught it.
+- **Scoring is triggered by a session reaching `ended`, and there are three doors.** The engine wrapping
+  up, the candidate ending early, and a session being abandoned — by the stale sweep or by the candidate
+  starting a new one. All of them go through `EvaluationsService.onSessionsEnded`, and an **abandoned**
+  session with answers in it is still scored: which door a session left through is invisible to the
+  candidate, and "sometimes there is a report" is a worse product than one report per set of answers.
+  A session with **no** candidate turn gets no job and no report (`endedWithAnswers`, one place).
+  The enqueue happens **after** the SSE stream is closed, because ADR-0016 forbids anything between
+  `open()` and `close()` from throwing.
+- One answer per worker request, fanned out with bounded concurrency (`EVALUATION_CONCURRENCY`): spec §8
+  wants a report within 60 s and a 30-minute session is eight answers, so the fan-out is in the design
+  rather than an optimisation. **The first answer is scored alone and the rest fan out behind it**
+  (2026-09-28): the evaluator's system prompt is cached, a cache entry can only be read once the request
+  that wrote it has answered, and four calls started together on a cold prefix each pay the 1.25× write
+  and read nothing — `4 × 1.25` against the `4 × 1.00` of not caching, which at MVP volume is the
+  normal case. Pre-warming the entry instead is not open to us: `max_tokens: 0` is rejected together
+  with `output_config.format`, which every evaluator call uses. The head costs ≈15 s of the 60 s budget
+  and buys 9–13% of the evaluation bill cold, more under traffic, because the entry is **global** — the
+  same system prompt for every answer of every session of every candidate.
+- **The bill has to be re-derivable from its own row.** `ai_call_log.cache_write_units` and
+  `cache_read_units` are separate from `input_units` (the uncached remainder the provider reports)
+  because they are billed at 1.25× and 0.1× of the input rate; `pricing.py` holds the two multiples.
+  Folded together, a cached call looks four times cheaper than it was, and every cost measurement on
+  top of it becomes a number taken on trust.
+- **`/evals` measures three things and they are not equally important** (`evals/README.md`). Fairness
+  first: `nigerian-english` must stay within one rung of `strong` **per criterion**, because a
+  weighted average hides the one descriptor that punished the idiom and the criterion is what you would
+  change. Then the two separations, on the same 0.8 margin `check-stress.mjs` applies to the written
+  scores, so "the rubric separates" and "the model separates" are read on one axis. Then agreement,
+  which against `evals/datasets/synthetic` is a **regression baseline and nothing else** — those
+  expected scores are model-written, and only `evals/datasets/gold` can say whether a score is right.
+  The harness reads files and needs no database; `--smoke` runs inside `pnpm test` so it cannot rot. **An answer that already has a row is never re-scored** — the unique
+  constraint on `session_question_id` is the idempotency — so a re-run is free and a `failed` answer
+  stays failed until somebody decides otherwise, which costs money and is an operator's call.
+- **Evidence that reads like an instruction is flagged, never scored around** (owner's decision,
+  2026-09-27). The injection gate stops a model *inventing* a quote; it cannot stop one quoting the
+  injection itself, because that quote is real. So `answer_evaluations.evidence_flags` records **our**
+  matched phrases (`readi_worker/evaluation/instruction_flags.py`, beside the payloads that motivated
+  them), and it **changes no score and reaches no candidate**: a flag is a reason for a person to look.
+  M4 phase 6's calibration area draws the list.
+- **Calibration is a person marking an answer the model has already marked** (M4 phase 6, ADR-0017),
+  at `/admin/calibration`. Four rules, all of them in `evaluations/calibration.service.ts` because
+  each fails silently if it is restated anywhere else. **Nothing is sampled except through
+  `ConsentsService.usersGranting("transcript_review")`** — `isCurrentGrant` written once, and a
+  caller that rebuilt the predicate would show one candidate's words to somebody who was told no and
+  look correct doing it. **While `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` is false only staff
+  answers are offered**, which is the owner's "not live until the reviewer agreement is signed" held
+  in code rather than in a convention; consent is still required of staff, so what is demonstrated is
+  the real path. **A reviewer never sees the model's marks** — `CalibrationAnswer` is a separate
+  shape, not an `Omit<>` of the evaluation, so a field cannot come back the next time the parent
+  grows — and never the candidate's name, email or id. **Reading an answer is the audited event**
+  (`calibration.answer.read`), not scoring it: consent was asked for a person reading a candidate's
+  words. The agreement dashboard is an **admin's** screen and aggregate-only, because an aggregate a
+  reviewer reads before marking is still the model's opinion reaching them first; its five figures
+  are the harness's, and `calibration-agreement.ts` says out loud that it is the second
+  implementation of `metrics.py`'s definition. A review has no lifecycle, so there is no second
+  status machine — which is what the plan's "reuse `content-workflow.ts`" was warning against.
 - The readiness score formula lives in code (see spec §7), is versioned, and is unit-tested.
 - Any change to evaluator prompts or models must pass `/evals` regression (agreement with human scores must not drop).
+- **A session pins what it is scored against, not merely what it was asked.** A session lasts fifteen to
+  thirty minutes and an expert can rework a rubric inside that window, so the report's words and its
+  number both come from `interview_session_questions.snapshot` — never from `questions` or
+  `rubric_criteria`. `interview-pinning.int.spec.ts` edits the question **mid-interview** and has been
+  watched failing in both halves; written the other way round (edit after scoring) it passes with the
+  weights read live, because a scored answer is never re-scored.
 
 ### Learning content
 - Statuses are `draft → in_review → published → retired`. A content expert writes, edits and submits; an
@@ -288,6 +434,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   any payload: not in a content response, not in a question the session has not reached, not in a
   state frame. The fixture marks them apart (`plannedFollowUpMarkers`) and the leak test asserts
   that count, which is a stronger claim than the old blanket one over every surface that never speaks.
+  **A scored session's own report is the second such moment, and the only other one** (M4 phase 4,
+  owner's decisions 4–5 of 2026-09-26). `GET /api/interviews/:id/report` may carry that session's
+  pinned `ideal_points`, as "what a strong answer covers", and its criteria's `dimension` names, as the
+  vocabulary the feedback is written in — and nothing else: never a criterion's `description`, never a
+  `weight`, never one of the five level descriptors. The fixture marks those two apart as
+  `idealPointMarkers` and `dimensionMarkers` (**subsets** of `answerKeyMarkers`, because the worker's
+  bundle must still carry neither), and the leak test asserts each as a count on the report route and
+  their absence everywhere else. `answerKeyLeaks`'s `allowKeys` exists for that one route's three
+  legitimate field names and for nothing else.
 - **A question's `planned_follow_ups` are where the criteria its prompt does not ask for get asked**
   (owner's decision, 2026-09-23; `docs/progress/2026-09-23-planned-follow-ups.md`). The opening prompt
   asks one thing, the way an interviewer does; each remaining criterion carries `{ criterion, probe }`,
@@ -396,6 +551,29 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   `prompt_versions` and every eval run name the old one and must keep meaning what they meant. A
   version that has never left its own branch may still be revised within that milestone (M2.5 did
   this to `cv_parse.v2.md` twice), since nothing references it yet; say so in the commit message.
+- **A prompt that was written and measured and did not work stays in the tree, unused and tested**
+  (owner's decision, 2026-09-28). `evaluate_answer` **v3** and `evaluate_answer_input` **v2** were
+  written against `rejected_criteria` — the only recorded cause of a thrown-away opus reading — and a
+  paid check measured **no fall**: 17 rejected readings over 39 calls against a matched v2 baseline of
+  42 over 112. `PROMPT_VERSIONS` therefore still names v2 and v1, because every figure M4 rests on was
+  measured on those and running v3 would put an unmeasured evaluator in front of candidates for no
+  measured gain. The files are kept **and kept tested**: an untested prompt file rots quietly, and the
+  structural fix phase 7 owes builds on them.
+- **What fixed `rejected_criteria` was a schema, not wording** (measured 2026-09-28,
+  `docs/progress/2026-09-28-strict-criteria-run.md`). `evaluation/strict_schema.py` builds the reading
+  model per request from that rubric's own criterion positions: `criteria` is an **object keyed by
+  position**, every key `required`, `additionalProperties: false`, so omitting or inventing a criterion
+  is invalid output rather than a gate rejection after the fact. **0 rejected readings over 60 calls**
+  across all twelve rubrics of the paid comparison, against a matched v2 baseline of 74 over 297 (25%);
+  nothing unscoreable, both separations 12 of 12, fairness inside the band on all 36 criteria, and
+  3.40¢ an answer against 4.24¢. `EVALUATOR_STRICT_CRITERIA_SCHEMA` is therefore **on by default**, and
+  setting it false is a diagnostic rather than a fallback — it returns to an evaluator that threw away
+  a quarter of its readings. The natural shape does **not** work and the test that says so must stay:
+  `anthropic.transform_schema` folds `prefixItems`, `minItems` and `maxItems` into the schema's
+  *description*, so a fixed-length tuple would reach the provider as an unconstrained array with a
+  sentence about tuples. The three gates in `service.py` stay live as a backstop, which is why the
+  `Evaluator` constructor's own default stays off: its tests need a shape the `rejected_criteria` check
+  can still fire on.
 - **Which version is in use is one table per family, not one number.** The interview prompts are
   `PROMPT_VERSIONS` in `interview/service.py`, and a change bumps one entry. They shared a single
   `VERSION = 1` until 2026-09-26, which made "bump one prompt" impossible to express — and every
@@ -414,7 +592,15 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   everyone, and additionally by SMS (Termii) to users who signed up by phone.
 
 ### Data & privacy (Nigeria Data Protection Act 2023, GDPR-ready)
-- Store explicit `consent_records` for: recording audio, camera coaching, storing recordings, marketing.
+- Store explicit `consent_records` for: recording audio, camera coaching, storing recordings,
+  **transcript review** and marketing. `transcript_review` is the one that lets a *person* read what
+  a candidate typed, for expert calibration (ADR-0017): opt-in, default off, refusable at no cost,
+  and nothing may sample an answer except through `ConsentsService.usersGranting()`. The rule for
+  "granted" is `consent-eligibility.ts`'s `isCurrentGrant` and is written once — a caller that
+  restates it fails silently by showing one candidate's words to someone who was told no.
+  **Adding a consent type is three things, not one**: a `CONSENT_TYPES` entry, a Prisma enum value
+  with its own migration, and a `consent.types.<type>.v1` copy block. It also sends every existing
+  account back to the consent screen, because `allDecided` wants an answer to each type.
 - Camera analysis (MediaPipe) runs on the client; only numeric metrics are sent to the server.
 - Recordings (if consented) auto-expire after a configurable retention period (default 30 days).
 - Never log transcripts, CVs, emails, or phone numbers to application logs or Sentry. Use ids.
@@ -546,6 +732,27 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
 5. Keep this file and the spec current: if you add a command, module, or convention, update the docs in the same change.
 6. Never weaken security, privacy, or billing rules to make a test pass.
 7. Don't generate large volumes of interview content and present it as final — seed content is marked `status: draft` until a human expert reviews it.
+8. **A paid run spends only what the owner approved, and only one at a time** (owner's standing rule,
+   2026-09-28). Before starting one, price it with `--dry-run` and get an explicit go-ahead for that
+   amount, then **pass that amount as `--max-cost`**, so the run stops itself before the answer that
+   would cross it rather than relying on somebody watching the cost column. If the real cost is
+   going to pass it — a counted figure above the estimate, a rejection
+   rate above the allowance, answers that need a second pass — **stop and ask** rather than finish
+   the run and report the overrun afterwards. **Never start a paid run while another is in
+   progress**: on 2026-09-28 two opus runs overlapped, which doubled the bill, exhausted the
+   account's credit mid-run and left ten answers unscored. Sequential is also what makes the prompt
+   cache pay (`evals/README.md`, "Why sequential").
+9. **The owner starts every paid run, in a separate terminal** (owner's instruction, 2026-09-28),
+   loading the key from the untracked env file with `set -a; source .env; set +a` and then running a
+   command with no secret on it. So the job is to hand over a command that is ready to paste — the
+   sample, the model, `--max-cost` at the approved figure — and to read the output that comes back;
+   never to start the run.
+   **Never suggest a `!` command with a secret in it.** `! <command>` runs in the owner's own shell,
+   which is why it is the right way to hand work back, but it also puts the command **into the
+   transcript** — so `ANTHROPIC_API_KEY=<key> …` writes the key into the conversation, the one place
+   `.claude/hooks/secret-guard.mjs` cannot take it out again. The guard refusing to read that file is
+   the same rule from the other side: the key has no reason to reach Claude's context, because
+   starting the run is not Claude's to do.
 
 ## 8. Definition of done (every feature)
 

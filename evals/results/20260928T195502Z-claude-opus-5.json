@@ -1,0 +1,1132 @@
+{
+  "version": 1,
+  "label": "opus-strict-criteria",
+  "dataset": "synthetic",
+  "provenance": "ai_draft",
+  "provider": "anthropic",
+  "model": "claude-opus-5",
+  "started_at": "2026-09-28T19:55:02+00:00",
+  "finished_at": "2026-09-28T20:02:20+00:00",
+  "cache_system": true,
+  "strict_criteria": true,
+  "prompt_versions": {
+    "evaluate_answer": 2,
+    "evaluate_answer_input": 1
+  },
+  "retried_from": null,
+  "stopped": null,
+  "planned": [
+    "ambiguous-work-judgement/strong",
+    "ambiguous-work-judgement/weak",
+    "ambiguous-work-judgement/fluent-but-wrong",
+    "ambiguous-work-judgement/correct-poorly-explained",
+    "ambiguous-work-judgement/nigerian-english",
+    "incident-ownership/strong",
+    "incident-ownership/weak",
+    "incident-ownership/fluent-but-wrong",
+    "incident-ownership/correct-poorly-explained",
+    "incident-ownership/nigerian-english",
+    "scaling-out-reasoning/strong",
+    "scaling-out-reasoning/weak",
+    "scaling-out-reasoning/fluent-but-wrong",
+    "scaling-out-reasoning/correct-poorly-explained",
+    "scaling-out-reasoning/nigerian-english",
+    "stale-write-diagnosis/strong",
+    "stale-write-diagnosis/weak",
+    "stale-write-diagnosis/fluent-but-wrong",
+    "stale-write-diagnosis/correct-poorly-explained",
+    "stale-write-diagnosis/nigerian-english",
+    "transaction-boundary-reasoning/strong",
+    "transaction-boundary-reasoning/weak",
+    "transaction-boundary-reasoning/fluent-but-wrong",
+    "transaction-boundary-reasoning/correct-poorly-explained",
+    "transaction-boundary-reasoning/nigerian-english",
+    "unfamiliar-code-approach/strong",
+    "unfamiliar-code-approach/weak",
+    "unfamiliar-code-approach/fluent-but-wrong",
+    "unfamiliar-code-approach/correct-poorly-explained",
+    "unfamiliar-code-approach/nigerian-english"
+  ],
+  "cases": [
+    {
+      "rubric": "ambiguous-work-judgement",
+      "role": "backend",
+      "kind": "strong",
+      "question": "the-ticket-nobody-can-explain",
+      "scores": [
+        4,
+        3,
+        4
+      ],
+      "expected": [
+        4,
+        3,
+        4
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1394,
+        "output_tokens": 948,
+        "cache_write_tokens": 3166,
+        "cache_read_tokens": 0,
+        "cost_micro_usd": 50458,
+        "latency_ms": 16572
+      }
+    },
+    {
+      "rubric": "ambiguous-work-judgement",
+      "role": "backend",
+      "kind": "weak",
+      "question": "the-ticket-nobody-can-explain",
+      "scores": [
+        1,
+        2,
+        1
+      ],
+      "expected": [
+        1,
+        2,
+        1
+      ],
+      "evidence": [
+        2,
+        2,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1346,
+        "output_tokens": 880,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30313,
+        "latency_ms": 14194
+      }
+    },
+    {
+      "rubric": "ambiguous-work-judgement",
+      "role": "backend",
+      "kind": "fluent-but-wrong",
+      "question": "the-ticket-nobody-can-explain",
+      "scores": [
+        1,
+        0,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1377,
+        "output_tokens": 1065,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 35093,
+        "latency_ms": 16908
+      }
+    },
+    {
+      "rubric": "ambiguous-work-judgement",
+      "role": "backend",
+      "kind": "correct-poorly-explained",
+      "question": "the-ticket-nobody-can-explain",
+      "scores": [
+        3,
+        4,
+        4
+      ],
+      "expected": [
+        3,
+        4,
+        4
+      ],
+      "evidence": [
+        1,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1359,
+        "output_tokens": 936,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 31778,
+        "latency_ms": 13632
+      }
+    },
+    {
+      "rubric": "ambiguous-work-judgement",
+      "role": "backend",
+      "kind": "nigerian-english",
+      "question": "the-ticket-nobody-can-explain",
+      "scores": [
+        4,
+        3,
+        4
+      ],
+      "expected": [
+        4,
+        3,
+        4
+      ],
+      "evidence": [
+        3,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1375,
+        "output_tokens": 857,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 29883,
+        "latency_ms": 11887
+      }
+    },
+    {
+      "rubric": "incident-ownership",
+      "role": "backend",
+      "kind": "strong",
+      "question": "incident-you-contributed-to",
+      "scores": [
+        4,
+        3,
+        4
+      ],
+      "expected": [
+        4,
+        4,
+        4
+      ],
+      "evidence": [
+        3,
+        2,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1269,
+        "output_tokens": 733,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 26253,
+        "latency_ms": 11042
+      }
+    },
+    {
+      "rubric": "incident-ownership",
+      "role": "backend",
+      "kind": "weak",
+      "question": "incident-you-contributed-to",
+      "scores": [
+        3,
+        2,
+        2
+      ],
+      "expected": [
+        2,
+        2,
+        2
+      ],
+      "evidence": [
+        2,
+        2,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1223,
+        "output_tokens": 710,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 25448,
+        "latency_ms": 11562
+      }
+    },
+    {
+      "rubric": "incident-ownership",
+      "role": "backend",
+      "kind": "fluent-but-wrong",
+      "question": "incident-you-contributed-to",
+      "scores": [
+        1,
+        3,
+        3
+      ],
+      "expected": [
+        1,
+        4,
+        3
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1270,
+        "output_tokens": 1117,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 35858,
+        "latency_ms": 16699
+      }
+    },
+    {
+      "rubric": "incident-ownership",
+      "role": "backend",
+      "kind": "correct-poorly-explained",
+      "question": "incident-you-contributed-to",
+      "scores": [
+        4,
+        3,
+        4
+      ],
+      "expected": [
+        4,
+        4,
+        4
+      ],
+      "evidence": [
+        2,
+        2,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1255,
+        "output_tokens": 971,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 32133,
+        "latency_ms": 15128
+      }
+    },
+    {
+      "rubric": "incident-ownership",
+      "role": "backend",
+      "kind": "nigerian-english",
+      "question": "incident-you-contributed-to",
+      "scores": [
+        4,
+        3,
+        4
+      ],
+      "expected": [
+        4,
+        4,
+        4
+      ],
+      "evidence": [
+        3,
+        2,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1246,
+        "output_tokens": 931,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 31088,
+        "latency_ms": 13641
+      }
+    },
+    {
+      "rubric": "scaling-out-reasoning",
+      "role": "backend",
+      "kind": "strong",
+      "question": "one-server-to-two",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        4
+      ],
+      "evidence": [
+        3,
+        2,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1472,
+        "output_tokens": 846,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30093,
+        "latency_ms": 13980
+      }
+    },
+    {
+      "rubric": "scaling-out-reasoning",
+      "role": "backend",
+      "kind": "weak",
+      "question": "one-server-to-two",
+      "scores": [
+        0,
+        0,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1417,
+        "output_tokens": 777,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 28093,
+        "latency_ms": 11301
+      }
+    },
+    {
+      "rubric": "scaling-out-reasoning",
+      "role": "backend",
+      "kind": "fluent-but-wrong",
+      "question": "one-server-to-two",
+      "scores": [
+        0,
+        1,
+        1
+      ],
+      "expected": [
+        0,
+        1,
+        1
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1452,
+        "output_tokens": 1090,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 36093,
+        "latency_ms": 18309
+      }
+    },
+    {
+      "rubric": "scaling-out-reasoning",
+      "role": "backend",
+      "kind": "correct-poorly-explained",
+      "question": "one-server-to-two",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        4
+      ],
+      "evidence": [
+        3,
+        1,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1426,
+        "output_tokens": 1004,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 33813,
+        "latency_ms": 15389
+      }
+    },
+    {
+      "rubric": "scaling-out-reasoning",
+      "role": "backend",
+      "kind": "nigerian-english",
+      "question": "one-server-to-two",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        4
+      ],
+      "evidence": [
+        3,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1458,
+        "output_tokens": 944,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 32473,
+        "latency_ms": 14682
+      }
+    },
+    {
+      "rubric": "stale-write-diagnosis",
+      "role": "backend",
+      "kind": "strong",
+      "question": "django-save-overwrote-a-change",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        4
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1511,
+        "output_tokens": 872,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30938,
+        "latency_ms": 12599
+      }
+    },
+    {
+      "rubric": "stale-write-diagnosis",
+      "role": "backend",
+      "kind": "weak",
+      "question": "django-save-overwrote-a-change",
+      "scores": [
+        0,
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        1,
+        1,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1432,
+        "output_tokens": 799,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 28718,
+        "latency_ms": 11144
+      }
+    },
+    {
+      "rubric": "stale-write-diagnosis",
+      "role": "backend",
+      "kind": "fluent-but-wrong",
+      "question": "django-save-overwrote-a-change",
+      "scores": [
+        1,
+        1,
+        0
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        2,
+        1,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1510,
+        "output_tokens": 1211,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 39408,
+        "latency_ms": 17688
+      }
+    },
+    {
+      "rubric": "stale-write-diagnosis",
+      "role": "backend",
+      "kind": "correct-poorly-explained",
+      "question": "django-save-overwrote-a-change",
+      "scores": [
+        3,
+        3,
+        3
+      ],
+      "expected": [
+        3,
+        3,
+        3
+      ],
+      "evidence": [
+        2,
+        1,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1435,
+        "output_tokens": 862,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30308,
+        "latency_ms": 12206
+      }
+    },
+    {
+      "rubric": "stale-write-diagnosis",
+      "role": "backend",
+      "kind": "nigerian-english",
+      "question": "django-save-overwrote-a-change",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        4
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1496,
+        "output_tokens": 1028,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 34763,
+        "latency_ms": 15182
+      }
+    },
+    {
+      "rubric": "transaction-boundary-reasoning",
+      "role": "backend",
+      "kind": "strong",
+      "question": "db-half-finished-transfer",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        3
+      ],
+      "evidence": [
+        2,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1574,
+        "output_tokens": 1037,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 35378,
+        "latency_ms": 14890
+      }
+    },
+    {
+      "rubric": "transaction-boundary-reasoning",
+      "role": "backend",
+      "kind": "weak",
+      "question": "db-half-finished-transfer",
+      "scores": [
+        1,
+        0,
+        2
+      ],
+      "expected": [
+        1,
+        0,
+        2
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1523,
+        "output_tokens": 886,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 31348,
+        "latency_ms": 13802
+      }
+    },
+    {
+      "rubric": "transaction-boundary-reasoning",
+      "role": "backend",
+      "kind": "fluent-but-wrong",
+      "question": "db-half-finished-transfer",
+      "scores": [
+        1,
+        1,
+        2
+      ],
+      "expected": [
+        1,
+        1,
+        2
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1616,
+        "output_tokens": 1285,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 41788,
+        "latency_ms": 18862
+      }
+    },
+    {
+      "rubric": "transaction-boundary-reasoning",
+      "role": "backend",
+      "kind": "correct-poorly-explained",
+      "question": "db-half-finished-transfer",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        3
+      ],
+      "evidence": [
+        3,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1563,
+        "output_tokens": 1090,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 36648,
+        "latency_ms": 15503
+      }
+    },
+    {
+      "rubric": "transaction-boundary-reasoning",
+      "role": "backend",
+      "kind": "nigerian-english",
+      "question": "db-half-finished-transfer",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        3
+      ],
+      "evidence": [
+        2,
+        2,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1539,
+        "output_tokens": 974,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 33628,
+        "latency_ms": 14474
+      }
+    },
+    {
+      "rubric": "unfamiliar-code-approach",
+      "role": "backend",
+      "kind": "strong",
+      "question": "the-part-you-did-not-write",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        3
+      ],
+      "evidence": [
+        3,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1395,
+        "output_tokens": 992,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 33358,
+        "latency_ms": 14525
+      }
+    },
+    {
+      "rubric": "unfamiliar-code-approach",
+      "role": "backend",
+      "kind": "weak",
+      "question": "the-part-you-did-not-write",
+      "scores": [
+        1,
+        0,
+        2
+      ],
+      "expected": [
+        1,
+        1,
+        2
+      ],
+      "evidence": [
+        2,
+        1,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1320,
+        "output_tokens": 700,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 25683,
+        "latency_ms": 11641
+      }
+    },
+    {
+      "rubric": "unfamiliar-code-approach",
+      "role": "backend",
+      "kind": "fluent-but-wrong",
+      "question": "the-part-you-did-not-write",
+      "scores": [
+        1,
+        0,
+        0
+      ],
+      "expected": [
+        0,
+        0,
+        0
+      ],
+      "evidence": [
+        2,
+        0,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1390,
+        "output_tokens": 897,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30958,
+        "latency_ms": 16002
+      }
+    },
+    {
+      "rubric": "unfamiliar-code-approach",
+      "role": "backend",
+      "kind": "correct-poorly-explained",
+      "question": "the-part-you-did-not-write",
+      "scores": [
+        3,
+        3,
+        3
+      ],
+      "expected": [
+        3,
+        3,
+        3
+      ],
+      "evidence": [
+        3,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1363,
+        "output_tokens": 1192,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 38198,
+        "latency_ms": 16770
+      }
+    },
+    {
+      "rubric": "unfamiliar-code-approach",
+      "role": "backend",
+      "kind": "nigerian-english",
+      "question": "the-part-you-did-not-write",
+      "scores": [
+        4,
+        3,
+        3
+      ],
+      "expected": [
+        4,
+        3,
+        3
+      ],
+      "evidence": [
+        3,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1374,
+        "output_tokens": 1205,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 38578,
+        "latency_ms": 17906
+      }
+    }
+  ]
+}

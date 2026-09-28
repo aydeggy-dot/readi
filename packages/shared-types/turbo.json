@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // `scripts/gen-json-schema.mjs` imports the contract registry from `dist/`, so this one package
+    // really does need its own build first. The ROOT task deliberately does not say so: turbo
+    // synthesises a `gen:contracts` node for every package, and `dependsOn: ["build"]` there made
+    // `pnpm typecheck` and `pnpm gen:contracts` run `next build` on apps/web — writing `.next`
+    // under a running `next dev`, which CLAUDE.md forbids and does not warn about
+    // (tasks/lessons.md, 2026-09-26).
+    "gen:contracts": {
+      "dependsOn": ["^gen:contracts", "build"],
+      "outputs": ["generated/**"]
+    }
+  }
+}

@@ -53,6 +53,7 @@ class FakeInterviewerLLMClient:
         output_type: type[T],
         max_tokens: int,
         timeout_s: float | None = None,
+        cache_system: bool = False,
     ) -> LLMResult[T]:
         built: BaseModel | None = None
         if output_type is Speech:
@@ -67,6 +68,7 @@ class FakeInterviewerLLMClient:
                 output_type=output_type,
                 max_tokens=max_tokens,
                 timeout_s=timeout_s,
+                cache_system=cache_system,
             )
         return LLMResult(
             output=output_type.model_validate(built.model_dump()),

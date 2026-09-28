@@ -296,6 +296,8 @@ class RecordedGeneration:
     output: object = None
     input_tokens: int = 0
     output_tokens: int = 0
+    cache_write_tokens: int = 0
+    cache_read_tokens: int = 0
     failure: str | None = None
 
 
@@ -303,10 +305,20 @@ class _Recorder(Generation):
     def __init__(self, recorded: RecordedGeneration) -> None:
         self._recorded = recorded
 
-    def succeeded(self, *, output: object, input_tokens: int, output_tokens: int) -> None:
+    def succeeded(
+        self,
+        *,
+        output: object,
+        input_tokens: int,
+        output_tokens: int,
+        cache_write_tokens: int = 0,
+        cache_read_tokens: int = 0,
+    ) -> None:
         self._recorded.output = output
         self._recorded.input_tokens = input_tokens
         self._recorded.output_tokens = output_tokens
+        self._recorded.cache_write_tokens = cache_write_tokens
+        self._recorded.cache_read_tokens = cache_read_tokens
 
     def failed(self, *, code: str) -> None:
         self._recorded.failure = code
@@ -358,7 +370,15 @@ class HostileTracer(NullTracer):
 
 
 class _Exploding(Generation):
-    def succeeded(self, *, output: object, input_tokens: int, output_tokens: int) -> None:
+    def succeeded(
+        self,
+        *,
+        output: object,
+        input_tokens: int,
+        output_tokens: int,
+        cache_write_tokens: int = 0,
+        cache_read_tokens: int = 0,
+    ) -> None:
         raise RuntimeError("langfuse is having a bad day")
 
     def failed(self, *, code: str) -> None:

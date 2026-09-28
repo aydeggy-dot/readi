@@ -15,8 +15,32 @@
 
 const ANSWER_KEY_FIELD = /rubric|criteri|ideal_point|levels|weight/i;
 
+export interface AnswerKeyOptions {
+  /**
+   * Field names this payload is allowed to have, although they match the pattern above.
+   *
+   * There is exactly one surface that needs it: **a scored session's own report**, whose per-question
+   * breakdown is a list called `criteria` (and two counts called `criteria_total` and
+   * `criteria_volunteered`). That list holds a criterion's `dimension`, its score, the candidate's own
+   * quoted words and the reasoning — and never the description, the weight or the five level
+   * descriptors, which is what `CandidateCriterionFeedback` exists to make structural rather than
+   * careful (ADR-0014 decision 3, owner's decisions 4–5 of 2026-09-26).
+   *
+   * It is an allowance on the **field-name** half of the detector only; the text half still runs, so
+   * a level descriptor smuggled into a `reasoning` string is still caught. Pass the exact key names,
+   * never a pattern, and pass them from the one spec that means them — a caller reaching for this to
+   * quieten a different route is the failure this note exists to make obvious.
+   */
+  allowKeys?: readonly string[];
+}
+
 /** Every complaint about one payload: answer-key text found, and answer-key-shaped keys found. */
-export function answerKeyLeaks(payload: unknown, markers: readonly string[]): string[] {
+export function answerKeyLeaks(
+  payload: unknown,
+  markers: readonly string[],
+  options: AnswerKeyOptions = {},
+): string[] {
+  const allowed = new Set(options.allowKeys ?? []);
   const leaks: string[] = [];
   const raw = JSON.stringify(payload) ?? "";
   for (const marker of markers) {
@@ -30,7 +54,7 @@ export function answerKeyLeaks(payload: unknown, markers: readonly string[]): st
     if (value === null || typeof value !== "object") return;
     for (const [key, item] of Object.entries(value)) {
       const here = path ? `${path}.${key}` : key;
-      if (ANSWER_KEY_FIELD.test(key)) leaks.push(`answer-key field ${here}`);
+      if (ANSWER_KEY_FIELD.test(key) && !allowed.has(key)) leaks.push(`answer-key field ${here}`);
       walk(item, here);
     }
   };

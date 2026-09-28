@@ -30,6 +30,7 @@ import {
   uniqueNigerianMobile,
   viaProxy,
 } from "./helpers";
+import { pollFor } from "./poll";
 
 const PDF = "application/pdf";
 const PDF_BYTES = new TextEncoder().encode("%PDF-1.7\nA CV body that the fake worker never reads.");
@@ -118,12 +119,10 @@ describe("data export and account deletion (ADR-0011)", () => {
     const { upload_id, url, headers } = CvUploadResponse.parse(created.body);
     expect((await fetch(url, { method: "PUT", headers, body: PDF_BYTES })).status).toBe(200);
     await http().post("/api/me/cv").set("cookie", cookie).send({ upload_id }).expect(200);
-    for (let i = 0; i < 100; i++) {
+    await pollFor("CV not parsed", async () => {
       const cv = CvResponse.parse((await http().get("/api/me/cv").set("cookie", cookie)).body);
-      if (cv.status === "parsed") return;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error("CV not parsed after 10 s");
+      return cv.status === "parsed" ? true : null;
+    });
   }
 
   const requestDeletion = (cookie: string) =>
@@ -593,6 +592,75 @@ describe("data export and account deletion (ADR-0011)", () => {
         .filter((c) => !cascadingKeys.has(c))
         .sort();
       expect(unlinked).toEqual(TOMBSTONED_COLUMNS.map(key).sort());
+    });
+
+    it("every table holding a candidate's evaluated answer cascades all the way to users", async () => {
+      /*
+       * M4's three tables hold a candidate's own words: `answer_evaluations.criteria` carries quotes
+       * from the transcript, `session_reports.summary` is the report they read, and a calibration
+       * score is an expert's reading of the same answer. None of them references `users` directly, so
+       * the test above cannot see them — they are erased by a chain of foreign keys, and a chain is
+       * only as good as its weakest hop. One `ON DELETE SET NULL` anywhere along it would leave a
+       * candidate's answers in the database after their account was erased, with nothing pointing at
+       * them and nothing to notice (ADR-0011, ADR-0017).
+       */
+      const links = await prisma.$queryRaw<
+        { table: string; column: string; target: string; rule: string }[]
+      >`
+        SELECT kcu.table_name AS "table", kcu.column_name AS "column",
+               ccu.table_name AS "target", rc.delete_rule AS "rule"
+        FROM information_schema.referential_constraints rc
+        JOIN information_schema.key_column_usage kcu
+          ON kcu.constraint_name = rc.constraint_name AND kcu.table_schema = rc.constraint_schema
+        JOIN information_schema.constraint_column_usage ccu
+          ON ccu.constraint_name = rc.constraint_name AND ccu.table_schema = rc.constraint_schema
+        WHERE rc.constraint_schema = 'public'`;
+
+      /**
+       * **Every** foreign-key path from `table` to `users`, not the first one found: a table with one
+       * cascading route and one that does not cascade is leaky by the second, and returning the first
+       * would hide it. `seen` is copied per branch so a dead end (most of these tables also reference
+       * `questions` and `rubrics`, which never reach `users`) cannot block a live one.
+       */
+      type Link = (typeof links)[number];
+      const pathsToUsers = (
+        graph: readonly Link[],
+        table: string,
+        seen: readonly string[] = [],
+      ): string[][] => {
+        if (table === "users") return [[]];
+        if (seen.includes(table)) return [];
+        return graph
+          .filter((link) => link.table === table && link.target !== table)
+          .flatMap((link) =>
+            pathsToUsers(graph, link.target, [...seen, table]).map((rest) => [
+              `${link.table}.${link.column} -> ${link.target} (${link.rule})`,
+              ...rest,
+            ]),
+          );
+      };
+
+      /*
+       * Every path to `users` in this schema cascades, so there is no real counter-example to point
+       * the walker at — which would make a passing assertion indistinguishable from a walker that
+       * finds nothing. So it is shown a planted one first.
+       */
+      const planted: Link[] = [
+        { table: "planted", column: "keeper_id", target: "profiles", rule: "SET NULL" },
+        { table: "profiles", column: "user_id", target: "users", rule: "CASCADE" },
+      ];
+      expect(pathsToUsers(planted, "planted").flat()).toEqual([
+        "planted.keeper_id -> profiles (SET NULL)",
+        "profiles.user_id -> users (CASCADE)",
+      ]);
+
+      for (const table of ["answer_evaluations", "session_reports", "calibration_scores"]) {
+        const paths = pathsToUsers(links, table);
+        expect(paths, `${table} has no foreign-key path to users at all`).not.toEqual([]);
+        // Printing the whole path makes a failure say which hop, in which table, on one line.
+        const leaky = paths.flat().filter((hop) => !hop.endsWith("(CASCADE)"));
+        expect(leaky).toEqual([]);
+      }
     });
   });
 });

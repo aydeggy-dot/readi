@@ -37,8 +37,21 @@ class Generation(ABC):
     """One model call in flight. Closed exactly once, by the tracer's context manager."""
 
     @abstractmethod
-    def succeeded(self, *, output: object, input_tokens: int, output_tokens: int) -> None:
-        """The provider answered. `output` is the parsed object, or None if it gave nothing."""
+    def succeeded(
+        self,
+        *,
+        output: object,
+        input_tokens: int,
+        output_tokens: int,
+        cache_write_tokens: int = 0,
+        cache_read_tokens: int = 0,
+    ) -> None:
+        """The provider answered. `output` is the parsed object, or None if it gave nothing.
+
+        The two cache counts are separate from `input_tokens` because the provider reports them
+        separately and they are billed at different rates: a cached call whose read tokens were
+        folded into `input_tokens` would look four times cheaper in the trace than it is.
+        """
 
     @abstractmethod
     def failed(self, *, code: str) -> None:
@@ -77,7 +90,15 @@ class Tracer(ABC):
 
 
 class _NullGeneration(Generation):
-    def succeeded(self, *, output: object, input_tokens: int, output_tokens: int) -> None:
+    def succeeded(
+        self,
+        *,
+        output: object,
+        input_tokens: int,
+        output_tokens: int,
+        cache_write_tokens: int = 0,
+        cache_read_tokens: int = 0,
+    ) -> None:
         return None
 
     def failed(self, *, code: str) -> None:

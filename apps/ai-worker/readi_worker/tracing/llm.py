@@ -40,6 +40,7 @@ class TracedLLMClient:
         output_type: type[T],
         max_tokens: int,
         timeout_s: float | None = None,
+        cache_system: bool = False,
     ) -> LLMResult[T]:
         with self._tracer.generation(
             # The caller left the word here; see `tracing/context.py` for why it is not a
@@ -57,6 +58,7 @@ class TracedLLMClient:
                     output_type=output_type,
                     max_tokens=max_tokens,
                     timeout_s=timeout_s,
+                    cache_system=cache_system,
                 )
             except LLMError as exc:
                 # Bound before the lambda: `exc` is unbound once the except block ends.
@@ -73,6 +75,8 @@ class TracedLLMClient:
                         output=output,
                         input_tokens=result.input_tokens,
                         output_tokens=result.output_tokens,
+                        cache_write_tokens=result.cache_write_tokens,
+                        cache_read_tokens=result.cache_read_tokens,
                     )
                 )
             return result

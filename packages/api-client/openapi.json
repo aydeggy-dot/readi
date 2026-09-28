@@ -2361,6 +2361,238 @@
         "tags": ["admin-content"]
       }
     },
+    "/api/admin/calibration/queue": {
+      "get": {
+        "operationId": "CalibrationAdminController_queue",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "unreviewed",
+              "type": "string",
+              "enum": ["unreviewed", "mine", "all"]
+            }
+          },
+          {
+            "name": "flagged",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationQueueResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-calibration"]
+      }
+    },
+    "/api/admin/calibration/flags": {
+      "get": {
+        "operationId": "CalibrationAdminController_flags",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "unreviewed",
+              "type": "string",
+              "enum": ["unreviewed", "mine", "all"]
+            }
+          },
+          {
+            "name": "flagged",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationFlagsResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-calibration"]
+      }
+    },
+    "/api/admin/calibration/agreement": {
+      "get": {
+        "operationId": "CalibrationAdminController_agreement",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationAgreementResponseDto_Output"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["admin-calibration"]
+      }
+    },
+    "/api/admin/calibration/answers/{id}": {
+      "get": {
+        "operationId": "CalibrationAdminController_answer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationAnswerDto_Output"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a reviewer"
+          },
+          "404": {
+            "description": "No such answer, or not one this reviewer may see"
+          }
+        },
+        "tags": ["admin-calibration"]
+      }
+    },
+    "/api/admin/calibration/answers/{id}/score": {
+      "post": {
+        "operationId": "CalibrationAdminController_score",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalibrationScoreInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationScoreSavedDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such answer, or not one this reviewer may see"
+          }
+        },
+        "tags": ["admin-calibration"]
+      }
+    },
     "/api/interviews": {
       "post": {
         "operationId": "InterviewsController_create",
@@ -2516,6 +2748,42 @@
           },
           "404": {
             "description": "Not this candidate's (code `interview_not_found`)"
+          }
+        },
+        "tags": ["interviews"]
+      }
+    },
+    "/api/interviews/{id}/report": {
+      "get": {
+        "operationId": "InterviewsController_report",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionReportResponseDto_Output"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not this candidate's (`interview_not_found`), or it answered nothing so there will never be a report (`report_not_found`)"
+          },
+          "409": {
+            "description": "Still running (`interview_not_ended`), or scoring has not finished yet (`report_not_ready`)"
           }
         },
         "tags": ["interviews"]
@@ -2964,7 +3232,13 @@
       },
       "ConsentType_Output": {
         "type": "string",
-        "enum": ["audio_processing", "recording_storage", "camera_coaching", "marketing"]
+        "enum": [
+          "audio_processing",
+          "recording_storage",
+          "camera_coaching",
+          "transcript_review",
+          "marketing"
+        ]
       },
       "ConsentsResponseDto_Output": {
         "type": "object",
@@ -2998,14 +3272,20 @@
       },
       "ConsentType": {
         "type": "string",
-        "enum": ["audio_processing", "recording_storage", "camera_coaching", "marketing"]
+        "enum": [
+          "audio_processing",
+          "recording_storage",
+          "camera_coaching",
+          "transcript_review",
+          "marketing"
+        ]
       },
       "UpdateConsentsRequestDto": {
         "type": "object",
         "properties": {
           "decisions": {
             "minItems": 1,
-            "maxItems": 4,
+            "maxItems": 5,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ConsentDecision"
@@ -6351,6 +6631,535 @@
         ],
         "additionalProperties": false
       },
+      "CalibrationQueueItem_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "question_slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "rubric_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140,
+            "nullable": true
+          },
+          "level": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140,
+            "nullable": true
+          },
+          "criterion_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "review_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reviewed_by_me": {
+            "type": "boolean"
+          },
+          "flagged": {
+            "type": "boolean"
+          },
+          "answered_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "question_slug",
+          "rubric_name",
+          "role",
+          "level",
+          "criterion_count",
+          "review_count",
+          "reviewed_by_me",
+          "flagged",
+          "answered_at"
+        ],
+        "additionalProperties": false
+      },
+      "CalibrationQueueResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalibrationQueueItem_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          },
+          "empty_because": {
+            "type": "string",
+            "enum": ["nothing_to_review", "no_consent", "staff_answers_only", null],
+            "default": null,
+            "nullable": true
+          }
+        },
+        "required": ["items", "next_cursor", "empty_because"],
+        "additionalProperties": false
+      },
+      "CalibrationFlagItem_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "question_slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "flags": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "answered_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["id", "question_slug", "flags", "answered_at"],
+        "additionalProperties": false
+      },
+      "CalibrationFlagsResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalibrationFlagItem_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          },
+          "phrases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "phrase": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                },
+                "answers": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["phrase", "answers"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["items", "next_cursor", "phrases"],
+        "additionalProperties": false
+      },
+      "CalibrationAgreement_Output": {
+        "type": "object",
+        "properties": {
+          "n": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "exact": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "within_one": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "mae": {
+            "type": "number",
+            "minimum": 0
+          },
+          "bias": {
+            "type": "number"
+          },
+          "correlation": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "nullable": true
+          }
+        },
+        "required": ["n", "exact", "within_one", "mae", "bias", "correlation"],
+        "additionalProperties": false
+      },
+      "CalibrationAgreementRow_Output": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "answers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reviewers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "agreement": {
+            "$ref": "#/components/schemas/CalibrationAgreement_Output"
+          }
+        },
+        "required": ["key", "name", "answers", "reviewers", "agreement"],
+        "additionalProperties": false
+      },
+      "CalibrationAgreementResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "overall": {
+            "$ref": "#/components/schemas/CalibrationAgreement_Output"
+          },
+          "by_rubric": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalibrationAgreementRow_Output"
+            }
+          },
+          "by_question": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalibrationAgreementRow_Output"
+            }
+          },
+          "scored_answers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reviewers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["overall", "by_rubric", "by_question", "scored_answers", "reviewers"],
+        "additionalProperties": false
+      },
+      "CalibrationCriterion_Output": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "dimension": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "levels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          }
+        },
+        "required": ["position", "dimension", "description", "weight", "levels"],
+        "additionalProperties": false
+      },
+      "CalibrationTurn_Output": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "speaker": {
+            "type": "string",
+            "enum": ["interviewer", "candidate"]
+          },
+          "follow_up_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          }
+        },
+        "required": ["seq", "speaker", "follow_up_index", "text"],
+        "additionalProperties": false
+      },
+      "CalibrationCriterionScore_Output": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "max_score": {
+            "type": "number",
+            "enum": [4]
+          },
+          "evidence": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 400
+            }
+          },
+          "reasoning": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400,
+            "nullable": true
+          }
+        },
+        "required": ["criterion", "score", "max_score", "evidence", "reasoning"],
+        "additionalProperties": false
+      },
+      "CalibrationAnswerDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "question_slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "question_prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "question_context": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140,
+            "nullable": true
+          },
+          "level": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140,
+            "nullable": true
+          },
+          "rubric_slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "rubric_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "criteria": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/CalibrationCriterion_Output"
+            }
+          },
+          "exchange": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/CalibrationTurn_Output"
+            }
+          },
+          "evidence_flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "my_score": {
+            "type": "object",
+            "properties": {
+              "criteria": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CalibrationCriterionScore_Output"
+                }
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "nullable": true
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": ["criteria", "note", "created_at"],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "question_slug",
+          "question_prompt",
+          "question_context",
+          "role",
+          "level",
+          "rubric_slug",
+          "rubric_name",
+          "criteria",
+          "exchange",
+          "evidence_flags",
+          "my_score"
+        ],
+        "additionalProperties": false
+      },
+      "CalibrationScoreInputDto": {
+        "type": "object",
+        "properties": {
+          "criteria": {
+            "minItems": 2,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "criterion": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "score": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4
+                },
+                "evidence": {
+                  "default": [],
+                  "maxItems": 3,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  }
+                },
+                "reasoning": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 400,
+                  "default": null,
+                  "nullable": true
+                }
+              },
+              "required": ["criterion", "score"]
+            }
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "default": null,
+            "nullable": true
+          }
+        },
+        "required": ["criteria"]
+      },
+      "CalibrationScoreSavedDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": ["id"],
+        "additionalProperties": false
+      },
       "CreateInterviewRequestDto": {
         "type": "object",
         "properties": {
@@ -6780,6 +7589,439 @@
           }
         },
         "required": ["id", "state", "status", "ended_at", "feedback_ready"],
+        "additionalProperties": false
+      },
+      "SessionReportStatus_Output": {
+        "type": "string",
+        "enum": ["ready", "partial", "failed"]
+      },
+      "ReportHighlight_Output": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "question_position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["text", "question_position"],
+        "additionalProperties": false
+      },
+      "ReportTopicScore_Output": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 140
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400,
+                "nullable": true
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": ["slug", "name", "description", "id"],
+            "additionalProperties": false
+          },
+          "overall": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "answers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["topic", "overall", "answers"],
+        "additionalProperties": false
+      },
+      "ReportTypeScore_Output": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/QuestionType_Output"
+          },
+          "overall": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "answers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["type", "overall", "answers"],
+        "additionalProperties": false
+      },
+      "CandidateQuestionReport_Output": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "type": {
+            "$ref": "#/components/schemas/QuestionType_Output"
+          },
+          "topic": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 140
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400,
+                "nullable": true
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": ["slug", "name", "description", "id"],
+            "additionalProperties": false
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "overall": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "criteria": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateCriterionFeedback_Output"
+            }
+          },
+          "covered_points": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          },
+          "missing_points": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          },
+          "strong_answer_covers": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          },
+          "improvement_tip": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "nullable": true
+          },
+          "red_flags": {
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          },
+          "not_assessed": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "prompting": {
+            "$ref": "#/components/schemas/CandidatePrompting_Output"
+          }
+        },
+        "required": [
+          "position",
+          "type",
+          "topic",
+          "prompt",
+          "overall",
+          "criteria",
+          "covered_points",
+          "missing_points",
+          "strong_answer_covers",
+          "improvement_tip",
+          "red_flags",
+          "not_assessed",
+          "prompting"
+        ],
+        "additionalProperties": false
+      },
+      "CandidateCriterionFeedback_Output": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "max_score": {
+            "type": "number",
+            "enum": [4]
+          },
+          "evidence": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 400
+            }
+          },
+          "reasoning": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        },
+        "required": ["dimension", "score", "max_score", "evidence", "reasoning"],
+        "additionalProperties": false
+      },
+      "CandidatePrompting_Output": {
+        "type": "object",
+        "properties": {
+          "criteria_total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "criteria_volunteered": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "follow_ups_asked": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["criteria_total", "criteria_volunteered", "follow_ups_asked"],
+        "additionalProperties": false
+      },
+      "RecommendedLesson_Output": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          },
+          "topic": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 140
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400,
+                "nullable": true
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+            },
+            "required": ["slug", "name", "description", "id"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["slug", "title", "topic"],
+        "additionalProperties": false
+      },
+      "SessionReportResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionReportStatus_Output"
+          },
+          "role": {
+            "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+          },
+          "level": {
+            "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+          },
+          "stack": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InterviewCatalogueRef_Output"
+              }
+            ],
+            "nullable": true
+          },
+          "overall": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "scored_answers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total_answers": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "strengths": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ReportHighlight_Output"
+            }
+          },
+          "fixes": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ReportHighlight_Output"
+            }
+          },
+          "by_topic": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportTopicScore_Output"
+            }
+          },
+          "by_type": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportTypeScore_Output"
+            }
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateQuestionReport_Output"
+            }
+          },
+          "lessons": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "$ref": "#/components/schemas/RecommendedLesson_Output"
+            }
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "session_id",
+          "status",
+          "role",
+          "level",
+          "stack",
+          "overall",
+          "scored_answers",
+          "total_answers",
+          "strengths",
+          "fixes",
+          "by_topic",
+          "by_type",
+          "questions",
+          "lessons",
+          "ended_at",
+          "generated_at"
+        ],
         "additionalProperties": false
       },
       "DataExportDto_Output": {

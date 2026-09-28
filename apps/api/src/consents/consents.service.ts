@@ -9,6 +9,7 @@ import {
 import type { ConsentRecord } from "../generated/prisma/client";
 import { ApiError, fieldError } from "../http/api-error";
 import { PrismaService } from "../prisma/prisma.service";
+import { isCurrentGrant } from "./consent-eligibility";
 
 @Injectable()
 export class ConsentsService {
@@ -28,6 +29,30 @@ export class ConsentsService {
   async allDecided(userId: string): Promise<boolean> {
     const latest = await this.latestByType(this.prisma, userId);
     return CONSENT_TYPES.every((type) => latest.get(type)?.version === CONSENT_VERSIONS[type]);
+  }
+
+  /** Has this user granted the current text of one type? The rule is `isCurrentGrant`, not here. */
+  async hasGranted(userId: string, type: ConsentType): Promise<boolean> {
+    const latest = await this.latestByType(this.prisma, userId);
+    return isCurrentGrant(type, latest.get(type));
+  }
+
+  /**
+   * Every user who has granted the current text of one type — the set a sampler may draw from
+   * (ADR-0017). `distinct` over `userId` on a descending `created_at` gives each user's latest row
+   * for that type, which the same predicate then judges, so the set and the single-user check cannot
+   * disagree. The index is `[userId, type, createdAt]`, so this scans by type rather than seeking;
+   * it is an occasional staff query over a small table, and it is worth a narrower index the day
+   * that stops being true.
+   */
+  async usersGranting(type: ConsentType): Promise<string[]> {
+    const rows = await this.prisma.consentRecord.findMany({
+      where: { type },
+      orderBy: { createdAt: "desc" },
+      distinct: ["userId"],
+      select: { userId: true, granted: true, version: true },
+    });
+    return rows.filter((row) => isCurrentGrant(type, row)).map((row) => row.userId);
   }
 
   /**
@@ -84,12 +109,11 @@ export class ConsentsService {
 }
 
 function toStatus(type: ConsentType, record: ConsentRecord | undefined): ConsentStatus {
-  const currentVersion = CONSENT_VERSIONS[type];
   return {
     type,
-    granted: record ? record.granted && record.version === currentVersion : false,
+    granted: isCurrentGrant(type, record),
     version: record?.version ?? null,
-    current_version: currentVersion,
+    current_version: CONSENT_VERSIONS[type],
     decided_at: record?.createdAt.toISOString() ?? null,
   };
 }

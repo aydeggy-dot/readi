@@ -72,6 +72,26 @@ const SCREENS = [
   ["36-practice-new", "/practice/new", "interviewing"],
   ["37-interview", "/interview/{live}", "interviewing"],
   ["38-interview-complete", "/interview/{finished}/complete", "interviewing"],
+  // The report (M4). `runInterview` waits for it before this account's cookies are saved, so by the
+  // time anything is photographed the session really has been scored — against `LLM_PROVIDER=fake`,
+  // whose evaluator quotes real substrings of the transcript, so the quotes on the page are real.
+  ["39-interview-report", "/interview/{finished}/report", "interviewing"],
+  /*
+   * Calibration (M4 phase 6). A reviewer marks an answer a model has already marked, and the four
+   * screens are the four rules: the queue, the answer with its pinned rubric and no AI marks, the
+   * flagged-evidence list, and the agreement dashboard. The `reviewer` account is an admin, which
+   * reaches all four — the queue and the flags want `content_expert` and the dashboard wants
+   * `admin`, deliberately (an aggregate a reviewer reads before marking is the model's opinion
+   * reaching them first).
+   *
+   * `{answer}` exists because somebody else's answer is in the queue: a **second** staff account
+   * sat an interview and granted transcript review, because a reviewer is never offered their own
+   * answer — they would agree with themselves.
+   */
+  ["40-calibration-queue", "/admin/calibration", "reviewer"],
+  ["41-calibration-answer", "/admin/calibration/{answer}", "reviewer"],
+  ["42-calibration-flags", "/admin/calibration/flags", "reviewer"],
+  ["43-calibration-agreement", "/admin/calibration/agreement", "reviewer"],
 ] as const satisfies ReadonlyArray<readonly [string, string, StateKey | null]>;
 
 /** 360px is the narrowest width we support; 1280px is where the desktop layout applies. */
@@ -81,12 +101,14 @@ const VIEWPORTS = [
 ] as const;
 const THEMES = ["light", "dark"] as const;
 
-type StateKey = "fresh" | "mid" | "done" | "expert" | "interviewing";
+type StateKey = "fresh" | "mid" | "done" | "expert" | "interviewing" | "reviewer";
 type States = Record<StateKey, Awaited<ReturnType<BrowserContext["storageState"]>>>;
-/** Session ids the paths above interpolate, because a screenshot of one needs one to exist. */
-interface Sessions {
+/** Ids the paths above interpolate, because a screenshot of one needs one to exist. */
+interface Ids {
   live: string;
   finished: string;
+  /** An evaluated answer waiting in the calibration queue, or "" when none could be sampled. */
+  answer: string;
 }
 
 async function signUp(page: Page, address: string): Promise<void> {
@@ -123,7 +145,7 @@ async function fillProfile(page: Page, name: string): Promise<void> {
  * Four accounts, each parked at the point that makes a group of screens reachable. They are made
  * once and replayed as cookies, so the captures themselves never mutate anything.
  */
-async function seedAccounts(browser: Browser): Promise<{ states: States; sessions: Sessions }> {
+async function seedAccounts(browser: Browser): Promise<{ states: States; ids: Ids }> {
   const states: Partial<States> = {};
 
   const fresh = await browser.newContext();
@@ -194,7 +216,57 @@ async function seedAccounts(browser: Browser): Promise<{ states: States; session
   states.interviewing = await interviewing.storageState();
   await interviewing.close();
 
-  return { states: states as States, sessions: { live, finished } };
+  /*
+   * Calibration needs two more accounts and only one of them is photographed.
+   *
+   * The author is **staff**, because `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` is off until a
+   * reviewer agreement is signed (ADR-0017) and until then only staff-written answers are offered —
+   * and it **grants transcript review on the same consent screen a candidate uses**, because
+   * nothing is sampled except through that grant. A row inserted behind the screen would photograph
+   * a queue the real path cannot fill.
+   */
+  const author = await browser.newContext();
+  const authorPage = await author.newPage();
+  const authorAddress = await signUpAndOnboard(authorPage, {
+    name: "Bisi Okonkwo",
+    role: "Frontend engineer",
+    consents: ["Let our team read my interview answers"],
+  });
+  grantRole(authorAddress, "content_expert");
+  await runInterview(authorPage, { end: true });
+  await author.close();
+
+  // The reviewer is an admin, which reaches the queue *and* the dashboard, and is a different
+  // person from the author — a reviewer is never offered their own answer.
+  const reviewer = await browser.newContext();
+  const reviewerPage = await reviewer.newPage();
+  const reviewerAddress = uniqueEmail();
+  await signUp(reviewerPage, reviewerAddress);
+  await fillProfile(reviewerPage, "Kemi Adeleke");
+  grantRole(reviewerAddress, "admin");
+  states.reviewer = await reviewer.storageState();
+
+  /*
+   * The answer's id comes off the queue rather than out of the database: if the sampler would not
+   * offer it, there is nothing to photograph and the capture should say so rather than shoot a 404.
+   */
+  await reviewerPage.goto("/admin/calibration", { waitUntil: "networkidle" });
+  /*
+   * An answer's id is a uuid, and the pattern matters: the first `/admin/calibration/…` link on that
+   * page is the nav's own link to **flags**, so `.first()` photographed the flags screen twice and
+   * the only tell was two files with identical byte counts.
+   */
+  const hrefs = await reviewerPage
+    .locator('a[href^="/admin/calibration/"]')
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href") ?? ""));
+  const answer =
+    hrefs
+      .find((href) => /^\/admin\/calibration\/[0-9a-f-]{36}$/.test(href))
+      ?.split("/")
+      .pop() ?? "";
+  await reviewer.close();
+
+  return { states: states as States, ids: { live, finished, answer } };
 }
 
 /**
@@ -216,7 +288,21 @@ async function runInterview(page: Page, { end }: { end: boolean }): Promise<stri
   if (end) {
     await page.getByRole("button", { name: "End the interview" }).click();
     await page.getByRole("button", { name: "End it now" }).click();
-    await page.getByRole("link", { name: "See where you got to" }).waitFor({ timeout: 60_000 });
+    /*
+     * **Wait for the URL, never click that link.** The interview screen navigates itself once the
+     * `state` frame says the session is over (`router.replace` in `interview-screen.tsx`), so "See
+     * where you got to" is the fallback for when it cannot — and clicking it races the redirect that
+     * detaches it. Playwright has no default action timeout here, so a click that can never settle
+     * does not fail, it **hangs**: twenty minutes of this spec producing nothing, on 2026-09-27.
+     */
+    await page.waitForURL(/\/complete$/, { timeout: 60_000 });
+    /*
+     * Then wait for the scoring, so the completion screen is photographed in its settled state and
+     * the report exists at all. Through the candidate's own polling rather than a back door, and
+     * generous because the enqueue, the queue, an evaluator call per answer and the assembly are all
+     * in it.
+     */
+    await page.getByRole("link", { name: "Read your report" }).waitFor({ timeout: 120_000 });
   }
   return id;
 }
@@ -228,20 +314,37 @@ test.describe("visual review", () => {
     browser,
   }) => {
     /*
-     * 38 screens × 2 widths × 2 themes is 152 full-page screenshots, and the whole run takes about
-     * three minutes. The ceiling is this high because the failure it guards against is a
+     * 43 screens × 2 widths × 2 themes is 172 full-page screenshots, and the whole run takes about
+     * four minutes. The ceiling is this high because the failure it guards against is a
      * *hang* — a locator in `seedAccounts` that will never match, which is how this spec spent
      * twenty minutes producing nothing when a field was renamed under it. A generous timeout costs
      * nothing on a run that is skipped unless `E2E_SCREENSHOTS` is set.
      */
     test.setTimeout(20 * 60 * 1000);
-    const { states, sessions } = await seedAccounts(browser);
+    const { states, ids } = await seedAccounts(browser);
+    if (ids.answer === "") {
+      /*
+       * Loud, and not a failure: the queue being empty is a real state of the product (nobody has
+       * consented yet), but a silent 404 photographed four times would look like a broken screen.
+       */
+      console.warn(
+        "  no answer in the calibration queue — 41-calibration-answer will be its empty state",
+      );
+    }
     const dir = `${OUT}/${label ?? "unlabelled"}`;
     let taken = 0;
 
     for (const viewport of VIEWPORTS) {
       for (const colorScheme of THEMES) {
-        for (const key of [null, "fresh", "mid", "done", "expert", "interviewing"] as const) {
+        for (const key of [
+          null,
+          "fresh",
+          "mid",
+          "done",
+          "expert",
+          "interviewing",
+          "reviewer",
+        ] as const) {
           const screens = SCREENS.filter(([, , state]) => state === key);
           const context = await browser.newContext({
             viewport,
@@ -252,8 +355,9 @@ test.describe("visual review", () => {
           const page = await context.newPage();
           for (const [name, path] of screens) {
             const url = path
-              .replace("{live}", sessions.live)
-              .replace("{finished}", sessions.finished);
+              .replace("{live}", ids.live)
+              .replace("{finished}", ids.finished)
+              .replace("{answer}", ids.answer);
             await page.goto(url, { waitUntil: "networkidle" });
             await page.screenshot({
               path: `${dir}/${name}-${viewport.width}-${colorScheme}.png`,

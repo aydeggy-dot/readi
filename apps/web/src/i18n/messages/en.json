@@ -88,7 +88,8 @@
     "wordmark": "Readi home",
     "content": "Content",
     "practice": "Practice",
-    "tabs": "Sections"
+    "tabs": "Sections",
+    "calibration": "Marking"
   },
   "auth": {
     "email": "Email",
@@ -245,6 +246,12 @@
           "body": "Eye contact and posture are analysed on your device. Video never leaves your device; only numbers are sent."
         }
       },
+      "transcript_review": {
+        "v1": {
+          "title": "Let our team read my interview answers",
+          "body": "A reviewer on our team may read answers from your practice interviews and score them by hand, so we can check that our AI scores you fairly. They see the question and what you typed — not your name, your email or your CV. Say no and nothing you type is ever shown to a person; you get the same interviews and the same feedback either way."
+        }
+      },
       "marketing": {
         "v1": {
           "title": "Product news and tips",
@@ -375,8 +382,15 @@
       "leadUnfinished": "This one was left unfinished after {asked} of {budget} questions.",
       "waitingTitle": "Putting the session away",
       "waiting": "Saving the last of the transcript.",
-      "scoringTitle": "Scoring is not built yet",
-      "scoring": "The whole conversation is recorded. Rubric-based feedback and your readiness score arrive in the next update, and this session is scored then — none of what you just did is thrown away.",
+      "scoringTitle": "Scoring your answers",
+      "scoring": "Each answer is being read against the rubric it was asked under. It usually takes under a minute, and nothing is lost if you leave this page — the report will be waiting in Practice.",
+      "scoringSlowTitle": "Still scoring",
+      "scoringSlow": "This is taking longer than it should. Your answers are saved: open this page again in a few minutes and the report will be here.",
+      "readyTitle": "Your report is ready",
+      "ready": "A score for every answer, the words it was based on, what a strong answer covers, and what to work on next.",
+      "readReport": "Read your report",
+      "nothingTitle": "Nothing to score",
+      "nothing": "This one ended before you answered anything, so there is no report for it. Nothing is held against you for stopping — start another whenever you are ready.",
       "scopeTitle": "What this covered",
       "scope": "The conversation round: your answers, the follow-ups they earned, and the questions you asked at the end. Not live coding and not system design — neither is built yet, so a real first round may still hold something this one did not.",
       "nextTitle": "What to do now",
@@ -385,6 +399,80 @@
       "practice": "Back to Practice",
       "transcript": "The transcript",
       "noTurns": "Nothing was said in this one."
+    },
+    "report": {
+      "title": "Your report",
+      "lead": "{catalogue} · {date}",
+      "overallLabel": "This interview",
+      "outOf": "out of 100",
+      "meter": "{overall} out of 100",
+      "scoredAll": "All {total} answers scored.",
+      "scoredAllOne": "Your one answer was scored.",
+      "scoredSome": "{scored} of {total} answers scored.",
+      "scoredNone": "None of your {total} answers could be scored.",
+      "scoredNoneOne": "Your one answer could not be scored.",
+      "bands": {
+        "weak": "A lot to work on",
+        "developing": "Getting there",
+        "solid": "Solid, with gaps",
+        "strong": "Strong"
+      },
+      "notReadiness": "This is one interview on its own. Your readiness score needs more than one to read, and it is not built yet.",
+      "volunteeredTitle": "Before you were asked",
+      "volunteered": "You brought up {volunteered} of {total} points without being asked.",
+      "volunteeredAll": "You brought up all {total} points without being asked — on every question.",
+      "volunteeredNone": "Every one of the {total} points came only after the interviewer asked for it.",
+      "promptedNone": "No question needed a follow-up.",
+      "promptedOne": "One question needed a follow-up.",
+      "prompted": "{prompted} of your {questions} questions needed a follow-up.",
+      "volunteeredWhy": "Volunteering the point is the skill. A real interviewer counts what you say before they have to ask, and this is the one number in here you can move in a week.",
+      "strengthsTitle": "What went well",
+      "fixesTitle": "What to work on next",
+      "highlightsEmpty": "Nothing could be scored, so there is nothing honest to put here.",
+      "fromQuestion": "Question {position} · {topic}",
+      "byTopicTitle": "By topic",
+      "byTypeTitle": "By kind of question",
+      "weakestFirst": "Weakest first — the top of the list is what to work on.",
+      "answersOne": "1 answer",
+      "answers": "{count} answers",
+      "thinEvidence": "One answer is thin evidence for a topic. Take another interview before reading much into it.",
+      "questionsTitle": "Question by question",
+      "questionHeading": "Question {position}",
+      "questionMeta": "{type} · {topic}",
+      "askedLabel": "What you were asked",
+      "criteriaTitle": "How this answer was judged",
+      "criterionScore": "{score} of {max}",
+      "evidenceLabel": "Your words",
+      "notesLabel": "The notes on them",
+      "noEvidence": "Nothing was quoted for this one, which is what a score of nothing looks like: there was no sentence to point at.",
+      "coveredTitle": "What you covered",
+      "missingTitle": "What was missing",
+      "strongTitle": "What a strong answer covers",
+      "strongNote": "The points this question was written to find out about. You are seeing them because it has been scored — they are not shown before or during an interview.",
+      "tipTitle": "Next time",
+      "redFlagsTitle": "Worth checking",
+      "redFlagsNote": "Things stated as fact that we think are wrong. Check them before you repeat them — including against us.",
+      "notAssessedTitle": "Not scored on this",
+      "notAssessedOne": "We did not get to ask you about one of the points this question covers, so it is not part of the score above:",
+      "notAssessed": "We did not get to ask you about {count} of the points this question covers, so they are not part of the score above:",
+      "notAssessedWhy": "An interview has a clock, and it cannot put every point to you. What we did not ask, we do not score — so this answer is marked out of what you were actually asked.",
+      "unscoredTitle": "This answer could not be scored",
+      "unscored": "The evaluator would not produce a usable reading of it, which is our failure and not yours. It is left out of the score above rather than counted as nothing, and what a strong answer covers is still below.",
+      "questionPrompting": "You covered {volunteered} of {total} points here before being asked; {followUps} follow-up.",
+      "questionPromptingMany": "You covered {volunteered} of {total} points here before being asked; {followUps} follow-ups.",
+      "questionPromptingNone": "You covered all {total} points here before being asked, so there was no follow-up.",
+      "lessonsTitle": "What to study next",
+      "lessonsLead": "The topics that went worst, and the lessons written for them on your role’s study track.",
+      "lessonsEmpty": "There is no published study track for {role} · {level} yet, so there is nothing to link to. The questions came before the lessons; when a track lands, the topics at the top of “By topic” will point straight into it.",
+      "transcriptTitle": "The interview itself",
+      "transcriptLead": "Every score in here quotes what you actually said. Read the conversation back and check them.",
+      "readTranscript": "Read the interview back",
+      "again": "Start another interview",
+      "practice": "Back to Practice",
+      "scopeTitle": "What this covered",
+      "scope": "The conversation round, typed: your answers, the follow-ups they earned, and the questions you asked at the end. Not live coding and not system design — neither is built yet, so a real first round may still hold something this one did not.",
+      "diagnostic": "Diagnostic",
+      "lessonsNotReadable": "The lesson pages are not built yet — this is the reading list, not a link. Naming what to go and learn is worth more than waiting until we can host it."
     },
     "errors": {
       "notFound": "We cannot find that interview.",
@@ -749,6 +837,86 @@
         "slug": "Slug",
         "summary": "Summary",
         "summaryHint": "Optional. One line, if the name is not self-explanatory."
+      }
+    },
+    "calibration": {
+      "title": "Calibration",
+      "lead": "Mark an answer the way you would in a real interview. You will not be shown what the AI gave it.",
+      "blindNote": "You are marking blind, on purpose: agreement between you and the model means nothing if you saw its marks first. Reading an answer is recorded, because the candidate agreed to a person reading their words — not to an audience.",
+      "filters": {
+        "scope": "Show",
+        "scopeUnreviewed": "Not yet marked by me",
+        "scopeMine": "Marked by me",
+        "scopeAll": "Everything",
+        "flaggedOnly": "Only flagged evidence"
+      },
+      "list": {
+        "criteria": "{count} criteria",
+        "reviews": "{count} marked",
+        "yours": "You marked this",
+        "flagged": "Flagged evidence",
+        "answered": "Answered {when}",
+        "noCatalogue": "No role recorded"
+      },
+      "empty": {
+        "nothing": "Nothing to mark right now. Answers appear here as candidates finish interviews.",
+        "narrowed": "Nothing matches those filters. Clear them to see the rest.",
+        "noConsent": "There are scored answers, but nobody has agreed to a person reading their transcript yet. Consent is asked on the candidate's own privacy screen, and it is refusable at no cost — so an empty queue here is the system working.",
+        "staffOnly": "There are consenting answers waiting, and they are real candidates'. Nothing will be shown until the reviewer agreement is signed; until then this screen only offers answers written by staff."
+      },
+      "actions": {
+        "flags": "Flagged evidence",
+        "save": "Save my marks",
+        "update": "Update my marks",
+        "saved": "Saved"
+      },
+      "answer": {
+        "title": "Mark an answer",
+        "back": "Back to the queue",
+        "question": "The question",
+        "exchange": "What was said",
+        "candidate": "Candidate",
+        "interviewer": "Interviewer",
+        "followUp": "Interviewer (follow-up)",
+        "yourMarks": "Your marks",
+        "blindNote": "Pick the rung whose words fit this answer. Do not round up for effort, and do not mark the English — an answer in Nigerian English or Pidgin scores exactly what the same understanding scores in textbook English.",
+        "weight": "worth {weight}%",
+        "why": "Why that rung, and not the one above it? (optional)",
+        "whyPlaceholder": "One sentence, in your own words.",
+        "note": "A note about the answer or the rubric",
+        "noteHint": "This is where “rung 3 and rung 4 cannot be told apart” belongs — the most useful thing a calibration round produces. Never about the candidate as a person.",
+        "pickEvery": "Pick a rung for every criterion before saving.",
+        "alreadyScored": "Saved earlier. Changing anything replaces your marks.",
+        "flagged": "The stored evidence for this answer matched a phrase that reads like an instruction: {phrases}. It changed no score and the candidate never saw it — it is here so a person can look."
+      },
+      "agreement": {
+        "title": "Agreement",
+        "lead": "How closely the people and the model read the same answers.",
+        "note": "The same five figures the eval harness prints, so a number here and a number from a harness run can be read together. Aggregate only: a row naming one answer's AI marks would undo the blind review for everyone who has not marked it yet.",
+        "name": "Name",
+        "answers": "Answers",
+        "exact": "Exact",
+        "withinOne": "Within one",
+        "mae": "Mean error",
+        "bias": "Bias",
+        "byRubric": "By rubric",
+        "byQuestion": "By question",
+        "scoredAnswers": "Answers marked",
+        "reviewers": "Reviewers",
+        "thin": "Too few answers to read as a measurement.",
+        "empty": "Nothing has been marked by a person yet."
+      },
+      "flags": {
+        "title": "Flagged evidence",
+        "lead": "Answers whose stored quotes read like an instruction rather than an answer.",
+        "note": "These change no score and no candidate ever sees them. The injection gate stops the model inventing a quote; it cannot stop one quoting the injection itself, because that quote is real. So this is a queue for a person.",
+        "phrases": "Phrases, commonest first",
+        "count": "in {count}",
+        "empty": "No stored evidence has matched one of these phrases."
+      },
+      "errors": {
+        "criteriaMismatch": "Those marks do not match the rubric this answer was scored against. Reload the page and try again.",
+        "gone": "That answer is no longer available to mark."
       }
     }
   },

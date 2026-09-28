@@ -17,6 +17,8 @@ import { AiCallLogService } from "../ai-calls/ai-call-log.service";
 import { AiWorkerClient, AiWorkerUnavailableError } from "../ai-worker/ai-worker.client";
 import type { AuthenticatedUser } from "../auth/auth.service";
 import type { Env } from "../config/env";
+import { ConsentsService } from "../consents/consents.service";
+import { EvaluationsService } from "../evaluations/evaluations.service";
 import { ENV } from "../config/env.module";
 import { ApiError } from "../http/api-error";
 import { REDIS } from "../redis/redis.module";
@@ -60,6 +62,8 @@ export class InterviewAdvanceService {
     private readonly repository: InterviewSessionsRepository,
     private readonly worker: AiWorkerClient,
     private readonly aiCalls: AiCallLogService,
+    private readonly consents: ConsentsService,
+    private readonly evaluations: EvaluationsService,
     @Inject(REDIS) private readonly redis: Redis,
     @Inject(ENV) private readonly env: Env,
   ) {}
@@ -72,9 +76,10 @@ export class InterviewAdvanceService {
   ): Promise<void> {
     const session = await this.live(user, id);
     const release = await this.lock(id);
+    let ended = false;
     try {
       stream.open();
-      await this.exchange(session, request, stream);
+      ended = await this.exchange(session, request, stream);
     } finally {
       /*
        * **The lock goes before the response ends, not after.** Closing the stream is what tells
@@ -85,6 +90,27 @@ export class InterviewAdvanceService {
        */
       await release();
       stream.close();
+    }
+    /*
+     * Two of the three doors to `ended` are this one: the engine wrapping up because a budget ran out,
+     * and the candidate ending early — which is the same exchange with a different reason, so it is the
+     * same line of code (M4).
+     *
+     * **Outside the stream, deliberately.** ADR-0016's rule is that nothing between `open()` and
+     * `close()` may throw, because by then the status is already 200; an enqueue that failed in there
+     * would turn a finished exchange into a broken response. Out here the candidate already has every
+     * frame, so the worst a failure costs is the report — logged, not raised, and recoverable, because
+     * a completed session with no report can be queued again when it is asked for.
+     */
+    if (ended) {
+      try {
+        await this.evaluations.onSessionsEnded([session.id]);
+      } catch (error) {
+        this.logger.error(
+          `interview ${session.id} ended but could not be queued for scoring: ` +
+            `${error instanceof Error ? error.name : "error"}`,
+        );
+      }
     }
   }
 
@@ -157,12 +183,16 @@ export class InterviewAdvanceService {
     };
   }
 
-  /** Ask the worker, record what it cost, write what happened, and stream it. Never throws. */
+  /**
+   * Ask the worker, record what it cost, write what happened, and stream it. Never throws.
+   *
+   * Returns whether the session ended, which the caller acts on **after** the stream is closed.
+   */
   private async exchange(
     session: SessionWithContent,
     request: AdvanceInterviewRequest,
     stream: InterviewStream,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const requestedAt = new Date();
     const calls: AiCallRecord[] = [];
     let response: InterviewAdvanceResponse;
@@ -175,7 +205,7 @@ export class InterviewAdvanceService {
       if (error instanceof AiWorkerUnavailableError) {
         this.logger.warn(`interview ${session.id}: worker unavailable (${error.message})`);
         stream.send({ type: "error", code: "worker_unavailable" });
-        return;
+        return false;
       }
       throw error;
     }
@@ -186,7 +216,7 @@ export class InterviewAdvanceService {
     if (response.error !== null || response.engine_snapshot === null) {
       this.logger.warn(`interview ${session.id}: engine refused (${response.error})`);
       stream.send({ type: "error", code: "interview_error" });
-      return;
+      return false;
     }
 
     const applied = await this.repository.applyExchange(session, response, {
@@ -194,6 +224,7 @@ export class InterviewAdvanceService {
       respondedAt: new Date(),
     });
     for (const frame of framesFor(applied, response)) stream.send(frame);
+    return applied.session.state === "ended";
   }
 
   /**
@@ -211,7 +242,7 @@ export class InterviewAdvanceService {
     requestedAt: Date,
     calls: AiCallRecord[],
   ): Promise<InterviewAdvanceResponse> {
-    const bundle = this.bundleFor(session);
+    const bundle = await this.bundleFor(session);
     const snapshot = session.engineSnapshot
       ? InterviewEngineSnapshot.parse(session.engineSnapshot)
       : null;
@@ -239,15 +270,25 @@ export class InterviewAdvanceService {
    * snapshot and it does not carry one (CLAUDE.md §5) — and the candidate is described in the
    * catalogue's own **names**, as the session recorded them, so a role renamed afterwards cannot
    * change how the interviewer addressed them.
+   *
+   * The one consent decision it carries is `transcript_review`, which the intro speaks aloud when it
+   * has been granted (ADR-0017). It is read here rather than pinned on the session: the intro is
+   * spoken once and `session_turns` already holds the words, so the transcript is the record of what
+   * was claimed, and a bundle resent after a Redis miss cannot re-speak an intro either way.
    */
-  private bundleFor(session: SessionWithContent): InterviewAdvanceRequest["bundle"] {
+  private async bundleFor(session: SessionWithContent): Promise<InterviewAdvanceRequest["bundle"]> {
     const catalogue = SessionCatalogue.parse(session.catalogue);
     const candidate: InterviewCandidateContext = {
       role_label: catalogue.role.name,
       level_label: catalogue.level.name,
       stack_label: catalogue.stack?.name ?? null,
-      // Real from M4, when there are evaluations to derive a weak topic from.
-      weak_topics: [],
+      /*
+       * Real from M4: the topics this candidate's scored answers have gone worst on, worst first, as
+       * labels (ADR-0015 — a topic has no enum, so it is its name). It was `[]` through M3 because
+       * there were no evaluations to derive it from. A candidate's **first** interview still sends an
+       * empty list, which is correct and is what the prompt is written for.
+       */
+      weak_topics: (await this.evaluations.weakTopics(session.userId)).map((topic) => topic.name),
     };
     return sessionBundle(
       {
@@ -260,6 +301,10 @@ export class InterviewAdvanceService {
         endsAt: session.endsAt,
         questionBudget: session.questionBudget,
         maxFollowUps: session.maxFollowUps,
+        transcriptReviewGranted: await this.consents.hasGranted(
+          session.userId,
+          "transcript_review",
+        ),
       },
       session.questions.map((row) => SessionQuestionSnapshot.parse(row.snapshot)),
       candidate,

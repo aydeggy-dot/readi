@@ -13,6 +13,7 @@ import { ContentModule } from "./content/content.module";
 import { CvModule } from "./cv/cv.module";
 import type { Env } from "./config/env";
 import { EnvModule } from "./config/env.module";
+import { EvaluationsModule } from "./evaluations/evaluations.module";
 import { HealthModule } from "./health/health.module";
 import { InterviewsModule } from "./interviews/interviews.module";
 import { NotificationsModule } from "./notifications/notifications.module";
@@ -46,6 +47,7 @@ export class AppModule {
         ConsentsModule,
         CvModule,
         ContentModule,
+        EvaluationsModule,
         InterviewsModule,
         AccountModule,
         AdminModule,

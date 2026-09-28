@@ -684,3 +684,377 @@ M5's agent — meets a lock the exchange has already finished with.
 **The rule:** "flaky" names a symptom. Before writing it down as one, say which two things are racing
 and why the product is safe. If the answer is "the test is too fast", ask what a real client that fast
 would see — here it would have seen a 409 in production.
+
+## A constant that is also a database enum is two changes, not one (2026-09-26, M4 phase 0)
+
+Adding `transcript_review` to `CONSENT_TYPES` in `packages/shared-types` looked like editing a list.
+It type-checked the web app, generated new JSON Schema and new Pydantic, updated the OpenAPI document
+and the API client — and then failed `pnpm typecheck` in the API, because `ConsentRecord.type` is a
+Prisma **enum** and the database had never heard of the value. The plan for the phase said "add the
+type" and had not noticed there was a column behind it.
+
+The generated migration then proposed `DROP INDEX questions_embedding_hnsw`, in a migration whose only
+other line is `ALTER TYPE ... ADD VALUE`. That is the seventh time, and the first in a migration with
+no relation to `questions` at all.
+
+**The rule:** before adding a value to a shared union, grep `schema.prisma` for it. A shared constant
+that is mirrored as a database enum needs its own migration, and a checklist item that says "add the
+type" should say which three places it lives in — the constant, the enum, and the copy. Then read the
+migration, because Prisma will try to take the index again whatever the change was about.
+
+## The commands CLAUDE.md calls safe still build the web app (2026-09-26, M4 phase 0)
+
+CLAUDE.md says never to run a build that writes `apps/api/dist` or `apps/web/.next` while the owner's
+dev servers are up, and names `pnpm build` and `pnpm test:e2e`. It does not name `pnpm gen:contracts`
+or `pnpm typecheck` — and both of them run `next build` and `nest build`, because `turbo.json` has
+`gen:contracts` depending on `build` and `typecheck` depending on `gen:contracts`. Running the
+documented codegen command against a live dev stack is therefore the forbidden thing under a different
+name. (Nothing broke this time: all three servers still answered 200 afterwards.)
+
+The way round it, for codegen specifically, is the CLI build: `pnpm --filter @readi/api
+build:standalone` writes `dist-cli`, which is a different folder from the one `nest start --watch`
+owns, and `node apps/api/dist-cli/src/cli/export-openapi.js` produces the OpenAPI document from it.
+Together with the two package-level `gen:contracts` scripts, that regenerates everything
+`pnpm gen:contracts` does and writes neither `dist` nor `.next`:
+
+```bash
+pnpm --filter @readi/shared-types gen:contracts     # Zod → JSON Schema
+pnpm --filter @readi/ai-worker gen:contracts        # JSON Schema → Pydantic
+pnpm --filter @readi/api build:standalone           # → dist-cli, not dist
+node apps/api/dist-cli/src/cli/export-openapi.js packages/api-client/openapi.json
+pnpm --filter @readi/api-client gen && pnpm exec prettier --write packages/api-client/openapi.json
+```
+
+**The rule:** "is it safe to run while the servers are up?" is a question about the task graph, not
+about the command's name. Check `turbo.json` for a transitive `build` before trusting a command
+CLAUDE.md does not warn about — and ask the owner before running anything that builds, rather than
+reading the rule narrowly enough to permit it.
+
+**Fixed the same day, on the owner's instruction that a rule people must remember is a rule that
+breaks.** `turbo run typecheck --dry=json` said it in one line: `@readi/web#gen:contracts <-
+@readi/web#build`. Turbo synthesises a node for a task **every** package is configured for, even one
+with no such script, so the root `gen:contracts.dependsOn: ["build"]` — which exists for
+`packages/shared-types` alone, whose generator imports from `dist/` — was making every package build
+itself, `next build` included. The root task now says `["^gen:contracts"]` and
+`packages/shared-types/turbo.json` carries the `build` dependency for the one package that needs it
+(`extends: ["//"]`, as `apps/api/turbo.json` already did). `scripts/gen-api-client.sh` switched from
+`build` to `build:standalone`, so the API side writes `dist-cli` — which seven CLIs already use —
+instead of the `dist` that `nest start --watch` owns. `pnpm gen:contracts` and `pnpm typecheck` now
+build `shared-types` and `api-client` with `tsc` and nothing else, and the footgun is gone rather than
+documented. **When a lesson's rule is "remember this", check first whether the thing can be made
+untrue instead.**
+
+## A pinning test that edits after the fact proves nothing about scoring (2026-09-27, M4 phase 3)
+
+The pinning test was extended to scoring in the obvious order: run a session, let it be scored, then
+edit the question and the rubric as an admin, then assert the report has not moved. It passed. Then it
+was mutated — weighting the criteria from the live `rubric_criteria` instead of the pinned snapshot —
+and **it still passed**.
+
+The reason is a correct piece of design elsewhere: an answer that already has an `answer_evaluations`
+row is never re-scored, so after the edit nothing read the rubric again and the stale read never
+happened. The test was asserting that a stored number stays stored, which a `SELECT` would also prove.
+
+Fixed by editing the content **while the interview is still running** — start the session, edit the
+question and invert the rubric's weights through the admin API, then let the candidate finish and the
+queue score it. Both mutations then failed, and that ordering is also the real sequence: a session runs
+for fifteen to thirty minutes and an expert can rework a rubric inside that window. "Pinned" has to
+mean pinned at the moment of **scoring**, not at the moment of asking.
+
+A second thing the exercise settled: with both criteria scoring alike, any weighting gives the same
+number, so the fixture scores 4 on the first criterion and 0 on the second. A weights test whose
+fixture is symmetric is a test of nothing.
+
+**The rule:** watching a test fail is not a formality to perform after it passes — it is how you find
+out what the test is actually asserting. Mutate the specific line you believe the test is protecting,
+and if the test survives, the test is wrong before the code is.
+
+## Two shapes of "it compiled, so it must be right" in generated Pydantic (2026-09-27, M4 phase 3)
+
+Phase 2 found that `model_copy(update=...)` skips validation and left a bare `str` in a root-model
+field. Phase 3 found the same family twice more, both in five minutes of `mypy --strict`:
+
+- **The constructor skips it too.** `EvaluateAnswerResponse(evidence_flags=[...], prompt_versions={...})`
+  is an `arg-type` error, because the generated fields are `list[EvidenceFlag]` and
+  `dict[str, PromptVersions]`. The fix is the shape `interview/service.py` already used:
+  `Model.model_validate({...})` with plain values and `model_dump(mode="json")` for nested models.
+- **Reading one back needs `.root`.** `response.evidence_flags` is a list of root models, so
+  `assert "ignore the rubric" in response.evidence_flags` fails with a message that looks like a logic
+  bug (`assert 'x' in [EvidenceFlag(root='x')]`). The fixtures already had `code_of()` for exactly this;
+  it now has `flags_of()` beside it.
+
+**The rule:** in the worker, build a generated contract with `model_validate` and read a scalar field
+out of one through a named helper. Both are one line, and both failures are silent or misleading.
+
+## BullMQ refuses a colon in a custom job id (2026-09-27, M4 phase 3)
+
+`queue.add("evaluate", job, { jobId: "evaluate:" + sessionId })` throws
+`Error: Custom Id cannot contain :` from inside `Job.validateOptions`. The prefix was there for
+readability and bought nothing: the session id is already unique, and namespacing is what `QUEUE_PREFIX`
+is for.
+
+The real lesson is where it surfaced. The enqueue was awaited **inside** the SSE exchange, so the throw
+landed after the candidate had already been sent every frame including `done`, and Nest's exception
+filter then tried to write a 500 onto an open `text/event-stream`. ADR-0016 already says nothing between
+`open()` and `close()` may throw; the enqueue has moved after the stream closes, wrapped, and a failure
+is logged rather than raised — a lost report, not a broken interview.
+
+**The rule:** when ADR-0016's "nothing may throw in here" meets new work, the question is not "will this
+throw?" but "what happens to the response if it does?" — and the answer is usually to do the work
+outside the stream.
+
+## A redaction pattern is not a guard (2026-09-27, M4 phase 4.5)
+
+An `ANTHROPIC_API_KEY` was printed into a session transcript by a `grep` over an env file whose
+`sed` redaction did not match the line it was meant to redact — the filter looked for `KEY` in the
+_value_, and the value was a key that does not contain the word. CLAUDE.md's "never print secrets"
+was being followed as far as its author could tell; what failed was a regex.
+
+**The rule:** when a rule's enforcement depends on getting a pattern right, the rule is a wish. Guard
+the step that can be checked exactly — here, opening the file — not the step that cannot, which is
+redacting what came out of it. `.claude/hooks/secret-guard.mjs` is that guard, checked in, with the
+failing command as its first test case, and `scripts/env-has.sh` is the one narrow hole (it answers
+"is this variable set?" with `set` / `empty` / `missing` and never a value).
+
+**Two things the exercise taught that the proposal had wrong.** Scanning _output_ and redacting it is
+not buildable: `PostToolUse` runs after the output is already in the transcript and nothing in the
+hook contract lets it unsee. And a guard blocks its own author within minutes — this one refused
+`grep -n "\.claude\|\.env" .gitignore`, where the pattern mentions the file and the command opens
+nothing. A guard that blocks ordinary work gets switched off, and then it guards nothing, so the
+allow cases matter as much as the deny cases and both live in the test file.
+
+## An idempotent job id also blocks the retry you wanted (2026-09-27, M4 phase 4)
+
+The evaluation queue uses the session id as the BullMQ job id, so two doors closing at once enqueue
+one job. BullMQ keeps completed jobs (`removeOnComplete: { count: 1000 }`) and `Queue.add` with an
+existing id **silently returns the existing job** — so phase 4's whole lost-enqueue recovery was a
+no-op: the report route answered "still being scored" for ever and the sweep queued into a void.
+
+**The rule:** a custom job id is a claim about jobs _in flight_. Before re-adding one, drop a job
+under that id that has already completed or failed, and leave a waiting, delayed or active one alone.
+Found only because the route's own test asserted the recovery actually recovered something.
+
+## Arithmetic that looks like a bound is not a bound (2026-09-27, M4 phase 4.5)
+
+`EvaluationTurn.text` was capped at `questionPromptMaxLength + evidenceMaxLength` = 2,400 characters —
+a plausible-looking sum of two numbers that govern neither side of a real turn. A candidate may type
+`INTERVIEW_LIMITS.answerMaxLength` (8,000) and the interviewer is truncated at `speechMaxLength`
+(1,200). Every session in the dev database with an answer over ~2,400 characters had a gap in its
+report, including two of the three M3 paid-run transcripts, and **a thorough answer was the one kind
+that could not be scored**.
+
+**The rule:** a length limit on a contract field must be the limit of the thing it carries, named as
+that constant — not a sum of two others that happens to be in the right region. And the failure was
+invisible because a worker 422 is reported as `AiWorkerUnavailableError` and logged as `error.name`:
+the log said "unavailable" about a worker that was up and answering. See phase 7.
+
+## Three correct rules can compose into a wrong outcome, and no test is looking (2026-09-27, M4 phase 4.6)
+
+The first paid evaluation cost a candidate 30 points of one answer. The engine opened a question with
+127 seconds left, which cleared its 120-second reserve; the answer took 99 seconds, so at submission
+there was no room for a follow-up and `probes_to_judge` correctly returned nothing; and the evaluator
+then scored the whole pinned rubric, correctly, because nothing had ever told it which probes were
+asked. Every one of those three is right on its own terms and each has passing tests.
+
+**The rule:** when a value is computed by one component and consumed by another, ask what the consumer
+would do if the producer had done _less_ than usual. Here the consumer's input was "the rubric" when
+it should have been "the rubric, and which of it we actually asked about" — a missing fact rather than
+a wrong one, which is why no assertion could fail. Unit tests cover components; the gap between two
+correct components is only visible in an end-to-end run against real content, which is what the paid
+run was for and why it is worth its cost.
+
+**And the symmetry is a design smell worth naming.** The 0.85 prompting discount existed for a
+candidate who _needed_ a nudge; there was nothing at all for one who was never _offered_ one. A rule
+that penalises one side of a situation without saying what happens on the other side is half a rule.
+
+## A required field on a stored artefact invalidates every stored artefact (2026-09-27, M4 phase 4.6)
+
+`not_assessed` became a required field on `SessionReportResponse`, so every `session_reports.summary`
+written before it stopped parsing. That was _fine_ — the route reads with `safeParse`, answers
+`report_not_ready`, re-queues, and re-assembly makes no model call because every answer already has a
+row — but it was fine by luck of a decision taken for another reason, not by design of this change.
+
+**The rule:** before adding a required field to a schema that is read back out of a database, find the
+read and check what it does with the old shape. If the answer is "500s a candidate's page", the field
+wants a default; if the answer is a free recovery, say so in the commit rather than discovering it.
+The cheap check is to `safeParse` a hand-written old payload — it takes a minute and it is the only
+evidence.
+
+## Calibrate an estimate on the part that does not vary (2026-09-27, M4 phase 4.6)
+
+Estimating the evaluator's cacheable prefix, the first attempt divided a rendered prompt's characters
+by the paid run's measured tokens per call to get chars-per-token. It returned 2.58, which is far
+outside any plausible range for English — because the reconstruction's transcript was ~1,000
+characters and the real answers were several times that. The ratio was measuring the difference
+between two prompts, not a tokenizer.
+
+**The rule:** calibrate on the fixed part and let the variable part be the unknown, never the other
+way round. The usable estimate came from the system prompt's own character count and a stated
+chars-per-token band, with the sensitivity printed (3.5 / 3.7 / 4.0 → 12.9% / 12.2% / 11.2%) so the
+decision could be seen not to turn on the guess.
+
+## A flake you cannot name is a grep you got wrong (2026-09-28)
+
+An API test failed three times under `pnpm test` and was never identified, because the thing watching
+for it matched turbo's **counts** (`Tests 1 failed | 587 passed`) instead of its `×` lines — and
+turbo's per-package prefixes and ANSI colour codes defeated the pattern that would have. Every re-run
+was clean, so by the time anyone looked there was nothing left to read. Twenty subsequent runs — ten of
+the suite alone, ten of the full `pnpm test --force` — did not reproduce it.
+
+**The rule:** the first time an intermittent failure appears, capture the whole log, not a summary. A
+summary of a failure you cannot reproduce is worth nothing, and the run is the only chance to get it.
+Strip ANSI (`sed 's/\x1b\[[0-9;]*m//g'`) before grepping turbo output, and grep the per-test markers
+rather than the totals.
+
+**And record the machine's state**, because that turned out to be the only lead: all three failures
+happened with `pnpm dev` and `dev:worker` running, all twenty clean runs with them stopped, on a box
+with six cores and 7 GB. "What else was running" is part of the bug report for anything timing
+sensitive.
+
+## A hand-rolled wait is a constant nobody measured, copied five times (2026-09-28)
+
+Five integration specs each had their own `for (let i = 0; i < 100; i++)` at 100 ms — a 10-second
+budget for a real BullMQ job — with five slightly different failure messages. Nothing measured the ten
+seconds: the fake worker answers in milliseconds, so the entire margin was machine load.
+
+**The rule:** a wait for a background job belongs in one helper with one named constant and a `what`
+argument, so the failure says "no report for session <id> after 25 s" rather than "timed out". Two
+properties are worth writing down beside it — the budget must stay **under** the framework's own
+timeout, or the framework reports a bare timeout and the poll's message never runs; and `null`/
+`undefined` mean "not yet" while `0`, `false` and `""` are answers, which a helper written with
+`if (found)` gets wrong and no caller ever notices.
+
+## Caching a prefix that N calls race for costs more than not caching (2026-09-28)
+
+Prompt caching looked like a flag. It is not: a cache entry can only be read once the request that
+wrote it has answered, so `EVALUATION_CONCURRENCY = 4` on a cold prefix means four writes at 1.25× the
+input rate and zero reads — `4 × 1.25` against the `4 × 1.00` of not caching at all. Switching caching
+on without touching the fan-out would have **raised** the bill, and at MVP volume the cold prefix is
+the normal case rather than the edge one, so the loss would have been the default.
+
+**The rule:** before turning caching on, ask who pays the write and when the others can read it. If the
+calls are concurrent, one of them has to go first, and that costs a call's latency — spend it against
+the budget you actually have (spec §8's 60 s, here) rather than discovering the arithmetic afterwards.
+
+Two corollaries worth keeping. **The documented escape hatch may not fit**: pre-warming with
+`max_tokens: 0` is rejected together with `output_config.format`, so any call that uses structured
+output cannot be pre-warmed, and an afternoon was nearly spent on it. And **a prefix under the model's
+minimum caches silently not at all** — no error, no warning, `cache_creation_input_tokens: 0` and a
+bill. The minimum is not monotonic across generations (512 on opus-5, 1,024 on sonnet-5, 4,096 on
+haiku-4.5), so "it cached last month on the old model" is not evidence.
+
+## A cost you cannot re-derive from its own row is not a measurement (2026-09-28)
+
+Caching splits input tokens into three kinds billed at three rates. The cheap thing was to add them
+into `input_units` and let `cost_micro_usd` absorb the difference; the result would have been a row
+saying a cached call cost four times what it did, and a model-choice recommendation resting on it.
+
+**The rule:** when a price gains a term, the stored row gains a column. Two integers and a migration
+are cheaper than a cost table nobody can check, and the test to write is the one that adds the row's
+own units back up at their own rates and gets the stored cost.
+
+## An eval that measures its own prompt measures nothing (2026-09-28)
+
+Two ways the harness could have been comfortable and useless, both avoided on purpose and both easy to
+fall into later:
+
+- **Rendering its own prompt.** The harness goes through the real `EvaluationService` over the real
+  contract, so it measures the three gates, the retry loop and the evidence verifier that production
+  runs. A harness that built its own prompt would drift from production in exactly the direction that
+  keeps it green.
+- **Counting model-written expectations as gold.** `evals/datasets/synthetic`'s scores were written by
+  a model, so agreement with them is drift detection and nothing else. That fact is carried from the
+  files into the report (`Dataset.provenance`) and printed **above** the numbers, and the thresholds
+  are enforced `on_provenance: human` — because a caveat in a README does not travel with a figure
+  somebody pastes into a handover.
+
+And the third: the `--smoke` run in `pnpm test` asserts the machinery and **refuses** to assert the
+fairness band or the separations, because the stand-in evaluator scores on whether the word "because"
+appears. A green tick on a coin toss is worse than no test, because it is believed.
+
+## A `beforeAll` that can fail needs an `afterAll` that can survive it (2026-09-28)
+
+The intermittent API failure was hunted for a day and then caught, and what had been hiding it was our
+own teardown. A Postgres connection timeout killed `beforeAll` before three user ids were assigned;
+`afterAll` then ran `deleteMany({ where: { userId: { in: [undefined, undefined, undefined] } } })` and
+threw `PrismaClientValidationError`. Two errors in the log — and the loud, specific, confidently wrong
+one was a consequence of the quiet, real one.
+
+**The rule:** a teardown is the first thing anybody reads after a setup failure, so write it to run
+against a setup that got halfway. Filter the ids you have, skip the fixtures you never created, use
+`app?.close()`. It costs three lines and it is the difference between naming a flake on its first
+appearance and on its twenty-third.
+
+**And the shape is the tell.** Vitest reports this as a **Failed Suite**, so the counts read
+`568 passed | 31 skipped` rather than `1 failed` — a grep for failed _tests_ sees nothing to report.
+
+## A convenience that reaches for a secret writes it into the transcript (2026-09-28)
+
+Asked to hand over a paid run, I offered `! cd apps/ai-worker && ANTHROPIC_API_KEY=<your key> uv run
+…`. The `!` prefix was the whole point — it runs in the owner's own shell and the output lands in the
+conversation, which is what I wanted for reading the result. But `!` also puts **the command** in the
+transcript, so what I had actually suggested was "paste your API key into the chat". The owner does it
+the right way instead: `set -a; source .env; set +a` in a separate terminal, then a command carrying no
+secret.
+
+**The rule:** hand over a command that is ready to paste and contains no secret, and never a `!`
+command that would carry one. The secret guard refusing to let me read that file is the same rule from
+the other side — the key has no reason to reach this context, because starting a paid run is not mine
+to do (CLAUDE.md §7.9).
+
+**The near-miss worth naming.** `ANTHROPIC_API_KEY=...` was already in CLAUDE.md §4's command list,
+and I copied its shape while filling in `<your key>`. A placeholder in documentation stops being a
+placeholder the first time somebody completes it — the same failure as the `you@example.com` in the
+`admin:grant` example, which was run verbatim and left a real admin account behind.
+
+## One run per cell cannot tell a change from a wobble (2026-09-28)
+
+The strict-criteria schema was measured on six rubrics, then on six more, and the second set came
+back 9 points below v2 on agreement with a fairness drift in the wrong direction. It was reported as
+a real finding with a caveat — and the caveat was the only thing that turned out to matter: there
+was **one** strict run of those rubrics, so nothing separated "the schema reads these differently"
+from "this run read these differently". The repeat came back _better_ than v2, and the drift
+reverted to v2's figure to the decimal.
+
+**The rule:** before reporting a difference between two configurations, measure the noise floor of
+one of them — two runs of the same setup on the same sample. Without it, a difference and a wobble
+are the same number. It is cheap here (~$1) and the harness now has `--rubric` so a repeat costs
+exactly the cells in question.
+
+**What was right anyway:** saying it out loud with the cost of settling it attached, rather than
+either burying it or blocking on it. The owner asked for the repeat in one line.
+
+## A report is not finished until it has been run on real data (2026-09-28)
+
+`interviews:pace` passed its unit tests and then, on the first real database, said a 15-minute
+session had answered **6 questions against a budget of 4**. The candidate's own questions at the end
+(spec §4.3) are candidate turns too, and counting them as answers broke the arithmetic visibly —
+while also dragging the median answer time down, which nothing would have shown. Two more of the same
+kind followed: sessions the stand-in drove were being averaged into a human-pace figure, and a
+session with no answers produced a pace out of the interviewer's latency alone, offering several
+hundred questions per 45 minutes.
+
+**The rule:** a measurement tool's unit tests prove the arithmetic, not the meaning of the rows. Run
+it on real data before believing it, and look for a number that is _impossible_ rather than merely
+surprising — 6 of 4 is what exposed all three.
+
+## `getByText` matches substrings, so a shared prefix is a strict-mode failure waiting (2026-09-28)
+
+`interview.spec.ts` asserted `Question 0 for <mark>` on the completion screen. Every probe of that
+question reads "Probe one on question 0 for <mark>…", so the locator matched three elements and
+failed strict mode — but only once question selection happened to probe question 0, which is why it
+had passed for weeks.
+
+**The rule:** assert on text that cannot be a prefix of its neighbours — the whole prompt, not its
+identifying fragment — whenever fixtures are generated from one template.
+
+## `git add -A` while a paid run is writing commits half of it (2026-09-29)
+
+The harness writes its result file **after every answer**, which is the feature that lets a stopped
+run keep what it paid for. It also means the file on disk is a valid, complete-looking JSON document
+that is not the whole run. A `git add -A` during somebody else's run committed one at 25 of 30
+answers; nothing complained, because a partial file is exactly what the checkpointing is for.
+
+**The rule:** before `git add -A`, check whether a run is in flight — `git status` on
+`evals/results/` is enough — and commit the artefact only once `finished_at` stops moving. A run
+file's `planned` and `cases` lengths disagreeing is the tell, and `RunResult.unscored()` reports it.

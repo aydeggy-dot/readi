@@ -15,12 +15,14 @@ import {
   type QuestionType,
   SessionCatalogue,
   SessionQuestionSnapshot,
+  type SessionReportResponse,
 } from "@readi/shared-types";
 import type { Redis } from "ioredis";
 import type { AuthenticatedUser } from "../auth/auth.service";
 import { cursorWhere, paginate } from "../content/content-cursor";
 import type { CareerLevel, CareerRole, Stack } from "../generated/prisma/client";
 import { ApiError, fieldError } from "../http/api-error";
+import { EvaluationsService } from "../evaluations/evaluations.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisRateLimiter } from "../rate-limit/redis-rate-limiter";
 import { REDIS } from "../redis/redis.module";
@@ -51,7 +53,8 @@ import { candidateQuestion, questionsWithNoProbes, snapshotOf } from "./session-
  *
  * `profile_required` · `role_not_found` · `level_not_found` · `stack_not_found` ·
  * `level_not_offered` · `stack_not_offered` · `no_questions_available` · `interview_not_found` ·
- * `rate_limited`. Validation failures on the request itself come back as field errors (ADR-0012).
+ * `rate_limited` · `interview_not_ended` · `report_not_ready` · `report_not_found`. Validation
+ * failures on the request itself come back as field errors (ADR-0012).
  */
 @Injectable()
 export class InterviewsService {
@@ -61,6 +64,7 @@ export class InterviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly repository: InterviewSessionsRepository,
+    private readonly evaluations: EvaluationsService,
     @Inject(REDIS) redis: Redis,
   ) {
     this.limiter = new RedisRateLimiter(redis);
@@ -96,7 +100,14 @@ export class InterviewsService {
       }),
     );
     const seed = randomUUID();
-    const chosen = selectQuestions({ pool, count: plan.questions, seed, types });
+    /*
+     * The other seam M3 left for M4: a topic this candidate scores badly on is three times as likely
+     * to come up (`SelectionInput.weakTopicIds`). Ids here and names in the bundle, from one query —
+     * selection is weighting a pool it already holds, and the worker has no catalogue to look an id up
+     * in (ADR-0015).
+     */
+    const weakTopicIds = (await this.evaluations.weakTopics(user.id)).map((topic) => topic.topicId);
+    const chosen = selectQuestions({ pool, count: plan.questions, seed, types, weakTopicIds });
     if (chosen.length === 0) {
       /*
        * Nothing published for this role, level, stack and set of types. A 409 rather than a 404:
@@ -132,7 +143,7 @@ export class InterviewsService {
           " — the engine will ask each once and move on; is the seeded content current?",
       );
     const now = new Date();
-    const session = await this.repository.create({
+    const created = await this.repository.create({
       userId: user.id,
       careerRoleId: audience.role.id,
       roleVersion: audience.role.version,
@@ -154,7 +165,13 @@ export class InterviewsService {
       selectionSeed: seed,
       questions: pinned,
     });
-    return toSessionResponse(session);
+    /*
+     * Starting an interview abandons the one this candidate had running, and an abandoned session
+     * with answers in it is still scored for what they answered (M4). Awaited rather than fired and
+     * forgotten: it is one enqueue, and a lost job would be a report that silently never arrives.
+     */
+    await this.evaluations.onSessionsEnded(created.abandoned);
+    return toSessionResponse(created.session);
   }
 
   async list(user: AuthenticatedUser, query: InterviewListQuery): Promise<InterviewListResponse> {
@@ -170,10 +187,10 @@ export class InterviewsService {
   /**
    * What the completion screen polls for.
    *
-   * `feedback_ready` is always false in M3, which scores nothing. It is here rather than left out
-   * because the screen written against it in phase 4 should not have to change when M4 makes it
-   * true — and because a screen that polls an endpoint with no answer in it would be a screen
-   * promising a candidate something we do not have.
+   * `feedback_ready` is true as soon as there is a report to read — including a report that says
+   * nothing could be scored. A screen that keeps spinning because the evaluator refused would be
+   * worse than one that tells the candidate so, and the report itself carries `status` and
+   * `scored_answers` to say exactly how much of it landed.
    */
   async status(user: AuthenticatedUser, id: string): Promise<InterviewStatusResponse> {
     const session = await this.owned(user, id);
@@ -182,8 +199,46 @@ export class InterviewsService {
       state: session.state,
       status: session.status,
       ended_at: session.endedAt?.toISOString() ?? null,
-      feedback_ready: false,
+      feedback_ready: await this.evaluations.hasReport(session.id),
     };
+  }
+
+  /**
+   * The session report, with the two refusals a candidate's screen has to tell apart.
+   *
+   * `report_not_ready` is "come back in a moment" and the completion screen polls through it;
+   * `report_not_found` is "there will never be one", which is a session that answered nothing. They
+   * are different codes rather than one, because the honest screen for each is a different screen
+   * (ADR-0012: the web app maps codes to its own copy and never shows the server's English).
+   *
+   * Reading it is also a recovery: `EvaluationsService.report` queues scoring when a session that
+   * ended with answers has no report, because the ordinary enqueue can be lost (ADR-0016 forbids the
+   * throw that would have surfaced it). That is why the 409 comes *after* the read rather than
+   * instead of it.
+   */
+  async report(user: AuthenticatedUser, id: string): Promise<SessionReportResponse> {
+    const session = await this.owned(user, id);
+    if (session.state !== "ended") {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "interview_not_ended",
+        "that interview has not finished yet",
+      );
+    }
+    const report = await this.evaluations.report(session.id);
+    if (report) return report;
+    if (await this.evaluations.willBeScored(session.id)) {
+      throw new ApiError(
+        HttpStatus.CONFLICT,
+        "report_not_ready",
+        "that interview is still being scored",
+      );
+    }
+    throw new ApiError(
+      HttpStatus.NOT_FOUND,
+      "report_not_found",
+      "nothing was answered in that interview, so there is nothing to score",
+    );
   }
 
   private async owned(user: AuthenticatedUser, id: string): Promise<SessionWithContent> {

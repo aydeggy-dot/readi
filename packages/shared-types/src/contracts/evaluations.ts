@@ -1,0 +1,521 @@
+import { z } from "zod";
+import {
+  CONTENT_LIMITS,
+  EVALUATION_CONFIDENCE,
+  EVALUATION_LIMITS,
+  INTERVIEW_LIMITS,
+  MAX_CRITERION_SCORE,
+} from "../constants.js";
+import { QuestionType, Topic } from "./content.js";
+import { AiCallRecord } from "./cv.js";
+import { SessionCatalogue, TurnSpeaker } from "./interviews.js";
+import { Slug } from "./slug.js";
+
+/**
+ * Evaluation: how one answer becomes a score, and what a candidate is then shown (spec §4.4, §6.2;
+ * CLAUDE.md §5 "Evaluation").
+ *
+ * ## The fourth width, and the first time a rubric reaches a model
+ *
+ * `interviews.ts` describes a question at three widths — the pinned snapshot, which never leaves the
+ * API; the bundle question, which carries no answer key at all; and the candidate question. M4 adds a
+ * fourth, and it is the only one that carries the rubric: `EvaluateAnswerRequest`. It is built by
+ * `evaluationRequest()` in `apps/api/src/interviews/session-bundle.ts`, beside the other two doors,
+ * because one file crossing the widths is the rule that has held since M3.
+ *
+ * Two things the evaluator is deliberately **not** given, although the snapshot has both:
+ *
+ * - **The criterion weights.** The model scores each criterion on its own evidence; how much each is
+ *   worth is arithmetic and belongs in code (spec §6.2: "computed in code"). Telling a model that one
+ *   criterion is 45% of the answer invites it to spend its judgement there and skim the rest, and
+ *   there is no version of that which makes a score more honest.
+ * - **The planned follow-ups.** They are already in the transcript wherever the engine actually asked
+ *   one, and sending the unasked ones would have the model scoring "did they answer the probe"
+ *   instead of "does the answer meet this criterion".
+ *
+ * ## The prompting adjustment is not in here either
+ *
+ * Whether a criterion was only reached after the engine asked about it changes the **weighting**, in
+ * code, under `SCORING_VERSION` (owner's decision, 2026-09-26). The model is never told, for the same
+ * reason it is not told the weights: it would be scoring the interview rather than the answer. What is
+ * stored is the model's raw per-criterion score untouched, so the `/evals` agreement metric compares
+ * a human to the model and not to our arithmetic.
+ *
+ * The **one** exception, and the line it is drawn on: `EvaluationCriterion.asked_about` says whether
+ * the interview ever put that criterion to the candidate at all (the owner's decision, 2026-09-27).
+ * "Was it volunteered or prompted" stays hidden because it is a *grading* fact; "was it asked" is not,
+ * because the evaluator's prose is printed in the candidate's report and blaming somebody for not
+ * saying what nobody asked is the one thing that prose must not do. It still may not move a score —
+ * the exclusion from the denominator is arithmetic in `scoring.ts`, keyed on the same engine fact and
+ * on the model's own 0-with-no-evidence.
+ *
+ * ## Which schemas carry `.meta({ id })`
+ *
+ * As everywhere else (ADR-0003): a registered contract carries no root id; reusable nested pieces do.
+ */
+
+const text = (max: number) => z.string().trim().min(1).max(max);
+const label = () => text(CONTENT_LIMITS.titleMaxLength);
+
+// -----------------------------------------------------------------------------------------------
+// What the evaluator is given.
+
+/**
+ * One rubric criterion as the evaluator sees it: what it scores, and the five rungs of its ladder.
+ * No `weight` — see the header.
+ */
+export const EvaluationCriterion = z
+  .object({
+    /** Its position in the pinned rubric. The identifier everywhere: a snapshot has no row ids. */
+    position: z.int().min(0),
+    dimension: text(CONTENT_LIMITS.dimensionMaxLength),
+    description: text(CONTENT_LIMITS.criterionDescriptionMaxLength),
+    /** Keyed `"0"`–`"4"`, as the rubric stores them. */
+    levels: z.record(z.string(), text(CONTENT_LIMITS.levelDescriptorMaxLength)),
+    /**
+     * Whether the interview actually put this criterion to the candidate (the owner's decision,
+     * 2026-09-27).
+     *
+     * True when the opening prompt asks for it — a criterion with no planned follow-up is the one the
+     * prompt asks, which is the pilot rule of 2026-09-23 and what `check-bank.mjs` holds a bank to —
+     * or when the engine asked one of its probes. False when it carries probes and the interview
+     * asked none of them: the clock ran out, the candidate ended early, or the follow-up cap was
+     * spent elsewhere.
+     *
+     * **It is the one engine fact the evaluator is given, and it may not change a score.** The model
+     * is still told nothing about weights, about which probes exist, or about whether an answer was
+     * volunteered or prompted — all of which would have it scoring the interview rather than the
+     * answer. What this changes is the *words*: an evaluator that does not know the interview never
+     * reached a point writes "you did not mention how you would repair the rows", which reads to the
+     * candidate as a criticism for something nobody asked. Whether it counts towards the score is
+     * decided in code, under `SCORING_VERSION`.
+     */
+    asked_about: z.boolean(),
+  })
+  .meta({ id: "EvaluationCriterion" });
+export type EvaluationCriterion = z.infer<typeof EvaluationCriterion>;
+
+/**
+ * The question, exactly as the session was run against it — read from
+ * `interview_session_questions.snapshot` and never from the live `questions` row. An admin editing a
+ * published question after the session must not change what the candidate was scored on, which is the
+ * whole reason the snapshot exists (ADR-0014 decision 2).
+ */
+export const EvaluationQuestion = z
+  .object({
+    slug: Slug,
+    type: QuestionType,
+    topic: Topic,
+    prompt: text(CONTENT_LIMITS.questionPromptMaxLength),
+    context: text(CONTENT_LIMITS.questionContextMaxLength).nullable(),
+    /** What a strong answer covers. Answer key — and, after scoring, the one part a candidate sees. */
+    ideal_points: z.array(text(CONTENT_LIMITS.idealPointMaxLength)).max(CONTENT_LIMITS.idealPoints),
+    rubric: z.object({
+      slug: Slug,
+      name: label(),
+      criteria: z
+        .array(EvaluationCriterion)
+        .min(CONTENT_LIMITS.rubricCriteria.min)
+        .max(CONTENT_LIMITS.rubricCriteria.max),
+    }),
+  })
+  .meta({ id: "EvaluationQuestion" });
+export type EvaluationQuestion = z.infer<typeof EvaluationQuestion>;
+
+/**
+ * One turn of the exchange being scored: the question as it was actually spoken, the answer, any
+ * follow-up the engine asked and the answer to that. The evaluator scores the **combined** answer,
+ * because a candidate who needed a nudge still said the thing.
+ *
+ * `kind` has one member today and exists so that it can have two. When the coding round arrives
+ * ([P2], owner's decision 2026-09-25) a turn's content is a program and a test result rather than
+ * prose, and that should be a new member of this union rather than a rename of `text` — a rename
+ * would reach every stored evaluation. It costs one string on the wire.
+ */
+export const EvaluationTurn = z
+  .object({
+    kind: z.literal("text"),
+    seq: z.int().min(0),
+    speaker: TurnSpeaker,
+    /** Which planned probe the interviewer was asking, if this turn was a follow-up. */
+    follow_up_index: z.int().min(0).nullable(),
+    /**
+     * **Bounded by what a turn can actually hold, not by what one is expected to.**
+     *
+     * This was `questionPromptMaxLength + evidenceMaxLength` — 2,400 characters, which is neither of
+     * the two limits that govern a real `session_turns.text`: a candidate may type
+     * `INTERVIEW_LIMITS.answerMaxLength` (8,000) and the interviewer is truncated at
+     * `speechMaxLength` (1,200). The arithmetic looked plausible and was not a bound on anything.
+     *
+     * What it cost, found on 2026-09-27 while draining eight unscored sessions: the worker rejected
+     * the request with a 422, the API read that as "worker unavailable", retried three times with
+     * backoff and stored `provider_error`. Every session in the dev database with an answer over
+     * ~2,400 characters had a gap in its report, and the three M3 paid-run transcripts — real answers
+     * from a real candidate, longest turn 4,396 — were the worst affected. A thorough answer was the
+     * one thing that could not be scored.
+     */
+    text: text(INTERVIEW_LIMITS.answerMaxLength),
+  })
+  .meta({ id: "EvaluationTurn" });
+export type EvaluationTurn = z.infer<typeof EvaluationTurn>;
+
+/** `POST /evaluate/answer` on the worker: one answer, so each is retried and stored on its own. */
+export const EvaluateAnswerRequest = z.object({
+  session_id: z.uuid(),
+  /**
+   * Opaque, and carried for exactly one reason: it puts a user on the Langfuse trace so account
+   * erasure can find it again (ADR-0008, ADR-0011). It reaches no prompt.
+   */
+  user_id: z.uuid(),
+  /** Which question of the session this is — the answer's identity, with `session_id`. */
+  position: z.int().min(0),
+  question: EvaluationQuestion,
+  exchange: z.array(EvaluationTurn).min(1),
+});
+export type EvaluateAnswerRequest = z.infer<typeof EvaluateAnswerRequest>;
+
+// -----------------------------------------------------------------------------------------------
+// What comes back.
+
+export const EvaluationConfidence = z
+  .enum(EVALUATION_CONFIDENCE)
+  .meta({ id: "EvaluationConfidence" });
+export type EvaluationConfidence = z.infer<typeof EvaluationConfidence>;
+
+/**
+ * One criterion's score, and the words it is based on.
+ *
+ * `evidence` is quoted from the candidate's own turns and **verified in code** against them before
+ * this is stored: a quote that cannot be found is dropped and the confidence lowered, and a non-zero
+ * score left with no evidence is invalid output and retried (spec §6.2, CLAUDE.md §5 "Evaluation").
+ * `evidenceRuleViolations` is that rule, written once and checked on both sides of the boundary.
+ */
+export const CriterionScore = z
+  .object({
+    criterion: z.int().min(0),
+    score: z.int().min(0).max(MAX_CRITERION_SCORE),
+    /** What the score was out of, as it stood — not what we currently think the ladder is. */
+    max_score: z.literal(MAX_CRITERION_SCORE),
+    evidence: z
+      .array(text(EVALUATION_LIMITS.evidenceMaxLength))
+      .max(EVALUATION_LIMITS.evidencePerCriterion),
+    reasoning: text(EVALUATION_LIMITS.reasoningMaxLength),
+  })
+  .meta({ id: "CriterionScore" });
+export type CriterionScore = z.infer<typeof CriterionScore>;
+
+/**
+ * One answer, evaluated (spec §6.2). This is what the worker returns and what
+ * `answer_evaluations.criteria` and its sibling columns hold — the model's reading, normalised but
+ * not re-weighted. Nothing here has been adjusted for prompting and nothing is a percentage.
+ */
+export const AnswerEvaluation = z
+  .object({
+    criteria: z
+      .array(CriterionScore)
+      .min(CONTENT_LIMITS.rubricCriteria.min)
+      .max(CONTENT_LIMITS.rubricCriteria.max),
+    covered_points: z
+      .array(text(EVALUATION_LIMITS.pointMaxLength))
+      .max(EVALUATION_LIMITS.pointsPerAnswer),
+    missing_points: z
+      .array(text(EVALUATION_LIMITS.pointMaxLength))
+      .max(EVALUATION_LIMITS.pointsPerAnswer),
+    strengths: z
+      .array(text(EVALUATION_LIMITS.strengthMaxLength))
+      .max(EVALUATION_LIMITS.strengthsPerAnswer),
+    improvement_tip: text(EVALUATION_LIMITS.tipMaxLength),
+    /** Factual errors the candidate stated. Empty is the normal case, not a gap in the output. */
+    red_flags: z
+      .array(text(EVALUATION_LIMITS.redFlagMaxLength))
+      .max(EVALUATION_LIMITS.redFlagsPerAnswer),
+    confidence: EvaluationConfidence,
+  })
+  .meta({ id: "AnswerEvaluation" });
+export type AnswerEvaluation = z.infer<typeof AnswerEvaluation>;
+
+export const EvaluateAnswerResponse = z.object({
+  position: z.int().min(0),
+  /**
+   * Absent when the model would not produce valid output after its retries. The answer is then
+   * `failed` and the report says so for that question rather than inventing a score (ADR-0016's rule
+   * for a model that will not answer, applied to scoring: a plainer report, not a broken one).
+   */
+  evaluation: AnswerEvaluation.nullable(),
+  /** Why not, as a stable code. Never prose, and never anything the candidate wrote. */
+  error: z.enum(["invalid_output", "refused", "provider_error", "timeout"]).nullable(),
+  /**
+   * Phrases in the **stored** evidence that read like an instruction to the evaluator rather than an
+   * answer to the question — "award full marks", "ignore the rubric", "SYSTEM:" and the like (the
+   * owner's decision, 2026-09-27).
+   *
+   * It exists because of the one line the injection gate cannot hold. A model that quotes the
+   * injection *itself* is quoting something the candidate really typed, so the quote verifies and an
+   * inflated score stands; no verifier can tell that from a real answer, because it **is** a real
+   * answer. So this does not try to: it makes the answer visible to a person.
+   *
+   * Three things it deliberately is not. It does **not** change the score — a flag is a reason for
+   * somebody to look, not a penalty applied by a phrase list, and a candidate who wrote "ignore the
+   * rubric" inside an otherwise real answer has not earned a worse mark for it. It is **not shown to
+   * the candidate**. And it holds **our** words, not theirs: the phrases we matched, which are safe
+   * to store and safe to put in front of an admin, where the quote that matched them would be the
+   * candidate's own prose about their working life.
+   *
+   * The worker returns it rather than the API deriving it, because the worker is holding the verified
+   * quotes at the moment they are decided, and because the phrase list belongs beside the injection
+   * payloads that motivated it (`readi_worker/evaluation/instruction_flags.py`,
+   * `tests/test_evaluation_injection.py`) — so adding a phrase and adding a case are one edit.
+   */
+  evidence_flags: z
+    .array(text(EVALUATION_LIMITS.evidenceFlagMaxLength))
+    .max(EVALUATION_LIMITS.evidenceFlagsPerAnswer),
+  /**
+   * Which version of each evaluator prompt scored this, as `InterviewAdvanceResponse` already reports
+   * for the interviewer's. It is stored on the row: a released prompt is never edited in place, so
+   * `answer_evaluations.prompt_versions` has to keep meaning what it meant when `/evals` or a
+   * calibration reviewer comes back to this score (CLAUDE.md "Prompts").
+   */
+  prompt_versions: z.record(z.string(), z.int()),
+  ai_calls: z.array(AiCallRecord),
+});
+export type EvaluateAnswerResponse = z.infer<typeof EvaluateAnswerResponse>;
+
+// -----------------------------------------------------------------------------------------------
+// The rule that has to hold in two languages (ADR-0003 decision 5).
+
+/** Which criterion broke the rule, and the sentence a retry can put in front of the model. */
+export interface EvidenceViolation {
+  criterion: number;
+  message: string;
+}
+
+/**
+ * "A score of 0 may have empty evidence only when the criterion was not addressed at all; otherwise
+ * evidence is mandatory" (spec §6.2).
+ *
+ * It is a function rather than a `.refine`, because a refinement does not survive export to JSON
+ * Schema and so could not reach Pydantic — the rule would then exist on one side of the boundary and
+ * be a comment on the other. The Python twin is `readi_worker/evaluation/evidence.py`, and both are
+ * held to the same cases in `packages/shared-types/src/evidence-cases.json`, the way
+ * `ask-vectors.json` already keeps the two ask-counters from drifting.
+ *
+ * Note what the rule does **not** forbid: a score of **0 with** evidence. A candidate can address a
+ * criterion squarely and be wrong about it, and quoting the sentence where they were wrong is the
+ * fairest thing the report does — it is the case the rubric descriptors were rewritten for in
+ * September 2026 ("a confident, specific, wrong answer"). A rule that demanded empty evidence at 0
+ * would push the evaluator into scoring 1 just to keep its quote.
+ *
+ * Returns one entry per offending criterion, in the rubric's order. Empty means the rule holds.
+ */
+export function evidenceRuleViolations(
+  evaluation: Pick<AnswerEvaluation, "criteria">,
+): EvidenceViolation[] {
+  return evaluation.criteria
+    .filter((criterion) => criterion.score > 0 && criterion.evidence.length === 0)
+    .map((criterion) => ({
+      criterion: criterion.criterion,
+      message: `criterion ${criterion.criterion} scored ${criterion.score} with no evidence quoted`,
+    }));
+}
+
+// -----------------------------------------------------------------------------------------------
+// What the candidate reads. A separate, smaller shape — never an admin one with fields omitted
+// (ADR-0014 decision 3), because an omission is one careless `.extend()` away from a leak.
+
+/**
+ * One criterion, as feedback.
+ *
+ * This is the narrowing that matters in M4, so it is worth being explicit about all four fields that
+ * are **not** here. `description` and the five `levels` are the answer key in its most usable form —
+ * a candidate reading the ladder knows exactly what sentence to say next time, which is preparation
+ * for our rubric rather than for an interview. `weight` would turn a report into a guide to where the
+ * marks are. And the criterion's `position` is not here because nothing candidate-facing needs it and
+ * an index into a hidden list is an invitation to go looking for the list.
+ *
+ * What is here is the `dimension` — the name of the thing being judged, which is the vocabulary the
+ * feedback is written in and useless as an answer key on its own — with the score, the words it was
+ * based on, and why.
+ */
+export const CandidateCriterionFeedback = z
+  .object({
+    dimension: text(CONTENT_LIMITS.dimensionMaxLength),
+    score: z.int().min(0).max(MAX_CRITERION_SCORE),
+    max_score: z.literal(MAX_CRITERION_SCORE),
+    evidence: z
+      .array(text(EVALUATION_LIMITS.evidenceMaxLength))
+      .max(EVALUATION_LIMITS.evidencePerCriterion),
+    reasoning: text(EVALUATION_LIMITS.reasoningMaxLength),
+  })
+  .meta({ id: "CandidateCriterionFeedback" });
+export type CandidateCriterionFeedback = z.infer<typeof CandidateCriterionFeedback>;
+
+/**
+ * How much of this answer the candidate volunteered (owner's decision, 2026-09-26).
+ *
+ * Keyed on what the **engine** did, not on what the coverage model judged: a probe the interviewer
+ * actually asked is in the transcript, so a candidate can argue with it, and M3 wrote that
+ * `criteria_covered` reaches the evaluator "as a prior and **never** as a score". Two criteria may
+ * share one probe's worth of prompting and a criterion may carry two probes, so these are counted per
+ * criterion from the probes that were asked rather than derived from `follow_ups_asked`.
+ *
+ * The web turns this into one sentence. It is not a per-criterion grid: "you covered two of three
+ * before I asked" is advice, and a table of which ones is an answer key with extra steps.
+ */
+export const CandidatePrompting = z
+  .object({
+    /**
+     * The points this answer was **scored on** — the pinned rubric's criteria less the ones the
+     * interview never asked about (`CandidateQuestionReport.not_assessed`). It is the assessed count
+     * rather than the rubric's size because this number is the denominator of a sentence the
+     * candidate reads: "you covered 2 of 3 before I asked" is a lie about the interview when one of
+     * the three was never put to them.
+     */
+    criteria_total: z.int().min(0),
+    criteria_volunteered: z.int().min(0),
+    follow_ups_asked: z.int().min(0),
+  })
+  .meta({ id: "CandidatePrompting" });
+export type CandidatePrompting = z.infer<typeof CandidatePrompting>;
+
+export const CandidateQuestionReport = z
+  .object({
+    position: z.int().min(0),
+    type: QuestionType,
+    topic: Topic,
+    prompt: text(CONTENT_LIMITS.questionPromptMaxLength),
+    /** Null when this answer could not be scored; the rest of the report still stands. */
+    overall: z.int().min(0).max(100).nullable(),
+    criteria: z.array(CandidateCriterionFeedback).max(CONTENT_LIMITS.rubricCriteria.max),
+    covered_points: z
+      .array(text(EVALUATION_LIMITS.pointMaxLength))
+      .max(EVALUATION_LIMITS.pointsPerAnswer),
+    missing_points: z
+      .array(text(EVALUATION_LIMITS.pointMaxLength))
+      .max(EVALUATION_LIMITS.pointsPerAnswer),
+    /**
+     * The question's pinned `ideal_points`, promised to the candidate by spec §4.4 as "what a strong
+     * answer covers". Answer key everywhere else and **allowed here only because the session has
+     * already been scored** — the same narrowing M3 made for planned follow-ups, which are answer key
+     * right up until an interviewer speaks them. The leak test asserts the count on this route and
+     * their absence on every other.
+     */
+    strong_answer_covers: z
+      .array(text(CONTENT_LIMITS.idealPointMaxLength))
+      .max(CONTENT_LIMITS.idealPoints),
+    improvement_tip: text(EVALUATION_LIMITS.tipMaxLength).nullable(),
+    red_flags: z
+      .array(text(EVALUATION_LIMITS.redFlagMaxLength))
+      .max(EVALUATION_LIMITS.redFlagsPerAnswer),
+    /**
+     * The criteria the interview never asked about, by `dimension`, named plainly because they are
+     * **not in this answer's score** (the owner's decision, 2026-09-27).
+     *
+     * A question carries probes for the criteria its opening prompt does not ask for, and an interview
+     * does not always reach them: the deadline arrives, the candidate ends early, or the follow-up cap
+     * was spent on another criterion. A candidate who was never asked and did not happen to cover it
+     * anyway used to be charged the whole weight of it — 30 points of one answer, in the first paid
+     * run. Now it leaves the denominator, and this is the page admitting so: a score assembled over
+     * two of three criteria has to say which one is missing, or the number cannot be checked against
+     * the transcript.
+     *
+     * A criterion is in **exactly one** of `criteria` and this list, so the two cannot drift. The
+     * `dimension` is all that crosses, as everywhere else — never the description, the weight or a
+     * level descriptor — and it is empty on an answer that could not be scored at all, where nothing
+     * is known about which criteria the answer reached.
+     */
+    not_assessed: z
+      .array(text(CONTENT_LIMITS.dimensionMaxLength))
+      .max(CONTENT_LIMITS.rubricCriteria.max),
+    prompting: CandidatePrompting,
+  })
+  .meta({ id: "CandidateQuestionReport" });
+export type CandidateQuestionReport = z.infer<typeof CandidateQuestionReport>;
+
+/**
+ * A score per topic and per question type — and **not** "per dimension", which spec §4.4 asks for and
+ * which cannot mean what it says: a rubric's dimensions are free prose written for that one question
+ * ("Looks at what actually ran"), so there is nothing to average across a session. Topic and type are
+ * what genuinely aggregate, and they are also the shape §7's readiness buckets need. The spec is
+ * corrected in the same change (CLAUDE.md §7.5).
+ */
+export const ReportTopicScore = z
+  .object({ topic: Topic, overall: z.int().min(0).max(100), answers: z.int().min(1) })
+  .meta({ id: "ReportTopicScore" });
+export type ReportTopicScore = z.infer<typeof ReportTopicScore>;
+
+export const ReportTypeScore = z
+  .object({ type: QuestionType, overall: z.int().min(0).max(100), answers: z.int().min(1) })
+  .meta({ id: "ReportTypeScore" });
+export type ReportTypeScore = z.infer<typeof ReportTypeScore>;
+
+export const RecommendedLesson = z
+  .object({ slug: Slug, title: label(), topic: Topic })
+  .meta({ id: "RecommendedLesson" });
+export type RecommendedLesson = z.infer<typeof RecommendedLesson>;
+
+/**
+ * One of the report's three strengths or three fixes, and **which answer it came from**.
+ *
+ * The position is not decoration. A session's strengths and fixes are chosen in code from the answers
+ * that went best and worst (`report-assembly.ts`), so every one of them is a claim about one specific
+ * answer — and without saying which, "say what you measured" is advice a candidate cannot check. With
+ * it, the summary at the top of the report is three taps from the words it was written about, which is
+ * the whole difference between feedback and a verdict (product principle 1).
+ *
+ * It carries the position rather than a quote on purpose. The quote belongs to a **criterion**, where
+ * the evaluator paired it with its own reasoning; pairing a session-level tip with a criterion-level
+ * quote would be asserting a link nothing made, and a plausible-looking mis-pairing is worse than no
+ * quote at all. So the summary attributes and the per-question breakdown quotes.
+ *
+ * Duplicates are merged by text (same advice twice is one piece of advice), and the first occurrence
+ * keeps its position — the best answer's for a strength, the worst answer's for a fix.
+ */
+export const ReportHighlight = z
+  .object({
+    text: text(Math.max(EVALUATION_LIMITS.strengthMaxLength, EVALUATION_LIMITS.tipMaxLength)),
+    /** The `CandidateQuestionReport.position` this was written about. */
+    question_position: z.int().min(0),
+  })
+  .meta({ id: "ReportHighlight" });
+export type ReportHighlight = z.infer<typeof ReportHighlight>;
+
+/** `ready` is every answer scored; `partial` is some; `failed` is none, and says so plainly. */
+export const SessionReportStatus = z
+  .enum(["ready", "partial", "failed"])
+  .meta({ id: "SessionReportStatus" });
+export type SessionReportStatus = z.infer<typeof SessionReportStatus>;
+
+/**
+ * `GET /api/interviews/:id/report`. Assembled in code from the per-answer JSON, never by asking a
+ * model to write a report (CLAUDE.md §5 "Evaluation").
+ */
+export const SessionReportResponse = z.object({
+  session_id: z.uuid(),
+  status: SessionReportStatus,
+  /**
+   * What the session said it was, from `interview_sessions.catalogue` — the **pinned** names, not the
+   * live rows. A role renamed after the interview must not rewrite a report the candidate has already
+   * read (CLAUDE.md §5), and this is the surface where that would show: the line at the top of the
+   * page saying which interview this was.
+   */
+  ...SessionCatalogue.shape,
+  /** Null only when nothing could be scored. */
+  overall: z.int().min(0).max(100).nullable(),
+  scored_answers: z.int().min(0),
+  total_answers: z.int().min(0),
+  strengths: z.array(ReportHighlight).max(EVALUATION_LIMITS.reportHighlights),
+  fixes: z.array(ReportHighlight).max(EVALUATION_LIMITS.reportHighlights),
+  by_topic: z.array(ReportTopicScore),
+  by_type: z.array(ReportTypeScore),
+  questions: z.array(CandidateQuestionReport),
+  /** Often empty: five of eight role × level pairs have no published track to recommend from. */
+  lessons: z.array(RecommendedLesson).max(EVALUATION_LIMITS.lessonsPerReport),
+  /**
+   * When the interview ended, which is the date a candidate means by "that interview". Nullable
+   * because the column is: a session is only ever assembled after it ended, but a report recovered by
+   * the sweep long afterwards must not claim its own assembly time was the interview.
+   */
+  ended_at: z.iso.datetime().nullable(),
+  generated_at: z.iso.datetime(),
+});
+export type SessionReportResponse = z.infer<typeof SessionReportResponse>;

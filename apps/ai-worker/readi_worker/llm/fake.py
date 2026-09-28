@@ -19,6 +19,9 @@ class ScriptedLLMClient:
     def __init__(self, steps: Sequence[Step]) -> None:
         self._steps = list(steps)
         self.calls: list[dict[str, str]] = []
+        #: Whether each call asked for the system prompt to be cached. Beside `calls` rather than in
+        #: it, so the dozens of assertions that read `calls[0]["user"]` keep their simple type.
+        self.cache_system: list[bool] = []
 
     async def parse[T: BaseModel](
         self,
@@ -29,8 +32,10 @@ class ScriptedLLMClient:
         output_type: type[T],
         max_tokens: int,
         timeout_s: float | None = None,
+        cache_system: bool = False,
     ) -> LLMResult[T]:
         self.calls.append({"model": model, "system": system, "user": user})
+        self.cache_system.append(cache_system)
         step = self._steps.pop(0)
         if isinstance(step, Exception):
             raise step
@@ -75,6 +80,7 @@ class FunctionLLMClient:
         output_type: type[T],
         max_tokens: int,
         timeout_s: float | None = None,
+        cache_system: bool = False,
     ) -> LLMResult[T]:
         output = output_type.model_validate(self._build(system, user).model_dump())
         return LLMResult(

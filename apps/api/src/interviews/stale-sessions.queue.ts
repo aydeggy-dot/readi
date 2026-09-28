@@ -8,6 +8,7 @@ import {
 import { Queue, Worker } from "bullmq";
 import type { Env } from "../config/env";
 import { ENV } from "../config/env.module";
+import { EvaluationsService } from "../evaluations/evaluations.service";
 import { InterviewSessionsRepository } from "./interview-sessions.repository";
 
 export const STALE_SESSIONS_QUEUE = "stale-interviews";
@@ -35,6 +36,7 @@ export class StaleSessionsQueue implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(ENV) private readonly env: Env,
     private readonly repository: InterviewSessionsRepository,
+    private readonly evaluations: EvaluationsService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -65,7 +67,10 @@ export class StaleSessionsQueue implements OnModuleInit, OnModuleDestroy {
   /** Ids and counts only: a session id is not personal data, and nothing else is logged. */
   private async sweep(): Promise<void> {
     const abandoned = await this.repository.abandonStale(new Date());
-    if (abandoned > 0) this.logger.log(`abandoned ${abandoned} stale interview(s)`);
+    if (abandoned.length > 0) this.logger.log(`abandoned ${abandoned.length} stale interview(s)`);
+    // The third door to `ended`. A candidate who never came back still answered what they answered,
+    // and the report is waiting for them next time they open Practice (M4).
+    await this.evaluations.onSessionsEnded(abandoned);
   }
 
   async onModuleDestroy(): Promise<void> {

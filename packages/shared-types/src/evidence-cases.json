@@ -1,0 +1,50 @@
+{
+  "comment": "Cases for spec §6.2's evidence rule, shared by the TypeScript and Python implementations (ADR-0003 decision 5). `expected` lists the criterion positions that break the rule, in order; the two languages word their messages differently and must agree on the verdict, not the prose. Precedent: src/ask-vectors.json, which keeps the two ask-counters from drifting. Add a case here before changing either implementation.",
+  "cases": [
+    {
+      "name": "every non-zero score quotes something",
+      "criteria": [
+        { "criterion": 0, "score": 3, "evidence": ["I counted the queries first."] },
+        { "criterion": 1, "score": 1, "evidence": ["the database is slow"] }
+      ],
+      "expected": []
+    },
+    {
+      "name": "a zero with no evidence — the criterion was never addressed",
+      "criteria": [
+        { "criterion": 0, "score": 2, "evidence": ["I'd check the plan."] },
+        { "criterion": 1, "score": 0, "evidence": [] }
+      ],
+      "expected": []
+    },
+    {
+      "name": "a zero WITH evidence — addressed squarely and wrong, which is allowed and wanted",
+      "criteria": [
+        { "criterion": 0, "score": 0, "evidence": ["It's a connection lifecycle problem."] }
+      ],
+      "expected": []
+    },
+    {
+      "name": "a non-zero score with nothing quoted",
+      "criteria": [
+        { "criterion": 0, "score": 3, "evidence": ["I counted the queries."] },
+        { "criterion": 1, "score": 2, "evidence": [] }
+      ],
+      "expected": [1]
+    },
+    {
+      "name": "top marks with nothing quoted",
+      "criteria": [{ "criterion": 0, "score": 4, "evidence": [] }],
+      "expected": [0]
+    },
+    {
+      "name": "two offenders, reported in the rubric's order",
+      "criteria": [
+        { "criterion": 0, "score": 1, "evidence": [] },
+        { "criterion": 1, "score": 0, "evidence": [] },
+        { "criterion": 2, "score": 4, "evidence": [] }
+      ],
+      "expected": [0, 2]
+    }
+  ]
+}

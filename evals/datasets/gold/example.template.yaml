@@ -1,0 +1,29 @@
+# A worked example of the gold format. `*.template.yaml` is skipped by the loader: this is a shape to
+# copy, not data, and a score nobody stands behind must never reach an agreement figure.
+#
+# Copy it to `<role>/<rubric-slug>.yaml`, fill in your own id and date, and score the answer with the
+# rubric in front of you — see ../../README.md and content/seed/REVIEW.md.
+version: 1
+generated_by: human
+scored_by: replace-me
+scored_at: 2026-01-01
+role: frontend
+rubric: async-ordering-understanding
+question: js-async-ordering
+answers:
+  - kind: real-candidate
+    text: |
+      Replace this with what the candidate actually said, spoken shape and all — the restarts, the
+      "sorry, let me start again". Do not tidy it: the evaluator has to score what people say.
+    expected:
+      # One entry per criterion, in the rubric's order, dimensions copied exactly. The loader refuses
+      # the file if they do not match the rubric it names.
+      - dimension: Says why the first message never reaches the screen
+        score: 3
+        because: Why this rung and not the one below it.
+      - dimension: Explains what the browser is doing for those two seconds
+        score: 3
+        because: Why this rung and not the one below it.
+      - dimension: Gets the work out of the way
+        score: 2
+        because: Why this rung and not the one below it.

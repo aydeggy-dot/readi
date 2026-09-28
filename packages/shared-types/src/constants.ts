@@ -31,11 +31,20 @@ export const PROFILE_LIMITS = {
   technologyMaxLength: 40,
 } as const;
 
-/** Consent types (spec §4.1, CLAUDE.md "Data & privacy"). */
+/**
+ * Consent types (spec §4.1, CLAUDE.md "Data & privacy").
+ *
+ * `transcript_review` is the one a candidate can decline without losing anything: it lets a member
+ * of our team read what they typed, so that the model's scoring can be checked against a human's
+ * (spec §90, ADR-0017). Declining costs the candidate nothing and only shrinks the calibration
+ * sample. Every type is still **asked**, which is why adding one sends existing accounts back to
+ * the consent screen once (`ConsentsService.allDecided`) — an explicit yes or no is the point.
+ */
 export const CONSENT_TYPES = [
   "audio_processing",
   "recording_storage",
   "camera_coaching",
+  "transcript_review",
   "marketing",
 ] as const;
 
@@ -49,6 +58,7 @@ export const CONSENT_VERSIONS = {
   audio_processing: 1,
   recording_storage: 1,
   camera_coaching: 1,
+  transcript_review: 1,
   marketing: 1,
 } as const satisfies Record<(typeof CONSENT_TYPES)[number], number>;
 
@@ -375,3 +385,129 @@ export const INTERVIEW_RATE_LIMITS = {
   perHour: { window: 3_600, max: 6 },
   perDay: { window: 86_400, max: 20 },
 } as const;
+
+// -----------------------------------------------------------------------------------------------
+// Evaluation (spec §4.4, §6.2; M4).
+
+/**
+ * The rubric's ladder: five descriptors, `"0"`–`"4"`, so a criterion score is 0–4 inclusive
+ * (`CONTENT_LIMITS.levelDescriptorMaxLength` is the text of one rung). It is `max_score` on every
+ * stored criterion rather than an implicit constant, so a row stays readable if the ladder ever
+ * changes length — and a stored evaluation says what it was scored out of rather than what we
+ * currently think it was.
+ */
+export const MAX_CRITERION_SCORE = 4;
+
+/** How sure the evaluator is of its own reading, lowered in code when evidence will not verify. */
+export const EVALUATION_CONFIDENCE = ["low", "medium", "high"] as const;
+
+/**
+ * Calibration: a person scoring an answer the model has already scored (M4 phase 6, ADR-0017).
+ *
+ * Only what calibration adds. Everything a reviewer's score shares with the evaluator's — how long a
+ * quote may be, how long a reason may be, how many quotes a criterion carries — is read from
+ * `EVALUATION_LIMITS`, because the two are compared per criterion and a second copy of those numbers
+ * would let the comparison drift at the edges.
+ */
+export const CALIBRATION_LIMITS = {
+  /**
+   * The reviewer's note about the answer or the rubric. Longer than a criterion's reasoning because
+   * this is where "the rubric's rung 3 and rung 4 cannot be told apart" gets written, which is the
+   * most valuable thing a calibration round produces and the one thing no score can carry.
+   */
+  noteMaxLength: 2_000,
+  /**
+   * Answers per page in the queue and the flags list. Lower than the content lists' 20: a reviewer
+   * picks one answer and reads it for several minutes, so a long page is scrolling nobody does.
+   */
+  pageSize: { default: 10, max: 50 },
+  /**
+   * Below this many answers, a per-rubric or per-question agreement row is shown but marked as too
+   * thin to read. Three answers of one rubric is an anecdote, and an unmarked percentage over it
+   * invites exactly the confidence the gold set does not yet support.
+   */
+  thinEvidenceAnswers: 5,
+} as const;
+
+export const EVALUATION_LIMITS = {
+  /**
+   * Quotes per criterion. A non-zero score needs at least one (spec §6.2), and three is already
+   * more than a reader will check: the point of evidence is that the candidate can see what the
+   * score was based on, which one exact sentence does better than five approximate ones.
+   */
+  evidencePerCriterion: 3,
+  /**
+   * One quote. Long enough for a full spoken sentence, short enough that quoting is not
+   * paraphrasing — a "quote" the length of a paragraph is the model retelling the answer, and the
+   * verifier would pass it while telling the candidate nothing.
+   */
+  evidenceMaxLength: 400,
+  /** Why this score and not the one above it. One or two sentences (spec §6.2). */
+  reasoningMaxLength: 400,
+  /** What the answer did and did not contain, against the question's ideal points. */
+  pointsPerAnswer: 10,
+  pointMaxLength: 300,
+  strengthsPerAnswer: 4,
+  strengthMaxLength: 200,
+  /** One concrete, actionable tip (spec §6.2) — not a list wearing a singular name. */
+  tipMaxLength: 300,
+  /**
+   * Factual errors the candidate stated. Capped low on purpose: a model listing eight red flags on
+   * one answer is marking a style it dislikes, and the rubric is where substance is scored.
+   */
+  redFlagsPerAnswer: 4,
+  redFlagMaxLength: 300,
+  /** The report's own lists: "top 3 strengths, top 3 fixes" (spec §4.4), chosen in code. */
+  reportHighlights: 3,
+  /** Lessons recommended by topic. Often none: five of eight role × level pairs have no track. */
+  lessonsPerReport: 6,
+  /**
+   * Phrases in the stored evidence that read like an instruction rather than an answer (the owner's
+   * decision, 2026-09-27). Our own words, not the candidate's, so they are safe to store and safe to
+   * show an admin — and capped because a list of forty is a list nobody reads.
+   */
+  evidenceFlagsPerAnswer: 8,
+  evidenceFlagMaxLength: 60,
+  /**
+   * A topic the candidate is weak on: mean answer score below this, over their most recent scored
+   * answers. 60 is spec §7's own line for "practised" in the readiness coverage bucket, so a topic
+   * that does not count as practised is exactly a topic worth naming.
+   */
+  weakTopicScore: 60,
+  /** How many recent scored answers a weak-topic read looks at. */
+  weakTopicAnswers: 40,
+  /** `InterviewCandidateContext.weak_topics` is capped at ten; this must not exceed it. */
+  weakTopics: 10,
+} as const;
+
+/**
+ * The version of the scoring arithmetic, stored on every `answer_evaluations` and `session_reports`
+ * row (owner's decision, 2026-09-26).
+ *
+ * It versions **our code**, not the model: what the evaluator said is stored untouched in
+ * `criteria`, `overall_raw` is those scores weighted, and `overall` is `overall_raw` after the
+ * prompting adjustment below **and the not-assessed exclusion**. Bump it whenever any of those steps
+ * changes, so a report assembled under one rule is never silently compared with one assembled under
+ * another — and so `/evals` can say which arithmetic a number came out of.
+ *
+ * **2** (owner's decision, 2026-09-27): a criterion the interview never asked about, and which the
+ * candidate did not cover anyway, leaves the denominator entirely rather than scoring 0. Version 1
+ * charged for it, which cost the first paid run's fourth answer 30 points to the clock
+ * (`docs/progress/2026-09-27-m4-first-paid-evaluation.md` §1).
+ */
+export const SCORING_VERSION = 2;
+
+/**
+ * What a criterion contributes when the engine had to ask about it.
+ *
+ * A candidate who covers a criterion only after the interviewer probes for it has still covered it —
+ * so this is a discount, not a zero. 0.85 applies to **any non-zero score** rather than scaling with
+ * it, because "you lose a bit for needing the nudge" is a sentence a candidate can check against
+ * their own transcript, and a curve is not. The arithmetic is deliberately small: a 3 out of 4 on a
+ * criterion worth 40% of the answer loses about 4.5 points of it.
+ *
+ * It is keyed on what the **engine** did — which probes it asked — never on the coverage model's
+ * private verdict, and the weight is discounted in the numerator only: the denominator stays the
+ * rubric's full weight, so the adjustment cannot be gamed into raising a score.
+ */
+export const PROMPTED_CRITERION_WEIGHT = 0.85;
