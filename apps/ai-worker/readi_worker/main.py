@@ -206,7 +206,13 @@ def create_app(
     app.include_router(
         build_evaluation_router(
             EvaluationService(
-                Evaluator(llm, models.evaluator, settings.evaluation_llm_timeout_s), tracer
+                Evaluator(
+                    llm,
+                    models.evaluator,
+                    settings.evaluation_llm_timeout_s,
+                    strict_criteria=settings.evaluator_strict_criteria_schema,
+                ),
+                tracer,
             ),
             service_token,
         )

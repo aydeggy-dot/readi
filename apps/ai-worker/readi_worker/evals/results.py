@@ -118,6 +118,11 @@ class RunResult(BaseModel):
     #: rather than inferred, because the cost figures then span two runs and a reader has to be able
     #: to see that.
     retried_from: str | None = None
+    #: Every answer this run set out to score, as `rubric/kind`, written before the first call. A
+    #: run writes its file after **every** answer now, so a run stopped at a spending cap keeps what
+    #: it scored — and this is what lets `--retry-unscored` finish it rather than merely re-run its
+    #: failures. Empty on a file written before runs checkpointed.
+    planned: list[str] = Field(default_factory=list)
     cases: list[CaseResult] = Field(default_factory=list)
 
     @property
@@ -134,8 +139,17 @@ class RunResult(BaseModel):
         return dict(counts.most_common())
 
     def unscored(self) -> tuple[tuple[str, str], ...]:
-        """The `(rubric, kind)` of every answer this run has no score for — what a retry re-runs."""
-        return tuple((case.rubric, case.kind) for case in self.cases if case.error is not None)
+        """The `(rubric, kind)` of every answer this run has no score for — what a retry re-runs.
+
+        Two kinds, and the second exists only because a run can now be stopped: an answer that was
+        scored and failed, and an answer the run **never reached**. A file from a run killed at a
+        spending cap holds everything up to that point and nothing after it, so without `planned` a
+        retry could not know what was missing and the partial file could never be completed.
+        """
+        failed = [(case.rubric, case.kind) for case in self.cases if case.error is not None]
+        seen = {(case.rubric, case.kind) for case in self.cases}
+        never = [key for key in (_split(name) for name in self.planned) if key not in seen]
+        return tuple(failed + never)
 
     def scored(self) -> list[Scored]:
         return [
@@ -180,6 +194,12 @@ class Comparison(BaseModel):
     right_mean: float
 
 
+def _split(name: str) -> tuple[str, str]:
+    """`"rubric/kind"` back into its halves. Neither a kind nor a slug can contain a slash."""
+    rubric, _, kind = name.partition("/")
+    return rubric, kind
+
+
 def merge_retry(previous: RunResult, retry: RunResult, *, source: str) -> RunResult:
     """`previous`, with the answers it could not score replaced by `retry`'s, as one whole run.
 
@@ -192,7 +212,9 @@ def merge_retry(previous: RunResult, retry: RunResult, *, source: str) -> RunRes
     """
     fresh = {(case.rubric, case.kind): case for case in retry.cases}
     cases: list[CaseResult] = []
+    carried: set[tuple[str, str]] = set()
     for case in previous.cases:
+        carried.add((case.rubric, case.kind))
         replacement = fresh.get((case.rubric, case.kind))
         if replacement is None or case.error is None:
             cases.append(case)
@@ -213,7 +235,15 @@ def merge_retry(previous: RunResult, retry: RunResult, *, source: str) -> RunRes
                 }
             )
         )
-    return retry.model_copy(update={"cases": cases, "retried_from": source})
+    # Answers the previous run never reached at all — a run stopped at a spending cap has them in
+    # `planned` and nowhere else, and walking only its `cases` would quietly drop everything the
+    # retry had just paid for.
+    cases += [case for key, case in fresh.items() if key not in carried]
+    order = {name: index for index, name in enumerate(previous.planned)}
+    cases.sort(key=lambda case: order.get(f"{case.rubric}/{case.kind}", len(order)))
+    return retry.model_copy(
+        update={"cases": cases, "retried_from": source, "planned": previous.planned}
+    )
 
 
 def compare(left: RunResult, right: RunResult) -> Comparison:

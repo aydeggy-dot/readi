@@ -432,17 +432,44 @@ async def test_the_rejection_log_says_what_it_asked_for_and_what_came_back(
     assert "rejected: criteria (expected 0, 1; got 0)" in caplog.text
 
 
-def test_the_expected_criterion_numbers_are_printed_rather_than_inferred() -> None:
-    """v2 of the input prompt states the set, so the numbering needs no working out."""
-    _, user = render_prompts(request())
+def test_v3_is_written_and_deliberately_not_in_use() -> None:
+    """The v3 pair renders, says what it was written to say, and is **not** what runs.
+
+    Owner's decision, 2026-09-28. v3 was written against `rejected_criteria` and a paid check
+    measured no fall — 17 rejected readings over 39 calls against a matched v2 baseline of 42 over
+    112 — so every figure this milestone rests on was measured on v2 and v2 is what runs. The files
+    are kept, and kept **tested**, because the structural fix phase 7 owes will build on them: an
+    untested prompt file rots quietly, and the next person to reach for it would find out the hard
+    way.
+    """
+    assert PROMPT_VERSIONS == {"evaluate_answer": 2, "evaluate_answer_input": 1}
+
+    system = render("evaluate_answer", 3)
+    assert "One entry per criterion, and exactly the criteria you are given." in system
+    assert "start at 0, and they are not scores" in system
+    # And that a criterion the answer misses is a 0, never an omitted entry — the failure the rule
+    # would otherwise invite, and the one the retry run's shape points at.
+    assert "still gets an entry" in system
+
+    user = render(
+        "evaluate_answer_input",
+        2,
+        question_block="<question>q</question>",
+        context_block="",
+        criteria_block="0. First\n1. Second",
+        ideal_points_block="",
+        transcript_block="<answer>a</answer>",
+        criterion_numbers="0, 1",
+    )
     assert "exactly these numbers, one entry each: 0, 1" in user
     assert "not criteria" in user
 
 
-def test_the_system_prompt_states_the_rule_and_tells_the_two_numbers_apart() -> None:
-    system, _ = render_prompts(request())
-    assert "One entry per criterion, and exactly the criteria you are given." in system
-    assert "start at 0, and they are not scores" in system
-    # And that a criterion the answer misses is a 0, never an omitted entry — the failure mode the
-    # rule would otherwise invite.
-    assert "still gets an entry" in system
+def test_what_actually_runs_is_the_measured_pair() -> None:
+    """`render_prompts` renders v2 and v1, which is what every figure in M4 was measured on."""
+    system, user = render_prompts(request())
+    assert "One entry per criterion, and exactly the criteria you are given." not in system
+    assert "exactly these numbers, one entry each" not in user
+    # The plumbing for v3 stays: `render_prompts` passes `criterion_numbers` whatever version is in
+    # use, and v1 simply ignores it. Removing it would have to be put back to measure v3.
+    assert "Use the number each one is given here" in user

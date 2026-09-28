@@ -542,6 +542,14 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   `prompt_versions` and every eval run name the old one and must keep meaning what they meant. A
   version that has never left its own branch may still be revised within that milestone (M2.5 did
   this to `cv_parse.v2.md` twice), since nothing references it yet; say so in the commit message.
+- **A prompt that was written and measured and did not work stays in the tree, unused and tested**
+  (owner's decision, 2026-09-28). `evaluate_answer` **v3** and `evaluate_answer_input` **v2** were
+  written against `rejected_criteria` — the only recorded cause of a thrown-away opus reading — and a
+  paid check measured **no fall**: 17 rejected readings over 39 calls against a matched v2 baseline of
+  42 over 112. `PROMPT_VERSIONS` therefore still names v2 and v1, because every figure M4 rests on was
+  measured on those and running v3 would put an unmeasured evaluator in front of candidates for no
+  measured gain. The files are kept **and kept tested**: an untested prompt file rots quietly, and the
+  structural fix phase 7 owes builds on them.
 - **Which version is in use is one table per family, not one number.** The interview prompts are
   `PROMPT_VERSIONS` in `interview/service.py`, and a change bumps one entry. They shared a single
   `VERSION = 1` until 2026-09-26, which made "bump one prompt" impossible to express — and every

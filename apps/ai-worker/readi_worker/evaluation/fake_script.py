@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from readi_worker.evaluation.calls import AnswerReading, CriterionReading
 from readi_worker.evaluation.evidence import MIN_QUOTE_CHARS
+from readi_worker.evaluation.strict_schema import STRICT_POSITIONS, as_payload
 from readi_worker.llm.base import LLMClient, LLMResult
 
 #: `0. <dimension>` at the start of a line in the criteria block: the numbering the prompt hands
@@ -63,7 +64,8 @@ class FakeEvaluatorLLMClient:
         timeout_s: float | None = None,
         cache_system: bool = False,
     ) -> LLMResult[T]:
-        if output_type is not AnswerReading:
+        positions = getattr(output_type, STRICT_POSITIONS, None)
+        if output_type is not AnswerReading and positions is None:
             return await self._fallback.parse(
                 model=model,
                 system=system,
@@ -74,8 +76,11 @@ class FakeEvaluatorLLMClient:
                 cache_system=cache_system,
             )
         built = read(user)
+        # In strict mode the stand-in has to satisfy the same schema a real model would — which is
+        # the proof available without spending: if `read()` produced the wrong set of criteria, this
+        # would raise rather than quietly hand back a short reading.
         return LLMResult(
-            output=output_type.model_validate(built.model_dump()),
+            output=output_type.model_validate(as_payload(built, output_type)),
             provider=self.provider,
             model="fake",
             input_tokens=0,

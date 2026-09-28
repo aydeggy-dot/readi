@@ -11,6 +11,7 @@ word "because" appears. A green separation against that would be a coin toss wit
 """
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -308,3 +309,53 @@ def test_a_merged_retry_does_not_report_an_answer_it_scored_as_unscoreable(tmp_p
     # The cost of the attempt that failed is still there, which is the half that must stay additive.
     retried = next(case for case in merged.cases if case.usage.calls > 1)
     assert retried.usage.calls == 4
+
+
+# ---- What a stopped run keeps, and what a watched run says.
+
+
+def test_a_run_lets_the_workers_own_log_lines_through(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The gap that made the 2026-09-28 v3 check unreadable.
+
+    `_Checked.detail` carries `expected 0, 1, 2; got 1, 2, 3` into a `logger.info`, and a CLI
+    configures no logging — so the root logger sat at WARNING, the line went nowhere, and a run that
+    threw away 17 readings could not say what any of them was.
+    """
+    assert main(["--smoke", "--out", str(tmp_path / "smoke.json")]) == 0
+    capsys.readouterr()
+    logging.getLogger("readi_worker.evaluation.service").info(
+        "evaluation position 0 attempt 1 rejected: criteria (expected 0, 1; got 0)"
+    )
+    assert "expected 0, 1; got 0" in capsys.readouterr().err
+
+
+def test_a_run_writes_what_it_planned_and_keeps_what_it_scored(tmp_path: Path) -> None:
+    out = tmp_path / "run.json"
+    assert main(["--smoke", "--out", str(out)]) == 0
+    result = RunResult.read(out)
+    assert len(result.planned) == len(result.cases)
+    assert f"{result.cases[0].rubric}/{result.cases[0].kind}" in result.planned
+
+
+def test_a_stopped_run_is_finished_by_a_retry_rather_than_run_again(tmp_path: Path) -> None:
+    """A run killed at a spending cap keeps what it scored, and `--retry-unscored` completes it.
+
+    Simulated the way a kill leaves it: the answers up to the cut are on disk, the rest are in
+    `planned` and nowhere else. Without `planned` the partial file could never become a whole run —
+    which would make checkpointing worth half of what it is worth.
+    """
+    previous = tmp_path / "stopped.json"
+    assert main(["--smoke", "--out", str(previous)]) == 0
+    data = json.loads(previous.read_text())
+    whole = len(data["cases"])
+    data["cases"] = data["cases"][:3]
+    previous.write_text(json.dumps(data))
+
+    merged_path = tmp_path / "finished.json"
+    assert main(["--smoke", "--retry-unscored", str(previous), "--out", str(merged_path)]) == 0
+    merged = RunResult.read(merged_path)
+    assert len(merged.cases) == whole, "the retry scored the answers the stop never reached"
+    assert [case for case in merged.cases if case.error] == []
+    assert merged.retried_from == "stopped.json"

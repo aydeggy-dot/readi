@@ -57,15 +57,18 @@ PROMPT_VERSIONS: dict[str, int] = {
     # criterion, and the system prompt says what to do about it — write about it differently, score
     # it the same. A released version is never edited in place (CLAUDE.md "Prompts"), and v1 scored
     # the first paid run.
-    # v3 (2026-09-28): `rejected_criteria` was the **only** recorded cause of a thrown-away opus
-    # reading — 7 of the retry run's 17 calls, against 0 of sonnet's 60 — so the rule it breaks is
-    # stated as a rule, early, with what it costs; and the criterion number is told apart from the
-    # score rung, which the block prints directly under it in the same shape. v2 scored the
-    # 2026-09-28 paid runs and is named in their `prompt_versions`.
-    "evaluate_answer": 3,
-    # v2 (2026-09-28): the expected `criterion` values are now printed in the message rather than
-    # left to be inferred from the block, so nothing about the numbering has to be worked out.
-    "evaluate_answer_input": 2,
+    #
+    # **v3 exists and is deliberately not in use** (owner's decision, 2026-09-28). It was written
+    # against `rejected_criteria`, the only recorded cause of a thrown-away opus reading, and a paid
+    # check measured **no fall**: 17 rejected readings over 39 calls against a matched v2 baseline
+    # of 42 over 112, on the same five rubrics. Every figure this milestone rests on — the fairness
+    # band, both separations, the run-to-run stability — was measured on v2, so running v3 would put
+    # an unmeasured evaluator in front of candidates for no measured gain. The files stay for
+    # reference and for the structural fix phase 7 owes (`docs/progress/2026-09-28-m4-phase-5.md`).
+    "evaluate_answer": 2,
+    # v2 (2026-09-28): the expected `criterion` values printed rather than inferred. Not in use, for
+    # the same reason as `evaluate_answer` v3 — the two were written and measured together.
+    "evaluate_answer_input": 1,
 }
 
 #: What a criterion the interview never put to the candidate is labelled with, in the criteria
@@ -138,7 +141,12 @@ class EvaluationService:
         correction = ""
         failure: EvaluationFailure = "invalid_output"
         for attempt in range(MAX_ATTEMPTS):
-            reading = await self._evaluator.read(system=system, user=base + correction)
+            reading = await self._evaluator.read(
+                system=system,
+                user=base + correction,
+                # Used only in strict mode, where they become the schema's required keys.
+                positions=[criterion.position for criterion in criteria],
+            )
             if reading.output is None:
                 calls.append(reading.record)
                 failure = _failure_code(reading.failure)

@@ -7,6 +7,7 @@
     --model claude-sonnet-5       which model to score with
     --compare a.json b.json       two finished runs, read back and compared
     --retry-unscored run.json     only the answers that run could not score, merged back into it
+    --strict-criteria             the per-rubric schema that cannot omit or invent one (unmeasured)
 
 It does not load `Settings`, and that is deliberate: the server's configuration wants Redis and a
 service token, and a harness that could not run without a provisioned environment file could not run
@@ -24,6 +25,7 @@ answered — so `--concurrency 4` turns the first four reads into four writes an
 
 import argparse
 import asyncio
+import logging
 import os
 import random
 import sys
@@ -73,6 +75,7 @@ DEFAULT_SAMPLE = 12
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    _show_worker_logs()
     root = repo_root()
     if args.compare:
         return _compare(args.compare)
@@ -86,6 +89,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     except DatasetError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+
+
+def _show_worker_logs() -> None:
+    """Let the worker's own INFO lines reach stderr for the length of a run.
+
+    A CLI configures no logging, so the root logger sits at WARNING and drops everything the
+    evaluation service says about itself. That is how the 2026-09-28 v3 check measured 17 rejected
+    readings and could not say what any of them was: `_Checked.detail` carries
+    `expected 0, 1, 2; got 1, 2, 3` into a `logger.info` that nothing was listening to. Scoped to
+    `readi_worker`, so a library's debug chatter stays out of a watched run.
+    """
+    worker = logging.getLogger("readi_worker")
+    worker.setLevel(logging.INFO)
+    worker.propagate = False
+    # Once. `main()` is called several times in one process by the tests, and a handler added per
+    # call would print each line as many times as the harness had been run.
+    if any(getattr(handler, "_readi_evals", False) for handler in worker.handlers):
+        return
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    handler._readi_evals = True  # type: ignore[attr-defined]
+    worker.addHandler(handler)
 
 
 def load_thresholds(root: Path) -> AgreementThresholds:
@@ -239,7 +264,11 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
     if args.dry_run:
         return asyncio.run(_dry_run(cases, args))
 
-    result = asyncio.run(_score_all(cases, dataset, args))
+    # The path is settled before anything is scored, because the run writes to it as it goes.
+    out = (
+        Path(args.out) if args.out else root / "evals" / "results" / f"{_stamp()}-{args.model}.json"
+    )
+    result = asyncio.run(_score_all(cases, dataset, args, out))
     if previous is not None:
         result = merge_retry(previous, result, source=Path(args.retry_unscored).name)
         # The merged run holds answers this process never scored, so the rubrics it is measured
@@ -250,8 +279,6 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
             for case in dataset.cases
             if case.rubric.slug in merged
         }
-    default_out = root / "evals" / "results" / f"{_stamp()}-{args.model}.json"
-    out = Path(args.out) if args.out else default_out
     result.write(out)
     report = render_run(result, criteria)
     print(report)
@@ -279,15 +306,41 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
 
 
 async def _score_all(
-    cases: Sequence[Case], dataset: Dataset, args: argparse.Namespace
+    cases: Sequence[Case], dataset: Dataset, args: argparse.Namespace, out: Path
 ) -> RunResult:
-    """Every case, scored through the same service the worker serves. The only part that spends."""
+    """Every case, scored through the same service the worker serves. The only part that spends.
+
+    **It writes the file after every answer.** A run can be stopped — by a spending cap, by a
+    provider outage, by a laptop lid — and the first version wrote only at the end, so the v3 check
+    of 2026-09-28 was killed at its cap and left nothing but stderr: the rejection rate it had
+    measured had to be reconstructed from cache-read counts in the log, and the per-call causes were
+    gone. A partial file names what it set out to score, so `--retry-unscored` finishes it.
+    """
     client = _build_client(args.provider, args.timeout)
-    service = EvaluationService(Evaluator(client, args.model, args.timeout), NullTracer())
+    service = EvaluationService(
+        Evaluator(client, args.model, args.timeout, strict_criteria=args.strict_criteria),
+        NullTracer(),
+    )
     started = _now()
     prompt_versions: dict[str, int] = {}
     semaphore = asyncio.Semaphore(max(1, args.concurrency))
     done = 0
+    results: list[CaseResult] = []
+
+    def snapshot() -> RunResult:
+        return RunResult(
+            label=args.label or f"{args.model}-{dataset.name}",
+            dataset=dataset.name,
+            provenance=dataset.provenance,
+            provider=args.provider,
+            model=args.model,
+            started_at=started,
+            finished_at=_now(),
+            cache_system=CACHE_SYSTEM_PROMPT and args.provider != "fake",
+            prompt_versions=prompt_versions,
+            planned=[f"{case.rubric.slug}/{case.kind}" for case in cases],
+            cases=list(results),
+        )
 
     async def score(index: int, case: Case) -> CaseResult:
         nonlocal done
@@ -308,32 +361,22 @@ async def _score_all(
             prompt_versions.update(
                 {name: version.root for name, version in response.prompt_versions.items()}
             )
+            results.append(result)
+            # After every answer, not at the end: what has been paid for is on disk before the next
+            # call is made.
+            snapshot().write(out)
             return result
 
-    results: list[CaseResult] = []
     if args.concurrency == 1:
         for index, case in enumerate(cases):
-            results.append(await score(index, case))
+            await score(index, case)
     else:
-        results = list(
-            await asyncio.gather(*(score(index, case) for index, case in enumerate(cases)))
-        )
+        await asyncio.gather(*(score(index, case) for index, case in enumerate(cases)))
 
     if isinstance(client, AnthropicLLMClient):
         await client.aclose()
 
-    return RunResult(
-        label=args.label or f"{args.model}-{dataset.name}",
-        dataset=dataset.name,
-        provenance=dataset.provenance,
-        provider=args.provider,
-        model=args.model,
-        started_at=started,
-        finished_at=_now(),
-        cache_system=CACHE_SYSTEM_PROMPT and args.provider != "fake",
-        prompt_versions=prompt_versions,
-        cases=results,
-    )
+    return snapshot()
 
 
 def _case_result(case: Case, response: EvaluateAnswerResponse) -> CaseResult:
@@ -562,6 +605,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--smoke", action="store_true", help="the stand-in evaluator; no key needed"
+    )
+    parser.add_argument(
+        "--strict-criteria",
+        action="store_true",
+        help="per-rubric output schema: a criterion cannot be omitted or invented "
+        "(unmeasured — see evaluation/strict_schema.py)",
     )
     parser.add_argument("--out", default=None, help="where to write the result JSON")
     parser.add_argument("--report", default=None, help="also write the markdown report here")

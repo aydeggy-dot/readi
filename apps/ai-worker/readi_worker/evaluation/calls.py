@@ -11,8 +11,9 @@ before it commits to a number, which is the cheapest reasoning there is and the 
 """
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -102,10 +103,21 @@ class Reading:
 class Evaluator:
     """One model call, made and paid for."""
 
-    def __init__(self, llm: LLMClient, model: str, timeout_s: float = DEFAULT_TIMEOUT_S) -> None:
+    def __init__(
+        self,
+        llm: LLMClient,
+        model: str,
+        timeout_s: float = DEFAULT_TIMEOUT_S,
+        *,
+        strict_criteria: bool = False,
+    ) -> None:
         self._llm = llm
         self._model = model
         self._timeout_s = timeout_s
+        #: Ask for a per-rubric output schema that cannot omit or invent a criterion
+        #: (`strict_schema.py`). **Off by default**: everything M4 measured was measured without it,
+        #: and it has never been sent to a real provider.
+        self._strict_criteria = strict_criteria
 
     @property
     def provider(self) -> str:
@@ -115,8 +127,21 @@ class Evaluator:
     def model(self) -> str:
         return self._model
 
-    async def read(self, *, system: str, user: str) -> Reading:
-        """Ask for one reading. Never raises: a provider failure is a `Reading` with no output."""
+    async def read(self, *, system: str, user: str, positions: Sequence[int] = ()) -> Reading:
+        """Ask for one reading. Never raises: a provider failure is a `Reading` with no output.
+
+        `positions` are the rubric's criterion positions, and are used only in strict mode — where
+        they become the schema's required keys, so the wrong set of criteria is invalid output
+        rather than a gate rejection after the fact.
+        """
+        # Imported here, not at the top: `strict_schema` builds its models out of `AnswerReading`
+        # and `CriterionReading`, so a module-level import would be a cycle. It is one dictionary
+        # lookup on a cached function, on a path that is about to make a network call.
+        from readi_worker.evaluation.strict_schema import as_answer_reading, strict_reading_model
+
+        output_type: type[BaseModel] = AnswerReading
+        if self._strict_criteria and positions:
+            output_type = strict_reading_model(tuple(positions))
         try:
             # Also the name of the generation in Langfuse, so an evaluator call is findable beside
             # the interview turns of the same session (ADR-0008).
@@ -125,17 +150,20 @@ class Evaluator:
                     model=self._model,
                     system=system,
                     user=user,
-                    output_type=AnswerReading,
+                    output_type=output_type,
                     max_tokens=MAX_OUTPUT_TOKENS,
                     timeout_s=self._timeout_s,
                     cache_system=CACHE_SYSTEM_PROMPT,
                 )
         except LLMError as exc:
             return Reading(output=None, record=_error_record(exc), failure=exc.code)
-        return Reading(output=result.output, record=_record(result), failure=result.failure)
+        # Strict mode answers in its own shape; every gate below takes an `AnswerReading` and
+        # none needs to know which schema asked for it.
+        output = None if result.output is None else as_answer_reading(result.output)
+        return Reading(output=output, record=_record(result), failure=result.failure)
 
 
-def _record(result: LLMResult[AnswerReading], *, rejected_code: str | None = None) -> AiCallRecord:
+def _record(result: LLMResult[Any], *, rejected_code: str | None = None) -> AiCallRecord:
     """One call, for `ai_call_log` (ADR-0007).
 
     `rejected_code` is for output the model produced and code then threw away — invalid against the

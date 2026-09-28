@@ -2815,6 +2815,13 @@ unconfirmed rather than explained.
 
 ### Phase 7 — measurement, one paid run, the handover
 
+- [ ] **The full before/after visual capture, across every signed-in page** (owner's decision,
+      2026-09-28). `E2E_SCREENSHOTS=before pnpm test:e2e visual`, then again after: M4 phase 6 changed
+      `AppHeader` so the bar wraps when crowded, and that is shared chrome on every signed-in screen.
+      Add the four calibration screens to the capture while doing it — no test would have caught
+      either header regression, and both were found by looking
+
+
 - [ ] **A worker 422 is not a transport failure**: `AiWorkerClient.post` turns every non-2xx into
       `AiWorkerUnavailableError`, so a request the worker will _never_ accept is retried three times
       with backoff and stored as `provider_error`. Found on 2026-09-27, when `EvaluationTurn.text`
@@ -3021,18 +3028,43 @@ falls, and the sizing for it is at the end of this section.
       a fall. **Clearer instructions are not the fix.** The lead v3 never touched: the rejections
       concentrate in `weak`, `fluent-but-wrong` and `correct-poorly-explained`, where a rubric's lower
       descriptors do the work — 11 of the 11 retried answers were those three kinds
-- [ ] **Decide what to do with v3, because it is in use.** `PROMPT_VERSIONS` says `evaluate_answer: 3`,
+- [x] **v3 is written, tested and not in use** (owner's decision, 2026-09-28). `PROMPT_VERSIONS` names
+      `evaluate_answer` v2 and `evaluate_answer_input` v1, because every figure M4 rests on was
+      measured on those; the v3 files stay and stay under test, because an untested prompt file rots
+      and the structural attempt builds on them. **One piece is code, not a prompt, and is still
+      live**: the retry correction names the whole expected set of criterion numbers. Not reverted —
+      the decision named `PROMPT_VERSIONS` — and it is one line if it should go too
+- [x] **The lead: it is not a counting failure.** Every one of the eleven retried answers was a
+      `weak`, a `fluent-but-wrong` or a `correct-poorly-explained` — the three kinds where a rubric's
+      *lower* descriptors do the work, and never a `strong` or a `nigerian-english`. That is a model
+      **leaving out the criteria an answer did not reach** rather than scoring them 0 with no
+      evidence (spec §6.2), which is a thing wording has now failed to prevent twice
+- [x] **The structural fix is built and off**: `evaluation/strict_schema.py` builds the reading model
+      per request from that rubric's positions — `criteria` an object keyed by position, every key
+      `required`, `additionalProperties: false`. Omission and invention are invalid output rather
+      than a gate rejection after the fact. Proved on the stand-in end to end
+      (`--smoke --strict-criteria`); **never sent to a real provider**
+- [x] **`prefixItems` would have arrived as prose.** The natural shape — a fixed-length tuple with a
+      `const` per entry — is folded by `anthropic.transform_schema` into the schema's *description*,
+      so the provider would have received an unconstrained array and a sentence about tuples. A
+      guarantee that looked real and enforced nothing. `required` and `additionalProperties` survive,
+      which is why the shape is an object; both halves are pinned in
+      `test_evaluation_strict_schema.py` so nobody improves it back
+- [ ] **Phase 7 owes it a measured run**, and the first thing that run must check is that the provider
+      **accepts** the schema at all — a 400 on the first call answers it for a fraction of a cent.
+      Only then is it worth measuring the rejection rate against the 38% v2 baseline
+- [ ] **Superseded — what to do with v3 while it was in use.** `PROMPT_VERSIONS` says `evaluate_answer: 3`,
       so the worker renders it now, for no measured gain and a slightly worse price (the prefix grew from
       2,966 to 3,291 tokens, read at 0.1x on every call). It is better written than v2 and states a true
       rule; it simply does not do what it was written for. Either revert the two entries to v2 and keep
       the files for a further iteration, or keep v3 and stop claiming it as the fix
-- [ ] **A killed run loses everything.** The result file is written after the last answer, so stopping at
-      a cap left only stderr — the 44% had to be derived from cache-read counts, and the per-call causes
-      were lost with it. Checkpoint per answer, or write what exists on SIGTERM
-- [ ] **The rejection detail never printed.** `_Checked.detail` carries `expected 0, 1, 2; got 1, 2, 3`
-      into a `logger.info`, and `run.py` configures no logging, so the root logger drops INFO at
-      WARNING. Two lines in the harness (`logging.basicConfig` for `readi_worker`) and the next run
-      diagnoses itself; without them the field is dead weight in exactly the case it was built for
+- [x] **A killed run no longer loses everything.** The file is written **after every answer**, and the
+      run records what it `planned` to score — so `--retry-unscored` finishes a stopped run rather
+      than merely re-running its failures. `merge_retry` needed the same lesson: walking only the
+      previous run's `cases` silently dropped every answer the stop never reached, which a test caught
+- [x] **The rejection detail prints now.** The harness lets `readi_worker`'s own INFO through for the
+      length of a run, so `expected 0, 1, 2; got 1, 2, 3` reaches the log it was written for. That is
+      why the causes of those 17 rejections are unknown and the next run's will not be
 - [ ] **Superseded — what the check run was sized as.** `--sample 6 --seed 7` = **30 answers over
       6 rubrics**, and the sample matters: it holds `transaction-boundary-reasoning` (14 rejections
       over 41 calls, the worst in the corpus), `scaling-out-reasoning` (10/24), `incident-ownership`

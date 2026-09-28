@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     #: ended — but the report is promised within 60 s of that (spec §8) and the API scores several
     #: answers at once, so a call slower than this has already lost the race and is better retried.
     evaluation_llm_timeout_s: float = Field(default=60.0, gt=0, le=600)
+    #: Ask the evaluator for a **per-rubric** output schema in which a criterion cannot be left out
+    #: or invented (`evaluation/strict_schema.py`). **Off**, and it stays off until a paid run has
+    #: measured it: every figure M4 rests on — the fairness band, both separations, the run-to-run
+    #: stability — was measured without it, and turning it on changes the evaluator exactly as
+    #: `evaluate_answer` v3 would have. It has never been sent to a real provider, so the first
+    #: thing a run with it on must check is that the provider accepts the schema at all.
+    evaluator_strict_criteria_schema: bool = False
 
     # The interview engine (M3). Redis caches the session bundle and the live engine state so the
     # API need not resend the pinned questions on every turn; the snapshot the API sends is always
