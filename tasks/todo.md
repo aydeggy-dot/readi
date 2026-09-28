@@ -3208,6 +3208,44 @@ falls, and the sizing for it is at the end of this section.
       "near zero, like sonnet" or "unchanged" would be. If it comes back ambiguous the next step is
       the full 60, not a bigger guess
 
+### Phase 7 — measurement, the visual review, the handover · **done 2026-09-28**
+
+Handover: `docs/progress/2026-09-28-m4-phase-7.md`.
+
+- [x] **`pnpm --filter @readi/api interviews:pace`** — pure module + thin CLI, the sample size on its
+      face. On the dev data: 4 real sessions, 20 answers, opening answers median 74 s / p90 198 s,
+      follow-up answers median 61 s / p90 224 s. **`SECONDS_FOR_A_FOLLOW_UP` is 45 s and 5 of 8
+      follow-up answers ran past it** — the reserve that decides whether to _ask_ a probe, so the
+      engine starts probes the clock cannot finish. n=8, so a shape and not a number; **a decision for
+      the owner on more data**. Median pace gives 4 questions per 15 minutes, exactly `INTERVIEW_PLANS`
+- [x] **Running it found three defects in it**, one of them impossible-on-its-face (6 questions
+      answered against a budget of 4, because the candidate's own questions were counted as answers).
+      Also: stand-in-driven sessions were being averaged into a human-pace figure, and a session with
+      no answers made a pace out of latency alone. All three have tests
+- [x] **The e2e interview → report chain** already existed from phase 4 and is green: setup, answers,
+      the follow-up cap, the read-ahead leak, resume, Redis loss, ending early, the scoring poll, and
+      the report with its answer-key boundary asserted on the rendered page
+- [x] **The visual review as a real before/after**: 156 shared screens at `95c8386` and at the tip.
+      **Nothing moved** — every full-page height identical except the three interview screens, whose
+      content is their own transcript. `/admin` and the CMS at 360px changed as intended (the header
+      wraps to a second row, every destination visible); candidate pages under 0.5%
+- [x] **The four calibration screens joined the capture** (43 screens, 172 shots), needing a
+      `reviewer` state and a sixth account that is never photographed — the answer's author, who must
+      be somebody else and must be staff that granted transcript review
+- [x] **`measure()` fixed** (the M3 leftover): it timed our own `page.goto` call rather than the page
+      load, and on a prefetched route timed the swap. Now cold, cache dropped, and read from
+      `PerformanceNavigationTiming` after the load event; a cached navigation fails instead of passing
+- [x] **A latent flake in `interview.spec.ts`**: `getByText` matches substrings and every probe
+      contains its question's identifying fragment
+- [x] Spec §4.4 and §6.2 amended in place; `figure-10` corrected (it called M4 "not yet written" and
+      the evaluator "low temperature", which current Claude models reject); CLAUDE.md §4 and §5
+- [ ] **Not fixed, deliberately: the before/after workflow trips over `apps/web/.next/types`.**
+      `tsconfig.json` includes the **dev** build's generated route validator, so the e2e build
+      type-checks against it and a capture on another commit fails naming routes that do not exist
+      there. `rm -rf apps/web/.next/types apps/web/.next/dev/types` unblocks it and the directory is a
+      cache. Every fix creates the same failure in the other direction or is a bigger change than the
+      trap deserves; it is written down in the visual README instead
+
 ### The recommendation decision 7 asked for (2026-09-28)
 
 - [x] **Agreed by the owner, 2026-09-28: `claude-opus-5` for the MVP and the pilot, decided again on

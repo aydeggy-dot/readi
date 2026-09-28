@@ -1006,3 +1006,44 @@ to do (CLAUDE.md §7.9).
 and I copied its shape while filling in `<your key>`. A placeholder in documentation stops being a
 placeholder the first time somebody completes it — the same failure as the `you@example.com` in the
 `admin:grant` example, which was run verbatim and left a real admin account behind.
+
+## One run per cell cannot tell a change from a wobble (2026-09-28)
+
+The strict-criteria schema was measured on six rubrics, then on six more, and the second set came
+back 9 points below v2 on agreement with a fairness drift in the wrong direction. It was reported as
+a real finding with a caveat — and the caveat was the only thing that turned out to matter: there
+was **one** strict run of those rubrics, so nothing separated "the schema reads these differently"
+from "this run read these differently". The repeat came back _better_ than v2, and the drift
+reverted to v2's figure to the decimal.
+
+**The rule:** before reporting a difference between two configurations, measure the noise floor of
+one of them — two runs of the same setup on the same sample. Without it, a difference and a wobble
+are the same number. It is cheap here (~$1) and the harness now has `--rubric` so a repeat costs
+exactly the cells in question.
+
+**What was right anyway:** saying it out loud with the cost of settling it attached, rather than
+either burying it or blocking on it. The owner asked for the repeat in one line.
+
+## A report is not finished until it has been run on real data (2026-09-28)
+
+`interviews:pace` passed its unit tests and then, on the first real database, said a 15-minute
+session had answered **6 questions against a budget of 4**. The candidate's own questions at the end
+(spec §4.3) are candidate turns too, and counting them as answers broke the arithmetic visibly —
+while also dragging the median answer time down, which nothing would have shown. Two more of the same
+kind followed: sessions the stand-in drove were being averaged into a human-pace figure, and a
+session with no answers produced a pace out of the interviewer's latency alone, offering several
+hundred questions per 45 minutes.
+
+**The rule:** a measurement tool's unit tests prove the arithmetic, not the meaning of the rows. Run
+it on real data before believing it, and look for a number that is _impossible_ rather than merely
+surprising — 6 of 4 is what exposed all three.
+
+## `getByText` matches substrings, so a shared prefix is a strict-mode failure waiting (2026-09-28)
+
+`interview.spec.ts` asserted `Question 0 for <mark>` on the completion screen. Every probe of that
+question reads "Probe one on question 0 for <mark>…", so the locator matched three elements and
+failed strict mode — but only once question selection happened to probe question 0, which is why it
+had passed for weeks.
+
+**The rule:** assert on text that cannot be a prefix of its neighbours — the whole prompt, not its
+identifying fragment — whenever fixtures are generated from one template.

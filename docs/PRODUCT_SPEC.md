@@ -84,7 +84,12 @@ and delivery coaching, at local prices.
 
 ### 4.4 Evaluation & feedback
 - [MVP] Per-answer evaluation (schema in §6.2) against rubric; evidence quotes required.
-- [MVP] Session report: overall score, per-dimension scores, top 3 strengths, top 3 fixes, per-question breakdown with "what a strong answer covers", links to relevant lessons.
+- [MVP] Session report: overall score, aggregates **by topic and by question type**, top 3 strengths, top 3 fixes, per-question breakdown with "what a strong answer covers", links to relevant lessons.
+  - *Amended M4 (2026-09-27), from "per-dimension scores".* A rubric's dimensions are free prose
+    written for one question, so they do not aggregate across a session; per-criterion scores stay
+    inside each question's breakdown. The report is assembled from the per-answer JSON **in code**
+    (`evaluations/report-assembly.ts`), never by a second free-form model call, so the strengths and
+    fixes are reproducible and cannot flatter.
 - [MVP] Speech delivery metrics from timestamped transcript (voice mode): words per minute, filler-word rate, long pauses (> 3 s), average answer duration, rambling flag (answer > 2.5 min for a non-design question).
 - [MVP] Readiness score per role (see §7).
 - [MVP] Internal calibration tool: admins/experts blind-score sampled answers; dashboard of AI-vs-human agreement.
@@ -192,6 +197,22 @@ and delivery coaching, at local prices.
 }
 ```
 Rules: score 0 allowed with empty evidence only if the criterion was not addressed at all; otherwise evidence is mandatory. Overall = weighted average of criteria scaled to 0–100 (computed in code).
+
+*Amended M4 (owner's decisions, 2026-09-26 and 2026-09-27; `SCORING_VERSION` 2.)* The weighted
+average is kept as `overall_raw`, and the number the candidate reads carries two adjustments, both
+keyed on an **engine fact** the candidate can check against their own transcript and never on a
+model's private verdict:
+
+- **A criterion the engine had to ask about contributes at 0.85 of its weight** — applied to any
+  non-zero score and to the numerator only, so it can never raise a score.
+- **A criterion the interview never asked about is not assessed and leaves the denominator**, when
+  the engine asked none of its probes *and* the model scored it 0 with no evidence (which this
+  section already defines as "not addressed at all"). It never excludes the whole rubric. The report
+  must name those criteria (`not_assessed`): a score assembled over two of three criteria that does
+  not say which one is missing cannot be checked against the transcript.
+
+`/evals` compares a human to the model's per-criterion reading, so it uses `criteria` and not either
+adjusted figure — those version **our arithmetic**, not the model.
 
 ## 7. Readiness score (formula v1 — implement in code, unit-test, version it)
 

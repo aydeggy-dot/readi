@@ -52,6 +52,29 @@ Add a row to `SCREENS` with its path and the state it needs (`null` for a signed
 needs an account none of the existing states is in, add another rather than advancing one of
 them — later captures depend on the others staying where they are.
 
+## Switching commits breaks the build until you clear `.next/types`
+
+`apps/web/tsconfig.json` includes `.next/types/**/*.ts` — the **dev** build's generated route
+validator — and `next build` type-checks against it even when it is writing to `.next-e2e`. So the
+two-capture workflow above fails on the second run with errors naming routes that do not exist at
+that commit:
+
+```
+.next/types/validator.ts(53,39): error TS2307: Cannot find module
+  '../../src/app/(admin)/admin/calibration/[id]/page.js'
+```
+
+They look like missing source files and are not. Clear the generated types and run again — the
+directory is a cache and `next dev` rebuilds it:
+
+```bash
+rm -rf apps/web/.next/types apps/web/.next/dev/types
+```
+
+Left as a documented trap rather than fixed: adding `.next-e2e/types` to the include produces the
+same failure in the other direction, and the alternatives (a second tsconfig, or dropping the
+generated types from the type-check) are each a bigger change than this deserves.
+
 ## What it cannot reach
 
 `error.tsx`, `global-error.tsx` and the `loading.tsx` files render only during a failure or a
