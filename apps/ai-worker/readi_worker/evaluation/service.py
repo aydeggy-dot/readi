@@ -57,8 +57,15 @@ PROMPT_VERSIONS: dict[str, int] = {
     # criterion, and the system prompt says what to do about it — write about it differently, score
     # it the same. A released version is never edited in place (CLAUDE.md "Prompts"), and v1 scored
     # the first paid run.
-    "evaluate_answer": 2,
-    "evaluate_answer_input": 1,
+    # v3 (2026-09-28): `rejected_criteria` was the **only** recorded cause of a thrown-away opus
+    # reading — 7 of the retry run's 17 calls, against 0 of sonnet's 60 — so the rule it breaks is
+    # stated as a rule, early, with what it costs; and the criterion number is told apart from the
+    # score rung, which the block prints directly under it in the same shape. v2 scored the
+    # 2026-09-28 paid runs and is named in their `prompt_versions`.
+    "evaluate_answer": 3,
+    # v2 (2026-09-28): the expected `criterion` values are now printed in the message rather than
+    # left to be inferred from the block, so nothing about the numbering has to be worked out.
+    "evaluate_answer_input": 2,
 }
 
 #: What a criterion the interview never put to the candidate is labelled with, in the criteria
@@ -143,10 +150,11 @@ class EvaluationService:
             if checked.code is not None:
                 calls.append(rejected(reading.record, f"rejected_{checked.code}"))
                 logger.info(
-                    "evaluation position %d attempt %d rejected: %s",
+                    "evaluation position %d attempt %d rejected: %s%s",
                     request.position,
                     attempt + 1,
                     checked.code,
+                    f" ({checked.detail})" if checked.detail else "",
                 )
                 correction = _correction(checked.problems)
                 failure = "invalid_output"
@@ -209,6 +217,11 @@ def render_prompts(request: EvaluateAnswerRequest) -> tuple[str, str]:
             as_data(request.question.context.root, "context") if request.question.context else ""
         ),
         criteria_block=criteria_block(request.question.rubric.criteria),
+        # The set the reading is checked against, printed rather than inferred. It is the same list
+        # `_check` builds, so the instruction and the gate cannot disagree about what was asked for.
+        criterion_numbers=", ".join(
+            str(criterion.position) for criterion in request.question.rubric.criteria
+        ),
         ideal_points_block=(
             "\n".join(f"- {point.root}" for point in request.question.ideal_points)
             if request.question.ideal_points
@@ -282,11 +295,17 @@ class _Checked:
         problems: list[str],
         criteria: list[CriterionScore],
         dropped: int,
+        detail: str = "",
     ) -> None:
         self.code = code
         self.problems = problems
         self.criteria = criteria
         self.dropped = dropped
+        #: Numbers only, for the log line — which criteria were asked for and which came back. The
+        #: 2026-09-28 runs recorded that `rejected_criteria` fired and not what it saw, which left
+        #: the shape of the mistake a guess. Positions are integers, so this carries no candidate
+        #: words and no rubric prose (CLAUDE.md "Data & privacy").
+        self.detail = detail
 
 
 def _check(reading: AnswerReading, criteria: list[EvaluationCriterion], said: str) -> _Checked:
@@ -310,7 +329,19 @@ def _check(reading: AnswerReading, criteria: list[EvaluationCriterion], said: st
                 + ", ".join(f"criterion {position}" for position in invented)
                 + " in this rubric"
             )
-        return _Checked(code="criteria", problems=problems, criteria=[], dropped=0)
+        # The whole expected set, not only what was wrong with the last attempt. A reading numbered
+        # 1,2,3 against a rubric numbered 0,1,2 is both a missing criterion and an invented one, and
+        # being told each separately leaves the model to work out the off-by-one that caused both.
+        wanted = ", ".join(str(position) for position in expected)
+        got = ", ".join(str(position) for position in sorted(by_position)) or "none"
+        problems.append(f"return exactly these criterion numbers, one entry each: {wanted}")
+        return _Checked(
+            code="criteria",
+            problems=problems,
+            criteria=[],
+            dropped=0,
+            detail=f"expected {wanted}; got {got}",
+        )
 
     # Gate 2: every quote is the candidate's. Unverifiable ones go; the rule then decides whether
     # what is left can stand.

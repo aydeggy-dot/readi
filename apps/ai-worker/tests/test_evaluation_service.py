@@ -5,12 +5,17 @@ guarantee the report makes actually lives. A real model is exercised by the paid
 `/evals`; neither belongs in a unit test.
 """
 
+import logging
+
+import pytest
+
 from readi_worker.evaluation.calls import CriterionReading
 from readi_worker.evaluation.service import (
     NOT_ASKED_LABEL,
     PROMPT_VERSIONS,
     candidate_words,
     criteria_block,
+    render_prompts,
     transcript_block,
 )
 from readi_worker.llm.fake import FakeLLMError
@@ -380,3 +385,64 @@ async def test_a_criterion_with_a_single_rung_is_still_numbered_from_its_positio
     assert "2. Two" in llm.calls[0]["user"]
     assert response.evaluation is not None
     assert [c.criterion for c in response.evaluation.criteria] == [2, 5]
+
+
+# ---- v3: the one recorded cause of a thrown-away opus reading (2026-09-28).
+
+
+async def test_a_reading_numbered_from_one_is_told_the_whole_expected_set() -> None:
+    """The off-by-one that `rejected_criteria` cannot distinguish from two unrelated mistakes.
+
+    A rubric numbered 0,1 read as 1,2 is *both* a missing criterion and an invented one. Told only
+    that, a model has to infer the off-by-one that caused both; told the expected set, it has the
+    fact. This is the mechanism the v3 prompts and this correction exist to shorten — proving that
+    the retry now carries the information, which is not the same as proving the rate falls.
+    """
+    shifted = reading(
+        criteria=[
+            CriterionReading(
+                criterion=entry.criterion + 1,
+                reasoning=entry.reasoning,
+                evidence=entry.evidence,
+                score=entry.score,
+            )
+            for entry in reading().criteria
+        ]
+    )
+    evaluator, llm = service([shifted, reading()])
+    response = await evaluator.evaluate(request())
+
+    assert response.error is None
+    assert len(llm.calls) == 2
+    retry = llm.calls[1]["user"]
+    assert "left out" in retry
+    assert "criterion 0" in retry
+    assert "there is no criterion 2" in retry
+    assert "return exactly these criterion numbers, one entry each: 0, 1" in retry
+    assert code_of(response.ai_calls[0]) == "rejected_criteria"
+
+
+async def test_the_rejection_log_says_what_it_asked_for_and_what_came_back(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Numbers only: the 2026-09-28 runs recorded that the gate fired and not what it saw."""
+    evaluator, _ = service([reading(criteria=[reading().criteria[0]]), reading()])
+    with caplog.at_level(logging.INFO):
+        await evaluator.evaluate(request())
+    assert "rejected: criteria (expected 0, 1; got 0)" in caplog.text
+
+
+def test_the_expected_criterion_numbers_are_printed_rather_than_inferred() -> None:
+    """v2 of the input prompt states the set, so the numbering needs no working out."""
+    _, user = render_prompts(request())
+    assert "exactly these numbers, one entry each: 0, 1" in user
+    assert "not criteria" in user
+
+
+def test_the_system_prompt_states_the_rule_and_tells_the_two_numbers_apart() -> None:
+    system, _ = render_prompts(request())
+    assert "One entry per criterion, and exactly the criteria you are given." in system
+    assert "start at 0, and they are not scores" in system
+    # And that a criterion the answer misses is a 0, never an omitted entry — the failure mode the
+    # rule would otherwise invite.
+    assert "still gets an entry" in system
