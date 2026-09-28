@@ -35,6 +35,16 @@ that cost nothing.
 The band is **one-sided**. The idiom scoring _higher_ than `strong` is noise in the direction nobody
 is harmed by: reported, never failed on.
 
+**A pass here is not proof, and must not be quoted as one.** These answers are AI-written — a model's
+idea of the idiom, scored by the same family of model — so a pass says the evaluator is fair to _that_.
+It is the strongest thing measurable before the pilot, and it is not the claim the product makes. Two
+ways it passes and is still wrong: the drafter may have written a milder idiom than candidates actually
+use, leaving the descriptors that would punish real speech untested; and a model may read its own
+register more charitably than a person's, which no sampling from this set can detect. The fix is real
+answers from consented pilot candidates in `datasets/gold/` — the format, the loader and
+`--dataset gold` are ready, and the answers are what is missing. Until then, quote the figure as "fair
+to model-written Nigerian English".
+
 ### 2. The two separations
 
 `fluent-but-wrong` must land clearly below `strong` — otherwise the evaluator is scoring fluency —

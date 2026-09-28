@@ -2862,6 +2862,25 @@ go-ahead. Full write-up: `docs/progress/2026-09-28-m4-phase-5.md`.
       from fairness, then the separations, then agreement, then cost — in that order, because product
       principle 1 puts the quality of the feedback above what it costs
 
+### The fairness result is not proof until real candidates have been scored (2026-09-28)
+
+- [ ] **Validate the fairness band against real Nigerian-English answers from pilot candidates, with
+      consent, before treating the evaluator as proven.** The `nigerian-english` answers in
+      `evals/datasets/synthetic` are **AI-written** — a model's idea of the idiom, written by the same
+      family of model that then scores them. A passing band therefore shows the evaluator is fair to
+      _that_, and it is the strongest thing measurable today, but it is **not** the claim the product
+      makes (CLAUDE.md product principle 3). The two ways it could pass and still be wrong: - the drafter wrote an idiom milder or more literary than the one candidates actually use, so the
+      answers never test the descriptors that would punish real speech; - the same model reads its own register more charitably than a human's, which no amount of
+      sampling from the synthetic set can detect.
+- [ ] **What it needs, and what it is behind.** Real answers mean `transcript_review` consent
+      (ADR-0017), a signed `reviewer-agreement.md`, and a route into `evals/datasets/gold/` — so this
+      sits behind **phase 6 and the pilot**, not behind phase 5. The format and loader are already
+      there (`evals/datasets/gold/README.md`, `*.template.yaml` skipped), and the harness runs against
+      `--dataset gold` unchanged: it is the answers that are missing, not the machinery
+- [ ] **Until then, say so where the number is quoted.** `evals/README.md` and the phase 5 handover both
+      carry the caveat; anything that repeats the fairness figure to anyone — a handover, a pitch, an
+      investor page — repeats it as "fair to model-written Nigerian English", never as "fair"
+
 ### Carried into phase 7 from here
 
 - [x] **The intermittent API failure is caught and named** (`docs/progress/2026-09-28-flaky-test-hunt.md`,
