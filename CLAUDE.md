@@ -105,6 +105,7 @@ pnpm --filter @readi/api admin:grant -- --email <your-email> --role admin   # gr
 pnpm --filter @readi/api admin:cancel-deletion -- --email <their-email>      # keep an account during its 7-day grace period (audited, ADR-0011)
 pnpm --filter @readi/api content:reembed -- --dry-run   # re-embed published questions after an embedding provider/model change (docs/runbooks/embeddings-switchover.md)
 pnpm --filter @readi/api content:review-doc   # regenerate content/seed/review/*.md for the expert reviewers
+pnpm --filter @readi/api interviews:pace   # what candidates really take to answer, against the engine's reserves; reads only, sample size on its face (`interviews/pace.ts`)
 node .claude/skills/question-bank/scripts/check-bank.mjs   # offline checks on the question banks: house style, slugs, blueprint targets, one ask per opening
 node scripts/sse-rewrite-proof.mjs   # does an event stream survive proxy.ts and the Next rewrite under `next start`? (ADR-0016)
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally

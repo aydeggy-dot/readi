@@ -18,6 +18,7 @@
     "content:review-doc": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/content-review-doc.js",
     "storage:setup": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/storage-setup.js",
     "content:reembed": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/content-reembed.js",
+    "interviews:pace": "nest build -p tsconfig.cli.json && node dist-cli/src/cli/interviews-pace.js",
     "build:standalone": "nest build -p tsconfig.cli.json",
     "e2e:prepare": "node dist-cli/src/cli/e2e-prepare.js"
   },
