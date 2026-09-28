@@ -180,3 +180,131 @@ def test_a_thresholds_file_missing_a_key_says_which(tmp_path: Path) -> None:
     )
     with pytest.raises(DatasetError, match="min_exact"):
         load_thresholds(tmp_path)
+
+
+# ---- Per-call causes, and finishing a run that could not finish itself.
+
+
+def _call(code: str | None) -> dict[str, object]:
+    """One `AiCallRecord` as the worker reports it, with or without a cause."""
+    return {
+        "purpose": "evaluator",
+        "provider": "anthropic",
+        "model": "claude-opus-5",
+        "status": "ok" if code is None else "error",
+        "error_code": code,
+        "latency_ms": 1000,
+        "input_units": 10,
+        "output_units": 10,
+        "cache_write_units": 0,
+        "cache_read_units": 0,
+        "unit_kind": "tokens",
+        "cost_micro_usd": 100,
+        "langfuse_trace_id": None,
+    }
+
+
+def _response(*codes: str | None) -> EvaluateAnswerResponse:
+    return EvaluateAnswerResponse.model_validate(
+        {
+            "position": 0,
+            "evaluation": None,
+            "error": "invalid_output",
+            "evidence_flags": [],
+            "prompt_versions": {},
+            "ai_calls": [_call(code) for code in codes],
+        }
+    )
+
+
+def test_a_case_records_which_gate_threw_each_reading_away() -> None:
+    """The count was never the useful half: `33% rejected` cannot be acted on, a gate name can."""
+    import readi_worker.evals.run as module
+
+    case = load_dataset(ROOT).cases[0]
+    result = module._case_result(case, _response("rejected_evidence", "rejected_evidence", None))
+    assert result.call_errors == ["rejected_evidence", "rejected_evidence"]
+    assert result.usage.rejected == 2
+    assert result.usage.calls == 3
+
+
+def test_a_provider_failure_is_recorded_beside_a_rejection_and_told_apart() -> None:
+    import readi_worker.evals.run as module
+
+    case = load_dataset(ROOT).cases[0]
+    result = module._case_result(case, _response("BadRequestError", "rejected_criteria"))
+    assert result.call_errors == ["BadRequestError", "rejected_criteria"]
+    # A 400 is not a rejected reading: nothing was read and nothing was billed for it.
+    assert result.usage.rejected == 1
+
+
+def _with_one_unscored(path: Path) -> tuple[str, str]:
+    """Mark the second case of a finished run unscored, as a provider failure would leave it."""
+    data = json.loads(path.read_text())
+    case = data["cases"][1]
+    case["scores"] = [None] * len(case["scores"])
+    case["error"] = "provider_error"
+    case["call_errors"] = ["BadRequestError"]
+    case["usage"] = {"calls": 3, "rejected": 0, "failed": 1, "cost_micro_usd": 0}
+    path.write_text(json.dumps(data))
+    return case["rubric"], case["kind"]
+
+
+def test_a_retry_scores_only_what_was_unscored_and_merges_it_back(tmp_path: Path) -> None:
+    previous = tmp_path / "previous.json"
+    assert main(["--smoke", "--out", str(previous)]) == 0
+    rubric, kind = _with_one_unscored(previous)
+    before = RunResult.read(previous)
+
+    merged_path = tmp_path / "merged.json"
+    assert main(["--smoke", "--retry-unscored", str(previous), "--out", str(merged_path)]) == 0
+    merged = RunResult.read(merged_path)
+
+    assert len(merged.cases) == len(before.cases), "a merge completes a run, it does not shorten it"
+    assert merged.retried_from == "previous.json"
+    assert [case for case in merged.cases if case.error] == []
+    retried = next(case for case in merged.cases if (case.rubric, case.kind) == (rubric, kind))
+    assert all(score is not None for score in retried.scores)
+    # Both attempts' cost and both attempts' causes: the first three calls were made and paid for,
+    # and a merged file cheaper than the bill is not a measurement (ADR-0007).
+    assert retried.usage.calls == 3 + 1
+    assert retried.call_errors[0] == "BadRequestError"
+    # The answers that scored the first time are carried over untouched.
+    kept = next(case for case in merged.cases if (case.rubric, case.kind) != (rubric, kind))
+    assert kept == next(
+        case for case in before.cases if (case.rubric, case.kind) == (kept.rubric, kept.kind)
+    )
+
+
+def test_a_retry_refuses_a_different_model_before_it_spends_anything(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    previous = tmp_path / "previous.json"
+    assert main(["--smoke", "--out", str(previous)]) == 0
+    _with_one_unscored(previous)
+    assert main(["--retry-unscored", str(previous), "--model", "claude-opus-5"]) == 2
+    printed = capsys.readouterr().err
+    assert "--model fake" in printed, "it must name the model that would make the file coherent"
+
+
+def test_a_retry_of_a_complete_run_says_there_is_nothing_to_do(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    previous = tmp_path / "previous.json"
+    assert main(["--smoke", "--out", str(previous)]) == 0
+    assert main(["--smoke", "--retry-unscored", str(previous)]) == 2
+    assert "nothing to retry" in capsys.readouterr().err
+
+
+def test_a_merged_retry_does_not_report_an_answer_it_scored_as_unscoreable(tmp_path: Path) -> None:
+    """`failed` is one per answer, not per attempt: the one figure a merge may not add up."""
+    previous = tmp_path / "previous.json"
+    assert main(["--smoke", "--out", str(previous)]) == 0
+    _with_one_unscored(previous)
+    merged_path = tmp_path / "merged.json"
+    assert main(["--smoke", "--retry-unscored", str(previous), "--out", str(merged_path)]) == 0
+    merged = RunResult.read(merged_path)
+    assert merged.usage.failed == 0, "every answer has a score; none may still be counted as failed"
+    # The cost of the attempt that failed is still there, which is the half that must stay additive.
+    retried = next(case for case in merged.cases if case.usage.calls > 1)
+    assert retried.usage.calls == 4

@@ -6,6 +6,7 @@
     --all                         every rubric in the dataset
     --model claude-sonnet-5       which model to score with
     --compare a.json b.json       two finished runs, read back and compared
+    --retry-unscored run.json     only the answers that run could not score, merged back into it
 
 It does not load `Settings`, and that is deliberate: the server's configuration wants Redis and a
 service token, and a harness that could not run without a provisioned environment file could not run
@@ -45,7 +46,7 @@ from readi_worker.evals.dataset import (
 from readi_worker.evals.metrics import AgreementThresholds, run_metrics
 from readi_worker.evals.report import render_comparison, render_run
 from readi_worker.evals.requests import evaluation_request
-from readi_worker.evals.results import CaseResult, RunResult, Usage, compare
+from readi_worker.evals.results import CaseResult, RunResult, Usage, compare, merge_retry
 from readi_worker.evaluation.calls import CACHE_SYSTEM_PROMPT, Evaluator
 from readi_worker.evaluation.fake_script import FakeEvaluatorLLMClient
 from readi_worker.evaluation.service import EvaluationService, render_prompts
@@ -147,6 +148,35 @@ def stratified_sample(dataset: Dataset, count: int, seed: int) -> tuple[str, ...
     return tuple(sorted(chosen))
 
 
+def _retry_selection(dataset: Dataset, previous: RunResult, model: str) -> list[Case]:
+    """Exactly the answers `previous` has no score for, in its own order.
+
+    Refused rather than merged when the model or the dataset differs: a file holding one model's
+    readings of some answers and another's of the rest would be a lie in a place nothing downstream
+    could detect, and `--compare` would read it as one model.
+    """
+    if previous.model != model:
+        raise DatasetError(
+            f"that run is `{previous.model}` and this one would be `{model}` — retry with "
+            f"`--model {previous.model}`, or start a fresh run"
+        )
+    if previous.dataset != dataset.name:
+        raise DatasetError(
+            f"that run is over `{previous.dataset}` and this one is over `{dataset.name}`"
+        )
+    wanted = dict.fromkeys(previous.unscored())
+    if not wanted:
+        raise DatasetError("that run scored every answer; there is nothing to retry")
+    by_key = {(case.rubric.slug, case.kind): case for case in dataset.cases}
+    missing = [key for key in wanted if key not in by_key]
+    if missing:
+        raise DatasetError(
+            "the dataset no longer holds "
+            + ", ".join(f"`{rubric}/{kind}`" for rubric, kind in missing[:5])
+        )
+    return [by_key[key] for key in wanted]
+
+
 def _select(dataset: Dataset, args: argparse.Namespace) -> list[Case]:
     cases = [case for case in dataset.cases if not args.role or case.role == args.role]
     if not cases:
@@ -192,13 +222,34 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
     """
     if args.smoke:
         args.provider, args.model, args.sample = "fake", "fake", min(args.sample, 2)
-    cases = _select(dataset, args)
+    previous: RunResult | None = None
+    if args.retry_unscored:
+        # Read and checked **before** anything is scored: a mismatch discovered afterwards has
+        # already been paid for.
+        previous = RunResult.read(Path(args.retry_unscored))
+        cases = _retry_selection(dataset, previous, args.model)
+        print(
+            f"retrying {len(cases)} unscored answer(s) from {Path(args.retry_unscored).name}",
+            file=sys.stderr,
+        )
+    else:
+        cases = _select(dataset, args)
     criteria = {case.rubric.slug: case.rubric.criteria for case in cases}
 
     if args.dry_run:
         return asyncio.run(_dry_run(cases, args))
 
     result = asyncio.run(_score_all(cases, dataset, args))
+    if previous is not None:
+        result = merge_retry(previous, result, source=Path(args.retry_unscored).name)
+        # The merged run holds answers this process never scored, so the rubrics it is measured
+        # against are the merged file's, not this run's.
+        merged = {case.rubric for case in result.cases}
+        criteria = {
+            case.rubric.slug: case.rubric.criteria
+            for case in dataset.cases
+            if case.rubric.slug in merged
+        }
     default_out = root / "evals" / "results" / f"{_stamp()}-{args.model}.json"
     out = Path(args.out) if args.out else default_out
     result.write(out)
@@ -322,6 +373,9 @@ def _case_result(case: Case, response: EvaluateAnswerResponse) -> CaseResult:
         error=response.error,
         confidence=response.evaluation.confidence if response.evaluation else None,
         evidence_flags=[flag.root for flag in response.evidence_flags],
+        # Which gate refused the reading, not merely that one did. The count alone cannot say
+        # whether a third of the bill has a single fixable cause.
+        call_errors=[call.error_code.root for call in response.ai_calls if call.error_code],
         usage=usage,
     )
 
@@ -493,6 +547,13 @@ def _parser() -> argparse.ArgumentParser:
         "--concurrency", type=int, default=1, help="leave this at 1; see the module"
     )
     parser.add_argument("--dry-run", action="store_true", help="the sample and its cost, no calls")
+    parser.add_argument(
+        "--retry-unscored",
+        default=None,
+        metavar="RESULT",
+        help="re-score only the answers this result file has no score for, and write the two "
+        "merged as one whole run",
+    )
     parser.add_argument(
         "--count-tokens",
         action=argparse.BooleanOptionalAction,

@@ -6,7 +6,7 @@ reading where a cheaper model wins on a page that has not yet said whether it is
 candidates this product launches for.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
 from readi_worker.evals.dataset import FAIRNESS_KIND, KINDS, Criterion
 from readi_worker.evals.metrics import (
@@ -14,6 +14,7 @@ from readi_worker.evals.metrics import (
     SEPARATION_MARGIN,
     Agreement,
     RunMetrics,
+    Separation,
     run_metrics,
 )
 from readi_worker.evals.results import Comparison, RunResult, Usage
@@ -34,6 +35,15 @@ def render_run(result: RunResult, criteria: Mapping[str, Sequence[Criterion]]) -
         f"- prompt cache on the system prompt: **{'on' if result.cache_system else 'off'}**",
         f"- prompts: {_versions(result.prompt_versions)}",
         f"- {result.started_at} to {result.finished_at}",
+        *(
+            [
+                f"- **a retry**: the answers `{result.retried_from}` could not score, re-scored "
+                "and merged back in. A retried answer's cost is both attempts', so the totals "
+                "below span two runs.",
+            ]
+            if result.retried_from
+            else []
+        ),
         "",
         _provenance_note(result.provenance),
         "",
@@ -44,6 +54,8 @@ def render_run(result: RunResult, criteria: Mapping[str, Sequence[Criterion]]) -
         *_agreement(metrics, result.provenance),
         "",
         *_evidence(result),
+        "",
+        *_rejections(result),
         "",
         *_cost(result),
     ]
@@ -80,7 +92,8 @@ def _provenance_note(provenance: str) -> str:
 def _fairness(metrics: RunMetrics) -> list[str]:
     unfair = metrics.unfair
     drifts = metrics.fairness_drifts()
-    measured = len([row for row in metrics.separations if row.fairness_drift])
+    comparable = [row for row in metrics.separations if row.fairness_measured]
+    unmeasured = [row.rubric for row in metrics.separations if not row.fairness_measured]
     lines = [
         "## Fairness: does the idiom cost marks?",
         "",
@@ -98,7 +111,8 @@ def _fairness(metrics: RunMetrics) -> list[str]:
         return lines
     worse = len([drift for drift in drifts if drift > FAIRNESS_BAND])
     lines += [
-        f"- **{len(unfair)} of {measured} rubrics** have at least one criterion outside the band",
+        f"- **{len(unfair)} of {len(comparable)} comparable rubrics** have at least one criterion "
+        "outside the band" + _unmeasured_note(unmeasured, "no comparable pair"),
         f"- {worse} of {len(drifts)} criteria scored more than {FAIRNESS_BAND} rung lower; "
         f"mean drift {sum(drifts) / len(drifts):+.2f} rungs, worst {max(drifts):+d}",
         "- drift distribution (`strong` minus the idiom, per criterion): "
@@ -131,11 +145,8 @@ def _fairness(metrics: RunMetrics) -> list[str]:
 
 
 def _separations(metrics: RunMetrics) -> list[str]:
-    rows = [
-        row
-        for row in metrics.separations
-        if row.fluent_gap is not None or row.poorly_gap is not None
-    ]
+    everything = list(metrics.separations)
+    rows = [row for row in everything if row.fluent_gap is not None or row.poorly_gap is not None]
     lines = [
         "## The two separations",
         "",
@@ -145,18 +156,16 @@ def _separations(metrics: RunMetrics) -> list[str]:
         "articulacy).",
         "",
     ]
-    if not rows:
-        lines.append("**Not measured** on this sample.")
-        return lines
-    fluent_failures = [
-        row for row in rows if row.fluent_gap is not None and row.fluent_gap < SEPARATION_MARGIN
-    ]
-    poorly_failures = [
-        row for row in rows if row.poorly_gap is not None and row.poorly_gap < SEPARATION_MARGIN
-    ]
     lines += [
-        f"- fluency: **{len(rows) - len(fluent_failures)} of {len(rows)}** rubrics separated",
-        f"- articulacy: **{len(rows) - len(poorly_failures)} of {len(rows)}** rubrics separated",
+        # Over the rubrics where the gap could be computed, never over every rubric with any score:
+        # a pair missing a member has no gap, and counting it in the denominator of "separated"
+        # reports it as a pass. The 2026-09-28 opus run printed "11 of 11" on 9 measured rubrics.
+        _separation_line("fluency", everything, lambda row: row.fluent_gap),
+        _separation_line("articulacy", everything, lambda row: row.poorly_gap),
+    ]
+    if not rows:
+        return lines
+    lines += [
         "",
         "| rubric | strong | fluent | poorly | weak | separations |",
         "| --- | --: | --: | --: | --: | --- |",
@@ -169,6 +178,36 @@ def _separations(metrics: RunMetrics) -> list[str]:
             f"{_num(row.weighted.get('weak'))} | {_gap(row.fluent_gap)} / {_gap(row.poorly_gap)} |"
         )
     return lines
+
+
+def _separation_line(
+    label: str, rows: Sequence[Separation], gap: Callable[[Separation], float | None]
+) -> str:
+    """One separation, counted over what could be measured and explicit about what could not."""
+    measured = [row for row in rows if gap(row) is not None]
+    missing = [row.rubric for row in rows if gap(row) is None]
+    if not measured:
+        return f"- {label}: **not measured**" + (
+            f" — no rubric has both answers ({_named(missing)})" if missing else ""
+        )
+    separated = [row for row in measured if (gap(row) or 0.0) >= SEPARATION_MARGIN]
+    return f"- {label}: **{len(separated)} of {len(measured)}** rubrics separated" + (
+        f" — **{len(missing)} not measured** (an answer with no score: {_named(missing)})"
+        if missing
+        else ""
+    )
+
+
+def _unmeasured_note(rubrics: Sequence[str], why: str) -> str:
+    """Name what was not measured, rather than let a denominator quietly absorb it."""
+    if not rubrics:
+        return ""
+    return f" — **{len(rubrics)} not measured** ({why}: {_named(rubrics)})"
+
+
+def _named(rubrics: Sequence[str]) -> str:
+    listed = ", ".join(f"`{rubric}`" for rubric in sorted(rubrics)[:6])
+    return listed if len(rubrics) <= 6 else f"{listed} and {len(rubrics) - 6} more"
 
 
 def _agreement(metrics: RunMetrics, provenance: str) -> list[str]:
@@ -227,6 +266,70 @@ def _evidence(result: RunResult) -> list[str]:
             f"{len(flagged)} answer(s) had evidence that reads like an instruction "
             f"(`evidence_flags`; it changes no score and reaches no candidate): "
             + ", ".join(f"`{case.rubric}/{case.kind}`" for case in flagged[:8]),
+        ]
+    return lines
+
+
+# ---- What the money bought nothing for.
+
+#: What each cause means, in the order a reader would act on it. The three `rejected_*` codes are
+#: the gates in `evaluation/service.py`; the rest never reached a gate.
+CAUSES: dict[str, str] = {
+    "rejected_evidence": "a non-zero criterion whose quote was not in the candidate's own words "
+    "(spec §6.2) — the gate the evaluator prompt has most room to prevent",
+    "rejected_criteria": "a criterion left out, or one invented that the rubric does not have",
+    "rejected_rubric_echo": "the rubric's own wording copied into prose the candidate reads",
+    "invalid_output": "output that did not fit the schema at all, so no gate saw it",
+    "refusal": "the model declined; never retried (CLAUDE.md, AI provider adapters)",
+    "max_tokens": "the reading was cut off mid-criterion",
+}
+
+
+def _rejections(result: RunResult) -> list[str]:
+    """Which gate threw a reading away, and what share of the calls each one cost.
+
+    A third of the 2026-09-28 opus run's readings were discarded and the file could only say how
+    many, so this section exists to say *which* — one dominant, fixable cause is worth more than the
+    model choice it was hiding behind.
+    """
+    counts = result.call_error_counts
+    usage = result.usage
+    lines = ["## Why calls bought nothing", ""]
+    if not counts:
+        if usage.rejected or usage.failed:
+            lines.append(
+                f"**Not recorded.** {usage.rejected} reading(s) were thrown away and "
+                f"{usage.failed} answer(s) went unscored, but this run predates per-call error "
+                "codes, so the cause of each is not in the file and cannot be recovered from it."
+            )
+        else:
+            lines.append("Nothing was rejected and nothing failed.")
+        return lines
+    billed = max(1, usage.calls)
+    lines += [
+        f"{sum(counts.values())} of {usage.calls} calls came to nothing. Every one of them was "
+        "made; a `rejected_*` one was also paid for, because the model answered and code then "
+        "refused the answer.",
+        "",
+        "| cause | calls | share of calls | what it is |",
+        "| --- | --: | --: | --- |",
+    ]
+    lines += [
+        f"| `{code}` | {count} | {count / billed:.0%} | {CAUSES.get(code, 'a provider failure')} |"
+        for code, count in counts.items()
+    ]
+    # A merged retry carries a pre-codes run's rejections in the count and not in the table, so the
+    # table would otherwise say "7" where 32 readings were thrown away. Attributing part of a total
+    # and presenting it as the total is the flaw this section was added to remove, one level down.
+    attributed = sum(count for code, count in counts.items() if code.startswith("rejected_"))
+    unattributed = usage.rejected - attributed
+    if unattributed > 0:
+        lines += [
+            "",
+            f"**{unattributed} further reading(s) were thrown away with no cause recorded** — from "
+            "a run written before per-call codes, so which gate refused them cannot be recovered. "
+            f"The share column above is over all {usage.calls} calls, so it understates each cause "
+            "by as much as those readings would have added.",
         ]
     return lines
 
@@ -309,8 +412,33 @@ def render_comparison(comparison: Comparison, left: RunResult, right: RunResult)
         "",
         f"{comparison.right} is {_ratio(right_per, left_per)} the cost of {comparison.left} "
         "per answer on this sample.",
+        "",
+        *_compared_rejections(comparison, left, right),
     ]
     return "\n".join(lines) + "\n"
+
+
+def _compared_rejections(comparison: Comparison, left: RunResult, right: RunResult) -> list[str]:
+    """Why each model's calls bought nothing. A cheap model that is rejected twice as often is not
+    cheap."""
+    left_counts, right_counts = left.call_error_counts, right.call_error_counts
+    if not left_counts and not right_counts:
+        return []
+    causes = sorted(
+        set(left_counts) | set(right_counts),
+        key=lambda code: -(left_counts.get(code, 0) + right_counts.get(code, 0)),
+    )
+    return [
+        "## Why calls bought nothing",
+        "",
+        f"| cause | {comparison.left} | {comparison.right} |",
+        "| --- | --: | --: |",
+        *(
+            f"| `{code}` | {left_counts.get(code, 0)} | {right_counts.get(code, 0)} |"
+            for code in causes
+        ),
+        f"| **of calls made** | {left.usage.calls} | {right.usage.calls} |",
+    ]
 
 
 def _cost_row(model: str, per_answer: float, usage: Usage) -> str:

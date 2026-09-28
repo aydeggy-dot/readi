@@ -93,6 +93,18 @@ class Separation:
         return _gap(self.weighted.get("correct-poorly-explained"), self.weighted.get("weak"))
 
     @property
+    def fairness_measured(self) -> bool:
+        """Were `strong` and the idiom **both** scored, so that anything could be compared?
+
+        Not the same question as `if self.fairness_drift`. When one of the pair could not be scored
+        the drift is a tuple of `None` — one per criterion — and a non-empty tuple is truthy, so a
+        rubric nothing could be measured on counted as a clean one. The 2026-09-28 opus run printed
+        "0 of 12 rubrics" when 9 were comparable, which flatters in exactly the direction a fairness
+        measurement must not.
+        """
+        return any(drift is not None for drift in self.fairness_drift)
+
+    @property
     def worst_fairness_drift(self) -> int | None:
         drifts = [drift for drift in self.fairness_drift if drift is not None]
         return max(drifts) if drifts else None

@@ -10,6 +10,7 @@ role or against a gold set that does not exist yet.
 """
 
 import json
+from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal
@@ -77,6 +78,17 @@ class CaseResult(BaseModel):
     error: str | None = None
     confidence: str | None = None
     evidence_flags: list[str] = Field(default_factory=list)
+    #: Every call for this answer that failed or was thrown away, in the order the calls were made:
+    #: `rejected_criteria`, `rejected_evidence` or `rejected_rubric_echo` for the three gates in
+    #: `evaluation/service.py`, `invalid_output` / `refusal` / `max_tokens` for output that never
+    #: reached a gate, and the provider's exception name for a call that never happened.
+    #:
+    #: The **count** was here from the start and the causes were not, which turned out to be the
+    #: wrong half: the 2026-09-28 opus run threw away a third of its readings and the file could not
+    #: say by which gate, so the one number that might have been a cheap fix was unattributable.
+    #: Empty on a run written before this field existed — which is not the same as "nothing failed",
+    #: and the report says so when `usage.rejected` disagrees with it.
+    call_errors: list[str] = Field(default_factory=list)
     usage: Usage = Field(default_factory=Usage)
 
     def evidence_violations(self) -> int:
@@ -101,6 +113,11 @@ class RunResult(BaseModel):
     finished_at: str
     cache_system: bool
     prompt_versions: dict[str, int] = Field(default_factory=dict)
+    #: The file this run's scored answers were carried over from, when it is a `--retry-unscored`:
+    #: the answers a previous run could not score, re-scored and merged back into a whole run. Named
+    #: rather than inferred, because the cost figures then span two runs and a reader has to be able
+    #: to see that.
+    retried_from: str | None = None
     cases: list[CaseResult] = Field(default_factory=list)
 
     @property
@@ -109,6 +126,16 @@ class RunResult(BaseModel):
         for case in self.cases:
             total = total.plus(case.usage)
         return total
+
+    @property
+    def call_error_counts(self) -> dict[str, int]:
+        """Why calls bought nothing, commonest first. Empty on a run from before `call_errors`."""
+        counts = Counter(code for case in self.cases for code in case.call_errors)
+        return dict(counts.most_common())
+
+    def unscored(self) -> tuple[tuple[str, str], ...]:
+        """The `(rubric, kind)` of every answer this run has no score for — what a retry re-runs."""
+        return tuple((case.rubric, case.kind) for case in self.cases if case.error is not None)
 
     def scored(self) -> list[Scored]:
         return [
@@ -151,6 +178,42 @@ class Comparison(BaseModel):
     right_vs_expected: Agreement
     left_mean: float
     right_mean: float
+
+
+def merge_retry(previous: RunResult, retry: RunResult, *, source: str) -> RunResult:
+    """`previous`, with the answers it could not score replaced by `retry`'s, as one whole run.
+
+    A retried answer keeps **both** attempts' `usage` and both attempts' `call_errors`. The first
+    run's calls were made and paid for, and dropping them would make the merged file cheaper than
+    the bill — the same rule as `ai_call_log`'s three token columns: a cost that cannot be
+    re-derived from its own row is not a measurement (ADR-0007). The answers that scored the first
+    time are carried over untouched and in order, so the result is a complete run of the sample and
+    can be compared with another model's.
+    """
+    fresh = {(case.rubric, case.kind): case for case in retry.cases}
+    cases: list[CaseResult] = []
+    for case in previous.cases:
+        replacement = fresh.get((case.rubric, case.kind))
+        if replacement is None or case.error is None:
+            cases.append(case)
+            continue
+        cases.append(
+            replacement.model_copy(
+                update={
+                    # `failed` is the one figure that is not additive: it says "this answer has no
+                    # score", one per answer, and a retry that scored it makes the earlier attempt
+                    # history rather than a second failure. Left additive it reported 10 unscoreable
+                    # answers in a merged run where all 60 had scores. What the failed attempt cost
+                    # stays in the token and money columns, and what went wrong with it stays in
+                    # `call_errors`.
+                    "usage": case.usage.plus(replacement.usage).model_copy(
+                        update={"failed": replacement.usage.failed}
+                    ),
+                    "call_errors": [*case.call_errors, *replacement.call_errors],
+                }
+            )
+        )
+    return retry.model_copy(update={"cases": cases, "retried_from": source})
 
 
 def compare(left: RunResult, right: RunResult) -> Comparison:

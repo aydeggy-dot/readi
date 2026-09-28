@@ -16,6 +16,11 @@ ANTHROPIC_API_KEY=… uv run python -m readi_worker.evals.run --sample 12 --mode
 # Two finished runs, read back off disk and compared. Free, and repeatable for ever.
 uv run python -m readi_worker.evals.run --compare \
   ../../evals/results/<run>-claude-opus-5.json ../../evals/results/<run>-claude-sonnet-5.json
+
+# PAID, and only for what a previous run could not score: the answers it has no score for, re-run
+# and merged back into it as one whole run. Refuses a different model or dataset before it spends.
+ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run \
+  --model claude-opus-5 --retry-unscored ../../evals/results/<run>-claude-opus-5.json
 ```
 
 It reads `content/seed` and `evals/datasets` and needs **no database**, no Redis and no service
@@ -65,6 +70,27 @@ scores were written by a model (`datasets/synthetic/README.md`). Agreement with 
 fixed answer's score has moved — which is worth knowing, and is the whole reason to keep them — and
 says nothing whatever about whether a score is _right_. Only `datasets/gold` can answer that, and it
 is empty until experts have scored it.
+
+## Why a call bought nothing, and which gate said so
+
+A run reports every call that came to nothing **by cause**, not merely how many: the three gate codes
+from `evaluation/service.py` (`rejected_evidence`, `rejected_criteria`, `rejected_rubric_echo`), the
+output that never reached a gate (`invalid_output`, `refusal`, `max_tokens`), and the provider's own
+exception name for a call that never happened. A `rejected_*` call was **paid for** — the model
+answered and code refused the answer — so this table is a cost lever as much as a quality signal.
+
+It exists because of the 2026-09-28 opus run, which threw away a third of its readings and could only
+say *how many*. The count alone cannot be acted on; one dominant, fixable gate can. A run written
+before the causes were recorded says so where the table would be, rather than printing an empty one.
+
+## An unmeasurable pair is never a pass
+
+The separations and the fairness band are counted over the rubrics where the comparison could
+actually be made, and the rubrics where it could not are named. A pair missing a member has no gap,
+and a denominator that absorbs it reports it as separated — the same 2026-09-28 run printed
+"fluency: 11 of 11" when 9 rubrics had a `fluent-but-wrong` score. `--smoke` cannot catch this, because
+the stand-in scores every answer it is given; `tests/test_evals_report.py` holds it instead, and was
+watched failing against the old formula.
 
 ## Why sequential
 
