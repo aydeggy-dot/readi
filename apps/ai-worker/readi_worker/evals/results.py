@@ -125,6 +125,11 @@ class RunResult(BaseModel):
     #: rather than inferred, because the cost figures then span two runs and a reader has to be able
     #: to see that.
     retried_from: str | None = None
+    #: Why this run holds fewer answers than it `planned`, when it does. Today the one reason is
+    #: `--max-cost`, and it is on the file rather than only on stderr for the reason the whole file
+    #: exists: a partial run read back next week has to be able to say whether it stopped because
+    #: the money ran out or because the provider did. Null on a run that finished.
+    stopped: str | None = None
     #: Every answer this run set out to score, as `rubric/kind`, written before the first call. A
     #: run writes its file after **every** answer now, so a run stopped at a spending cap keeps what
     #: it scored — and this is what lets `--retry-unscored` finish it rather than merely re-run its

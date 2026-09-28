@@ -112,7 +112,7 @@ cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env 
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --smoke        # the eval harness on the stand-in: no key, no cost (also inside `pnpm test`)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5   # the sample and its cost, input tokens counted, before anything is spent
-cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5   # PAID. fairness, the two separations, agreement, cost (evals/README.md)
+cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5 --max-cost 2.00   # PAID. fairness, the two separations, agreement, cost; --max-cost stops it before the answer that would cross the approved figure (evals/README.md)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --compare ../../evals/results/<a>.json ../../evals/results/<b>.json   # two finished runs, free and repeatable
 cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --model <same model> --retry-unscored ../../evals/results/<run>.json   # PAID. only the answers that run could not score, merged back into it
 ```
@@ -710,7 +710,9 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
 7. Don't generate large volumes of interview content and present it as final — seed content is marked `status: draft` until a human expert reviews it.
 8. **A paid run spends only what the owner approved, and only one at a time** (owner's standing rule,
    2026-09-28). Before starting one, price it with `--dry-run` and get an explicit go-ahead for that
-   amount. If the real cost is going to pass it — a counted figure above the estimate, a rejection
+   amount, then **pass that amount as `--max-cost`**, so the run stops itself before the answer that
+   would cross it rather than relying on somebody watching the cost column. If the real cost is
+   going to pass it — a counted figure above the estimate, a rejection
    rate above the allowance, answers that need a second pass — **stop and ask** rather than finish
    the run and report the overrun afterwards. **Never start a paid run while another is in
    progress**: on 2026-09-28 two opus runs overlapped, which doubled the bill, exhausted the

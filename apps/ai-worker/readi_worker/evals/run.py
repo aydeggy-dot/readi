@@ -8,6 +8,7 @@
     --compare a.json b.json       two finished runs, read back and compared
     --retry-unscored run.json     only the answers that run could not score, merged back into it
     --strict-criteria             the per-rubric schema that cannot omit or invent one (unmeasured)
+    --max-cost 1.60               stop before the answer that could cross this, keep what was paid
 
 It does not load `Settings`, and that is deliberate: the server's configuration wants Redis and a
 service token, and a harness that could not run without a provisioned environment file could not run
@@ -36,6 +37,7 @@ from pathlib import Path
 
 from readi_worker.contracts import EvaluateAnswerResponse
 from readi_worker.cv.parse import keyword_extraction
+from readi_worker.evals.budget import Budget
 from readi_worker.evals.dataset import (
     KINDS,
     Case,
@@ -265,6 +267,15 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
     """
     if args.smoke:
         args.provider, args.model, args.sample = "fake", "fake", min(args.sample, 2)
+    if args.max_cost is not None:
+        if args.max_cost <= 0:
+            raise DatasetError("--max-cost is a number of dollars, so it must be above zero")
+        if args.concurrency != 1:
+            # The answers that would cross the cap are already in flight by the time the one
+            # before them is recorded, so a cap under a fan-out is a cap in name only. Refused
+            # rather than approximated: `--concurrency` exists to be left alone anyway, and a
+            # spending guard that silently does less than it says is worse than none.
+            raise DatasetError("--max-cost needs --concurrency 1; a fan-out cannot honour a cap")
     previous: RunResult | None = None
     if args.retry_unscored:
         # Read and checked **before** anything is scored: a mismatch discovered afterwards has
@@ -306,6 +317,11 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
         Path(args.report).write_text(report, encoding="utf-8")
     print(f"wrote {out}", file=sys.stderr)
 
+    if result.stopped:
+        # Before the smoke verdict and before the thresholds: a run that did not finish has not
+        # earned a pass from either, and 0 here would be a green tick on an unfinished measurement.
+        print(f"\n{result.stopped}", file=sys.stderr)
+        return 1
     if args.smoke:
         return _smoke_verdict(result)
 
@@ -346,6 +362,8 @@ async def _score_all(
     semaphore = asyncio.Semaphore(max(1, args.concurrency))
     done = 0
     results: list[CaseResult] = []
+    budget = Budget(round(args.max_cost * 1_000_000)) if args.max_cost is not None else None
+    stopped: str | None = None
 
     def snapshot() -> RunResult:
         return RunResult(
@@ -359,6 +377,7 @@ async def _score_all(
             cache_system=CACHE_SYSTEM_PROMPT and args.provider != "fake",
             strict_criteria=bool(args.strict_criteria),
             prompt_versions=prompt_versions,
+            stopped=stopped,
             planned=[f"{case.rubric.slug}/{case.kind}" for case in cases],
             cases=list(results),
         )
@@ -383,6 +402,8 @@ async def _score_all(
                 {name: version.root for name, version in response.prompt_versions.items()}
             )
             results.append(result)
+            if budget is not None:
+                budget.record(result.usage)
             # After every answer, not at the end: what has been paid for is on disk before the next
             # call is made.
             snapshot().write(out)
@@ -390,8 +411,19 @@ async def _score_all(
 
     if args.concurrency == 1:
         for index, case in enumerate(cases):
+            if budget is not None and not budget.may_start_another():
+                stopped = budget.why_it_stopped(len(cases) - index)
+                print(stopped, file=sys.stderr, flush=True)
+                # Written here too: the loop may stop before the **first** answer, in which case
+                # nothing else has written the file and `--retry-unscored` would have no `planned`
+                # list to finish from.
+                snapshot().write(out)
+                break
             await score(index, case)
     else:
+        # A cap cannot be honoured by a fan-out: the calls that would cross it are already in
+        # flight by the time the answer before them is recorded. `--concurrency` exists to be left
+        # alone (see the module docstring), so this is refused up front rather than approximated.
         await asyncio.gather(*(score(index, case) for index, case in enumerate(cases)))
 
     if isinstance(client, AnthropicLLMClient):
@@ -611,6 +643,13 @@ def _parser() -> argparse.ArgumentParser:
         "--concurrency", type=int, default=1, help="leave this at 1; see the module"
     )
     parser.add_argument("--dry-run", action="store_true", help="the sample and its cost, no calls")
+    parser.add_argument(
+        "--max-cost",
+        type=float,
+        default=None,
+        metavar="USD",
+        help="stop before the answer that could take the run past this, and keep the partial file",
+    )
     parser.add_argument(
         "--retry-unscored",
         default=None,

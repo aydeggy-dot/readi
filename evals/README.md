@@ -9,9 +9,10 @@ uv run python -m readi_worker.evals.run --smoke
 # What a paid run would cost, before it is run. Input tokens are counted, not guessed.
 uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5
 
-# A paid run. Sequential on purpose — see "Why sequential" below.
-ANTHROPIC_API_KEY=… uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5
-ANTHROPIC_API_KEY=… uv run python -m readi_worker.evals.run --sample 12 --model claude-sonnet-5
+# A paid run. Sequential on purpose — see "Why sequential" below. `--max-cost` is the approved
+# figure: the run stops before the answer that could cross it and keeps everything it paid for.
+ANTHROPIC_API_KEY=… uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5 --max-cost 2.00
+ANTHROPIC_API_KEY=… uv run python -m readi_worker.evals.run --sample 12 --model claude-sonnet-5 --max-cost 2.00
 
 # Two finished runs, read back off disk and compared. Free, and repeatable for ever.
 uv run python -m readi_worker.evals.run --compare \
@@ -25,6 +26,29 @@ ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run \
 
 It reads `content/seed` and `evals/datasets` and needs **no database**, no Redis and no service
 token. `readi_worker/evals/__init__.py` is the design; this file is what the numbers mean.
+
+## `--max-cost`, and why it stops early
+
+The standing rule (CLAUDE.md §7.8) is that a paid run spends only what was approved. Until
+2026-09-28 that was somebody reading the cost column as it scrolled, and the v3 check was stopped
+by hand at $1.23 of its $1.60. `--max-cost` does it without the person: before each answer, if what
+has been spent plus what the next answer could cost would pass the figure, the run stops, writes
+its file and exits **1**.
+
+Two things about it are deliberate and will look like bugs otherwise.
+
+- **It stops between answers, not between calls.** An answer is up to `MAX_ATTEMPTS` calls, and the
+  record of what they cost is assembled once, at the end, out of the response — so aborting inside
+  one would throw away the record of calls already paid for, and a file cheaper than the bill is
+  not a measurement (ADR-0007).
+- **It stops with money left over.** "What the next answer could cost" is `MAX_ATTEMPTS` times the
+  dearest call the run has seen, which is a bound no answer it has already scored could beat. A run
+  at 5¢ an answer therefore stops about 15¢ short of its cap. That margin is recoverable —
+  `--retry-unscored` finishes the run for the price of what it did not spend — and an overrun is
+  not.
+
+`--concurrency` above 1 is refused with a cap, because the calls that would cross it are already in
+flight by the time the answer before them is recorded.
 
 ## The three measurements, in the order that matters
 

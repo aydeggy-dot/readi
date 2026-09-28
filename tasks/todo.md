@@ -3066,6 +3066,18 @@ falls, and the sizing for it is at the end of this section.
       reads `strict_criteria: true`. `anthropic.transform_schema` hands the provider
       `required: ["0","1","2"]` and `additionalProperties: false` on `StrictCriteria`. 437 worker tests,
       ruff and mypy green
+- [x] **`--max-cost` (2026-09-28), because a cap nobody is watching is not a cap.** The standing rule
+      was enforced by a person reading the cost column — the v3 check was approved at $1.60 and
+      stopped by hand at $1.23. Now the run stops itself, writes its file and exits 1, and the reason
+      is on the file (`RunResult.stopped`) as well as on stderr: a partial run read back next week has
+      to say whether the money ran out or the provider did. Two deliberate choices that would
+      otherwise read as bugs, both written down in `evals/README.md`: it stops **between answers**,
+      because an answer is up to `MAX_ATTEMPTS` calls whose cost is assembled once at the end and
+      aborting inside one would lose the record of calls already paid for (ADR-0007); and it stops
+      **with money left over**, because the bound on the next answer is `MAX_ATTEMPTS` times the
+      dearest call seen, which no answer already scored can beat. A cap plus `--concurrency` above 1
+      is refused outright — the calls that would cross it are in flight before the answer ahead of
+      them is recorded
 - [ ] **The paid check, priced and awaiting the owner (2026-09-28).** `--sample 6 --seed 7
 --strict-criteria` = **30 answers over 6 rubrics**, the **same sample the v3 check used**, which is
       what makes it comparable with that run's 17-over-39 and its matched v2 baseline of 42 over 112.
@@ -3075,7 +3087,8 @@ falls, and the sizing for it is at the end of this section.
       file is written after every answer, and the run would be stopped there. The cheaper alternatives
       are `--sample 2 --seed 7` (10 answers, 35¢–50¢, `incident-ownership` +
       `unfamiliar-code-approach`) and `--sample 1 --seed 7` (5 answers, 18¢–25¢), both of which answer
-      acceptance and neither of which can be read against a baseline
+      acceptance and neither of which can be read against a baseline. **Approved at $1.60 by the
+      owner, 2026-09-28**, and the run now carries that figure as `--max-cost 1.60`
 - [ ] **Superseded — what to do with v3 while it was in use.** `PROMPT_VERSIONS` says `evaluate_answer: 3`,
       so the worker renders it now, for no measured gain and a slightly worse price (the prefix grew from
       2,966 to 3,291 tokens, read at 0.1x on every call). It is better written than v2 and states a true

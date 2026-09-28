@@ -41,6 +41,13 @@ def render_run(result: RunResult, criteria: Mapping[str, Sequence[Criterion]]) -
         f"- {result.started_at} to {result.finished_at}",
         *(
             [
+                f"- **stopped before it finished**: {result.stopped}",
+            ]
+            if result.stopped
+            else []
+        ),
+        *(
+            [
                 f"- **a retry**: the answers `{result.retried_from}` could not score, re-scored "
                 "and merged back in. A retried answer's cost is both attempts', so the totals "
                 "below span two runs.",

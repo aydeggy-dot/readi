@@ -66,6 +66,112 @@ def test_the_smoke_run_fails_when_a_non_zero_score_has_no_quote(
     assert main(["--smoke", "--out", str(tmp_path / "smoke.json")]) == 1
 
 
+# ---- The spending cap.
+
+
+def _charging(module: object, micro_usd_per_answer: int) -> object:
+    """The stand-in, but every answer costs something — the only way to exercise a cap for free."""
+    real = module._case_result  # type: ignore[attr-defined]
+
+    def charged(case: Case, response: EvaluateAnswerResponse) -> CaseResult:
+        result: CaseResult = real(case, response)
+        usage = result.usage.model_copy(update={"calls": 1, "cost_micro_usd": micro_usd_per_answer})
+        return result.model_copy(update={"usage": usage})
+
+    return charged
+
+
+def test_the_cap_stops_the_run_and_keeps_what_was_paid_for(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The whole point: nobody has to watch the cost column.
+
+    Answers at 10¢ under a 50¢ cap, and it stops after **three**, not four. At 10¢ a call the bound
+    on the next answer is `MAX_ATTEMPTS times 10¢ = 30¢`, so a fourth could reach 60¢ and is refused
+    with 20¢ of the cap unspent. Stopping early is the error a spending cap is supposed to make:
+    the 20¢ is recoverable by `--retry-unscored`, an overrun is a conversation about money nobody
+    agreed to.
+    """
+    import readi_worker.evals.run as module
+
+    monkeypatch.setattr(module, "_case_result", _charging(module, 100_000))
+    out = tmp_path / "capped.json"
+    assert main(["--smoke", "--max-cost", "0.50", "--out", str(out)]) == 1, "it did not finish"
+
+    result = RunResult.read(out)
+    assert len(result.cases) == 3
+    assert result.usage.cost_micro_usd == 300_000 < 500_000
+    assert result.stopped is not None
+    assert "$0.30 spent of $0.50" in result.stopped
+    # The file has to say *why* it is short, or a reader next week cannot tell a spending cap from
+    # a provider outage.
+    assert "stopped before it finished" in capsys.readouterr().out
+    # And it still names every answer it set out to score, which is what a retry finishes from.
+    assert len(result.planned) == 2 * len(KINDS)
+    assert len(result.unscored()) == 2 * len(KINDS) - 3
+
+
+def test_a_capped_run_is_finished_by_a_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A run stopped at its cap is a partial measurement, not a wasted one."""
+    import readi_worker.evals.run as module
+
+    monkeypatch.setattr(module, "_case_result", _charging(module, 100_000))
+    previous = tmp_path / "capped.json"
+    assert main(["--smoke", "--max-cost", "0.50", "--out", str(previous)]) == 1
+    monkeypatch.undo()  # the retry itself is an ordinary free stand-in run
+
+    merged_path = tmp_path / "merged.json"
+    # 1, not 0, and for a reason that belongs to this test rather than to the cap: the merged file
+    # inherits the three charged answers, and `--smoke`'s verdict is that a stand-in run must cost
+    # nothing. Asserted by its own words, so this cannot start passing for some other failure.
+    assert main(["--smoke", "--retry-unscored", str(previous), "--out", str(merged_path)]) == 1
+    assert "the stand-in evaluator billed 300000" in capsys.readouterr().err
+    merged = RunResult.read(merged_path)
+    assert len(merged.cases) == 2 * len(KINDS), "the retry scored what the cap never reached"
+    assert merged.stopped is None, "the merged run finished, whatever the run it completes did"
+    # The three answers the first run paid for keep their cost: a merged file cheaper than the
+    # bill is not a measurement (ADR-0007).
+    assert merged.usage.cost_micro_usd == 300_000
+
+
+def test_a_cap_too_small_for_one_answer_stops_before_the_first_call(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Nothing has been measured yet, so the seed is the bound — and it refuses to guess low.
+
+    The file is written on this path too: the loop breaks before anything else would have written
+    one, and a retry has nothing to finish from without `planned`.
+    """
+    out = tmp_path / "tiny.json"
+    assert main(["--smoke", "--max-cost", "0.001", "--out", str(out)]) == 1
+    result = RunResult.read(out)
+    assert result.cases == []
+    assert len(result.planned) == 2 * len(KINDS)
+    assert "$0.00 spent of $0.00" in capsys.readouterr().err
+
+
+def test_a_free_run_under_a_cap_finishes(tmp_path: Path) -> None:
+    """The stand-in cannot approach a cap, and must not be stopped by one."""
+    out = tmp_path / "free.json"
+    assert main(["--smoke", "--max-cost", "0.50", "--out", str(out)]) == 0
+    result = RunResult.read(out)
+    assert result.stopped is None
+    assert len(result.cases) == 2 * len(KINDS)
+
+
+def test_a_cap_is_refused_where_it_could_not_be_honoured(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Refused up front rather than approximated: the calls that would cross a cap under a fan-out
+    are already in flight by the time the answer before them is recorded."""
+    assert main(["--smoke", "--max-cost", "0.50", "--concurrency", "4"]) == 2
+    assert "--concurrency 1" in capsys.readouterr().err
+    assert main(["--smoke", "--max-cost", "0"]) == 2
+    assert "above zero" in capsys.readouterr().err
+
+
 def test_a_dry_run_makes_no_call_and_prices_the_sample(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
