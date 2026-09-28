@@ -61,6 +61,7 @@ class FakeEvaluatorLLMClient:
         output_type: type[T],
         max_tokens: int,
         timeout_s: float | None = None,
+        cache_system: bool = False,
     ) -> LLMResult[T]:
         if output_type is not AnswerReading:
             return await self._fallback.parse(
@@ -70,6 +71,7 @@ class FakeEvaluatorLLMClient:
                 output_type=output_type,
                 max_tokens=max_tokens,
                 timeout_s=timeout_s,
+                cache_system=cache_system,
             )
         built = read(user)
         return LLMResult(

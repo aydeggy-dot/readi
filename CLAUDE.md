@@ -71,7 +71,10 @@ spec, or an ADR, **this file, the spec, and the ADRs win** — and fix the promp
 /content
   seed/           Seed question banks, rubrics, lessons (YAML/JSON), reviewed by humans
 /evals
-  datasets/       Gold-standard answers with human scores for evaluator regression tests
+  datasets/synthetic/  510 model-written answers with model-written scores: a regression baseline
+  datasets/gold/       the same format, scored by people. Empty until experts have — README.md says why
+  thresholds.yaml      agreement thresholds (the separation margin and fairness band live in code)
+  results/             one JSON per harness run; every report is recomputed from these
 ```
 
 ## 4. Common commands
@@ -107,7 +110,10 @@ node scripts/sse-rewrite-proof.mjs   # does an event stream survive proxy.ts and
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
-cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regression suite (from M4)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run --smoke        # the eval harness on the stand-in: no key, no cost (also inside `pnpm test`)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5   # the sample and its cost, input tokens counted, before anything is spent
+cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5   # PAID. fairness, the two separations, agreement, cost (evals/README.md)
+cd apps/ai-worker && uv run python -m readi_worker.evals.run --compare ../../evals/results/<a>.json ../../evals/results/<b>.json   # two finished runs, free and repeatable
 ```
 
 ## 5. Architecture rules
@@ -338,7 +344,27 @@ cd apps/ai-worker && uv run python -m readi_worker.evals.run   # evaluator regre
   `open()` and `close()` from throwing.
 - One answer per worker request, fanned out with bounded concurrency (`EVALUATION_CONCURRENCY`): spec §8
   wants a report within 60 s and a 30-minute session is eight answers, so the fan-out is in the design
-  rather than an optimisation. **An answer that already has a row is never re-scored** — the unique
+  rather than an optimisation. **The first answer is scored alone and the rest fan out behind it**
+  (2026-09-28): the evaluator's system prompt is cached, a cache entry can only be read once the request
+  that wrote it has answered, and four calls started together on a cold prefix each pay the 1.25× write
+  and read nothing — `4 × 1.25` against the `4 × 1.00` of not caching, which at MVP volume is the
+  normal case. Pre-warming the entry instead is not open to us: `max_tokens: 0` is rejected together
+  with `output_config.format`, which every evaluator call uses. The head costs ≈15 s of the 60 s budget
+  and buys 9–13% of the evaluation bill cold, more under traffic, because the entry is **global** — the
+  same system prompt for every answer of every session of every candidate.
+- **The bill has to be re-derivable from its own row.** `ai_call_log.cache_write_units` and
+  `cache_read_units` are separate from `input_units` (the uncached remainder the provider reports)
+  because they are billed at 1.25× and 0.1× of the input rate; `pricing.py` holds the two multiples.
+  Folded together, a cached call looks four times cheaper than it was, and every cost measurement on
+  top of it becomes a number taken on trust.
+- **`/evals` measures three things and they are not equally important** (`evals/README.md`). Fairness
+  first: `nigerian-english` must stay within one rung of `strong` **per criterion**, because a
+  weighted average hides the one descriptor that punished the idiom and the criterion is what you would
+  change. Then the two separations, on the same 0.8 margin `check-stress.mjs` applies to the written
+  scores, so "the rubric separates" and "the model separates" are read on one axis. Then agreement,
+  which against `evals/datasets/synthetic` is a **regression baseline and nothing else** — those
+  expected scores are model-written, and only `evals/datasets/gold` can say whether a score is right.
+  The harness reads files and needs no database; `--smoke` runs inside `pnpm test` so it cannot rot. **An answer that already has a row is never re-scored** — the unique
   constraint on `session_question_id` is the idempotency — so a re-run is free and a `failed` answer
   stays failed until somebody decides otherwise, which costs money and is an operator's call.
 - **Evidence that reads like an instruction is flagged, never scored around** (owner's decision,

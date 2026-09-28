@@ -44,11 +44,24 @@ class _LangfuseGeneration(Generation):
     def __init__(self, handle: LangfuseGeneration) -> None:
         self._handle = handle
 
-    def succeeded(self, *, output: object, input_tokens: int, output_tokens: int) -> None:
-        self._handle.update(
-            output=output,
-            usage_details={"input": input_tokens, "output": output_tokens},
-        )
+    def succeeded(
+        self,
+        *,
+        output: object,
+        input_tokens: int,
+        output_tokens: int,
+        cache_write_tokens: int = 0,
+        cache_read_tokens: int = 0,
+    ) -> None:
+        # Langfuse's own names for the two cache counts, so its cost view prices them at the write
+        # and read rates rather than as ordinary input. Omitted when zero, which is every call that
+        # does not ask for caching — an explicit 0 would clutter every generation in the project.
+        usage: dict[str, int] = {"input": input_tokens, "output": output_tokens}
+        if cache_write_tokens:
+            usage["cache_creation_input_tokens"] = cache_write_tokens
+        if cache_read_tokens:
+            usage["cache_read_input_tokens"] = cache_read_tokens
+        self._handle.update(output=output, usage_details=usage)
 
     def failed(self, *, code: str) -> None:
         # ERROR rather than a dropped span: a provider that refuses or times out is exactly what

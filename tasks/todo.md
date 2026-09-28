@@ -2791,3 +2791,93 @@ unconfirmed rather than explained.
 - [ ] e2e interview → report; the visual capture extended; `measure()` in `slow-network.spec.ts` fixed (the M3 leftover)
 - [ ] CLAUDE.md, the spec §4.4/§6.2 amendments, `docs/PROMPTS.md`'s "~20 sample cases", ADRs, handover, lessons
 - [ ] `docs/diagrams/figure-10-evaluation-to-readiness.svg` checked against what was built
+
+## M4 phase 5 — the eval harness, the fairness measurement, and the model decision
+
+**Built and proved on the stand-in. Nothing spent yet** — the paid run is waiting on the owner's
+go-ahead. Full write-up: `docs/progress/2026-09-28-m4-phase-5.md`.
+
+### 5a — prompt caching at the LLM seam (a prerequisite, not a detour)
+
+- [x] `LLMClient.parse` gains `cache_system`; the Anthropic client sends the system prompt as one block
+      with an **explicit** breakpoint on it (top-level automatic caching would place it after the
+      per-call tail and write an entry nothing could read); `LLMResult` carries the two counts
+- [x] `pricing.py` prices them at 1.25x (write) and 0.1x (read) of the input rate, so
+      `cost_micro_usd` is still the sum of its own row's units at three rates
+- [x] `AiCallRecord.cache_write_units` / `cache_read_units`, the two `ai_call_log` columns, and the
+      migration read by hand — Prisma proposed `DROP INDEX questions_embedding_hnsw` for the
+      **eleventh** time in a migration that adds two integers to `ai_call_log`; deleted, applied with
+      `migrate deploy`
+- [x] **The fan-out lost its first place.** Four parallel calls on a cold prefix each pay the 1.25x
+      write and read nothing — `4 x 1.25` against `4 x 1.00` uncached — so caching plus the old
+      fan-out was a net loss at MVP volume, where cold is the normal case. The first answer is scored
+      alone and the rest fan out behind it: ≈15 s of the 60 s budget, for ≈9% of the bill cold and more
+      under traffic (the entry is **global** — one system prompt for every answer of every session)
+- [x] **Pre-warming is not available to us**, whatever phase 4.6 preferred: `max_tokens: 0` is an
+      `invalid_request_error` together with `output_config.format`, which every evaluator call uses.
+      Recorded in `evaluation/calls.py`
+- [x] `evaluation.processor.spec.ts` — the head, **watched failing** with `concurrently(all)` put back,
+      and the tail proved genuinely concurrent so the test cannot pass on a sequential loop
+- [ ] **Caching has not been observed working against the real API.** `cache_read_input_tokens > 0` is
+      the only ground truth and needs a paid call. The report says so loudly if caching was asked for
+      and nothing was read back, naming the three causes — so the first paid run verifies this too
+
+### 5b — the harness
+
+- [x] `readi_worker/evals/`: `dataset.py`, `requests.py`, `metrics.py` (pure), `results.py`,
+      `report.py`, `run.py`. Reads `content/seed` and `evals/datasets`; no database, no Redis, no
+      service token — which is what makes it runnable in CI and from a dispatch job
+- [x] Every call goes through the real `EvaluationService` over the real contract, so the three gates,
+      the retry loop and the evidence verifier that run in production are what is measured
+- [x] Fairness **per criterion with the dimension named** (an average hides the one descriptor that
+      cost three rungs), one-sided; the two separations on `check-stress.mjs`'s own 0.8 margin;
+      agreement as five figures, because each hides what the others show
+- [x] **`test_the_written_scores_pass_their_own_checks`** — the corpus's own expected scores through the
+      Python harness must reach `check-stress.mjs`'s verdict on the same numbers: 102 rubrics, no
+      problems. Two implementations of one rule in two languages, agreeing on the real corpus
+- [x] `--dry-run` prints the sample and each model's cost, with the input tokens **counted** when a key
+      is present (`count_input_tokens`, free, tested against a mock transport) rather than estimated
+- [x] `--compare` reads two result files: free, repeatable, and the reason the run file holds every
+      per-criterion score and every call's usage rather than a summary
+- [x] Sequential by default; `--concurrency` exists to be left alone
+- [x] `evals/thresholds.yaml` (agreement only — the separation margin and fairness band stay in
+      `metrics.py` beside the code that applies them, because three copies of 0.8 is how three drift),
+      `evals/datasets/gold/` with its format and a skipped `*.template.yaml`, `evals/README.md`,
+      `evals/results/README.md`
+- [x] `--smoke` inside `pnpm test`: it asserts the machinery and **refuses** to assert the fairness band
+      or the separations, because the stand-in scores on the word "because". The §6.2 evidence check was
+      watched failing
+- [x] `.github/workflows/evals.yml`, `workflow_dispatch` only, path filter written and commented with
+      the reason
+- [x] Lint, typecheck green. `pnpm test`: 599 API, 396 worker, 176 web, 119 shared-types, 56 ui, 3
+      api-client
+
+### Waiting on the owner
+
+- [ ] **The paid run.** 12 rubrics x 5 = **60 answers** per model, `--seed 7`, three roles, four
+      question types, both levels. Estimated (input at 3.7 chars/token; the counted figure is one free
+      flag away with a key): **opus-5 $1.92, sonnet-5 $0.77 cached; $2.31 / $0.92 with a 20% retry
+      allowance — $3.23 for both.** The 20% is the first paid run's own rejected-reading rate
+- [ ] **The recommendation** decision 7 asks for, which cannot be written before the run. It follows
+      from fairness, then the separations, then agreement, then cost — in that order, because product
+      principle 1 puts the quality of the feedback above what it costs
+
+### Carried into phase 7 from here
+
+- [x] **The intermittent API failure is caught and named** (`docs/progress/2026-09-28-flaky-test-hunt.md`,
+      appended). It is `test/content-no-answer-key.int.spec.ts`, and it is a **Postgres connection
+      timeout in `beforeAll`** — a Failed Suite, not a failed test, which is why the counts read
+      `568 passed | 31 skipped`. Saving the whole log instead of tailing it is what found it
+- [x] **The second error was ours and hid the first.** That spec's `afterAll` ran
+      `deleteMany({ userId: { in: [undefined, undefined, undefined] } })` — a `beforeAll` that dies
+      before the three `giveProfile` calls leaves every id unset — so a `PrismaClientValidationError`
+      is what the log showed. The hook now filters the ids it has, skips content it never created and
+      closes an app that may not exist
+- [ ] **The contention itself is not fixed, on purpose.** A pool timeout under six parallel package
+      suites on six cores and 7 GB is the machine; the remedies (bigger pool, fewer turbo lanes,
+      `--maxWorkers`) each trade something real against a failure seen about once in twenty local runs
+      and never in CI. What changed is that it names itself on the first occurrence now
+- [ ] **The interview's own caching is the larger prize and is untouched.** Fourteen calls a session
+      against the same system prompt _and_ the same session bundle — a per-session prefix worth far
+      more than a per-call one — and the interview is sequential by construction, so it needs no
+      reshaping. Only 4.79¢ to save 12-16% of, so not urgent; the seam is now in place

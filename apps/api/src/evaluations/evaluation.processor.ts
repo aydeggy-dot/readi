@@ -34,6 +34,21 @@ export interface EvaluationJob {
  * because the point of a bound is that a 30-minute session does not open eight simultaneous paid
  * requests and eight simultaneous worker slots.
  *
+ * ## …and why the first answer is not in the fan-out (2026-09-28)
+ *
+ * The evaluator caches its system prompt (`evaluation/calls.py`), and a cache entry can only be read
+ * once the request that wrote it has answered. Fanning four calls out together on a cold prefix means
+ * four writes at 1.25× and no reads — `4 × 1.25` against the `4 × 1.00` of not caching at all, so
+ * caching plus an unmodified fan-out is a **net loss**, and at MVP volume the cold prefix is the
+ * normal case rather than the edge one. Pre-warming it with a `max_tokens: 0` request is not open to
+ * us either: that is rejected together with `output_config.format`, which every evaluator call uses.
+ *
+ * So one answer pays the write and the others read it. The cost is one call's latency — ≈15 s
+ * measured — which takes a 4-answer session from ≈15 s to ≈30 s and an 8-answer one from ≈30 s to
+ * ≈45 s, both inside the 60 s the spec promises. It buys 9–13% of the evaluation bill on a cold
+ * prefix and rather more when two sessions land within five minutes of each other, because the entry
+ * is **global**: the system prompt is the same for every answer of every session of every candidate.
+ *
  * ## What is retried, and what is not
  *
  * Two different failures live here and they are not treated alike.
@@ -79,19 +94,20 @@ export class EvaluationProcessor {
     if (answers.length === 0) return;
 
     let unreachable = false;
-    await concurrently(
-      answers.filter((answer) => !answer.alreadyStored),
-      this.env.EVALUATION_CONCURRENCY,
-      async (answer) => {
-        try {
-          await this.evaluate(session, answer);
-        } catch (error) {
-          if (!(error instanceof AiWorkerUnavailableError)) throw error;
-          unreachable = true;
-          if (finalAttempt) await this.giveUp(answer);
-        }
-      },
-    );
+    const runOne = async (answer: Answer): Promise<void> => {
+      try {
+        await this.evaluate(session, answer);
+      } catch (error) {
+        if (!(error instanceof AiWorkerUnavailableError)) throw error;
+        unreachable = true;
+        if (finalAttempt) await this.giveUp(answer);
+      }
+    };
+    // The first answer goes on its own, and the rest fan out behind it. See the header: this is the
+    // shape prompt caching needs, and without it caching costs more than it saves.
+    const [first, ...rest] = answers.filter((answer) => !answer.alreadyStored);
+    if (first !== undefined) await runOne(first);
+    await concurrently(rest, this.env.EVALUATION_CONCURRENCY, runOne);
 
     // Assembled from what is **stored**, so a partial run produces a partial report rather than none,
     // and a retry that fills the gap rewrites it.

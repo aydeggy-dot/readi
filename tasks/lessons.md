@@ -923,3 +923,67 @@ properties are worth writing down beside it — the budget must stay **under** t
 timeout, or the framework reports a bare timeout and the poll's message never runs; and `null`/
 `undefined` mean "not yet" while `0`, `false` and `""` are answers, which a helper written with
 `if (found)` gets wrong and no caller ever notices.
+
+## Caching a prefix that N calls race for costs more than not caching (2026-09-28)
+
+Prompt caching looked like a flag. It is not: a cache entry can only be read once the request that
+wrote it has answered, so `EVALUATION_CONCURRENCY = 4` on a cold prefix means four writes at 1.25× the
+input rate and zero reads — `4 × 1.25` against the `4 × 1.00` of not caching at all. Switching caching
+on without touching the fan-out would have **raised** the bill, and at MVP volume the cold prefix is
+the normal case rather than the edge one, so the loss would have been the default.
+
+**The rule:** before turning caching on, ask who pays the write and when the others can read it. If the
+calls are concurrent, one of them has to go first, and that costs a call's latency — spend it against
+the budget you actually have (spec §8's 60 s, here) rather than discovering the arithmetic afterwards.
+
+Two corollaries worth keeping. **The documented escape hatch may not fit**: pre-warming with
+`max_tokens: 0` is rejected together with `output_config.format`, so any call that uses structured
+output cannot be pre-warmed, and an afternoon was nearly spent on it. And **a prefix under the model's
+minimum caches silently not at all** — no error, no warning, `cache_creation_input_tokens: 0` and a
+bill. The minimum is not monotonic across generations (512 on opus-5, 1,024 on sonnet-5, 4,096 on
+haiku-4.5), so "it cached last month on the old model" is not evidence.
+
+## A cost you cannot re-derive from its own row is not a measurement (2026-09-28)
+
+Caching splits input tokens into three kinds billed at three rates. The cheap thing was to add them
+into `input_units` and let `cost_micro_usd` absorb the difference; the result would have been a row
+saying a cached call cost four times what it did, and a model-choice recommendation resting on it.
+
+**The rule:** when a price gains a term, the stored row gains a column. Two integers and a migration
+are cheaper than a cost table nobody can check, and the test to write is the one that adds the row's
+own units back up at their own rates and gets the stored cost.
+
+## An eval that measures its own prompt measures nothing (2026-09-28)
+
+Two ways the harness could have been comfortable and useless, both avoided on purpose and both easy to
+fall into later:
+
+- **Rendering its own prompt.** The harness goes through the real `EvaluationService` over the real
+  contract, so it measures the three gates, the retry loop and the evidence verifier that production
+  runs. A harness that built its own prompt would drift from production in exactly the direction that
+  keeps it green.
+- **Counting model-written expectations as gold.** `evals/datasets/synthetic`'s scores were written by
+  a model, so agreement with them is drift detection and nothing else. That fact is carried from the
+  files into the report (`Dataset.provenance`) and printed **above** the numbers, and the thresholds
+  are enforced `on_provenance: human` — because a caveat in a README does not travel with a figure
+  somebody pastes into a handover.
+
+And the third: the `--smoke` run in `pnpm test` asserts the machinery and **refuses** to assert the
+fairness band or the separations, because the stand-in evaluator scores on whether the word "because"
+appears. A green tick on a coin toss is worse than no test, because it is believed.
+
+## A `beforeAll` that can fail needs an `afterAll` that can survive it (2026-09-28)
+
+The intermittent API failure was hunted for a day and then caught, and what had been hiding it was our
+own teardown. A Postgres connection timeout killed `beforeAll` before three user ids were assigned;
+`afterAll` then ran `deleteMany({ where: { userId: { in: [undefined, undefined, undefined] } } })` and
+threw `PrismaClientValidationError`. Two errors in the log — and the loud, specific, confidently wrong
+one was a consequence of the quiet, real one.
+
+**The rule:** a teardown is the first thing anybody reads after a setup failure, so write it to run
+against a setup that got halfway. Filter the ids you have, skip the fixtures you never created, use
+`app?.close()`. It costs three lines and it is the difference between naming a flake on its first
+appearance and on its twenty-third.
+
+**And the shape is the tell.** Vitest reports this as a **Failed Suite**, so the counts read
+`568 passed | 31 skipped` rather than `1 failed` — a grep for failed _tests_ sees nothing to report.

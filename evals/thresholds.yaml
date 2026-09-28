@@ -1,0 +1,31 @@
+# Thresholds for the evaluator harness (`readi_worker.evals.run`).
+#
+# **What is not in here, and why.** The separation margin (0.8) and the fairness band (one rung) live
+# in `apps/ai-worker/readi_worker/evals/metrics.py`, beside the code that applies them, and are the
+# same constants `.claude/skills/question-bank/scripts/check-stress.mjs` holds the rubrics to. A third
+# copy here is how three copies drift, and the two that matter have to be comparable.
+#
+# What is in here is the agreement thresholds, and they are in a file rather than in code because
+# **nobody knows what they should be yet.** They are a guess written down so that the first expert
+# calibration round has something to argue with.
+version: 1
+
+agreement:
+  # Enforced only against a **human-scored** dataset. Against `datasets/synthetic` the harness prints
+  # these and enforces nothing, because the expected scores there were written by a model and
+  # agreement with them measures the drafter agreeing with itself (`datasets/synthetic/README.md`).
+  enforce_on_provenance: human
+
+  # Per criterion, over the whole run.
+  #
+  # `min_exact` is deliberately low. On a five-rung ladder two careful humans disagree by a rung
+  # routinely — that is why `min_within_one` is the number to watch and the one a regression would
+  # show up in first. If the real figures come in far above these, raise them; a threshold nothing
+  # can fail is not a threshold.
+  min_exact: 0.55
+  min_within_one: 0.90
+  max_mae: 0.60
+
+  # How far the model's mean score may sit from the humans'. A model two rungs generous everywhere
+  # correlates perfectly and is useless, and `bias` is the only figure that sees it.
+  max_absolute_bias: 0.30

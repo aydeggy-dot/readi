@@ -478,6 +478,7 @@ async def test_every_interview_call_carries_the_interviewer_deadline() -> None:
             output_type: type[T],
             max_tokens: int,
             timeout_s: float | None = None,
+            cache_system: bool = False,
         ) -> LLMResult[T]:
             deadlines.append(timeout_s)
             return await self._inner.parse(

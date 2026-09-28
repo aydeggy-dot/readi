@@ -51,6 +51,20 @@ DEFAULT_TIMEOUT_S = 60.0
 
 PURPOSE: Literal["evaluator"] = "evaluator"
 
+#: The system prompt is cached, and it is the only part of the request that can be (2026-09-28).
+#:
+#: Render order is `tools → system → messages`, and this call's user message diverges at its first
+#: interpolation — the question — two lines in. So the shared prefix is `evaluate_answer.vN.md` and
+#: nothing else: ~1,700 tokens of a ~4,350-token call, the same for every answer of every session
+#: and every candidate, which is what makes the entry worth writing at all.
+#:
+#: **Pre-warming it is not available to us.** `max_tokens: 0` — the documented way to write a cache
+#: entry before the traffic arrives — is an `invalid_request_error` together with
+#: `output_config.format`, and every evaluator call is structured output. That is why the API
+#: scores the first answer of a session alone and fans the rest out behind it: somebody has to pay
+#: the write before the others can read it, and it cannot be a request that generates nothing.
+CACHE_SYSTEM_PROMPT = True
+
 
 class CriterionReading(BaseModel):
     """One criterion, as the model reads it. Not yet checked against anything."""
@@ -114,6 +128,7 @@ class Evaluator:
                     output_type=AnswerReading,
                     max_tokens=MAX_OUTPUT_TOKENS,
                     timeout_s=self._timeout_s,
+                    cache_system=CACHE_SYSTEM_PROMPT,
                 )
         except LLMError as exc:
             return Reading(output=None, record=_error_record(exc), failure=exc.code)
@@ -136,11 +151,21 @@ def _record(result: LLMResult[AnswerReading], *, rejected_code: str | None = Non
             "status": "ok" if result.output is not None else "error",
             "error_code": rejected_code or result.failure,
             "latency_ms": result.latency_ms,
+            # The uncached remainder, the write and the read, kept apart because they are billed
+            # at three different rates and a cost that cannot be re-derived from its own row is not
+            # a measurement.
             "input_units": result.input_tokens,
             "output_units": result.output_tokens,
+            "cache_write_units": result.cache_write_tokens,
+            "cache_read_units": result.cache_read_tokens,
             "unit_kind": "tokens",
             "cost_micro_usd": token_cost_micro_usd(
-                result.provider, result.model, result.input_tokens, result.output_tokens
+                result.provider,
+                result.model,
+                result.input_tokens,
+                result.output_tokens,
+                result.cache_write_tokens,
+                result.cache_read_tokens,
             ),
             "langfuse_trace_id": current_trace_id(),
         }
@@ -158,6 +183,8 @@ def _error_record(exc: LLMError) -> AiCallRecord:
             "latency_ms": exc.latency_ms,
             "input_units": 0,
             "output_units": 0,
+            "cache_write_units": 0,
+            "cache_read_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": 0,
             "langfuse_trace_id": current_trace_id(),

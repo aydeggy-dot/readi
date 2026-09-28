@@ -135,9 +135,28 @@ export const AiCallRecord = z
     status: z.enum(["ok", "error"]),
     error_code: z.string().min(1).max(60).nullable(),
     latency_ms: z.int().min(0),
+    /**
+     * Input units billed at the full rate — for tokens, the **uncached remainder**, which is what the
+     * provider reports. The whole prompt is this plus the two cache counts below.
+     */
     input_units: z.int().min(0),
     output_units: z.int().min(0),
     unit_kind: AiUnitKind,
+    /**
+     * Prompt-cache tokens, kept apart from `input_units` because they are billed at three different
+     * rates: a write at 1.25× the input rate, a read at 0.1× (2026-09-28, the evaluator's system
+     * prompt). Folded into `input_units` they would make a cached call look four times cheaper than it
+     * is, and `cost_micro_usd` would stop being re-derivable from its own row — which is the only
+     * reason the column exists rather than a cost field taken on trust.
+     *
+     * The asymmetry across the boundary is deliberate: the generated Pydantic makes them **required**
+     * (an output schema's defaults are always present in the output), so the worker always sends them
+     * and reports 0 for every purpose that does not cache — which is all of them but `evaluator`. The
+     * default is on this side, so an API that is a deploy ahead of its worker does not 500 on every
+     * evaluation over two integers that are almost always zero.
+     */
+    cache_write_units: z.int().min(0).default(0),
+    cache_read_units: z.int().min(0).default(0),
     cost_micro_usd: z.int().min(0),
     /**
      * The Langfuse trace this call was made under (ADR-0008), for `ai_call_log.langfuse_trace_id`.

@@ -125,24 +125,7 @@ class EvaluationService:
     async def _score(self, request: EvaluateAnswerRequest) -> EvaluateAnswerResponse:
         criteria = request.question.rubric.criteria
         said = candidate_words(request.exchange)
-        system = render("evaluate_answer", PROMPT_VERSIONS["evaluate_answer"])
-        base = render(
-            "evaluate_answer_input",
-            PROMPT_VERSIONS["evaluate_answer_input"],
-            question_block=as_data(request.question.prompt, "question"),
-            context_block=(
-                as_data(request.question.context.root, "context")
-                if request.question.context
-                else ""
-            ),
-            criteria_block=criteria_block(criteria),
-            ideal_points_block=(
-                "\n".join(f"- {point.root}" for point in request.question.ideal_points)
-                if request.question.ideal_points
-                else ""
-            ),
-            transcript_block=transcript_block(request.exchange),
-        )
+        system, base = render_prompts(request)
 
         calls: list[AiCallRecord] = []
         correction = ""
@@ -206,6 +189,34 @@ class EvaluationService:
 
 
 # ---- What the model is shown.
+
+
+def render_prompts(request: EvaluateAnswerRequest) -> tuple[str, str]:
+    """The two halves of the call: the system prompt, and the user message for this answer.
+
+    Separate from `_score` so that the exact bytes can be measured without making a call — which is
+    how `readi_worker.evals.run --dry-run` prices a paid run before the owner approves it, and how
+    the cacheable prefix was measured at all. The split is also the caching design: the system
+    prompt is identical for every answer of every session, and the user message diverges at its
+    first interpolation, so the first return value is the whole of what can be cached.
+    """
+    system = render("evaluate_answer", PROMPT_VERSIONS["evaluate_answer"])
+    user = render(
+        "evaluate_answer_input",
+        PROMPT_VERSIONS["evaluate_answer_input"],
+        question_block=as_data(request.question.prompt, "question"),
+        context_block=(
+            as_data(request.question.context.root, "context") if request.question.context else ""
+        ),
+        criteria_block=criteria_block(request.question.rubric.criteria),
+        ideal_points_block=(
+            "\n".join(f"- {point.root}" for point in request.question.ideal_points)
+            if request.question.ideal_points
+            else ""
+        ),
+        transcript_block=transcript_block(request.exchange),
+    )
+    return system, user
 
 
 def candidate_words(exchange: list[EvaluationTurn]) -> str:

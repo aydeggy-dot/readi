@@ -303,9 +303,14 @@ model AiCallLog {
   status          AiCallStatus
   errorCode       String?       @map("error_code")
   latencyMs       Int           @map("latency_ms")
+  /// Billed at the full input rate: for tokens, the uncached remainder the provider reports.
   inputUnits      Int           @map("input_units")
   outputUnits     Int           @map("output_units")
   unitKind        AiUnitKind    @map("unit_kind")
+  /// Prompt-cache tokens, billed at 1.25× (write) and 0.1× (read) of the input rate, so
+  /// `cost_micro_usd` can still be re-derived from the row. 0 for every purpose but `evaluator`.
+  cacheWriteUnits Int           @default(0) @map("cache_write_units")
+  cacheReadUnits  Int           @default(0) @map("cache_read_units")
   /// Integer micro-USD (1 USD = 1,000,000).
   costMicroUsd    BigInt        @map("cost_micro_usd")
   langfuseTraceId String?       @map("langfuse_trace_id")

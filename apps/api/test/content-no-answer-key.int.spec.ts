@@ -185,11 +185,22 @@ describe("candidate content never carries the answer key", () => {
   }
 
   afterAll(async () => {
-    await prisma.interviewSession.deleteMany({
-      where: { userId: { in: [candidateUserId, liveUserId, scoredUserId] } },
-    });
-    await removeContent(prisma, fixture);
-    await app.close();
+    /*
+     * Every step is guarded on what `beforeAll` actually reached, because when it does **not** reach
+     * the end this hook is what somebody reads first — and an unguarded one buries the real failure.
+     * Caught on 2026-09-28: a Postgres connection timeout in `beforeAll` (six package suites at once
+     * on six cores) left the three ids `undefined`, so `in: [undefined, undefined, undefined]` threw
+     * `PrismaClientValidationError` and that is what the log showed. Two errors, and the loud one was
+     * a consequence of the quiet one. `docs/progress/2026-09-28-flaky-test-hunt.md`.
+     */
+    const userIds = [candidateUserId, liveUserId, scoredUserId].filter(
+      (id): id is string => id !== undefined,
+    );
+    if (userIds.length > 0) {
+      await prisma.interviewSession.deleteMany({ where: { userId: { in: userIds } } });
+    }
+    if (fixture !== undefined) await removeContent(prisma, fixture);
+    await app?.close();
   });
 
   /**

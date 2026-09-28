@@ -160,6 +160,30 @@ describe("evaluating an ended session", () => {
     expect(JSON.stringify(asked?.question.rubric)).not.toContain("weight");
   });
 
+  it("records what the call cost, with the cached tokens kept apart from the priced ones", async () => {
+    /*
+     * The two columns exist so that `cost_micro_usd` can be re-derived from the row it sits on
+     * (2026-09-28). The evaluator caches its system prompt, so on an ordinary call most of the input is
+     * a cache read billed at a tenth of the input rate — folded into `input_units` the row would say a
+     * cached call cost four times what it did, and the model comparison rests on these numbers.
+     */
+    const cookie = await candidate();
+    const session = await completed(cookie);
+    await report(session.id);
+
+    const calls = await prisma.aiCallLog.findMany({
+      where: { sessionId: session.id, purpose: "evaluator" },
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      inputUnits: 2_400,
+      outputUnits: 300,
+      cacheWriteUnits: 0,
+      cacheReadUnits: 1_700,
+      unitKind: "tokens",
+    });
+  });
+
   it("weights by the pinned rubric and discounts the criterion the engine had to ask about", async () => {
     const cookie = await candidate();
     const session = await completed(cookie);

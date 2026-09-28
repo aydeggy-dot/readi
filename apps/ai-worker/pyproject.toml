@@ -26,6 +26,11 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "ruff==0.16.8",
+    # `readi_worker.evals` reads the seed rubrics and the synthetic answer sets, which are YAML.
+    # A **dev** dependency on purpose: the harness is a tool run from a shell and from pytest, and
+    # nothing the server imports touches it — `main.py` never reaches `readi_worker.evals`.
+    "pyyaml==6.0.3",
+    "types-pyyaml==6.0.12.20260906",
 ]
 
 [tool.uv]

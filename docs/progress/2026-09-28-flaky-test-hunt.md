@@ -103,3 +103,56 @@ this turns a real failure into a slower report of the same failure, never into a
 - `pnpm test:e2e` green for the first time this milestone, now that the dev servers are down: **9
   passed, 6 skipped** (the opt-in visual and slow-network specs). It covers the interview but **not the
   report** — "e2e interview → report" is still owed by M4 phase 7.
+
+
+---
+
+## Caught, 2026-09-28 (during M4 phase 5)
+
+**It is `test/content-no-answer-key.int.spec.ts`, and it is a Postgres connection timeout, not an
+assertion.** Twenty runs did not reproduce it; the twenty-third did, with the whole log saved this time
+rather than tailed.
+
+```
+FAIL  test/content-no-answer-key.int.spec.ts > candidate content never carries the answer key
+Error: Connection terminated due to connection timeout
+  ❯ pg-pool/index.js:45:11
+  ❯ PrismaPgAdapter.performIO … queryRaw
+Caused by: Error: Connection terminated unexpectedly
+```
+
+The suite is a **Failed Suite**, not a failed test — `beforeAll` never finished, which is why the
+counts read `568 passed | 31 skipped` rather than `1 failed`. That shape is the tell, and it is what to
+grep for next time.
+
+### The second error was ours, and it hid the first
+
+`afterAll` then threw a `PrismaClientValidationError` on
+`interviewSession.deleteMany({ where: { userId: { in: [undefined, undefined, undefined] } } })` —
+"Can not use `undefined` value within array" — because a `beforeAll` that died before the three
+`giveProfile` calls leaves all three ids unset. Two errors in the log, and the loud, specific,
+wrong-looking one was a consequence of the quiet one.
+
+**Fixed**: the hook filters the ids it has, skips the content removal it never created, and closes an
+app that may not exist. A teardown is the first thing somebody reads after a setup failure, so it has
+to survive one.
+
+### What it says about the cause
+
+It confirms the one lead this document already had — contention, not logic. This run was
+`pnpm test --force` with six package suites in parallel on six cores and ~7 GB, with the API's own four
+Nest apps inside one of them; the connection pool could not get a socket inside its timeout. Nothing in
+the spec is at fault, and nothing about it is specific to answer keys: it is simply one of the heavier
+integration suites (31 tests, three accounts, a whole scored interview) and so the most likely to be
+waiting on the pool when it is exhausted.
+
+**Not fixed, and deliberately**: the contention itself. A pool timeout under a deliberately parallel
+full-suite run on a 7 GB box is the machine, not the code, and the remedies (a bigger pool, fewer turbo
+lanes, `--maxWorkers`) all trade something real for a failure that appears roughly once in twenty runs
+and never in CI. What has changed is that it will now name itself the first time rather than the
+twenty-third.
+
+### The rule this adds to `tasks/lessons.md`
+
+A `beforeAll` that can fail needs an `afterAll` that can survive it. Otherwise the first genuine
+failure arrives wearing a second, more confident error as a mask.

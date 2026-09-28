@@ -78,6 +78,8 @@ def _record(result: EmbeddingResult) -> AiCallRecord:
             "input_units": result.input_tokens,
             # Embeddings have no output tokens; the ledger keeps the shape of every other call.
             "output_units": 0,
+            "cache_write_units": 0,
+            "cache_read_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": token_cost_micro_usd(
                 result.provider, result.model, result.input_tokens, 0
@@ -101,6 +103,8 @@ def _error_record(exc: EmbeddingError) -> AiCallRecord:
             "latency_ms": exc.latency_ms,
             "input_units": 0,
             "output_units": 0,
+            "cache_write_units": 0,
+            "cache_read_units": 0,
             "unit_kind": "tokens",
             "cost_micro_usd": 0,
             "langfuse_trace_id": None,  # embeddings are not traced; see `_record`.

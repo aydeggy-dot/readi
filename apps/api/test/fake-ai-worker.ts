@@ -98,6 +98,9 @@ export class FakeAiWorker extends AiWorkerClient {
           latency_ms: 3,
           input_units: failed ? 0 : 120,
           output_units: 0,
+          // Only the evaluator caches (`evaluation/calls.py`); everything else reports zero.
+          cache_write_units: 0,
+          cache_read_units: 0,
           unit_kind: "tokens",
           cost_micro_usd: 0,
           langfuse_trace_id: null,
@@ -145,6 +148,8 @@ export class FakeAiWorker extends AiWorkerClient {
               latency_ms: 1234,
               input_units: 3000,
               output_units: 1000,
+              cache_write_units: 0,
+              cache_read_units: 0,
               unit_kind: "tokens",
               cost_micro_usd: 16_000,
               langfuse_trace_id: null,
@@ -379,6 +384,8 @@ function interviewerCall(langfuseTraceId: string | null): AiCallRecord {
     latency_ms: 7,
     input_units: 900,
     output_units: 40,
+    cache_write_units: 0,
+    cache_read_units: 0,
     unit_kind: "tokens",
     cost_micro_usd: 0,
     // Null as it is in every local run: the worker has no Langfuse keys (ADR-0008).
@@ -468,8 +475,13 @@ function evaluatorCall(status: "ok" | "error"): AiCallRecord {
     status,
     error_code: status === "ok" ? null : "rejected_evidence",
     latency_ms: 11,
+    // The three input figures the real evaluator reports separately, because they are billed at three
+    // rates: the uncached remainder, the cache write, and the read. A cached call is the ordinary case
+    // for this purpose — every answer of every session sends the same system prompt.
     input_units: 2_400,
     output_units: 300,
+    cache_write_units: 0,
+    cache_read_units: 1_700,
     unit_kind: "tokens",
     cost_micro_usd: 0,
     // Null as it is in every local run: the worker has no Langfuse keys (ADR-0008).

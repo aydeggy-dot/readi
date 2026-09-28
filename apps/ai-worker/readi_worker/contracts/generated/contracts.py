@@ -284,6 +284,8 @@ class AiCallRecord(BaseModel):
     input_units: int = Field(..., ge=0, le=9007199254740991)
     output_units: int = Field(..., ge=0, le=9007199254740991)
     unit_kind: Literal["tokens", "characters", "seconds"]
+    cache_write_units: int = Field(..., ge=0, le=9007199254740991)
+    cache_read_units: int = Field(..., ge=0, le=9007199254740991)
     cost_micro_usd: int = Field(..., ge=0, le=9007199254740991)
     langfuse_trace_id: LangfuseTraceId | None
 
