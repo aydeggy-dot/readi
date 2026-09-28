@@ -162,9 +162,45 @@ about 8 criteria in 90 more than a repeat run would.
 **What would settle it, and it is cheap: one repeat strict run on the same frontend and qa six,
 ≈$1.04.** Two strict runs on one sample give the strict noise floor, which is the only thing that
 separates "the schema reads these rubrics differently" from "this run read these rubrics differently".
-Until that exists, the switch rests on the two measurements that do mean something today — fairness
-inside the band on all 36 criteria and both separations 12 of 12 — plus the rejection rate it was
-built for. Reverting is one line in `settings.py`.
+
+## Settled: it was noise, and the repeat says so three ways
+
+**`evals/results/20260928T205141Z-claude-opus-5.json`, ran at 20:51, $1.02 of the $1.20 cap.** Zero
+rejected readings again — 90 calls now with none — and the finding above does not survive it.
+
+| the six `frontend`+`qa` rubrics | exact | MAE |
+| --- | --: | --: |
+| **noise floor**, v2 vs v2 (two identically configured runs) | 88% | 0.12 |
+| **noise floor**, strict vs strict (the two runs of this sample) | **84%** | **0.16** |
+| v2 021206 vs strict run 1 | 80% | 0.20 |
+| v2 021206 vs strict **run 2** | **89%** | **0.11** |
+
+1. **"Strict vs v2" straddles the noise floor rather than sitting below it.** Run 1 was 80%/0.20 and
+   run 2 is 89%/0.11 — the second is *better* agreement with v2 than either configuration manages with
+   itself. A difference that reverses when you run it again is not a difference.
+2. **Against the expectations, the two distributions overlap.** v2's three runs are 85%, 91% and 89%;
+   strict's two on this sample are 80% and 87%. v2's own runs differ from each other by 6 points, which
+   is the same order as the 9-point gap that prompted the flag. Run 1's 80% was the low tail.
+3. **The fairness drift did not reproduce, and reverted exactly.** Run 1 was +0.17 with 3 of 18 criteria
+   a rung below `strong`; run 2 is **−0.06 with none**, which is v2 021206's figure to the decimal
+   (v2's own three runs span −0.06 to −0.13, and two of them had a criterion at +1 where strict run 2
+   has none). Every run, both configurations, stays inside the band.
+
+**So the schema is not implicated, and strict stays the default.** The flag was raised on one run per
+rubric set, which — as it was written down at the time — could not tell a schema effect from a run
+effect; the repeat resolved it toward the run. What the schema changed is what it was built to change:
+
+| | answers | calls | rejected | unscored | ¢/answer |
+| --- | --: | --: | --: | --: | --: |
+| v2 baseline, three runs | 180 | 297 | **74 (25%)** | 20 | 4.24 |
+| **strict, three runs** | 90 | 90 | **0** | 0 | **3.40** |
+
+P(90 clean calls at the baseline rate) is 6 × 10⁻¹². Cost per session stands at **13.6¢ / 27.2¢**;
+the third run measured 3.40¢ an answer, the same figure to the penny as the two before it.
+
+**What is still not settled is the thing no run can settle**: all of this is agreement with
+model-written expectations. Only `evals/datasets/gold` can say whether a score is *right*, and it is
+empty.
 
 ## What was not decided
 

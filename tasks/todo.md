@@ -3119,7 +3119,22 @@ falls, and the sizing for it is at the end of this section.
       because their stubs answer in the list shape. Those tests exercise the three gates — including the
       `rejected_criteria` check the schema is meant to make unreachable, which is still live code and
       still the last line if a provider ignores the schema, so it needs a shape it can fire on
-- [ ] **Not clean, and worth one more run (~$1.04): strict reads the frontend/qa six differently.**
+- [x] **Settled 2026-09-28: it was run-to-run noise, and strict stays the default.** The repeat run on
+      the frontend/qa six (`20260928T205141Z`, $1.02 of a $1.20 cap) killed the finding three ways.
+      **The strict noise floor is 84%/0.16** on these rubrics, and "strict vs v2" **straddles** it
+      rather than sitting below: run 1 was 80%/0.20, run 2 is **89%/0.11** — better agreement with v2
+      than either configuration manages with itself, and a difference that reverses on a re-run is not
+      one. Against the expectations the distributions **overlap**: v2's three runs are 85/91/89 and
+      strict's two are 80/87, with v2's own runs 6 points apart — the same order as the 9-point gap that
+      raised the flag. And **the fairness drift reverted exactly**: +0.17 with 3 criteria a rung below
+      `strong` became **-0.06 with none**, which is v2's figure to the decimal. Every run of both
+      configurations stayed inside the band
+- [x] **Three strict runs: 90 answers, 90 calls, 0 rejected, 0 unscored, 3.40¢ an answer** — the same
+      figure to the penny all three times. P(90 clean calls at the 25% baseline rate) is 6e-12.
+      Sessions stand at **13.6¢ / 27.2¢**. What no run can settle is that all of it is agreement with
+      **model-written** expectations; only `evals/datasets/gold` can say whether a score is right, and
+      it is empty
+- [ ] **Superseded — not clean, and worth one more run (~$1.04): strict reads the frontend/qa six differently.**
       Two v2 runs on one sample give the evaluator's noise floor, so this is measurable rather than
       arguable. On the backend six strict is a repeat run (92%/0.08 against a 93%/0.07 floor, and 81%
       vs 80% against the expectations). On the frontend/qa six it is not: **80%/0.20 against an
