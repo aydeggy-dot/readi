@@ -1,0 +1,952 @@
+{
+  "version": 1,
+  "label": "opus-strict-frontend-qa-repeat",
+  "dataset": "synthetic",
+  "provenance": "ai_draft",
+  "provider": "anthropic",
+  "model": "claude-opus-5",
+  "started_at": "2026-09-28T23:00:35+00:00",
+  "finished_at": "2026-09-28T23:06:33+00:00",
+  "cache_system": true,
+  "strict_criteria": true,
+  "prompt_versions": {
+    "evaluate_answer": 2,
+    "evaluate_answer_input": 1
+  },
+  "retried_from": null,
+  "stopped": null,
+  "planned": [
+    "async-ordering-understanding/strong",
+    "async-ordering-understanding/weak",
+    "async-ordering-understanding/fluent-but-wrong",
+    "async-ordering-understanding/correct-poorly-explained",
+    "async-ordering-understanding/nigerian-english",
+    "async-unblocking/strong",
+    "async-unblocking/weak",
+    "async-unblocking/fluent-but-wrong",
+    "async-unblocking/correct-poorly-explained",
+    "async-unblocking/nigerian-english",
+    "client-boundary-reasoning/strong",
+    "client-boundary-reasoning/weak",
+    "client-boundary-reasoning/fluent-but-wrong",
+    "client-boundary-reasoning/correct-poorly-explained",
+    "client-boundary-reasoning/nigerian-english",
+    "help-seeking-judgement/strong",
+    "help-seeking-judgement/weak",
+    "help-seeking-judgement/fluent-but-wrong",
+    "help-seeking-judgement/correct-poorly-explained",
+    "help-seeking-judgement/nigerian-english",
+    "raising-a-quality-concern/strong",
+    "raising-a-quality-concern/weak",
+    "raising-a-quality-concern/fluent-but-wrong",
+    "raising-a-quality-concern/correct-poorly-explained",
+    "raising-a-quality-concern/nigerian-english",
+    "test-data-judgement/strong",
+    "test-data-judgement/weak",
+    "test-data-judgement/fluent-but-wrong",
+    "test-data-judgement/correct-poorly-explained",
+    "test-data-judgement/nigerian-english"
+  ],
+  "cases": [
+    {
+      "rubric": "async-ordering-understanding",
+      "role": "frontend",
+      "kind": "strong",
+      "question": "js-async-ordering",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        3
+      ],
+      "evidence": [
+        3,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1640,
+        "output_tokens": 959,
+        "cache_write_tokens": 3166,
+        "cache_read_tokens": 0,
+        "cost_micro_usd": 51962,
+        "latency_ms": 15132
+      }
+    },
+    {
+      "rubric": "async-ordering-understanding",
+      "role": "frontend",
+      "kind": "weak",
+      "question": "js-async-ordering",
+      "scores": [
+        1,
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        1,
+        1,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1587,
+        "output_tokens": 753,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 28343,
+        "latency_ms": 10754
+      }
+    },
+    {
+      "rubric": "async-ordering-understanding",
+      "role": "frontend",
+      "kind": "fluent-but-wrong",
+      "question": "js-async-ordering",
+      "scores": [
+        1,
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        2,
+        1,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1641,
+        "output_tokens": 972,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 34088,
+        "latency_ms": 13552
+      }
+    },
+    {
+      "rubric": "async-ordering-understanding",
+      "role": "frontend",
+      "kind": "correct-poorly-explained",
+      "question": "js-async-ordering",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        3
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1607,
+        "output_tokens": 982,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 34168,
+        "latency_ms": 13545
+      }
+    },
+    {
+      "rubric": "async-ordering-understanding",
+      "role": "frontend",
+      "kind": "nigerian-english",
+      "question": "js-async-ordering",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        3
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1638,
+        "output_tokens": 956,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 33673,
+        "latency_ms": 12902
+      }
+    },
+    {
+      "rubric": "async-unblocking",
+      "role": "frontend",
+      "kind": "strong",
+      "question": "the-overnight-blocker",
+      "scores": [
+        4,
+        4,
+        3
+      ],
+      "expected": [
+        4,
+        4,
+        3
+      ],
+      "evidence": [
+        3,
+        2,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1238,
+        "output_tokens": 837,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 28698,
+        "latency_ms": 11594
+      }
+    },
+    {
+      "rubric": "async-unblocking",
+      "role": "frontend",
+      "kind": "weak",
+      "question": "the-overnight-blocker",
+      "scores": [
+        1,
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        0
+      ],
+      "evidence": [
+        2,
+        1,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1152,
+        "output_tokens": 712,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 25143,
+        "latency_ms": 10366
+      }
+    },
+    {
+      "rubric": "async-unblocking",
+      "role": "frontend",
+      "kind": "fluent-but-wrong",
+      "question": "the-overnight-blocker",
+      "scores": [
+        1,
+        1,
+        0
+      ],
+      "expected": [
+        1,
+        1,
+        0
+      ],
+      "evidence": [
+        2,
+        1,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1201,
+        "output_tokens": 912,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30388,
+        "latency_ms": 12529
+      }
+    },
+    {
+      "rubric": "async-unblocking",
+      "role": "frontend",
+      "kind": "correct-poorly-explained",
+      "question": "the-overnight-blocker",
+      "scores": [
+        3,
+        2,
+        3
+      ],
+      "expected": [
+        3,
+        2,
+        3
+      ],
+      "evidence": [
+        2,
+        2,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1185,
+        "output_tokens": 1114,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 35358,
+        "latency_ms": 16712
+      }
+    },
+    {
+      "rubric": "async-unblocking",
+      "role": "frontend",
+      "kind": "nigerian-english",
+      "question": "the-overnight-blocker",
+      "scores": [
+        4,
+        4,
+        3
+      ],
+      "expected": [
+        4,
+        4,
+        3
+      ],
+      "evidence": [
+        3,
+        2,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1233,
+        "output_tokens": 833,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 28573,
+        "latency_ms": 11263
+      }
+    },
+    {
+      "rubric": "client-boundary-reasoning",
+      "role": "frontend",
+      "kind": "strong",
+      "question": "nextjs-server-or-client",
+      "scores": [
+        3,
+        4,
+        4
+      ],
+      "expected": [
+        4,
+        4,
+        4
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1263,
+        "output_tokens": 700,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 25398,
+        "latency_ms": 10129
+      }
+    },
+    {
+      "rubric": "client-boundary-reasoning",
+      "role": "frontend",
+      "kind": "weak",
+      "question": "nextjs-server-or-client",
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "expected": [
+        1,
+        0,
+        0
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1223,
+        "output_tokens": 1026,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 33348,
+        "latency_ms": 13916
+      }
+    },
+    {
+      "rubric": "client-boundary-reasoning",
+      "role": "frontend",
+      "kind": "fluent-but-wrong",
+      "question": "nextjs-server-or-client",
+      "scores": [
+        0,
+        0,
+        0
+      ],
+      "expected": [
+        0,
+        1,
+        0
+      ],
+      "evidence": [
+        1,
+        1,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1254,
+        "output_tokens": 960,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 31853,
+        "latency_ms": 13024
+      }
+    },
+    {
+      "rubric": "client-boundary-reasoning",
+      "role": "frontend",
+      "kind": "correct-poorly-explained",
+      "question": "nextjs-server-or-client",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        3
+      ],
+      "evidence": [
+        1,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1212,
+        "output_tokens": 946,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 31293,
+        "latency_ms": 12993
+      }
+    },
+    {
+      "rubric": "client-boundary-reasoning",
+      "role": "frontend",
+      "kind": "nigerian-english",
+      "question": "nextjs-server-or-client",
+      "scores": [
+        3,
+        4,
+        4
+      ],
+      "expected": [
+        4,
+        4,
+        4
+      ],
+      "evidence": [
+        2,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1245,
+        "output_tokens": 903,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 30383,
+        "latency_ms": 11775
+      }
+    },
+    {
+      "rubric": "help-seeking-judgement",
+      "role": "frontend",
+      "kind": "strong",
+      "question": "stuck-and-asked-for-help",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        3
+      ],
+      "evidence": [
+        2,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1333,
+        "output_tokens": 1007,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 33423,
+        "latency_ms": 15213
+      }
+    },
+    {
+      "rubric": "help-seeking-judgement",
+      "role": "frontend",
+      "kind": "weak",
+      "question": "stuck-and-asked-for-help",
+      "scores": [
+        1,
+        1,
+        1
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "evidence": [
+        1,
+        2,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1278,
+        "output_tokens": 701,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 25498,
+        "latency_ms": 11191
+      }
+    },
+    {
+      "rubric": "help-seeking-judgement",
+      "role": "frontend",
+      "kind": "fluent-but-wrong",
+      "question": "stuck-and-asked-for-help",
+      "scores": [
+        2,
+        0,
+        0
+      ],
+      "expected": [
+        3,
+        0,
+        0
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1307,
+        "output_tokens": 992,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 32918,
+        "latency_ms": 16033
+      }
+    },
+    {
+      "rubric": "help-seeking-judgement",
+      "role": "frontend",
+      "kind": "correct-poorly-explained",
+      "question": "stuck-and-asked-for-help",
+      "scores": [
+        3,
+        3,
+        4
+      ],
+      "expected": [
+        3,
+        3,
+        3
+      ],
+      "evidence": [
+        2,
+        2,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1389,
+        "output_tokens": 1198,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 38478,
+        "latency_ms": 17014
+      }
+    },
+    {
+      "rubric": "help-seeking-judgement",
+      "role": "frontend",
+      "kind": "nigerian-english",
+      "question": "stuck-and-asked-for-help",
+      "scores": [
+        3,
+        3,
+        3
+      ],
+      "expected": [
+        3,
+        4,
+        3
+      ],
+      "evidence": [
+        2,
+        3,
+        1
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1353,
+        "output_tokens": 1201,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 38373,
+        "latency_ms": 17831
+      }
+    },
+    {
+      "rubric": "raising-a-quality-concern",
+      "role": "qa",
+      "kind": "strong",
+      "question": "pushing-back-on-a-release",
+      "scores": [
+        3,
+        3,
+        2
+      ],
+      "expected": [
+        3,
+        3,
+        2
+      ],
+      "evidence": [
+        2,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1478,
+        "output_tokens": 1156,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 37873,
+        "latency_ms": 22486
+      }
+    },
+    {
+      "rubric": "raising-a-quality-concern",
+      "role": "qa",
+      "kind": "weak",
+      "question": "pushing-back-on-a-release",
+      "scores": [
+        2,
+        2,
+        1
+      ],
+      "expected": [
+        2,
+        2,
+        1
+      ],
+      "evidence": [
+        2,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1425,
+        "output_tokens": 1157,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 37633,
+        "latency_ms": 20350
+      }
+    },
+    {
+      "rubric": "raising-a-quality-concern",
+      "role": "qa",
+      "kind": "fluent-but-wrong",
+      "question": "pushing-back-on-a-release",
+      "scores": [
+        1,
+        0,
+        0
+      ],
+      "expected": [
+        1,
+        0,
+        0
+      ],
+      "evidence": [
+        3,
+        2,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1448,
+        "output_tokens": 948,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 32523,
+        "latency_ms": 14871
+      }
+    },
+    {
+      "rubric": "raising-a-quality-concern",
+      "role": "qa",
+      "kind": "correct-poorly-explained",
+      "question": "pushing-back-on-a-release",
+      "scores": [
+        4,
+        3,
+        2
+      ],
+      "expected": [
+        4,
+        3,
+        2
+      ],
+      "evidence": [
+        3,
+        3,
+        2
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1433,
+        "output_tokens": 1047,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 34923,
+        "latency_ms": 14882
+      }
+    },
+    {
+      "rubric": "raising-a-quality-concern",
+      "role": "qa",
+      "kind": "nigerian-english",
+      "question": "pushing-back-on-a-release",
+      "scores": [
+        3,
+        4,
+        3
+      ],
+      "expected": [
+        3,
+        3,
+        2
+      ],
+      "evidence": [
+        3,
+        3,
+        3
+      ],
+      "error": null,
+      "confidence": "high",
+      "evidence_flags": [],
+      "call_errors": [],
+      "usage": {
+        "calls": 1,
+        "rejected": 0,
+        "failed": 0,
+        "input_tokens": 1488,
+        "output_tokens": 1284,
+        "cache_write_tokens": 0,
+        "cache_read_tokens": 3166,
+        "cost_micro_usd": 41123,
+        "latency_ms": 18699
+      }
+    }
+  ]
+}

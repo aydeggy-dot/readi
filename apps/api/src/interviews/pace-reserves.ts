@@ -14,7 +14,10 @@ import type { PaceReserves } from "./pace";
  */
 export const ENGINE_RESERVES: PaceReserves = {
   forAQuestion: 120,
-  forAFollowUp: 45,
-  toOpenAQuestion: 165,
+  // 75 since 2026-09-29, provisionally and on a sample of eight: the median follow-up answer this
+  // very report measured was 61 s and five of eight ran past the old 45. See `budgets.py` for why
+  // over-reserving is the safe direction and how to revisit it.
+  forAFollowUp: 75,
+  toOpenAQuestion: 195,
   forCandidateQuestions: 90,
 };

@@ -18,9 +18,26 @@ from datetime import datetime, timedelta
 #: minutes is roughly "enough for the answer, if not for the probing".
 SECONDS_FOR_A_QUESTION = 120
 
-#: A follow-up is one sentence and one answer, so it needs far less than a question does. Below
-#: this the engine moves on rather than asking something the deadline will interrupt.
-SECONDS_FOR_A_FOLLOW_UP = 45
+#: A follow-up is one sentence and one answer, so it needs less than a question does. Below this the
+#: engine moves on rather than asking something the deadline will interrupt.
+#:
+#: **75, provisionally, on a sample of eight** (owner's decision, 2026-09-29). It was 45, a guess
+#: made before anybody had typed an answer into this, and the first measurement said the guess was
+#: wrong in the direction that costs the candidate: over the sessions
+#: `pnpm --filter @readi/api interviews:pace` could read, the median follow-up answer took **61 s
+#: and five of eight ran past 45**, so the engine was starting probes the clock could not finish.
+#: 75 sits above that median with room, and deliberately not at the p90 (224 s) — one slow answer
+#: in eight should not buy every candidate a shorter interview.
+#:
+#: **What makes it safe to be wrong about.** Reserving too much ends a session with a probe unasked,
+#: and since the owner's decision of 2026-09-27 an unasked criterion is **not assessed** and leaves
+#: the denominator (`scoring.ts`) — so the cost of over-reserving is a slightly shorter interview,
+#: not a lower score. Reserving too little is the failure this fixes: a probe asked and cut off.
+#:
+#: **Provisional, and the way to revisit it is written down.** n=8 is a shape, not a number.
+#: `interviews:pace` says NOT ENOUGH TO SET A CONSTANT FROM under 40 answers, and the figure to
+#: re-read after the pilot is "follow-up answers that ran past it" on that report.
+SECONDS_FOR_A_FOLLOW_UP = 75
 
 #: Do not open a new question unless there is room for the answer **and** one probe after it
 #: (the owner's decision, 2026-09-27).

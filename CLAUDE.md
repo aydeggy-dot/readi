@@ -135,6 +135,14 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   with fewer questions instead**: a question the clock cannot probe is one the candidate is asked
   once and scored on one criterion of, which is a worse interview than three proper questions and
   their own questions at the end.
+- **The reserves are measured now, and one of them moved** (owner's decision, 2026-09-29).
+  `SECONDS_FOR_A_FOLLOW_UP` is **75, provisionally, on a sample of eight**: it was 45, and
+  `pnpm --filter @readi/api interviews:pace` found the median follow-up answer taking 61 s with five
+  of eight past 45 — the engine was starting probes the clock could not finish. Over-reserving is
+  the safe direction, because an unasked criterion is **not assessed** and leaves the denominator, so
+  the cost is a slightly shorter interview and never a lower score. **Revisit it on pilot data**: the
+  figure to re-read is "follow-up answers that ran past it" on that report, which refuses to be read
+  as a constant under 40 answers.
 - Text mode and voice mode share the **same engine**; voice is just a different transport.
 - **A question exists at three widths, and the gaps between them are the product rules**
   (`apps/api/src/interviews/session-bundle.ts` is the only place they are crossed):

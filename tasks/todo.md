@@ -3216,8 +3216,14 @@ Handover: `docs/progress/2026-09-28-m4-phase-7.md`.
       face. On the dev data: 4 real sessions, 20 answers, opening answers median 74 s / p90 198 s,
       follow-up answers median 61 s / p90 224 s. **`SECONDS_FOR_A_FOLLOW_UP` is 45 s and 5 of 8
       follow-up answers ran past it** — the reserve that decides whether to _ask_ a probe, so the
-      engine starts probes the clock cannot finish. n=8, so a shape and not a number; **a decision for
-      the owner on more data**. Median pace gives 4 questions per 15 minutes, exactly `INTERVIEW_PLANS`
+      engine starts probes the clock cannot finish. Median pace gives 4 questions per 15 minutes,
+      exactly `INTERVIEW_PLANS`
+- [x] **Acted on 2026-09-29: `SECONDS_FOR_A_FOLLOW_UP` 45 -> 75** (owner's decision), taking
+      `SECONDS_TO_OPEN_A_QUESTION` to 195 and the report's count from 5 of 8 past the reserve to 3 of 8. **Provisional on n=8** and written down as such in `budgets.py`, with the way to revisit it:
+      "follow-up answers that ran past it" on `interviews:pace`, which refuses to read as a constant
+      under 40 answers. Over-reserving is the safe direction — an unasked criterion is not assessed
+      and leaves the denominator, so the cost is a shorter interview and never a lower score. The TS
+      mirror in `pace-reserves.ts` moved with it and the drift test was **watched failing**
 - [x] **Running it found three defects in it**, one of them impossible-on-its-face (6 questions
       answered against a budget of 4, because the candidate's own questions were counted as answers).
       Also: stand-in-driven sessions were being averaged into a human-pace figure, and a session with
