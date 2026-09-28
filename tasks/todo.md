@@ -3095,7 +3095,28 @@ falls, and the sizing for it is at the end of this section.
       predicted from fixing `rejected_criteria`. A 30-minute session drops from 40.3¢ to **26.6¢**, and
       the gap to sonnet narrows from 4.0x to 2.6x. That does not overturn opus, which was chosen on
       agreement rather than price, but it is the first of the two things that decision named as able to
-- [ ] **The owner's call: turn `EVALUATOR_STRICT_CRITERIA_SCHEMA` on by default?** For: the rejection
+- [x] **`--rubric SLUG` (repeatable), because the complement of a sample is not a sample.** The strict
+      check scored the six rubrics of `--sample 6 --seed 7`; extending it to the same twelve the earlier
+      non-strict runs used means scoring the other six **without paying again for the first six**, and
+      no combination of `--sample`/`--seed` expresses that. A test pins the premise it rests on — that
+      `--sample 6` is a strict subset of `--sample 12` at seed 7 — because if the round-robin sampler's
+      prefix ever stopped being stable, two runs that looked like one measurement of twelve would
+      silently overlap or leave a gap
+- [ ] **Owner's decision, 2026-09-28: complete the evidence, then switch.** The other six of
+      `--sample 12 --seed 7` are `async-ordering-understanding`, `async-unblocking`,
+      `client-boundary-reasoning`, `help-seeking-judgement` (frontend) and `raising-a-quality-concern`,
+      `test-data-judgement` (qa) — so this closes the **role** gap, the only one of the three limits a
+      bigger sample can close. **≈$1.00** (30 answers at the measured 3.33¢), cap **$1.20**: the
+      estimator can be trusted now that rejections are gone — it said $0.97 for the first strict run and
+      the bill was 99.86¢. If it comes back clean, make the schema the default and update the handover
+      with 13.3¢ / 26.6¢ per session
+- [x] **Corrected: the "five-criterion rubric" limit does not exist.** The first write-up of this run
+      said a wider rubric had never been sent to a real provider and that the 12-rubric run was where it
+      would be seen. Counting says otherwise: **all 102** rubrics in `evals/datasets/synthetic` and
+      **all 102** in `content/seed` (29 backend, 30 frontend, 33 qa, 10 shared) have exactly three
+      criteria. `check-bank.mjs` permits 3–5, but nobody has written one, so no run over this corpus can
+      exercise it and no candidate can meet it. The schema is measured at exactly the width the product
+      uses; the thing to measure is the **first** 4- or 5-criterion rubric, not a bigger sample For: the rejection
       rate gone, the scores unmoved, fairness and both separations unchanged, a third off the bill.
       Against: **all six rubrics are `backend` and all have exactly three criteria**, so a five-criterion
       rubric has still never been sent to a real provider under this schema. The keys are the rubric's

@@ -987,3 +987,22 @@ appearance and on its twenty-third.
 
 **And the shape is the tell.** Vitest reports this as a **Failed Suite**, so the counts read
 `568 passed | 31 skipped` rather than `1 failed` — a grep for failed _tests_ sees nothing to report.
+
+## A convenience that reaches for a secret writes it into the transcript (2026-09-28)
+
+Asked to hand over a paid run, I offered `! cd apps/ai-worker && ANTHROPIC_API_KEY=<your key> uv run
+…`. The `!` prefix was the whole point — it runs in the owner's own shell and the output lands in the
+conversation, which is what I wanted for reading the result. But `!` also puts **the command** in the
+transcript, so what I had actually suggested was "paste your API key into the chat". The owner does it
+the right way instead: `set -a; source .env; set +a` in a separate terminal, then a command carrying no
+secret.
+
+**The rule:** hand over a command that is ready to paste and contains no secret, and never a `!`
+command that would carry one. The secret guard refusing to let me read that file is the same rule from
+the other side — the key has no reason to reach this context, because starting a paid run is not mine
+to do (CLAUDE.md §7.9).
+
+**The near-miss worth naming.** `ANTHROPIC_API_KEY=...` was already in CLAUDE.md §4's command list,
+and I copied its shape while filling in `<your key>`. A placeholder in documentation stops being a
+placeholder the first time somebody completes it — the same failure as the `you@example.com` in the
+`admin:grant` example, which was run verbatim and left a real admin account behind.

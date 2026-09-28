@@ -4,6 +4,7 @@
     --smoke                       the stand-in evaluator, two rubrics, no key, no cost (runs in CI)
     --sample 12 --seed 7          twelve rubrics, stratified by role, question type and level
     --all                         every rubric in the dataset
+    --rubric SLUG                 exactly these rubrics, repeatable — for completing a measurement
     --model claude-sonnet-5       which model to score with
     --compare a.json b.json       two finished runs, read back and compared
     --retry-unscored run.json     only the answers that run could not score, merged back into it
@@ -223,10 +224,24 @@ def _strict_words(strict: bool) -> str:
 
 
 def _select(dataset: Dataset, args: argparse.Namespace) -> list[Case]:
+    """Which answers this run scores: named rubrics, every rubric, or a stratified sample."""
     cases = [case for case in dataset.cases if not args.role or case.role == args.role]
     if not cases:
         raise DatasetError(f"no cases for role `{args.role}` in `{dataset.name}`")
-    if args.all:
+    if args.rubric:
+        # Naming them is for **completing** a measurement: the strict-criteria check of 2026-09-28
+        # scored the six rubrics of `--sample 6 --seed 7`, and the six that make up the rest of
+        # `--sample 12 --seed 7` had to be scored on their own to extend it without paying twice for
+        # the first six. A sample cannot express "the complement of another sample".
+        chosen = tuple(dict.fromkeys(args.rubric))
+        known = {case.rubric.slug for case in cases}
+        missing = [slug for slug in chosen if slug not in known]
+        if missing:
+            where = f"role `{args.role}` of " if args.role else ""
+            raise DatasetError(
+                f"{where}`{dataset.name}` has no rubric " + ", ".join(f"`{s}`" for s in missing)
+            )
+    elif args.all:
         chosen = tuple(dict.fromkeys(case.rubric.slug for case in cases))
     else:
         chosen = stratified_sample(
@@ -635,6 +650,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--role", default=None, help="only this role's answer sets")
     parser.add_argument("--sample", type=int, default=DEFAULT_SAMPLE, help="how many rubrics")
     parser.add_argument("--all", action="store_true", help="every rubric in the dataset")
+    parser.add_argument(
+        "--rubric",
+        action="append",
+        default=None,
+        metavar="SLUG",
+        help="score exactly these rubrics (repeatable); replaces the sample",
+    )
     parser.add_argument("--seed", type=int, default=7, help="the sample is deterministic in this")
     parser.add_argument("--provider", default="anthropic", choices=("anthropic", "fake"))
     parser.add_argument("--model", default="claude-opus-5")

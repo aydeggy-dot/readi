@@ -66,6 +66,51 @@ def test_the_smoke_run_fails_when_a_non_zero_score_has_no_quote(
     assert main(["--smoke", "--out", str(tmp_path / "smoke.json")]) == 1
 
 
+# ---- Naming the rubrics.
+
+
+def test_named_rubrics_replace_the_sample_and_keep_the_order_within_each() -> None:
+    """How a measurement is **completed**: the complement of a sample is not itself a sample.
+
+    The strict-criteria check of 2026-09-28 scored the six rubrics of `--sample 6 --seed 7`, and the
+    six making up the rest of `--sample 12 --seed 7` had to be scored on their own, without paying
+    again for the first six.
+    """
+    import readi_worker.evals.run as module
+
+    dataset = load_dataset(ROOT, "synthetic")
+    args = module._parser().parse_args(
+        ["--rubric", "test-data-judgement", "--rubric", "help-seeking-judgement"]
+    )
+    cases = module._select(dataset, args)
+    assert [case.rubric.slug for case in cases] == ["test-data-judgement"] * len(KINDS) + [
+        "help-seeking-judgement"
+    ] * len(KINDS), "named order, not the sampler's"
+    # Five answers to one question, in the README's order, as a watched run should read.
+    assert [case.kind for case in cases[: len(KINDS)]] == list(KINDS)
+
+
+def test_the_two_samples_it_exists_to_join_really_do_partition() -> None:
+    """The premise of the second strict run: `--sample 6` is a prefix of `--sample 12` at one seed.
+
+    If the sampler ever stopped being a round-robin whose prefix is stable, a run over "the other
+    six" would silently stop being the complement of the first, and two runs that looked like one
+    measurement of twelve rubrics would overlap or leave a gap.
+    """
+    dataset = load_dataset(ROOT, "synthetic")
+    six = set(stratified_sample(dataset, 6, 7))
+    twelve = set(stratified_sample(dataset, 12, 7))
+    assert six < twelve
+    assert len(twelve - six) == 6
+
+
+def test_an_unknown_rubric_is_named_rather_than_silently_dropped(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["--rubric", "no-such-rubric", "--dry-run"]) == 2
+    assert "no rubric `no-such-rubric`" in capsys.readouterr().err
+
+
 # ---- The spending cap.
 
 

@@ -71,10 +71,17 @@ cache**.
 
 ## Three honest limits
 
-- **All six rubrics are `backend`, and all six have exactly three criteria.** Rubrics carry 3–5
-  (`check-bank.mjs`), so a five-criterion rubric has still never been sent to a real provider under
-  this schema. The mechanism does not obviously depend on the count — the keys are the rubric's own
-  positions — but it is untested and the full 12-rubric run is where it would be seen.
+- **All six rubrics are `backend`.** The other six of `--sample 12 --seed 7` are four `frontend` and
+  two `qa`, so scoring those closes the role gap; that run is priced at ≈$1.00.
+- **Every rubric has exactly three criteria — and that is not a gap in the sample.**
+  `check-bank.mjs` permits 3–5, so this was first written down here as "a five-criterion rubric has
+  never been sent to a real provider, and the full 12-rubric run is where it would be seen". **That
+  was wrong**, and counting said so: all **102** rubrics in `evals/datasets/synthetic` have three
+  criteria, and so do all **102** in `content/seed` — 29 backend, 30 frontend, 33 qa, 10 shared.
+  No run over this corpus can exercise a wider rubric because none exists, and no candidate can meet
+  one either. The schema is therefore measured at exactly the width every rubric in the product uses;
+  what is untested is a rubric nobody has written yet, and the first 4- or 5-criterion rubric is what
+  should be measured against it, not a bigger sample.
 - **Some of what v2 left unscored was a billing outage, not the evaluator.** Two v2 runs left 9 of 30
   answers on these rubrics with no score, but most are `provider_error` from the credit exhaustion of
   the overlapping-runs incident. The honest count of answers v2 **gave up on** after spending its
@@ -89,5 +96,10 @@ cache**.
 
 `EVALUATOR_STRICT_CRITERIA_SCHEMA` is still **off by default**. Turning it on is a change to the
 evaluator in front of candidates, so it is the owner's, and the evidence for it is: the rejection rate
-gone, the scores unmoved, fairness and both separations unchanged, and a third off the bill. The
-argument against is the sample's breadth — six backend rubrics of three criteria each.
+gone, the scores unmoved, fairness and both separations unchanged, and a third off the bill.
+
+**The owner's decision, 2026-09-28: complete the evidence first.** The other six rubrics of
+`--sample 12 --seed 7` — four `frontend`, two `qa` — are to be scored with the schema on before the
+default changes, so that strict has been measured over the same twelve as the earlier non-strict runs.
+Priced at **≈$1.00** (30 answers at the 3.33¢ this run measured), cap **$1.20**. `--rubric` was added
+to the harness for it: the complement of a sample cannot be expressed as a sample.

@@ -718,6 +718,17 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
    progress**: on 2026-09-28 two opus runs overlapped, which doubled the bill, exhausted the
    account's credit mid-run and left ten answers unscored. Sequential is also what makes the prompt
    cache pay (`evals/README.md`, "Why sequential").
+9. **The owner starts every paid run, in a separate terminal** (owner's instruction, 2026-09-28),
+   loading the key from the untracked env file with `set -a; source .env; set +a` and then running a
+   command with no secret on it. So the job is to hand over a command that is ready to paste — the
+   sample, the model, `--max-cost` at the approved figure — and to read the output that comes back;
+   never to start the run.
+   **Never suggest a `!` command with a secret in it.** `! <command>` runs in the owner's own shell,
+   which is why it is the right way to hand work back, but it also puts the command **into the
+   transcript** — so `ANTHROPIC_API_KEY=<key> …` writes the key into the conversation, the one place
+   `.claude/hooks/secret-guard.mjs` cannot take it out again. The guard refusing to read that file is
+   the same rule from the other side: the key has no reason to reach Claude's context, because
+   starting the run is not Claude's to do.
 
 ## 8. Definition of done (every feature)
 
