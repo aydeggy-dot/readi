@@ -15,6 +15,12 @@ const booleanFlag = z
   .default("true")
   .transform((value) => value === "true");
 
+/** The same flag, off unless asked for: a gate whose default is "on" is not a gate. */
+const optInFlag = z
+  .enum(["true", "false"])
+  .default("false")
+  .transform((value) => value === "true");
+
 export const EnvSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -92,6 +98,18 @@ export const EnvSchema = z
      * the 30-minute one in two.
      */
     EVALUATION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(4),
+
+    /*
+     * May the calibration area sample a **real candidate's** answer (M4 phase 6, ADR-0017)?
+     *
+     * Off, and it stays off until a reviewed, signed `reviewer-agreement.md` exists — the owner's
+     * gate, and this is the half of it that code can hold. With it off the sampler will only offer
+     * answers written by staff accounts, so the whole path can be built, demonstrated and screenshot
+     * against people who work here, consent and all, without one candidate's words reaching a
+     * reviewer early. Consent is checked either way and is not what this flag is for: a candidate who
+     * has granted transcript review is still excluded while it is off.
+     */
+    CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS: optInFlag,
 
     // Cosine similarity above which two questions are reported as near-duplicates (ADR-0006).
     // A warning to a content expert, never a refusal, so it is tuned rather than argued about.

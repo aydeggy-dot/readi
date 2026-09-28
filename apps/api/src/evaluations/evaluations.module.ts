@@ -1,6 +1,9 @@
 import { Module } from "@nestjs/common";
 import { AiCallsModule } from "../ai-calls/ai-calls.module";
 import { AiWorkerModule } from "../ai-worker/ai-worker.module";
+import { ConsentsModule } from "../consents/consents.module";
+import { CalibrationAdminController } from "./calibration-admin.controller";
+import { CalibrationService } from "./calibration.service";
 import { EvaluationSweepQueue } from "./evaluation-sweep.queue";
 import { EvaluationProcessor } from "./evaluation.processor";
 import { EvaluationQueue } from "./evaluation.queue";
@@ -18,8 +21,13 @@ import { EvaluationJobs, EvaluationsService } from "./evaluations.service";
  * goes through.
  */
 @Module({
-  imports: [AiWorkerModule, AiCallsModule],
+  // `ConsentsModule` for the calibration sampler: nothing may be offered to a reviewer except
+  // through a current `transcript_review` grant, and `ConsentsService` is where that rule lives
+  // (ADR-0017).
+  imports: [AiWorkerModule, AiCallsModule, ConsentsModule],
+  controllers: [CalibrationAdminController],
   providers: [
+    CalibrationService,
     EvaluationsService,
     EvaluationsRepository,
     EvaluationProcessor,

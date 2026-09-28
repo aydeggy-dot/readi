@@ -374,6 +374,23 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   matched phrases (`readi_worker/evaluation/instruction_flags.py`, beside the payloads that motivated
   them), and it **changes no score and reaches no candidate**: a flag is a reason for a person to look.
   M4 phase 6's calibration area draws the list.
+- **Calibration is a person marking an answer the model has already marked** (M4 phase 6, ADR-0017),
+  at `/admin/calibration`. Four rules, all of them in `evaluations/calibration.service.ts` because
+  each fails silently if it is restated anywhere else. **Nothing is sampled except through
+  `ConsentsService.usersGranting("transcript_review")`** — `isCurrentGrant` written once, and a
+  caller that rebuilt the predicate would show one candidate's words to somebody who was told no and
+  look correct doing it. **While `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` is false only staff
+  answers are offered**, which is the owner's "not live until the reviewer agreement is signed" held
+  in code rather than in a convention; consent is still required of staff, so what is demonstrated is
+  the real path. **A reviewer never sees the model's marks** — `CalibrationAnswer` is a separate
+  shape, not an `Omit<>` of the evaluation, so a field cannot come back the next time the parent
+  grows — and never the candidate's name, email or id. **Reading an answer is the audited event**
+  (`calibration.answer.read`), not scoring it: consent was asked for a person reading a candidate's
+  words. The agreement dashboard is an **admin's** screen and aggregate-only, because an aggregate a
+  reviewer reads before marking is still the model's opinion reaching them first; its five figures
+  are the harness's, and `calibration-agreement.ts` says out loud that it is the second
+  implementation of `metrics.py`'s definition. A review has no lifecycle, so there is no second
+  status machine — which is what the plan's "reuse `content-workflow.ts`" was warning against.
 - The readiness score formula lives in code (see spec §7), is versioned, and is unit-tested.
 - Any change to evaluator prompts or models must pass `/evals` regression (agreement with human scores must not drop).
 - **A session pins what it is scored against, not merely what it was asked.** A session lasts fifteen to

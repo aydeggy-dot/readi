@@ -21,8 +21,15 @@ export function AppHeader({
 }) {
   return (
     <header data-nav-surface className="bg-nav">
-      <div className={`mx-auto flex ${width} items-center justify-between gap-2 px-5 py-3 sm:px-8`}>
-        <Wordmark href="/home" />
+      <div
+        className={`mx-auto flex ${width} flex-wrap items-center justify-between gap-x-2 gap-y-1 px-5 py-3 sm:px-8`}
+      >
+        {/* `shrink-0`: the wordmark is a word, and a word that wraps is a broken mark. A third nav
+            link on the CMS bar at 360px was enough to break "Readı" across two lines. */}
+        <Wordmark href="/home" className="shrink-0" />
+        {/* And the row wraps rather than scrolls, because a scrolling bar at 360px hides a
+            destination with nothing to say it is there: an admin carries three links, and the
+            third one sat outside the viewport with no affordance at all. */}
         <div className="flex items-center gap-2">
           {nav}
           <SignOutButton />

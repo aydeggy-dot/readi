@@ -401,6 +401,34 @@ export const MAX_CRITERION_SCORE = 4;
 /** How sure the evaluator is of its own reading, lowered in code when evidence will not verify. */
 export const EVALUATION_CONFIDENCE = ["low", "medium", "high"] as const;
 
+/**
+ * Calibration: a person scoring an answer the model has already scored (M4 phase 6, ADR-0017).
+ *
+ * Only what calibration adds. Everything a reviewer's score shares with the evaluator's — how long a
+ * quote may be, how long a reason may be, how many quotes a criterion carries — is read from
+ * `EVALUATION_LIMITS`, because the two are compared per criterion and a second copy of those numbers
+ * would let the comparison drift at the edges.
+ */
+export const CALIBRATION_LIMITS = {
+  /**
+   * The reviewer's note about the answer or the rubric. Longer than a criterion's reasoning because
+   * this is where "the rubric's rung 3 and rung 4 cannot be told apart" gets written, which is the
+   * most valuable thing a calibration round produces and the one thing no score can carry.
+   */
+  noteMaxLength: 2_000,
+  /**
+   * Answers per page in the queue and the flags list. Lower than the content lists' 20: a reviewer
+   * picks one answer and reads it for several minutes, so a long page is scrolling nobody does.
+   */
+  pageSize: { default: 10, max: 50 },
+  /**
+   * Below this many answers, a per-rubric or per-question agreement row is shown but marked as too
+   * thin to read. Three answers of one rubric is an anecdote, and an unmarked percentage over it
+   * invites exactly the confidence the gold set does not yet support.
+   */
+  thinEvidenceAnswers: 5,
+} as const;
+
 export const EVALUATION_LIMITS = {
   /**
    * Quotes per criterion. A non-zero score needs at least one (spec §6.2), and three is already

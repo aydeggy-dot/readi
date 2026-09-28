@@ -596,6 +596,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/calibration/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CalibrationAdminController_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/calibration/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CalibrationAdminController_flags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/calibration/agreement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CalibrationAdminController_agreement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/calibration/answers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CalibrationAdminController_answer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/calibration/answers/{id}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CalibrationAdminController_score"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/interviews": {
         parameters: {
             query?: never;
@@ -1570,6 +1650,127 @@ export interface components {
             snapshot: {
                 [key: string]: unknown;
             };
+        };
+        CalibrationQueueItem_Output: {
+            /** Format: uuid */
+            id: string;
+            question_slug: string;
+            rubric_name: string;
+            role: string | null;
+            level: string | null;
+            criterion_count: number;
+            review_count: number;
+            reviewed_by_me: boolean;
+            flagged: boolean;
+            /** Format: date-time */
+            answered_at: string;
+        };
+        CalibrationQueueResponseDto_Output: {
+            items: components["schemas"]["CalibrationQueueItem_Output"][];
+            next_cursor: string | null;
+            /**
+             * @default null
+             * @enum {string|null}
+             */
+            empty_because: "nothing_to_review" | "no_consent" | "staff_answers_only" | null;
+        };
+        CalibrationFlagItem_Output: {
+            /** Format: uuid */
+            id: string;
+            question_slug: string;
+            flags: string[];
+            /** Format: date-time */
+            answered_at: string;
+        };
+        CalibrationFlagsResponseDto_Output: {
+            items: components["schemas"]["CalibrationFlagItem_Output"][];
+            next_cursor: string | null;
+            phrases: {
+                phrase: string;
+                answers: number;
+            }[];
+        };
+        CalibrationAgreement_Output: {
+            n: number;
+            exact: number;
+            within_one: number;
+            mae: number;
+            bias: number;
+            correlation: number | null;
+        };
+        CalibrationAgreementRow_Output: {
+            key: string;
+            name: string;
+            answers: number;
+            reviewers: number;
+            agreement: components["schemas"]["CalibrationAgreement_Output"];
+        };
+        CalibrationAgreementResponseDto_Output: {
+            overall: components["schemas"]["CalibrationAgreement_Output"];
+            by_rubric: components["schemas"]["CalibrationAgreementRow_Output"][];
+            by_question: components["schemas"]["CalibrationAgreementRow_Output"][];
+            scored_answers: number;
+            reviewers: number;
+        };
+        CalibrationCriterion_Output: {
+            position: number;
+            dimension: string;
+            description: string;
+            weight: number;
+            levels: {
+                [key: string]: string;
+            };
+        };
+        CalibrationTurn_Output: {
+            seq: number;
+            /** @enum {string} */
+            speaker: "interviewer" | "candidate";
+            follow_up_index: number | null;
+            text: string;
+        };
+        CalibrationCriterionScore_Output: {
+            criterion: number;
+            score: number;
+            /** @enum {number} */
+            max_score: 4;
+            evidence: string[];
+            reasoning: string | null;
+        };
+        CalibrationAnswerDto_Output: {
+            /** Format: uuid */
+            id: string;
+            question_slug: string;
+            question_prompt: string;
+            question_context: string | null;
+            role: string | null;
+            level: string | null;
+            rubric_slug: string;
+            rubric_name: string;
+            criteria: components["schemas"]["CalibrationCriterion_Output"][];
+            exchange: components["schemas"]["CalibrationTurn_Output"][];
+            evidence_flags: string[];
+            my_score: {
+                criteria: components["schemas"]["CalibrationCriterionScore_Output"][];
+                note: string | null;
+                /** Format: date-time */
+                created_at: string;
+            } | null;
+        };
+        CalibrationScoreInputDto: {
+            criteria: {
+                criterion: number;
+                score: number;
+                /** @default [] */
+                evidence: string[];
+                /** @default null */
+                reasoning: string | null;
+            }[];
+            /** @default null */
+            note: string | null;
+        };
+        CalibrationScoreSavedDto_Output: {
+            /** Format: uuid */
+            id: string;
         };
         CreateInterviewRequestDto: {
             role?: string;
@@ -3451,6 +3652,142 @@ export interface operations {
                 };
             };
             /** @description No such version (code `content_version_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CalibrationAdminController_queue: {
+        parameters: {
+            query?: {
+                scope?: "unreviewed" | "mine" | "all";
+                flagged?: string;
+                role?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationQueueResponseDto_Output"];
+                };
+            };
+        };
+    };
+    CalibrationAdminController_flags: {
+        parameters: {
+            query?: {
+                scope?: "unreviewed" | "mine" | "all";
+                flagged?: string;
+                role?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationFlagsResponseDto_Output"];
+                };
+            };
+        };
+    };
+    CalibrationAdminController_agreement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationAgreementResponseDto_Output"];
+                };
+            };
+        };
+    };
+    CalibrationAdminController_answer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationAnswerDto_Output"];
+                };
+            };
+            /** @description Not a reviewer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such answer, or not one this reviewer may see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CalibrationAdminController_score: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalibrationScoreInputDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationScoreSavedDto_Output"];
+                };
+            };
+            /** @description No such answer, or not one this reviewer may see */
             404: {
                 headers: {
                     [name: string]: unknown;

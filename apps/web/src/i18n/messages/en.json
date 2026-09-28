@@ -88,7 +88,8 @@
     "wordmark": "Readi home",
     "content": "Content",
     "practice": "Practice",
-    "tabs": "Sections"
+    "tabs": "Sections",
+    "calibration": "Marking"
   },
   "auth": {
     "email": "Email",
@@ -836,6 +837,86 @@
         "slug": "Slug",
         "summary": "Summary",
         "summaryHint": "Optional. One line, if the name is not self-explanatory."
+      }
+    },
+    "calibration": {
+      "title": "Calibration",
+      "lead": "Mark an answer the way you would in a real interview. You will not be shown what the AI gave it.",
+      "blindNote": "You are marking blind, on purpose: agreement between you and the model means nothing if you saw its marks first. Reading an answer is recorded, because the candidate agreed to a person reading their words — not to an audience.",
+      "filters": {
+        "scope": "Show",
+        "scopeUnreviewed": "Not yet marked by me",
+        "scopeMine": "Marked by me",
+        "scopeAll": "Everything",
+        "flaggedOnly": "Only flagged evidence"
+      },
+      "list": {
+        "criteria": "{count} criteria",
+        "reviews": "{count} marked",
+        "yours": "You marked this",
+        "flagged": "Flagged evidence",
+        "answered": "Answered {when}",
+        "noCatalogue": "No role recorded"
+      },
+      "empty": {
+        "nothing": "Nothing to mark right now. Answers appear here as candidates finish interviews.",
+        "narrowed": "Nothing matches those filters. Clear them to see the rest.",
+        "noConsent": "There are scored answers, but nobody has agreed to a person reading their transcript yet. Consent is asked on the candidate's own privacy screen, and it is refusable at no cost — so an empty queue here is the system working.",
+        "staffOnly": "There are consenting answers waiting, and they are real candidates'. Nothing will be shown until the reviewer agreement is signed; until then this screen only offers answers written by staff."
+      },
+      "actions": {
+        "flags": "Flagged evidence",
+        "save": "Save my marks",
+        "update": "Update my marks",
+        "saved": "Saved"
+      },
+      "answer": {
+        "title": "Mark an answer",
+        "back": "Back to the queue",
+        "question": "The question",
+        "exchange": "What was said",
+        "candidate": "Candidate",
+        "interviewer": "Interviewer",
+        "followUp": "Interviewer (follow-up)",
+        "yourMarks": "Your marks",
+        "blindNote": "Pick the rung whose words fit this answer. Do not round up for effort, and do not mark the English — an answer in Nigerian English or Pidgin scores exactly what the same understanding scores in textbook English.",
+        "weight": "worth {weight}%",
+        "why": "Why that rung, and not the one above it? (optional)",
+        "whyPlaceholder": "One sentence, in your own words.",
+        "note": "A note about the answer or the rubric",
+        "noteHint": "This is where “rung 3 and rung 4 cannot be told apart” belongs — the most useful thing a calibration round produces. Never about the candidate as a person.",
+        "pickEvery": "Pick a rung for every criterion before saving.",
+        "alreadyScored": "Saved earlier. Changing anything replaces your marks.",
+        "flagged": "The stored evidence for this answer matched a phrase that reads like an instruction: {phrases}. It changed no score and the candidate never saw it — it is here so a person can look."
+      },
+      "agreement": {
+        "title": "Agreement",
+        "lead": "How closely the people and the model read the same answers.",
+        "note": "The same five figures the eval harness prints, so a number here and a number from a harness run can be read together. Aggregate only: a row naming one answer's AI marks would undo the blind review for everyone who has not marked it yet.",
+        "name": "Name",
+        "answers": "Answers",
+        "exact": "Exact",
+        "withinOne": "Within one",
+        "mae": "Mean error",
+        "bias": "Bias",
+        "byRubric": "By rubric",
+        "byQuestion": "By question",
+        "scoredAnswers": "Answers marked",
+        "reviewers": "Reviewers",
+        "thin": "Too few answers to read as a measurement.",
+        "empty": "Nothing has been marked by a person yet."
+      },
+      "flags": {
+        "title": "Flagged evidence",
+        "lead": "Answers whose stored quotes read like an instruction rather than an answer.",
+        "note": "These change no score and no candidate ever sees them. The injection gate stops the model inventing a quote; it cannot stop one quoting the injection itself, because that quote is real. So this is a queue for a person.",
+        "phrases": "Phrases, commonest first",
+        "count": "in {count}",
+        "empty": "No stored evidence has matched one of these phrases."
+      },
+      "errors": {
+        "criteriaMismatch": "Those marks do not match the rubric this answer was scored against. Reload the page and try again.",
+        "gone": "That answer is no longer available to mark."
       }
     }
   },

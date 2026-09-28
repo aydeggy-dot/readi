@@ -2766,14 +2766,52 @@ unconfirmed rather than explained.
 - [ ] `--smoke` on the fake provider inside `pnpm test`, so the harness cannot rot
 - [ ] `.github/workflows/evals.yml`, `workflow_dispatch` only, reason in the file
 
-### Phase 6 — the calibration tool
+### Phase 6 — the calibration tool (done, 2026-09-28; handover `docs/progress/2026-09-28-m4-phase-6.md`)
 
-- [ ] **Blocked from going live** until a reviewed, signed `reviewer-agreement.md` exists (ADR-0017
-      decision 6). Build and demonstrate against staff-authored answers; do not sample a real
-      candidate's transcript before then, consent or no consent
-- [ ] `/admin/calibration`: consent-filtered sampling, the AI score hidden, `calibration_scores`, agreement per rubric and question
-- [ ] A staff member reading a candidate's words is audited
-- [ ] Reuse `content-workflow.ts`; no second status machine
+- [x] **The gate is in code, not in a convention.** `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` is off
+      and while it is, only **staff-written** answers are offered — so the whole path was built and
+      demonstrated, consent and all, without one candidate's words reaching a reviewer. A test opens
+      the flag and watches the same answer appear, so the gate is proved in both positions. Flipping
+      it is the only change needed when a signed `reviewer-agreement.md` exists (ADR-0017 decision 6)
+- [x] `/admin/calibration`: the queue, the answer with the **pinned** rubric and no AI marks, the
+      flagged-evidence list, and agreement per rubric and per question. `calibration_scores` already
+      existed from the phase 0 migration, already in `TOMBSTONED_COLUMNS` — **no migration was needed**
+- [x] **Nothing is sampled except through `usersGranting("transcript_review")`.** Held in four
+      directions: never granted, granted then withdrawn (the *read* as well as the list, because a
+      reviewer may hold a link), granted against an older version of the wording, and granted by
+      somebody who is not staff while the gate is closed
+- [x] **A read is the audited event**, not the score — consent was asked for a person *reading* a
+      candidate's words. One row per read, ids and counts only; a refused read writes nothing
+- [x] **Blindness asserted over the raw JSON**, as the leak test does: `CalibrationAnswer` is a
+      separate shape rather than an `Omit<>` of the evaluation, because a field omitted by subtraction
+      comes back the first time somebody widens the parent. No name, no email, no user id either
+- [x] **No second status machine**, which is what the plan's "reuse `content-workflow.ts`" was warning
+      against: a review has no lifecycle. Nothing was bent to reuse it
+- [x] The agreement dashboard is **admin-only and aggregate-only** — an aggregate a reviewer reads
+      before marking is still the model's opinion reaching them first, and a row naming one answer
+      would undo the blindness for everyone who has not marked it yet
+- [x] `apps/web/e2e/calibration.spec.ts` at 360px: staff sits a real interview, grants consent on the
+      candidate's own screen, a second member of staff marks it; flags, dashboard, and a 404 for a
+      candidate at every URL. Five screenshots in `apps/web/e2e/.artifacts/`
+- [ ] **Nobody has been asked for `transcript_review` in a real deployment**, so a production queue
+      is empty and says `no_consent` until they are
+- [ ] **The visual capture does not include these screens** (`e2e/visual`), and the header change is
+      worth a before/after across the whole set, since it touches every signed-in page
+- [ ] **A reviewer cannot see their own agreement.** Admin-only is the conservative reading; showing
+      a reviewer aggregates over answers they have *already* marked would be safe and is probably the
+      first thing they ask for
+
+### What the calibration work cost the chrome, and what it is owed
+
+- [x] **Two header regressions at 360px, both found in the screenshots rather than by a test.** A
+      third nav link wrapped the wordmark ("Readı" across two lines, fixed with `shrink-0`), and then
+      the first fix — letting the nav scroll — put `Admin` outside the viewport with no affordance.
+      The header **wraps** now: a nav may not hide a destination. The candidate header carries at most
+      one staff link below `sm`, so it never overflows and is unchanged
+- [x] **The dashboard was a table** in a horizontal scroller with `Exact` off the right edge, against
+      the CMS layout's own note that "nothing here is a table". It is rows now
+- [ ] **No test would have caught either**, and that is the honest state: the e2e asserts the links
+      are reachable, not that they are on screen. A width assertion or a visual diff is what would
 
 ### Phase 7 — measurement, one paid run, the handover
 
