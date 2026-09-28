@@ -24,3 +24,4 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0015](0015-roles-levels-stacks-are-content.md) | Roles, levels and stacks are content, and a question can be written for a stack | Accepted |
 | [0016](0016-interview-transport-and-streaming.md) | Interview transport: whole-turn frames over SSE, and events that ride the response | Accepted |
 | [0017](0017-transcript-review-consent.md) | A person reading a candidate's transcript is a consented purpose of its own | Accepted |
+| [0018](0018-what-a-score-is-made-of.md) | What a score is made of: three columns, two adjustments, and the facts they are keyed on | Accepted |

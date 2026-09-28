@@ -1047,3 +1047,14 @@ had passed for weeks.
 
 **The rule:** assert on text that cannot be a prefix of its neighbours — the whole prompt, not its
 identifying fragment — whenever fixtures are generated from one template.
+
+## `git add -A` while a paid run is writing commits half of it (2026-09-29)
+
+The harness writes its result file **after every answer**, which is the feature that lets a stopped
+run keep what it paid for. It also means the file on disk is a valid, complete-looking JSON document
+that is not the whole run. A `git add -A` during somebody else's run committed one at 25 of 30
+answers; nothing complained, because a partial file is exactly what the checkpointing is for.
+
+**The rule:** before `git add -A`, check whether a run is in flight — `git status` on
+`evals/results/` is enough — and commit the artefact only once `finished_at` stops moving. A run
+file's `planned` and `cases` lengths disagreeing is the tell, and `RunResult.unscored()` reports it.

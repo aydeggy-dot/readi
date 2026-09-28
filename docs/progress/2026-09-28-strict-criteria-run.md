@@ -186,6 +186,20 @@ rejected readings again — 90 calls now with none — and the finding above doe
    (v2's own three runs span −0.06 to −0.13, and two of them had a criterion at +1 where strict run 2
    has none). Every run, both configurations, stays inside the band.
 
+**A third run of the same six (2026-09-29, `20260928T230035Z`, $1.04) makes it plainer still.**
+With three strict runs there are three same-configuration pairs, so the strict noise floor is a
+range rather than a point — and it is the *same* range as strict-against-v2:
+
+| | exact | MAE |
+| --- | --: | --: |
+| strict vs strict, run 1 × 2 / 1 × 3 / 2 × 3 | 84% · 80% · **89%** | 0.16 · 0.20 · 0.11 |
+| strict vs v2, runs 1 / 2 / 3 | 80% · 89% · **87%** | 0.20 · 0.11 · 0.13 |
+
+Two runs of one configuration disagree by as much as two configurations do. Against the
+expectations the strict runs read 80%, 87% and 87% where v2's three read 85%, 91% and 89%, and the
+fairness drift is −0.06, +0.17, −0.06 — two of the three exactly v2's figure. Run 1 was the low
+draw of three, not a level shift.
+
 **So the schema is not implicated, and strict stays the default.** The flag was raised on one run per
 rubric set, which — as it was written down at the time — could not tell a schema effect from a run
 effect; the repeat resolved it toward the run. What the schema changed is what it was built to change:
@@ -193,10 +207,10 @@ effect; the repeat resolved it toward the run. What the schema changed is what i
 | | answers | calls | rejected | unscored | ¢/answer |
 | --- | --: | --: | --: | --: | --: |
 | v2 baseline, three runs | 180 | 297 | **74 (25%)** | 20 | 4.24 |
-| **strict, three runs** | 90 | 90 | **0** | 0 | **3.40** |
+| **strict, four runs** | 120 | 120 | **0** | 0 | **3.42** |
 
-P(90 clean calls at the baseline rate) is 6 × 10⁻¹². Cost per session stands at **13.6¢ / 27.2¢**;
-the third run measured 3.40¢ an answer, the same figure to the penny as the two before it.
+P(120 clean calls at the baseline rate) is 1 × 10⁻¹⁵. Cost per session stands at **13.7¢ / 27.4¢**,
+and every one of the four runs measured between 3.33¢ and 3.47¢ an answer.
 
 **What is still not settled is the thing no run can settle**: all of this is agreement with
 model-written expectations. Only `evals/datasets/gold` can say whether a score is *right*, and it is
