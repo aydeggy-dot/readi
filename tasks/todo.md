@@ -3078,7 +3078,29 @@ falls, and the sizing for it is at the end of this section.
       dearest call seen, which no answer already scored can beat. A cap plus `--concurrency` above 1
       is refused outright — the calls that would cross it are in flight before the answer ahead of
       them is recorded
-- [ ] **The paid check, priced and awaiting the owner (2026-09-28).** `--sample 6 --seed 7
+- [x] **The paid check ran and the schema works (2026-09-28).** Handover:
+      `docs/progress/2026-09-28-strict-criteria-run.md`; run file
+      `evals/results/20260928T195502Z-claude-opus-5.json`. Approved at $1.60, spent **99.86¢**.
+      **0 rejected readings over 30 calls** against a matched v2 baseline of **44 over 179 (25%)** on
+      the same six rubrics, and **0 of 30 answers needed a retry** against 41 of 90. One call per
+      answer, thirty times; under the baseline rate the chance of that is about 0.02%. The provider
+      accepted the schema on the first call, which was the question the run had to settle first
+- [x] **And it did not move the scores**, which is the regression half of the claim. On the 21 answers
+      it and `013035Z` both scored the two readings agree **89% exact, MAE 0.11, r 0.97, bias +0.02**,
+      and against the written expectations **76% exact / MAE 0.24 against v2's 75% / 0.25** — not a
+      drop. Fairness **0 of 18 criteria outside the band**, both separations **6 of 6**, 0 evidence-rule
+      violations over 183 quotes, 0 unscoreable. The perfect fairness figure is not new: the v2 runs
+      were already clean on these rubrics (worst +0)
+- [x] **3.33¢ an answer against 5.03¢ — a 34% fall**, almost exactly the third the model-choice decision
+      predicted from fixing `rejected_criteria`. A 30-minute session drops from 40.3¢ to **26.6¢**, and
+      the gap to sonnet narrows from 4.0x to 2.6x. That does not overturn opus, which was chosen on
+      agreement rather than price, but it is the first of the two things that decision named as able to
+- [ ] **The owner's call: turn `EVALUATOR_STRICT_CRITERIA_SCHEMA` on by default?** For: the rejection
+      rate gone, the scores unmoved, fairness and both separations unchanged, a third off the bill.
+      Against: **all six rubrics are `backend` and all have exactly three criteria**, so a five-criterion
+      rubric has still never been sent to a real provider under this schema. The keys are the rubric's
+      own positions so the mechanism does not obviously depend on the count, but it is untested
+- [ ] **Superseded — the paid check, priced and awaiting the owner (2026-09-28).** `--sample 6 --seed 7
 --strict-criteria` = **30 answers over 6 rubrics**, the **same sample the v3 check used**, which is
       what makes it comparable with that run's 17-over-39 and its matched v2 baseline of 42 over 112.
       **$1.05 if the rejections go, $1.51 if nothing changes**, from the measured 3.5¢ and 5.03¢ per
