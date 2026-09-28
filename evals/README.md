@@ -80,7 +80,7 @@ exception name for a call that never happened. A `rejected_*` call was **paid fo
 answered and code refused the answer — so this table is a cost lever as much as a quality signal.
 
 It exists because of the 2026-09-28 opus run, which threw away a third of its readings and could only
-say *how many*. The count alone cannot be acted on; one dominant, fixable gate can. A run written
+say _how many_. The count alone cannot be acted on; one dominant, fixable gate can. A run written
 before the causes were recorded says so where the table would be, rather than printing an empty one.
 
 ## An unmeasurable pair is never a pass

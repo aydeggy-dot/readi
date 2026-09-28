@@ -173,17 +173,31 @@ def stratified_sample(dataset: Dataset, count: int, seed: int) -> tuple[str, ...
     return tuple(sorted(chosen))
 
 
-def _retry_selection(dataset: Dataset, previous: RunResult, model: str) -> list[Case]:
+def _retry_selection(
+    dataset: Dataset, previous: RunResult, model: str, *, strict_criteria: bool
+) -> list[Case]:
     """Exactly the answers `previous` has no score for, in its own order.
 
     Refused rather than merged when the model or the dataset differs: a file holding one model's
     readings of some answers and another's of the rest would be a lie in a place nothing downstream
     could detect, and `--compare` would read it as one model.
+
+    `--strict-criteria` is refused for the same reason and is the sharper case. The merged file
+    carries **one** flag, and `merge_retry` takes the retry's — so a strict retry of a plain run
+    would produce a file reading `strict_criteria: true` over a majority of answers scored without
+    it, and the rejection rate that file reports is the one figure the flag exists to be read
+    against.
     """
     if previous.model != model:
         raise DatasetError(
             f"that run is `{previous.model}` and this one would be `{model}` — retry with "
             f"`--model {previous.model}`, or start a fresh run"
+        )
+    if previous.strict_criteria != strict_criteria:
+        was, now = _strict_words(previous.strict_criteria), _strict_words(strict_criteria)
+        raise DatasetError(
+            f"that run scored with the strict criteria schema {was} and this one would score "
+            f"{now} — retry with the same setting, or start a fresh run"
         )
     if previous.dataset != dataset.name:
         raise DatasetError(
@@ -200,6 +214,10 @@ def _retry_selection(dataset: Dataset, previous: RunResult, model: str) -> list[
             + ", ".join(f"`{rubric}/{kind}`" for rubric, kind in missing[:5])
         )
     return [by_key[key] for key in wanted]
+
+
+def _strict_words(strict: bool) -> str:
+    return "on" if strict else "off"
 
 
 def _select(dataset: Dataset, args: argparse.Namespace) -> list[Case]:
@@ -252,7 +270,9 @@ def _execute(root: Path, dataset: Dataset, args: argparse.Namespace) -> int:
         # Read and checked **before** anything is scored: a mismatch discovered afterwards has
         # already been paid for.
         previous = RunResult.read(Path(args.retry_unscored))
-        cases = _retry_selection(dataset, previous, args.model)
+        cases = _retry_selection(
+            dataset, previous, args.model, strict_criteria=bool(args.strict_criteria)
+        )
         print(
             f"retrying {len(cases)} unscored answer(s) from {Path(args.retry_unscored).name}",
             file=sys.stderr,
@@ -337,6 +357,7 @@ async def _score_all(
             started_at=started,
             finished_at=_now(),
             cache_system=CACHE_SYSTEM_PROMPT and args.provider != "fake",
+            strict_criteria=bool(args.strict_criteria),
             prompt_versions=prompt_versions,
             planned=[f"{case.rubric.slug}/{case.kind}" for case in cases],
             cases=list(results),

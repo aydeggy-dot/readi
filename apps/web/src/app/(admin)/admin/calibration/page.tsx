@@ -63,9 +63,7 @@ export default async function CalibrationPage({
                   {[item.role, item.level].filter(Boolean).join(" · ") ||
                     t("admin.calibration.list.noCatalogue")}
                 </span>
-                <span>
-                  {t("admin.calibration.list.criteria", { count: item.criterion_count })}
-                </span>
+                <span>{t("admin.calibration.list.criteria", { count: item.criterion_count })}</span>
                 <span>{t("admin.calibration.list.reviews", { count: item.review_count })}</span>
                 {item.reviewed_by_me && <span>{t("admin.calibration.list.yours")}</span>}
                 {item.flagged && (

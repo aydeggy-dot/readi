@@ -33,6 +33,10 @@ def render_run(result: RunResult, criteria: Mapping[str, Sequence[Criterion]]) -
         f"- **{len(result.cases)} answers** over {len(metrics.separations)} rubrics, "
         f"{result.provider}/{result.model}",
         f"- prompt cache on the system prompt: **{'on' if result.cache_system else 'off'}**",
+        # Printed for every run, not only a strict one. A reader comparing this file's rejection
+        # rate with another's has to be able to see which evaluator shape each one asked for, and
+        # a line that appears only in one direction is one a reader learns to stop looking for.
+        f"- the per-rubric criteria schema: **{'on' if result.strict_criteria else 'off'}**",
         f"- prompts: {_versions(result.prompt_versions)}",
         f"- {result.started_at} to {result.finished_at}",
         *(
@@ -374,6 +378,10 @@ def _cost(result: RunResult) -> list[str]:
 # ---- Two models on one sample.
 
 
+def _on_off(flag: bool) -> str:
+    return "on" if flag else "off"
+
+
 def render_comparison(comparison: Comparison, left: RunResult, right: RunResult) -> str:
     left_usage, right_usage = left.usage, right.usage
     left_answers = max(1, len([case for case in left.cases if case.error is None]))
@@ -383,6 +391,19 @@ def render_comparison(comparison: Comparison, left: RunResult, right: RunResult)
     lines = [
         f"# {comparison.left} against {comparison.right}",
         "",
+        # Two runs of one model can differ in the schema they asked for, and that is exactly the
+        # comparison the strict-criteria check makes — so the heading "opus against opus" needs a
+        # line under it saying which side was which, or the whole report reads as a repeat.
+        *(
+            [
+                f"The per-rubric criteria schema was **{_on_off(left.strict_criteria)}** for "
+                f"{comparison.left} and **{_on_off(right.strict_criteria)}** for "
+                f"{comparison.right}.",
+                "",
+            ]
+            if left.strict_criteria != right.strict_criteria
+            else []
+        ),
         f"{comparison.shared_cases} answers scored by both"
         + (
             f" ({comparison.left_only} only by {comparison.left}, "

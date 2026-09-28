@@ -112,6 +112,13 @@ class RunResult(BaseModel):
     started_at: str
     finished_at: str
     cache_system: bool
+    #: Whether the per-rubric output schema that cannot omit or invent a criterion was in force
+    #: (`evaluation/strict_schema.py`). It is a different evaluator, not a different setting of the
+    #: same one: it changes what the provider is asked for and therefore what can be rejected, and
+    #: the rejection rate is the figure this file exists to carry. A run that could not say which
+    #: shape it used would be the 2026-09-28 reconstruction again. Defaults false, which is what
+    #: every run written before it existed was.
+    strict_criteria: bool = False
     prompt_versions: dict[str, int] = Field(default_factory=dict)
     #: The file this run's scored answers were carried over from, when it is a `--retry-unscored`:
     #: the answers a previous run could not score, re-scored and merged back into a whole run. Named

@@ -288,6 +288,51 @@ def test_a_retry_refuses_a_different_model_before_it_spends_anything(
     assert "--model fake" in printed, "it must name the model that would make the file coherent"
 
 
+def test_a_retry_refuses_a_different_criteria_schema_before_it_spends_anything(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The sharper half of the same rule as the model guard.
+
+    `merge_retry` carries the **retry's** flag onto the merged file, so a strict retry of a plain
+    run would write `strict_criteria: true` over a file most of whose answers were scored without
+    it — and the rejection rate is the one figure that flag exists to be read against.
+    """
+    previous = tmp_path / "previous.json"
+    assert main(["--smoke", "--out", str(previous)]) == 0
+    _with_one_unscored(previous)
+    assert main(["--smoke", "--retry-unscored", str(previous), "--strict-criteria"]) == 2
+    printed = capsys.readouterr().err
+    assert "strict criteria schema off" in printed
+    assert "would score on" in printed
+
+
+def test_a_strict_run_says_so_on_its_own_file_and_in_its_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A run that cannot say which evaluator shape it asked for cannot be compared with one that
+    did.
+
+    That is the 2026-09-28 lesson in its second form: the v3 check's rejection rate had to be
+    reconstructed from cache-read counts because the run had recorded too little of itself.
+    """
+    plain, strict = tmp_path / "plain.json", tmp_path / "strict.json"
+    assert main(["--smoke", "--out", str(plain)]) == 0
+    assert "the per-rubric criteria schema: **off**" in capsys.readouterr().out
+    assert main(["--smoke", "--strict-criteria", "--out", str(strict)]) == 0
+    assert "the per-rubric criteria schema: **on**" in capsys.readouterr().out
+
+    assert RunResult.read(plain).strict_criteria is False
+    assert RunResult.read(strict).strict_criteria is True
+    # Every criterion still came back exactly once, through the schema rather than through a gate.
+    assert [case for case in RunResult.read(strict).cases if case.error] == []
+
+    assert main(["--compare", str(plain), str(strict)]) == 0
+    compared = capsys.readouterr().out
+    # Both sides are the same model, so without this line the comparison reads as a repeat.
+    assert "The per-rubric criteria schema was **off** for" in compared
+    assert "**on** for" in compared
+
+
 def test_a_retry_of_a_complete_run_says_there_is_nothing_to_do(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

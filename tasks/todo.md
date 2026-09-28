@@ -2777,10 +2777,10 @@ unconfirmed rather than explained.
       flagged-evidence list, and agreement per rubric and per question. `calibration_scores` already
       existed from the phase 0 migration, already in `TOMBSTONED_COLUMNS` — **no migration was needed**
 - [x] **Nothing is sampled except through `usersGranting("transcript_review")`.** Held in four
-      directions: never granted, granted then withdrawn (the *read* as well as the list, because a
+      directions: never granted, granted then withdrawn (the _read_ as well as the list, because a
       reviewer may hold a link), granted against an older version of the wording, and granted by
       somebody who is not staff while the gate is closed
-- [x] **A read is the audited event**, not the score — consent was asked for a person *reading* a
+- [x] **A read is the audited event**, not the score — consent was asked for a person _reading_ a
       candidate's words. One row per read, ids and counts only; a refused read writes nothing
 - [x] **Blindness asserted over the raw JSON**, as the leak test does: `CalibrationAnswer` is a
       separate shape rather than an `Omit<>` of the evaluation, because a field omitted by subtraction
@@ -2798,7 +2798,7 @@ unconfirmed rather than explained.
 - [ ] **The visual capture does not include these screens** (`e2e/visual`), and the header change is
       worth a before/after across the whole set, since it touches every signed-in page
 - [ ] **A reviewer cannot see their own agreement.** Admin-only is the conservative reading; showing
-      a reviewer aggregates over answers they have *already* marked would be safe and is probably the
+      a reviewer aggregates over answers they have _already_ marked would be safe and is probably the
       first thing they ask for
 
 ### What the calibration work cost the chrome, and what it is owed
@@ -2820,7 +2820,6 @@ unconfirmed rather than explained.
       `AppHeader` so the bar wraps when crowded, and that is shared chrome on every signed-in screen.
       Add the four calibration screens to the capture while doing it — no test would have caught
       either header regression, and both were found by looking
-
 
 - [ ] **A worker 422 is not a transport failure**: `AiWorkerClient.post` turns every non-2xx into
       `AiWorkerUnavailableError`, so a request the worker will _never_ accept is retried three times
@@ -3009,7 +3008,7 @@ falls, and the sizing for it is at the end of this section.
       inferred (`exactly these numbers, one entry each: 0, 1, 2`), from the same list `_check` builds,
       so the instruction and the gate cannot disagree about what was asked for
 - [x] **The retry correction names the whole expected set**, not only what the last attempt got wrong.
-      A reading numbered 1,2,3 against a rubric numbered 0,1,2 is *both* a missing criterion and an
+      A reading numbered 1,2,3 against a rubric numbered 0,1,2 is _both_ a missing criterion and an
       invented one, and being told each separately leaves the off-by-one that caused both to be
       inferred
 - [x] **Proved on fake, and the limit of that is the point.** A scripted reading numbered from 1 is
@@ -3036,7 +3035,7 @@ falls, and the sizing for it is at the end of this section.
       the decision named `PROMPT_VERSIONS` — and it is one line if it should go too
 - [x] **The lead: it is not a counting failure.** Every one of the eleven retried answers was a
       `weak`, a `fluent-but-wrong` or a `correct-poorly-explained` — the three kinds where a rubric's
-      *lower* descriptors do the work, and never a `strong` or a `nigerian-english`. That is a model
+      _lower_ descriptors do the work, and never a `strong` or a `nigerian-english`. That is a model
       **leaving out the criteria an answer did not reach** rather than scoring them 0 with no
       evidence (spec §6.2), which is a thing wording has now failed to prevent twice
 - [x] **The structural fix is built and off**: `evaluation/strict_schema.py` builds the reading model
@@ -3045,7 +3044,7 @@ falls, and the sizing for it is at the end of this section.
       than a gate rejection after the fact. Proved on the stand-in end to end
       (`--smoke --strict-criteria`); **never sent to a real provider**
 - [x] **`prefixItems` would have arrived as prose.** The natural shape — a fixed-length tuple with a
-      `const` per entry — is folded by `anthropic.transform_schema` into the schema's *description*,
+      `const` per entry — is folded by `anthropic.transform_schema` into the schema's _description_,
       so the provider would have received an unconstrained array and a sentence about tuples. A
       guarantee that looked real and enforced nothing. `required` and `additionalProperties` survive,
       which is why the shape is an object; both halves are pinned in
@@ -3053,6 +3052,30 @@ falls, and the sizing for it is at the end of this section.
 - [ ] **Phase 7 owes it a measured run**, and the first thing that run must check is that the provider
       **accepts** the schema at all — a 400 on the first call answers it for a fraction of a cent.
       Only then is it worth measuring the rejection rate against the 38% v2 baseline
+- [x] **A run now records which evaluator shape it asked for** (2026-09-28). `RunResult.strict_criteria`
+      is on the file, on the report header of **every** run and not only a strict one, and named in a
+      `--compare` when the two sides differ — two runs of one model otherwise read as "opus against
+      opus". And `--retry-unscored` refuses a mismatch, as it already did for the model: `merge_retry`
+      carries the **retry's** flag, so a strict retry of a plain run would write `strict_criteria: true`
+      over a file most of whose answers were scored without it, and the rejection rate is the one
+      figure that flag exists to be read against. This is the 2026-09-28 lesson in its second form —
+      the v3 check's rate had to be reconstructed from cache-read counts because the run recorded too
+      little of itself
+- [x] **Re-proved on the stand-in, 2026-09-28.** `--smoke --strict-criteria`: 10 answers, 10 calls, 3
+      scores on every one, nothing rejected, nothing unscoreable, the evidence rule clean, and the file
+      reads `strict_criteria: true`. `anthropic.transform_schema` hands the provider
+      `required: ["0","1","2"]` and `additionalProperties: false` on `StrictCriteria`. 437 worker tests,
+      ruff and mypy green
+- [ ] **The paid check, priced and awaiting the owner (2026-09-28).** `--sample 6 --seed 7
+--strict-criteria` = **30 answers over 6 rubrics**, the **same sample the v3 check used**, which is
+      what makes it comparable with that run's 17-over-39 and its matched v2 baseline of 42 over 112.
+      **$1.05 if the rejections go, $1.51 if nothing changes**, from the measured 3.5¢ and 5.03¢ per
+      answer rather than the estimator (which quotes $0.97/$1.16 and undercounts input by 19%).
+      Proposed cap **$1.60**. Acceptance costs nothing to find out: a 400 on call 1 is unbilled, the
+      file is written after every answer, and the run would be stopped there. The cheaper alternatives
+      are `--sample 2 --seed 7` (10 answers, 35¢–50¢, `incident-ownership` +
+      `unfamiliar-code-approach`) and `--sample 1 --seed 7` (5 answers, 18¢–25¢), both of which answer
+      acceptance and neither of which can be read against a baseline
 - [ ] **Superseded — what to do with v3 while it was in use.** `PROMPT_VERSIONS` says `evaluate_answer: 3`,
       so the worker renders it now, for no measured gain and a slightly worse price (the prefix grew from
       2,966 to 3,291 tokens, read at 0.1x on every call). It is better written than v2 and states a true
