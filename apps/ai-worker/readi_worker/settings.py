@@ -5,6 +5,11 @@ from typing import Literal
 from pydantic import Field, RedisDsn, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The modules rather than the names in them: a provider is added to `providers.py` and priced in
+# `pricing.py`, and reading them through the module means this check sees that edit rather than a
+# copy of it taken at import time.
+from readi_worker.speech import pricing, providers
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
@@ -74,6 +79,35 @@ class Settings(BaseSettings):
     langfuse_retention_days: int = Field(default=30, ge=1, le=3650)
     langfuse_timeout_s: int = Field(default=10, ge=1, le=120)
 
+    # Speech adapters (M5, ADR-0019/ADR-0020). `fake` is the resting state for the same reason
+    # `LLM_PROVIDER=fake` is: a voice session bills by the minute and a dev stack runs for days.
+    #
+    # The providers are **names checked against a registry**, not a `Literal`: ADR-0020 chooses the
+    # recogniser on real recordings in phase 6, and a type that had to be edited to try a candidate
+    # would be a type doing procurement.
+    #: Does this deployment serve voice interviews at all? False keeps the speech providers on the
+    #: fakes without that being a misconfiguration — a text-only deployment (which is every
+    #: deployment until M5 ships) needs no recogniser, and the voice agent refuses to start without
+    #: this. It is the worker's switch; the API has its own, because it is the API that mints
+    #: the tokens.
+    voice_enabled: bool = False
+    stt_provider: str = "fake"
+    stt_model: str = Field(default="fake", min_length=1)
+    #: The language tag sent to the recogniser. Nigerian English is `en` to most providers today;
+    #: whether any of them offers something better is part of what phase 6 measures.
+    stt_language: str = Field(default="en", min_length=2, max_length=16)
+    stt_timeout_s: float = Field(default=20.0, gt=0, le=300)
+    tts_provider: str = "fake"
+    tts_model: str = Field(default="fake", min_length=1)
+    #: Which voice speaks. One default Nigerian-accented voice is chosen by a blind panel in phase 7
+    #: (`docs/plans/m5-voice.md` decision 10); until then this is the fake's placeholder.
+    tts_voice: str = Field(default="fake", min_length=1)
+    tts_timeout_s: float = Field(default=20.0, gt=0, le=300)
+    #: The technical vocabulary (`content/glossary/tech_terms.txt`), sent to the recogniser as
+    #: custom vocabulary and scored as its own subset by the benchmark. Empty means "find it in
+    #: the checkout"; a deployment that carries no repository sets the path explicitly.
+    glossary_path: str | None = None
+
     # Embedding adapter (ADR-0006). `fake` is a pure function of the text: no key, no network, no
     # cost. `embedding_dimensions` must match the `vector(N)` column in the migration — the worker
     # refuses a provider answer of any other length rather than store an unsearchable row.
@@ -115,6 +149,56 @@ class Settings(BaseSettings):
             )
         if self.environment == "production" and self.embedding_provider == "fake":
             raise ValueError("EMBEDDING_PROVIDER=fake is not allowed in production")
+        return self
+
+    @model_validator(mode="after")
+    def _speech_configured(self) -> "Settings":
+        """Refuse a speech provider this build cannot construct, or cannot price.
+
+        **The price check is the unusual one, and it is deliberate** (owner's instruction,
+        2026-09-29). A language model bills per call and an unpriced one shows up as a zero in a
+        column somebody reads the same day. Recognition and synthesis bill per minute and per
+        character, monthly, in arrears — so a provider `speech/pricing.py` has no rate for is not a
+        zero in a column, it is a cost nobody sees until the invoice arrives. Both sides are checked
+        even on `fake`, which is priced at zero precisely so that it needs no exception here.
+        """
+        for side, provider, model, known, priced in (
+            (
+                "STT",
+                self.stt_provider,
+                self.stt_model,
+                providers.STT_PROVIDERS,
+                pricing.has_stt_price,
+            ),
+            (
+                "TTS",
+                self.tts_provider,
+                self.tts_model,
+                providers.TTS_PROVIDERS,
+                pricing.has_tts_price,
+            ),
+        ):
+            if provider not in known:
+                raise ValueError(
+                    f"{side}_PROVIDER={provider!r} is not implemented; "
+                    f"available: {', '.join(sorted(known))}"
+                )
+            if not priced(provider, model):
+                raise ValueError(
+                    f"no price is configured for {provider}/{model} in "
+                    "readi_worker/speech/pricing.py. A per-minute vendor bills monthly, so an "
+                    f"unpriced one is an invisible cost: add its rate (checked against the "
+                    f"vendor's own pricing page, with the date) or set {side}_PROVIDER=fake"
+                )
+        if (
+            self.environment == "production"
+            and self.voice_enabled
+            and (self.stt_provider == "fake" or self.tts_provider == "fake")
+        ):
+            raise ValueError(
+                "STT_PROVIDER=fake and TTS_PROVIDER=fake are not allowed in production when "
+                "VOICE_ENABLED=true (a text-only deployment leaves VOICE_ENABLED=false)"
+            )
         return self
 
     @model_validator(mode="after")

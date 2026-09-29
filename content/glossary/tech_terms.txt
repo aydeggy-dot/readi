@@ -1,0 +1,344 @@
+# Technical vocabulary for speech recognition (M5, ADR-0020).
+#
+# This file does two jobs, and it is one file so that they cannot drift apart:
+#
+#   1. It is loaded as **custom vocabulary** (keyterms / word boost) for the speech-to-text
+#      provider, so that a candidate saying "idempotent" is not transcribed as "I don't potent".
+#   2. It is the **tech-term subset** the accent benchmark scores separately
+#      (`/evals/stt_benchmark`). A provider that mishears the vocabulary of the job is unusable for
+#      this product however good its overall word error rate looks — and one cannot be tuned for the
+#      test without also being tuned for the product, because the list is the same.
+#
+# Rules for editing:
+#   - One term per line. Blank lines and `#` comments are ignored. Case is preserved as written,
+#     because it is what a report prints; matching is case-insensitive.
+#   - Terms are drawn from what **our own questions actually say** (`content/seed/*`) and from the
+#     stacks the catalogue offers (`content/seed/stacks.yaml`). It is not a list of every technology
+#     that exists: every provider caps how many keyterms it will take, and a list padded with words
+#     no candidate will say makes the cap bite where it matters.
+#   - **The order is the priority order.** Every provider caps how many keyterms it will accept, and
+#     the loader keeps the first N of this file when it must — so the opening section is the terms
+#     most likely to be misheard, and the sections after it run from the vocabulary our banks use
+#     most to the vocabulary they use least. Moving a line up is a decision about what a candidate
+#     can afford to have misheard.
+#   - Prefer the spoken form. A candidate says "Postgres" more often than "PostgreSQL", and both are
+#     here; nobody says "k8s" out loud as letters, so "Kubernetes" carries the weight.
+#   - Add a term when a bank starts using it, in the same change as the question.
+
+# --- The words that gave this file its name -------------------------------------------------------
+idempotent
+idempotency
+Kubernetes
+PostgreSQL
+Postgres
+
+# --- Languages and runtimes -----------------------------------------------------------------------
+JavaScript
+TypeScript
+Python
+Java
+PHP
+Go
+Golang
+Ruby
+C#
+.NET
+Node.js
+Deno
+Bun
+
+# --- Frontend -------------------------------------------------------------------------------------
+React
+Next.js
+Vue
+Nuxt
+Angular
+Svelte
+DOM
+CSS
+Tailwind
+Bootstrap
+Sass
+webpack
+Vite
+ESLint
+Babel
+hydration
+memoization
+memoized
+useEffect
+useMemo
+useState
+props
+JSX
+virtual DOM
+server-side rendering
+client-side rendering
+lazy loading
+code splitting
+bundle size
+accessibility
+ARIA
+viewport
+responsive
+OnPush
+signals
+reactivity
+two-way binding
+debounce
+throttle
+AbortController
+fetch
+localStorage
+service worker
+progressive web app
+Lighthouse
+
+# --- Backend --------------------------------------------------------------------------------------
+API
+REST
+RESTful
+GraphQL
+gRPC
+endpoint
+middleware
+Express
+NestJS
+Django
+FastAPI
+Flask
+Spring
+Spring Boot
+Laravel
+Rails
+ORM
+migration
+schema
+query
+SQL
+NoSQL
+MongoDB
+Redis
+MySQL
+SQLite
+index
+composite index
+transaction
+rollback
+commit
+deadlock
+isolation level
+replica
+read replica
+primary
+sharding
+partition
+connection pool
+N plus one
+pagination
+cursor
+offset
+keyset
+webhook
+cron
+queue
+worker
+job
+retry
+backoff
+exponential backoff
+dead letter queue
+Kafka
+RabbitMQ
+BullMQ
+cache
+cache invalidation
+TTL
+CDN
+rate limiting
+throttling
+load balancer
+nginx
+reverse proxy
+stateless
+horizontal scaling
+vertical scaling
+latency
+throughput
+p95
+p99
+race condition
+concurrency
+mutex
+lock
+optimistic locking
+pessimistic locking
+eventual consistency
+idempotency key
+
+# --- HTTP, auth and security ----------------------------------------------------------------------
+HTTP
+HTTPS
+HTTP status code
+GET
+POST
+PUT
+PATCH
+DELETE
+header
+payload
+JSON
+XML
+CORS
+CSRF
+XSS
+SQL injection
+OAuth
+OpenID Connect
+JWT
+bearer token
+refresh token
+session cookie
+same-site
+hashing
+bcrypt
+Argon2
+MD5
+salt
+TLS
+SSL
+certificate
+environment variable
+secret
+least privilege
+two-factor authentication
+OWASP
+
+# --- Testing and QA -------------------------------------------------------------------------------
+QA
+unit test
+integration test
+end-to-end
+regression
+smoke test
+test case
+test plan
+test suite
+assertion
+fixture
+mock
+stub
+spy
+flaky
+flakiness
+coverage
+Cypress
+Playwright
+Selenium
+WebDriver
+Appium
+Postman
+RestAssured
+JUnit
+TestNG
+pytest
+Jest
+Vitest
+JMeter
+k6
+Gatling
+load test
+stress test
+performance testing
+exploratory testing
+boundary value
+equivalence partitioning
+edge case
+happy path
+severity
+priority
+reproduction steps
+bug report
+triage
+acceptance criteria
+definition of done
+shift left
+test pyramid
+page object model
+selector
+locator
+XPath
+CSS selector
+data-testid
+test data
+staging
+UAT
+
+# --- Delivery and operations ----------------------------------------------------------------------
+Git
+branch
+merge
+rebase
+pull request
+code review
+merge conflict
+CI
+CD
+CI/CD
+pipeline
+GitHub Actions
+GitLab
+Jenkins
+Docker
+container
+image
+Docker Compose
+Terraform
+Ansible
+AWS
+Azure
+GCP
+S3
+EC2
+Lambda
+serverless
+deployment
+blue-green
+canary release
+feature flag
+observability
+logging
+monitoring
+alerting
+Prometheus
+Grafana
+Sentry
+Datadog
+Elasticsearch
+tracing
+metrics
+uptime
+incident
+postmortem
+runbook
+on-call
+SLA
+SLO
+root cause
+
+# --- Ways of working ------------------------------------------------------------------------------
+Agile
+Scrum
+sprint
+standup
+retrospective
+backlog
+story point
+Jira
+Kanban
+stakeholder
+pair programming
+technical debt
+refactor
+scope creep
+MVP

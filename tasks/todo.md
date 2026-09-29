@@ -3408,3 +3408,66 @@ than the proposal:**
       an unknown `(provider, model)` logs a warning and records zero cost, which is tolerable for one
       LLM; it is not tolerable for a per-minute vendor where the bill arrives monthly. Phase 1 should
       refuse to start with an STT or TTS provider it cannot price
+
+### Phase 1 — the adapters and their fakes · **done 2026-09-29**
+
+- [x] **`SpeechToText` and `TextToSpeech` in `readi_worker/speech/`**, beside `LLMClient` and
+      `EmbeddingProvider` and shaped like them: the Protocol is what business logic depends on, the
+      SDK lives in the implementation, latency is measured inside the adapter, and `factory.py` is
+      the only place a provider **name** becomes an implementation
+- [x] **The protocols are batch, and that is the phase's real decision.** The live conversation runs
+      on LiveKit Agents' plugin for the chosen provider — writing our own streaming stack beside it
+      would be two implementations of one thing, and the plugin is what `AgentSession` expects to be
+      handed. Phase 3 wraps that plugin for provider selection and `AiCallRecord` reporting, which is
+      the same seam. What the batch interfaces are for is not small: the benchmark (phase 2), the
+      pre-rendered interviewer audio that is the whole of latency lever 1, the voice panel (phase 7),
+      and the fakes that let a voice e2e run with no key. **Say this in ADR-0019 at phase 3**, beside
+      the barge-in decision below
+- [x] **An unpriced provider cannot start** (owner's instruction, 2026-09-29). `Settings` refuses a
+      configuration whose STT or TTS provider and model have no rate in `speech/pricing.py`. The
+      reasoning is worth keeping: a language model bills per call, so an unpriced one shows up as a
+      zero in a column somebody reads that day; recognition and synthesis bill per minute and per
+      character, monthly, in arrears, so an unpriced one is a cost nobody sees until the invoice. The
+      test is the shape of the real mistake — a provider added to the registry in phase 2 with its
+      rate forgotten
+- [x] **Prices are stored in the vendors' own units** — micro-USD per audio-minute, micro-USD per
+      thousand characters — so checking the table against a pricing page is reading one number off
+      each. The alternative is the Voyage rate: an estimate nobody could check at a glance, still
+      marked unverified three milestones later
+- [x] **`fake` is priced at zero rather than special-cased**, so the startup rule needs no exception
+      and `LLM_PROVIDER=fake`'s "resting state costs nothing" holds for voice too
+- [x] **`VOICE_ENABLED` decides whether the production `fake` refusal applies.** Refusing the fakes
+      in production unconditionally would stop a **text-only** deployment booting — which is every
+      deployment until this milestone ships — so the rule is "not in production _with voice on_"
+- [x] **`content/glossary/tech_terms.txt`**, 302 terms drawn from what our own banks say and the
+      stacks the catalogue offers. One file for two jobs — the recogniser's custom vocabulary and the
+      benchmark's tech-term subset — so a provider cannot be tuned for the test without being tuned
+      for the product. **Its order is its priority order**, because every provider caps keyterms and
+      the loader keeps the first N and logs what it dropped
+- [x] **The glossary test asserts the real shipped file** and found a duplicate on its first run
+      (`rollback`, in two sections). A fixture would have passed
+- [x] **`readi_worker/paths.py`**: one `repo_root()`, because the eval harness had its own and the
+      glossary needed the same walk. The harness's version stays as a thin wrapper that keeps raising
+      `DatasetError`
+- [x] **Word timings in the fake are evenly spaced, deliberately.** Even spacing is a lie about real
+      speech and it is the right lie here: M6's delivery metrics read these offsets, and a fake that
+      invented pauses would make a pace test pass on the fake's rhythm rather than on the code
+- [x] Checks: `ruff`, `mypy --strict`, 485 worker tests (31 new), `.env.example` and `turbo.json`
+      updated with the nine new variables
+
+### Carried into phase 3, with the owner's decision already taken
+
+- [ ] **A probe counts as asked only if the candidate heard enough of it to know what it asked**
+      (owner's decision, 2026-09-29; finding 2 of phase 0). Use `spoken_ms` against where the ask
+      falls in the text: a probe cut off **before** its ask is treated as **not asked** — no 0.85
+      discount, and "not assessed" if the criterion was never covered. It is the same principle as
+      M4's clock rule: **a candidate never loses marks for something they did not hear.** Record it in
+      ADR-0019 when phase 3 builds it
+- [ ] **Amending ADR-0019 rather than superseding it is allowed here, and only here.** The repo's rule
+      is that an accepted ADR is never edited — but ADR-0019 has never left this branch, and the
+      prompts rule already says a version that has never left its own branch may be revised within its
+      own milestone. Once M5 merges, a change to it is a new ADR. Say which one it is in the commit
+      message either way
+- [ ] **`INTERVIEW_LLM_TIMEOUT_S` is still 45 s**, which is a text-mode number (carried from phase 0)
+- [ ] **The streaming adapters wrap LiveKit's plugins** — the batch protocols above do not cover them,
+      and the wrapper is where `AiCallRecord` reporting for a live turn has to happen

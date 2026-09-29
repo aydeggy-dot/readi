@@ -22,6 +22,9 @@ from typing import Any
 
 import yaml
 
+from readi_worker.paths import RepoRootError
+from readi_worker.paths import repo_root as _repo_root
+
 #: The five answers of a stress set, in the order the README presents them.
 KINDS = ("strong", "weak", "fluent-but-wrong", "correct-poorly-explained", "nigerian-english")
 
@@ -297,9 +300,13 @@ def _yaml_files(directory: Path) -> Iterator[Path]:
 
 
 def repo_root(start: Path | None = None) -> Path:
-    """The repository root, found by walking up to the directory that holds `content/seed`."""
-    here = (start or Path(__file__)).resolve()
-    for candidate in [here, *here.parents]:
-        if (candidate / "content" / "seed").is_dir():
-            return candidate
-    raise DatasetError(f"no repository root above {here}: content/seed not found")
+    """The repository root, as a `DatasetError` when there is none.
+
+    The walk itself is `readi_worker.paths`, shared with the speech glossary since M5 phase 1: two
+    copies of "where is the repository root" drift the moment one of them learns about a new layout.
+    This wrapper exists only so that a harness run keeps failing with the harness's own error type.
+    """
+    try:
+        return _repo_root(start or Path(__file__))
+    except RepoRootError as exc:
+        raise DatasetError(str(exc)) from None

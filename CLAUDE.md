@@ -256,6 +256,22 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   provenances. The reference transcript is made by a person listening to every clip — two recognizers
   that mishear an accent the same way agree, so reviewing only their disagreements hides exactly the
   failures the benchmark exists to find.
+- **The speech adapters in `readi_worker/speech/` are batch, and the live path wraps LiveKit's
+  plugin** (M5 phase 1). Streaming recognition and synthesis are what `AgentSession` is handed, so a
+  second streaming stack of our own would be two implementations of one thing; the wrapper keeps the
+  seam CLAUDE.md asks for — provider selection in one place, an `AiCallRecord` per call. The batch
+  interfaces are what the benchmark, the pre-rendered interviewer audio and the voice panel use.
+- **A speech provider `speech/pricing.py` cannot price refuses to start** (owner's instruction,
+  2026-09-29). A language model bills per call, so an unpriced one is a zero somebody notices that
+  day; recognition and synthesis bill per minute and per character, monthly, in arrears, so an
+  unpriced one is a cost nobody sees until the invoice. Rates are stored in the **vendors' own
+  units**, with the date they were checked, so the table can be read against a pricing page. `fake`
+  is priced at zero rather than special-cased, and `VOICE_ENABLED` is what decides whether the
+  production "no fakes" rule applies — a text-only deployment needs no recogniser.
+- **`content/glossary/tech_terms.txt` is one file doing two jobs**: the recogniser's custom
+  vocabulary and the benchmark's tech-term subset, so a provider cannot be tuned for the test without
+  being tuned for the product. **Its order is its priority order** — every provider caps keyterms and
+  the loader keeps the first N. Add a term in the same change as the question that starts using it.
 
 ### AI provider adapters
 - All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `EmbeddingProvider`, `AvatarProvider`.

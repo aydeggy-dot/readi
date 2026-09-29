@@ -113,13 +113,28 @@ ADR-0019, ADR-0020, this plan, and the cross-language contracts phases 3 and 4 w
 voice token the browser gets, the three internal routes the agent uses, word timings and barge-in
 facts on a turn, and the per-turn latency sample. No providers, no migration, no routes yet.
 
-### Phase 1 — the adapters and their fakes
+### Phase 1 — the adapters and their fakes · **done 2026-09-29**
 
 `SpeechToText` and `TextToSpeech` protocols beside `LLMClient` and `EmbeddingProvider`, with
 deterministic fakes (a scripted transcript with word timings; a silent WAV of a plausible length), the
-`stt`/`tts` entries in `pricing.py`, and `/content/glossary/tech_terms.txt`. Every call reports an
-`AiCallRecord` with `unit_kind` `seconds` or `characters` — the enum already has both, and so does the
-database.
+`stt`/`tts` prices, and `/content/glossary/tech_terms.txt`. Every call reports an `AiCallRecord` with
+`unit_kind` `seconds` or `characters` — the enum already has both, and so does the database.
+
+**The protocols are batch, and that is a decision taken here.** A live conversation needs streaming
+recognition with interim results and endpointing, and that path is LiveKit Agents' plugin for the
+chosen provider: writing our own streaming stack beside it would be two implementations of one thing,
+and the plugin is what `AgentSession` expects to be handed. What phase 3 wraps around the plugin is
+provider selection and `AiCallRecord` reporting — the two jobs this interface does — so the seam
+CLAUDE.md asks for is kept without pretending we hand-rolled a realtime pipeline. What is left for the
+batch interfaces is not small: the benchmark transcribes files (phase 2), the pinned interviewer audio
+is synthesized once and cached (lever 1), the voice panel compares voices (phase 7), and the fakes are
+what let an end-to-end voice test run with no key and no cost (phase 5).
+
+**An unpriced provider cannot start** (owner's instruction, 2026-09-29). `Settings` refuses a
+configuration whose STT or TTS provider and model have no rate in `speech/pricing.py`: a language
+model bills per call and an unpriced one is a zero somebody notices that day, while recognition and
+synthesis bill per minute and per character, monthly, in arrears — so an unpriced one is a cost nobody
+sees until the invoice.
 
 ### Phase 2 — the benchmark harness, and the synthetic pre-screen
 
