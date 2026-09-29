@@ -3305,3 +3305,38 @@ Handover: `docs/progress/2026-09-28-m4-phase-7.md`.
       against the same system prompt _and_ the same session bundle — a per-session prefix worth far
       more than a per-call one — and the interview is sequential by construction, so it needs no
       reshaping. Only 4.79¢ to save 12-16% of, so not urgent; the seam is now in place
+
+## The pilot is postponed — what stays unvalidated (owner's decision, 2026-09-29)
+
+The plan is saved at `docs/plans/p0-pilot.md` and is **not** being built. It is P0 rather than a
+milestone because what it needs is real candidates consenting, not code: the calibration tool, the
+gold-set loader, `interviews:pace` and `--dataset gold` all exist already.
+
+Five things therefore stay unproven while M5 and everything after it is built. **Each of them is a
+figure that must keep its caveat every time it is quoted** — in a handover, a pitch or an investor
+page — because each is currently measured against a model rather than against a person.
+
+- [ ] **Fairness on real Nigerian English.** "0 of 36 criteria outside the one-rung band" is fairness
+      to `nigerian-english` answers **written by the same family of model that scored them**. It is
+      the strongest thing measurable today and it is not the claim the product makes (product
+      principle 3). Quote it as "fair to model-written Nigerian English", never as "fair"
+- [ ] **The gold set is empty.** Every agreement figure (80–87% exact) is against model-written
+      expectations: a regression baseline, evidence about drift and not about quality.
+      `thresholds.yaml` is enforced `on_provenance: human` so it cannot quietly start passing.
+      Blocked on a signed `reviewer-agreement.md` (ADR-0017 decision 6), which does not exist, and on
+      candidates granting `transcript_review`
+- [ ] **Answer pace, and `SECONDS_FOR_A_FOLLOW_UP = 75`.** Provisional on **eight** follow-up answers
+      from four real sessions. The figure to re-read is "follow-up answers that ran past it" on
+      `pnpm --filter @readi/api interviews:pace`, which refuses to read as a constant under 40
+      answers — roughly ten sessions. Over-reserving is the safe direction, so the cost of being
+      wrong here is a shorter interview and never a lower score
+- [ ] **The evaluator model choice.** `claude-opus-5` was agreed for the MVP on a tie-breaker of
+      "agrees with the written expectations at 84% against sonnet's 73%" — and those expectations are
+      model-written. At four times the price (40.3¢ against 10.1¢ per 30-minute session) the answer
+      may well change on a gold set, so the decision is explicitly open
+- [ ] **Report usefulness.** No real candidate has read a report. This is the one with no metric and
+      the one product principle 1 puts first; it is settled by candidates' own words, not by a
+      threshold
+- [ ] **Also blocked behind the same agreement:** `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` stays
+      false, so calibration runs against staff answers only. The tool is built and demonstrated end
+      to end; what is missing is the signature
