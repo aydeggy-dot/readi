@@ -3471,3 +3471,72 @@ than the proposal:**
 - [ ] **`INTERVIEW_LLM_TIMEOUT_S` is still 45 s**, which is a text-mode number (carried from phase 0)
 - [ ] **The streaming adapters wrap LiveKit's plugins** — the batch protocols above do not cover them,
       and the wrapper is where `AiCallRecord` reporting for a live turn has to happen
+
+### Phase 2, part 1 — the five vendors, priced and configured · **done 2026-09-29**
+
+Handover: `docs/progress/2026-09-29-m5-providers.md`. Accounts: AssemblyAI, Deepgram, ElevenLabs,
+LiveKit, Intron ("Sahara") — all free tiers but ElevenLabs Starter at $6/month. Every rate was read
+from the vendor's own page on 2026-09-29 and carries that date and its URL in the code.
+
+- [x] **`speech/providers.py` holds vendor _descriptors_, not a set of names.** Four things differ per
+      vendor and each corrupts something silently if assumed: the billing basis, the keyterm cap, the
+      unit of word offsets, and what keeps our audio out of their training set
+- [x] **A rate is a (provider, model, path) with a basis.** Deepgram bills audio minutes; AssemblyAI
+      streaming bills **socket-open** minutes — "a WebSocket open for 60 minutes with 30 minutes of
+      audio sent is billed for 60 minutes", and an un-terminated session bills three hours. An
+      interview is mostly silence, so one read as the other is ~3x wrong in our favour, which is the
+      worst direction. `stt_cost_micro_usd` **raises** rather than guessing. Consequence: the agent
+      closing its socket is an operational rule
+- [x] **The same model costs different amounts on the two paths** (nova-3: $0.0077 live, $0.0043
+      pre-recorded), which is why the path is in the key rather than in a comment
+- [x] **The regular rate is stored, not the promotional one.** Deepgram's streaming promo ($0.0048 vs
+      $0.0077) has no published end date; storing the promo would make every estimate come in under
+      the invoice, which is the wrong direction for the same reason `_billable_seconds` rounds up
+- [x] **302 terms, and no live path takes more than 100.** `glossary_for(settings, path)` applies the
+      vendor's cap; Intron documents no custom-vocabulary feature and gets 0. The file's order is now
+      a product decision about which words a candidate can afford to have misheard
+- [x] **Privacy mechanisms are code where they can be**: `mip_opt_out=true` on every Deepgram call,
+      AssemblyAI's **EU host** (the mechanism, not a latency choice),
+      `use_disable_llm_corrections=true` for Intron. Where they cannot be — ElevenLabs' zero retention
+      is Enterprise-only — it is a **declared gap**, and a test asserts every vendor declares one or
+      the other
+- [x] **An unpriced provider cannot start, and Intron is the live case**, not a hypothetical: they
+      publish no rates anywhere, so the worker refuses to run with them configured
+- [x] **168 Nigerian-accented ElevenLabs voices, 22 conversational**, all rate 1.0, most with a
+      730-day notice period (`tools/list_voices.py`, which reads the key from configuration so it
+      never reaches a command line or a transcript). `en-nigerian` being a first-class filter is why
+      ElevenLabs is the synthesizer — Cartesia publishes nothing closer than `en-ZA` at the same price
+- [x] Subprocessors updated with all five and the ElevenLabs gap; the worker's env template carries the
+      keys, the priced models and the caps; CLAUDE.md §4 and §5; 24 pricing tests (39 speech tests)
+
+### Phase 2, part 2 — still to do
+
+- [ ] The four HTTP adapters (Deepgram, AssemblyAI, Intron batch; ElevenLabs batch), each converting
+      its own timing unit — **Deepgram reports seconds, AssemblyAI milliseconds**
+- [ ] The benchmark harness: manifest, the pinned normalizer, WER overall and **per speaker**,
+      tech-term error rate, time-to-final, the provenance rule that refuses a mixed figure
+- [ ] **The harness must refuse an unpriced provider too**, or record "cost unknown" rather than 0
+      behind an explicit `--allow-unpriced`. Otherwise a free tier is an invisible bill — the same
+      rule as startup, one level up
+- [ ] **`--dry-run` prices in units, not just dollars**: audio-minutes per recogniser and characters
+      for the synthesizer against each free allowance. On a free tier "you have 4,000 characters left
+      this month" is the number that stops a run, not "$0.30"
+- [ ] The synthetic pre-screen from **two** TTS sources, and the recording kit for phase 6
+- [ ] **Intron's batch endpoint takes a file URL, not an upload**, and caps at 120 s — so the harness
+      needs somewhere to serve a clip from, which no other vendor requires
+
+### Owner's open questions, sent or to send (2026-09-29)
+
+- [ ] **LiveKit: is a self-hosted agent billed as a participant minute or an agent session minute?**
+      $0.0005/min against $0.01/min. Their docs define agent minutes for agents deployed _to their
+      cloud_ and say nothing about ours
+- [ ] **LiveKit: request region pinning and ask what they advise for Nigeria.** Their Africa group is
+      one location in South Africa with no in-region redundancy, and pinning removes failover
+- [ ] **Intron: price, and a written answer on retention and training for the voice API.** Their only
+      policy and terms are dated January 2020, before the API existed. **No consented human recording
+      may be sent to them until this is answered** — it is a gate on phase 6, not a note
+- [ ] **Deepgram: are self-serve accounts in the Model Improvement Programme by default?** We opt out
+      on every request either way; the answer belongs in the subprocessor file
+- [ ] **The API app still has no LiveKit credentials** in its own env file — all three read `missing`
+      on 2026-09-29 after the owner added them, so they probably went into the worker's twice. Needed
+      by phase 4

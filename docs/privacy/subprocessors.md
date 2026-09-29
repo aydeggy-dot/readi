@@ -5,10 +5,12 @@ for users in the EU/UK), and the basis of the data-processing agreements we sign
 partners. **Keep this list accurate**: adding a subprocessor is a decision, not a dependency bump —
 see the checklist at the end.
 
-Status: **M1**. Nothing here is a legal opinion; this file is what the system actually does, which is
+Status: **M1**, plus the five speech and media vendors M5 configures (below, not yet enabled for
+candidate data). Nothing here is a legal opinion; this file is what the system actually does, which is
 what legal review needs as input.
 
-Last reviewed: 2026-09-26 (M4 phase 0: the reviewers recorded as contracted processors; the Anthropic row corrected — it had described CV parsing
+Last reviewed: 2026-09-29 (M5 phase 2: the five speech/media vendors added with their terms read on
+that date, and the ElevenLabs retention gap recorded as a gap). Before that: 2026-09-26 (M4 phase 0: the reviewers recorded as contracted processors; the Anthropic row corrected — it had described CV parsing
 alone since M1, and candidate answers have gone there since M3 — and the calibration reviewers
 recorded below).
 
@@ -37,15 +39,33 @@ They become subprocessors the moment they are enabled in an environment that ser
 | **Voyage AI** | Embeddings for question near-duplicate detection and, later, question retrieval (ADR-0006) | **No personal data.** Only the text of our own questions — a prompt and its setup — written by content experts. No candidate answers, no account ids. Off until `EMBEDDING_PROVIDER=voyage` and a key are set; the default fake provider reaches no third party (see `docs/runbooks/embeddings-switchover.md`) |
 | **Langfuse Cloud (EU)** | LLM tracing: the prompts and answers behind CV parsing and every interview turn, for prompt debugging and M4's evals. Treated as a **personal-data store**, not a log sink (ADR-0008) | The prompt and the model's answer, which means CV text and candidate answers; plus the opaque `user_id` and `session_id`, the model, the token counts and the latency. Emails, phone numbers, URLs and street addresses are masked in the worker before anything is sent. **No name, no email, no phone number, no account email.** Off until `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are both set; without them nothing is constructed and nothing is sent |
 
+### The speech and media vendors (M5), as their own terms read on 2026-09-29
+
+Keys exist in the worker's untracked configuration; **no candidate audio has been sent to any of
+them**, and `VOICE_ENABLED` is false. `STT_PROVIDER` and `TTS_PROVIDER` remain `fake`, so the resting
+state of a development stack still reaches no third party. Each row's "what keeps our data out of its
+training set" is also written in `readi_worker/speech/providers.py`, beside the parameter or the base
+URL that enforces it — because a promise that lives only in this file is a promise no test can keep.
+
+| Subprocessor | Purpose | What it would receive | Region | Training and retention, as their page reads |
+|---|---|---|---|---|
+| **LiveKit Cloud** | Real-time audio transport for a voice interview | The candidate's speech, in transit, plus an opaque participant identity | Global mesh by default; the nearest region group to Nigeria is **Africa = one location in South Africa with no in-region redundancy**. Region pinning is not self-service and removes failover | Media is relayed, not stored, unless egress/recording is enabled — which we do not enable. Confirm in writing before launch |
+| **Deepgram** | Speech to text | Everything the candidate says | United States | Training happens only through their voluntary Model Improvement Partnership, and `mip_opt_out=true` is sent on **every** request we make; "Data from opted-out requests is retained only for the duration necessary to process the request." **Open question:** their page never states whether self-serve accounts are enrolled by default — answer owed in writing |
+| **AssemblyAI** | Speech to text | Everything the candidate says | **EU** (`api.eu.assemblyai.com`, chosen for this reason, not for latency) | "We will not use files you submit for model training if you… are utilizing our European servers", and "zero data retention of audio and transcripts for our Streaming product" |
+| **ElevenLabs** | Text to speech: the interviewer's voice | **Only the interviewer's own words** — never a candidate's speech or writing. But those words include the planned follow-up probes, which are answer key | United States / Netherlands / Singapore (`api.elevenlabs.io`; residency hosts exist) | **A known gap, accepted for development only** (owner's decision, 2026-09-29). They train on self-serve data by default; the account-level "Improve the models for everyone" toggle is **off** as of 2026-09-29, which is the only lever a self-serve plan has. Zero Retention Mode (`enable_logging=false`) is **Enterprise-only**, so request history is retained. **Revisit before real users:** Enterprise, or a vendor whose no-retention mode is available to us |
+| **Intron Health ("Sahara")** | Speech to text for African accents — benchmark reference only, not the live path | Benchmark clips from consented speakers; **no candidate audio** | Not stated anywhere | **Unresolved, and a blocker for their use on human recordings.** Their only formal privacy policy and terms are dated **January 2020**, which predates the voice API; nothing on the API docs site covers retention or training. A written answer from them is owed before a single consented recording is sent. Their transcripts are also LLM-post-corrected by default; we send `use_disable_llm_corrections=true` |
+
+**The benchmark speakers are not users** (ADR-0020 §8). They have no account, so their consent is a
+signed form kept outside the application, their audio never enters the product's database or buckets,
+and the form must be able to say truthfully that clips are not used to train anybody's model — which
+is why the Intron row above is a gate rather than a note.
+
 ## Planned, by milestone
 
 Add each to the table above — with its region and retention — in the milestone that enables it.
 
 | Subprocessor | Purpose | Milestone |
 |---|---|---|
-| LiveKit Cloud | Real-time audio for voice interviews | M5 |
-| Deepgram (or AssemblyAI) | Speech to text | M5 |
-| ElevenLabs (or Cartesia) | Text to speech | M5 |
 | Paystack | Payments in Naira | M8 |
 | Stripe | Payments in USD | M8 |
 | Meta (WhatsApp Cloud API) | Reminders on WhatsApp | Phase 2 |

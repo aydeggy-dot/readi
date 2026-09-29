@@ -12,11 +12,27 @@ that failed still took time and still says something about the provider.
 from readi_worker.contracts import AiCallRecord
 from readi_worker.speech.base import SttError, Synthesis, TranscriptionResult, TtsError
 from readi_worker.speech.pricing import stt_cost_micro_usd, tts_cost_micro_usd
+from readi_worker.speech.providers import CallPath
 from readi_worker.tracing import current_trace_id
 
 
-def stt_record(result: TranscriptionResult) -> AiCallRecord:
-    """One transcription. Billed on audio seconds, rounded up to whole seconds as vendors do."""
+def stt_record(
+    result: TranscriptionResult,
+    *,
+    path: CallPath = "batch",
+    session_seconds: float | None = None,
+) -> AiCallRecord:
+    """One transcription.
+
+    `input_units` is always the **audio** seconds, because that is what the row is a record of; the
+    cost may nonetheless be computed from `session_seconds`, because AssemblyAI's streaming product
+    bills the time the socket was open rather than the audio inside it. The two figures being
+    different is the thing `ai_call_log` has to be able to show, so the units column stays audio and
+    the cost column says what was billed.
+
+    `path` defaults to `batch` because this module's protocols are batch (see `base.py`); the live
+    wrapper phase 3 puts around LiveKit's plugin passes `streaming` and the session length.
+    """
     seconds = _billable_seconds(result.audio_seconds)
     return AiCallRecord.model_validate(
         {
@@ -31,7 +47,13 @@ def stt_record(result: TranscriptionResult) -> AiCallRecord:
             "cache_write_units": 0,
             "cache_read_units": 0,
             "unit_kind": "seconds",
-            "cost_micro_usd": stt_cost_micro_usd(result.provider, result.model, seconds),
+            "cost_micro_usd": stt_cost_micro_usd(
+                result.provider,
+                result.model,
+                path,
+                audio_seconds=seconds,
+                session_seconds=session_seconds,
+            ),
             "langfuse_trace_id": current_trace_id(),
         }
     )

@@ -81,4 +81,5 @@ def test_the_configured_path_overrides_the_checkout(settings: Settings, tmp_path
 
     configured = settings.model_copy(update={"glossary_path": str(source)})
     assert glossary_for(configured) == ["Kubernetes", "idempotent"]
-    assert glossary_for(settings) == load_terms()
+    # And without an override it finds the checkout's copy, capped for the vendor's live path.
+    assert glossary_for(settings) == load_terms()[:100]

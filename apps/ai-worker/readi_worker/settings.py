@@ -48,8 +48,8 @@ class Settings(BaseSettings):
     #: ended — but the report is promised within 60 s of that (spec §8) and the API scores several
     #: answers at once, so a call slower than this has already lost the race and is better retried.
     evaluation_llm_timeout_s: float = Field(default=60.0, gt=0, le=600)
-    #: Ask the evaluator for a **per-rubric** output schema in which a criterion cannot be left
-    #: out or invented (`evaluation/strict_schema.py`). **On** since 2026-09-28, measured over 60
+    #: Ask the evaluator for a **per-rubric** output schema in which a criterion cannot be left out
+    #: or invented (`evaluation/strict_schema.py`). **On** since 2026-09-28, measured over 60
     #: answers and all twelve rubrics of the paid comparison: **0 rejected readings over 60 calls**
     #: against a matched v2 baseline of 74 over 297 (25%), nothing unscoreable, both separations 12
     #: of 12, fairness inside the band on all 36 criteria, and 3.40¢ an answer against 4.24¢
@@ -63,13 +63,13 @@ class Settings(BaseSettings):
     # the authority, so losing this cache costs one round trip and never a session.
     interview_state_ttl_s: int = Field(default=7_200, ge=60, le=86_400)
 
-    # LLM tracing (ADR-0008). Langfuse holds our prompts, and our prompts hold candidate answers
-    # and CV text, so it is a personal-data store: EU region, opaque ids only, contact details
-    # masked on the way out, and traces deleted on erasure and on a retention schedule.
+    # LLM tracing (ADR-0008). Langfuse holds our prompts, and our prompts hold candidate answers and
+    # CV text, so it is a personal-data store: EU region, opaque ids only, contact details masked on
+    # the way out, and traces deleted on erasure and on a retention schedule.
     #
-    # **Tracing is off unless both keys are present**, which is local development, CI and e2e. It
-    # is two keys rather than one flag on purpose: there is no configuration in which tracing is
-    # "on" and unable to reach Langfuse, and nothing to keep in step with a separate switch.
+    # **Tracing is off unless both keys are present**, which is local development, CI and e2e. It is
+    # two keys rather than one flag on purpose: there is no configuration in which tracing is "on"
+    # and unable to reach Langfuse, and nothing to keep in step with a separate switch.
     langfuse_public_key: SecretStr | None = None
     langfuse_secret_key: SecretStr | None = None
     #: The EU region by default (ADR-0008). Change this and you have changed where traces live.
@@ -88,8 +88,8 @@ class Settings(BaseSettings):
     #: Does this deployment serve voice interviews at all? False keeps the speech providers on the
     #: fakes without that being a misconfiguration — a text-only deployment (which is every
     #: deployment until M5 ships) needs no recogniser, and the voice agent refuses to start without
-    #: this. It is the worker's switch; the API has its own, because it is the API that mints
-    #: the tokens.
+    #: this. It is the worker's switch; the API has its own, because it is the API that mints the
+    #: tokens.
     voice_enabled: bool = False
     stt_provider: str = "fake"
     stt_model: str = Field(default="fake", min_length=1)
@@ -103,9 +103,15 @@ class Settings(BaseSettings):
     #: (`docs/plans/m5-voice.md` decision 10); until then this is the fake's placeholder.
     tts_voice: str = Field(default="fake", min_length=1)
     tts_timeout_s: float = Field(default=20.0, gt=0, le=300)
+    #: Provider keys. A real provider without its key is refused at startup, naming the variable,
+    #: the way `ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` already are. `fake` needs none.
+    deepgram_api_key: SecretStr | None = None
+    assemblyai_api_key: SecretStr | None = None
+    intron_api_key: SecretStr | None = None
+    elevenlabs_api_key: SecretStr | None = None
     #: The technical vocabulary (`content/glossary/tech_terms.txt`), sent to the recogniser as
-    #: custom vocabulary and scored as its own subset by the benchmark. Empty means "find it in
-    #: the checkout"; a deployment that carries no repository sets the path explicitly.
+    #: custom vocabulary and scored as its own subset by the benchmark. Empty means "find it in the
+    #: checkout"; a deployment that carries no repository sets the path explicitly.
     glossary_path: str | None = None
 
     # Embedding adapter (ADR-0006). `fake` is a pure function of the text: no key, no network, no
@@ -117,12 +123,29 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=1024, ge=1, le=4096)
     embedding_timeout_s: float = Field(default=30.0, gt=0, le=600)
 
+    @property
+    def stt_key(self) -> SecretStr | None:
+        """The key for the configured recogniser, or None when it needs none (`fake`)."""
+        return {
+            "deepgram": self.deepgram_api_key,
+            "assemblyai": self.assemblyai_api_key,
+            "intron": self.intron_api_key,
+        }.get(self.stt_provider)
+
+    @property
+    def tts_key(self) -> SecretStr | None:
+        return {"elevenlabs": self.elevenlabs_api_key}.get(self.tts_provider)
+
     @field_validator(
         "sentry_dsn",
         "anthropic_api_key",
         "voyage_api_key",
         "langfuse_public_key",
         "langfuse_secret_key",
+        "deepgram_api_key",
+        "assemblyai_api_key",
+        "intron_api_key",
+        "elevenlabs_api_key",
         mode="before",
     )
     @classmethod
@@ -162,33 +185,32 @@ class Settings(BaseSettings):
         zero in a column, it is a cost nobody sees until the invoice arrives. Both sides are checked
         even on `fake`, which is priced at zero precisely so that it needs no exception here.
         """
-        for side, provider, model, known, priced in (
-            (
-                "STT",
-                self.stt_provider,
-                self.stt_model,
-                providers.STT_PROVIDERS,
-                pricing.has_stt_price,
-            ),
-            (
-                "TTS",
-                self.tts_provider,
-                self.tts_model,
-                providers.TTS_PROVIDERS,
-                pricing.has_tts_price,
-            ),
+        if self.stt_provider not in providers.STT_PROVIDERS:
+            raise ValueError(
+                f"STT_PROVIDER={self.stt_provider!r} is not implemented; "
+                f"available: {', '.join(sorted(providers.STT_PROVIDERS))}"
+            )
+        if self.tts_provider not in providers.TTS_PROVIDERS:
+            raise ValueError(
+                f"TTS_PROVIDER={self.tts_provider!r} is not implemented; "
+                f"available: {', '.join(sorted(providers.TTS_PROVIDERS))}"
+            )
+        # **Streaming**, because that is the path a running worker takes: a voice interview is a
+        # live conversation. The benchmark asks the same question of the batch path for itself.
+        if not pricing.has_stt_price(self.stt_provider, self.stt_model, "streaming"):
+            raise ValueError(_unpriced("STT", self.stt_provider, self.stt_model, " (streaming)"))
+        if not pricing.has_tts_price(self.tts_provider, self.tts_model):
+            raise ValueError(_unpriced("TTS", self.tts_provider, self.tts_model, ""))
+
+        for side, provider, variables, key in (
+            ("STT", self.stt_provider, providers.STT_KEY_VARIABLES, self.stt_key),
+            ("TTS", self.tts_provider, providers.TTS_KEY_VARIABLES, self.tts_key),
         ):
-            if provider not in known:
+            variable = variables.get(provider)
+            if variable is not None and key is None:
                 raise ValueError(
-                    f"{side}_PROVIDER={provider!r} is not implemented; "
-                    f"available: {', '.join(sorted(known))}"
-                )
-            if not priced(provider, model):
-                raise ValueError(
-                    f"no price is configured for {provider}/{model} in "
-                    "readi_worker/speech/pricing.py. A per-minute vendor bills monthly, so an "
-                    f"unpriced one is an invisible cost: add its rate (checked against the "
-                    f"vendor's own pricing page, with the date) or set {side}_PROVIDER=fake"
+                    f"{variable} is required when {side}_PROVIDER={provider} "
+                    f"(set {side}_PROVIDER=fake for local development without a key)"
                 )
         if (
             self.environment == "production"
@@ -215,6 +237,18 @@ class Settings(BaseSettings):
                 "tracing (ADR-0008), or neither to disable it"
             )
         return self
+
+
+def _unpriced(side: str, provider: str, model: str, path: str) -> str:
+    """Why an unpriced provider is refused, said once (owner's instruction, 2026-09-29)."""
+    return (
+        f"no price is configured for {provider}/{model}{path} in readi_worker/speech/pricing.py. "
+        "A per-minute vendor bills monthly, in arrears, so an unpriced one is not a zero in a "
+        "column"
+        "— it is a cost nobody sees until the invoice: add its rate, checked against the vendor's "
+        "own"
+        f"pricing page and dated, or set {side}_PROVIDER=fake"
+    )
 
 
 class SettingsError(RuntimeError):

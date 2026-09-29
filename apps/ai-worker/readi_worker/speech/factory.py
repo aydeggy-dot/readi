@@ -15,6 +15,7 @@ from readi_worker.settings import Settings
 from readi_worker.speech.base import SpeechToText, TextToSpeech
 from readi_worker.speech.fake import FakeSpeechToText, FakeTextToSpeech
 from readi_worker.speech.glossary import default_glossary_path, load_terms
+from readi_worker.speech.providers import STT_VENDORS, CallPath
 
 
 def build_stt(settings: Settings) -> SpeechToText:
@@ -29,11 +30,22 @@ def build_tts(settings: Settings) -> TextToSpeech:
     raise RuntimeError(f"no text-to-speech implementation for {settings.tts_provider}")
 
 
-def glossary_for(settings: Settings, *, limit: int | None = None) -> list[str]:
-    """The custom vocabulary this deployment sends to the recogniser.
+def glossary_for(settings: Settings, path: CallPath = "streaming") -> list[str]:
+    """The custom vocabulary this deployment sends to the recogniser, already capped for the vendor.
 
-    `GLOSSARY_PATH` overrides the checkout's copy, for an image that carries no repository. `limit`
-    is the provider's cap on keyterms, passed by whoever knows it — the adapter, not this function.
+    The cap is applied here rather than left to the caller because exceeding it is not a warning —
+    Deepgram answers with an error above 500 keyterm tokens — and because the caps differ by vendor
+    *and* by path: 100 on either live path, 1,000 for an AssemblyAI batch call. Our glossary is 302
+    terms, so something is always dropped, and the file's order is what decides which technical
+    words a candidate can afford to have misheard.
+
+    A vendor with no custom-vocabulary feature at all (Intron) has a cap of 0 and gets nothing,
+    which is the truth rather than a failure.
+
+    `GLOSSARY_PATH` overrides the checkout's copy, for an image that carries no repository.
     """
-    path = Path(settings.glossary_path) if settings.glossary_path else default_glossary_path()
-    return load_terms(path, limit=limit)
+    limit = STT_VENDORS[settings.stt_provider].keyterm_limit[path]
+    if limit == 0:
+        return []
+    source = Path(settings.glossary_path) if settings.glossary_path else default_glossary_path()
+    return load_terms(source, limit=limit)

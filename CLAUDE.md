@@ -111,6 +111,7 @@ node scripts/sse-rewrite-proof.mjs   # does an event stream survive proxy.ts and
 curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only: emails/SMS "sent" locally
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
+cd apps/ai-worker && uv run python -m readi_worker.tools.list_voices --accent nigerian   # shared TTS voices for an accent; reads the key from config, prints none (free, read-only)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --smoke        # the eval harness on the stand-in: no key, no cost (also inside `pnpm test`)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5   # the sample and its cost, input tokens counted, before anything is spent
 cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5 --max-cost 2.00   # PAID. fairness, the two separations, agreement, cost; --max-cost stops it before the answer that would cross the approved figure (evals/README.md)
@@ -272,6 +273,23 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   vocabulary and the benchmark's tech-term subset, so a provider cannot be tuned for the test without
   being tuned for the product. **Its order is its priority order** — every provider caps keyterms and
   the loader keeps the first N. Add a term in the same change as the question that starts using it.
+- **A speech rate belongs to a (provider, model, path) and carries a *basis*** (M5 phase 2,
+  `speech/pricing.py`). Deepgram bills minutes of audio; AssemblyAI's streaming product bills minutes
+  the **socket was open**, and an interview is mostly silence while the candidate thinks — so reading
+  one as the other is wrong by about threefold in the direction that flatters us.
+  `stt_cost_micro_usd` raises rather than guessing when a session-billed vendor is priced on audio
+  alone, and the agent closing its socket is an operational rule rather than tidiness.
+- **What keeps candidate audio out of a vendor's training set is a parameter or a base URL, not a
+  note** (`speech/providers.py`). `mip_opt_out=true` on every Deepgram request; AssemblyAI's **EU
+  host**, which is the mechanism and not a latency preference, so changing that line changes what we
+  promised a candidate; `use_disable_llm_corrections=true` for Intron, whose transcripts are otherwise
+  rewritten by a language model — a benchmark confound and, in a report that quotes the candidate, a
+  hallucination. Where no mechanism exists in code it is a **documented gap**: ElevenLabs' zero
+  retention is Enterprise-only, so a self-serve plan has only the account-level toggle, and a test
+  asserts every vendor declares one or the other. Silence is the state not allowed.
+- **No live path accepts the whole glossary.** 302 terms against caps of 100, so
+  `glossary_for(settings, path)` applies the vendor's own cap and the file's order is the product
+  decision about which technical words a candidate can afford to have misheard.
 
 ### AI provider adapters
 - All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `EmbeddingProvider`, `AvatarProvider`.
