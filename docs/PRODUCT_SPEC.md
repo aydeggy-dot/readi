@@ -233,6 +233,13 @@ formula v1 is final**.
 ## 8. Non-functional requirements
 
 - **Latency:** voice turn response target < ~1 s (p50), < 2 s (p95). Report generation < 60 s after session end.
+  - *Amended M5 (2026-09-29, ADR-0019).* The voice figure is replaced by **two** numbers, because a
+    turn makes two promises and one of them was unreachable. Adding up the stages — turn detection,
+    STT final, the coverage call, the phrasing call, TTS first byte — gives 2.0–4.1 s with the two
+    sequential model calls the engine makes per answer. So: **first audio under 250 ms (p50)**, which
+    is the interviewer acknowledging in its own pre-rendered words, and **the question or probe within
+    1.5–2.5 s (p50)**, both measured from the end of the candidate's speech. Report generation is
+    unchanged.
 - **Availability:** 99.5% at launch.
 - **Bandwidth:** text mode usable on 2G/3G; voice mode with Opus at low bitrate; pages usable on "Slow 4G".
 - **Accessibility:** WCAG 2.1 AA basics; captions/transcript always visible during voice interviews.
@@ -243,6 +250,11 @@ formula v1 is final**.
   follow the same retention and deletion rules as recordings (ADR-0008).
 - **Cost:** track cost per session from `AiCallLog` (integer micro-USD); alert if average voice session cost exceeds a configured threshold.
 - **Fairness:** STT benchmark on Nigerian-accented speech before choosing a provider; monitor score distributions for anomalies.
+  - *Clarified M5 (2026-09-29, ADR-0020).* "Nigerian-accented speech" means **real** speech: 5–8
+    consented speakers on their own phones, mixed first languages, some Pidgin, with reference
+    transcripts a person made by listening to every clip. AI-generated accented speech is a
+    pre-screen that may **eliminate** a provider and may never choose one, and every report states
+    which provenance each figure came from.
 
 ## 9. Analytics events (PostHog)
 

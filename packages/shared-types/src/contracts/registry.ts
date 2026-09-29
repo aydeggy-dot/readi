@@ -5,6 +5,13 @@ import { EvaluateAnswerRequest, EvaluateAnswerResponse } from "./evaluations.js"
 import { HealthResponse } from "./health.js";
 import { InterviewAdvanceRequest, InterviewAdvanceResponse } from "./interviews.js";
 import { TraceDeleteRequest, TraceDeleteResponse } from "./tracing.js";
+import {
+  InterviewTurnPush,
+  InterviewTurnPushResponse,
+  VoiceLegEndedRequest,
+  VoiceLegEndedResponse,
+  VoiceSessionStartResponse,
+} from "./voice.js";
 
 /**
  * Every contract that crosses a language boundary (ADR-0003). `pnpm gen:contracts` exports these to
@@ -28,4 +35,10 @@ export const contractRegistry: Record<string, z.ZodType> = {
   InterviewAdvanceResponse,
   TraceDeleteRequest,
   TraceDeleteResponse,
+  // M5: the push direction (ADR-0019). The agent reads the first and sends the rest.
+  VoiceSessionStartResponse,
+  InterviewTurnPush,
+  InterviewTurnPushResponse,
+  VoiceLegEndedRequest,
+  VoiceLegEndedResponse,
 };

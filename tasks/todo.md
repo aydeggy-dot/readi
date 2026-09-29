@@ -3340,3 +3340,71 @@ page — because each is currently measured against a model rather than against 
 - [ ] **Also blocked behind the same agreement:** `CALIBRATION_ALLOW_CANDIDATE_TRANSCRIPTS` stays
       false, so calibration runs against staff answers only. The tool is built and demonstrated end
       to end; what is missing is the signature
+
+## M5 — voice mode (branch `feat/m5-voice`, from `main` at `9afb977`)
+
+Plan: `docs/plans/m5-voice.md`, with the owner's ten decisions taken 2026-09-29 before any code was
+written. ADRs: **0019** (transport, who drives, the latency ladder) and **0020** (the benchmark's
+method). Phases 0–5 need nothing from the owner but the provider accounts at phase 2.
+
+**Two of the ten decisions were the owner's amendments to what was proposed, and both are sharper
+than the proposal:**
+
+- **The acknowledgement is a rotated set, not one line, and never evaluative.** One fixed line sounds
+  like a machine by the third question. And nothing in the set may sound like approval: a candidate
+  who has just answered badly must not hear praise that their report then contradicts — praise is the
+  evaluator's to give, from a rubric. A test asserts the set holds no evaluative word
+- **A person listens to every benchmark clip; the disagreement-only shortcut is rejected.** When two
+  recognisers mishear a Nigerian accent **the same way, they agree** — so the error is never surfaced
+  and nobody checks it, which is precisely the failure the benchmark exists to find. Reviewing only
+  disagreements would hide it while looking thorough
+
+### Phase 0 — the decisions, the ADRs and the contracts · **done 2026-09-29**
+
+- [x] **ADR-0019** — the agent drives the same engine in-process and pushes turns to the API
+      (ADR-0016's open question, answered); the answer key never enters the room; spec §8's single
+      latency figure replaced by two measurable ones; the lever ladder, cheapest first; the two calls
+      never merged; a fallback needs no handover; a barged-in question records how far it was spoken
+- [x] **ADR-0020** — synthetic eliminates and never chooses; two TTS sources so no recogniser is
+      tested chiefly on its own vendor's audio; the real set's shape; the human reference pass; one
+      pinned normalizer; the codec path is part of the test; WER **per speaker** because an average
+      hides the one speaker a provider fails; streaming is a hard filter; the speakers are not users
+- [x] **Spec §8 amended in place** — the latency bullet carries the two numbers and the arithmetic
+      that made the old one unreachable, and the fairness bullet says what "Nigerian-accented speech"
+      means. `docs/PROMPTS.md`'s M5 prompt corrected in the same change (CLAUDE.md §7.4): it asked for
+      "LLM first token", which does not exist here — an AI call returns a whole schema-validated
+      object and the asks guard counts a whole text before any of it is spoken
+- [x] **The contracts phases 3 and 4 will implement** (`packages/shared-types/src/contracts/voice.ts`):
+      `VoiceTokenResponse` (browser), and `VoiceSessionStartResponse`, `InterviewTurnPush`,
+      `InterviewTurnPushResponse`, `VoiceLegEndedRequest`, `VoiceLegEndedResponse` in the registry, so
+      the agent's side generates as Pydantic. Plus `VoiceTurnLatency`, `VoiceQuality`,
+      `TranscriptWord` and `TurnVoice`, and `VOICE_LIMITS` for the numbers that are product rules
+- [x] **`InterviewTurnPush` is `InterviewAdvanceResponse` arriving by the other door, minus two
+      things**: no `error` field and a non-nullable snapshot, because a refused exchange produces no
+      push at all. Tested in both directions
+- [x] **`turn.voice` is `nullish`, and that is not laziness.** The generated Pydantic omits an unset
+      optional or dumps it as `null`; the API validates every worker response with Zod. A contract
+      accepting only one spelling of "nothing" would have failed every text interview the first time
+      the other appeared. Three tests, one per spelling plus the populated case
+- [x] **`TranscriptWord` does not validate that `end_ms` follows `start_ms`.** A recogniser emitting a
+      zero-length or overlapping word must not cost the candidate a whole exchange over a number
+      nobody reads directly; M6's metrics clamp instead, losing one word rather than one turn
+- [x] Checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (all nine workspaces; 454 worker tests),
+      `pnpm format:check`, `pnpm check:contracts` — and the generated Pydantic read by hand to confirm
+      `voice: TurnVoice | None = None`, which is what leaves text-mode construction untouched
+
+### Carried into phase 1
+
+- [ ] **`interview_llm_timeout_s` is 45 s, which is a text-mode number.** Nobody watching a spinner
+      waits 45 s for one voice turn: by then the candidate has said "hello?" twice. Phase 3 needs its
+      own, shorter, per-call budget, and a timeout must fall back to the pinned wording rather than to
+      silence — the fallback path exists, but its _deadline_ does not
+- [ ] **The 0.85 prompted-criterion adjustment and voice barge-in have not been thought about
+      together.** A candidate who talks over a probe and answers it anyway was prompted; one who talks
+      over it and answers something else was not asked. `session_turns.follow_up_index` records the
+      probe as asked either way, and `spoken_ms` is the only evidence of how much they heard. Decide it
+      in phase 3 with ADR-0018 open, and say so in the ADR if it changes anything
+- [ ] **Nothing yet checks that `pricing.py` has a rate for a provider before a call is made.** Today
+      an unknown `(provider, model)` logs a warning and records zero cost, which is tolerable for one
+      LLM; it is not tolerable for a per-minute vendor where the bill arrives monthly. Phase 1 should
+      refuse to start with an STT or TTS provider it cannot price

@@ -11,6 +11,7 @@ import {
   MAX_FOLLOW_UPS,
   QUESTION_TYPES,
   TURN_SPEAKERS,
+  VOICE_LIMITS,
 } from "../constants.js";
 import { PlannedFollowUp, QuestionType, Topic } from "./content.js";
 import { AiCallRecord } from "./cv.js";
@@ -496,6 +497,59 @@ export type InterviewEngineSnapshot = z.infer<typeof InterviewEngineSnapshot>;
  * request: the engine owns turn numbering, so a transcript is whatever the engine said happened and
  * a retried response cannot interleave.
  */
+/**
+ * One word as the recogniser timed it (voice mode, M5). Offsets are from the turn's own
+ * `started_ms`, so a word is readable without joining anything.
+ *
+ * This is what makes M6's delivery coaching possible — pace, filler rate and long pauses are
+ * functions of word timings and cannot be recovered from the text afterwards — which is why M5
+ * stores them at the moment they exist and computes nothing the candidate reads (the M5/M6 line,
+ * `docs/plans/m5-voice.md` decision 8).
+ */
+export const TranscriptWord = z
+  .object({
+    text: z.string().trim().min(1).max(80),
+    start_ms: z.int().min(0),
+    end_ms: z.int().min(0),
+    /** The recogniser's own confidence, where it reports one. Never shown to a candidate. */
+    confidence: z.number().min(0).max(1).nullable(),
+  })
+  /*
+   * Offsets are taken as the provider reported them, and the order of the two is **not** validated.
+   * A recogniser that emits a zero-length word or two that overlap by a millisecond must not cost the
+   * candidate a whole exchange — the push would be refused for a quirk in a number nobody reads
+   * directly. M6's delivery metrics clamp instead, which is where a degenerate timing can be ignored
+   * at the cost of one word rather than one turn.
+   */
+  .meta({ id: "TranscriptWord" });
+export type TranscriptWord = z.infer<typeof TranscriptWord>;
+
+/**
+ * What voice mode knows about a turn and text mode does not (ADR-0019 §8).
+ *
+ * One optional object rather than four optional fields, so a text-mode turn has exactly one thing to
+ * say nothing about. Absent on every turn of a text interview, and on an interviewer turn it carries
+ * only the two barge-in facts.
+ *
+ * **`spoken_ms` and `interrupted` exist because the evaluator later reads "the question that was
+ * asked"** and the report shows it to the candidate. A candidate is welcome to talk over the
+ * interviewer — but a question cut off half way and answered anyway is only fair to score if the
+ * record says that is what happened.
+ */
+export const TurnVoice = z
+  .object({
+    /** Word timings, on a candidate turn. Empty on an interviewer turn: we know what we said. */
+    words: z.array(TranscriptWord).max(VOICE_LIMITS.maxWordsPerTurn),
+    /** The recogniser's confidence over the whole turn, where it reports one. */
+    stt_confidence: z.number().min(0).max(1).nullable(),
+    /** How much of an interviewer turn was actually spoken before it stopped. Null on a candidate turn. */
+    spoken_ms: z.int().min(0).nullable(),
+    /** True when the candidate spoke over this turn and cut it short. */
+    interrupted: z.boolean(),
+  })
+  .meta({ id: "TurnVoice" });
+export type TurnVoice = z.infer<typeof TurnVoice>;
+
 export const InterviewTurn = z
   .object({
     seq: z.int().min(0),
@@ -507,6 +561,12 @@ export const InterviewTurn = z
     text: text(INTERVIEW_LIMITS.answerMaxLength),
     /** One entry per rubric criterion, on candidate turns during a question. Never a score. */
     criteria_covered: z.array(CriterionCoverage).max(CONTENT_LIMITS.rubricCriteria.max).nullable(),
+    /**
+     * Voice mode only (M5). `nullish` rather than `nullable`: the worker's Pydantic model omits it
+     * or sends null, and a text-mode turn has neither timings nor a barge-in to report. Both spellings
+     * of "nothing" have to be accepted because both sides of this boundary produce one of them.
+     */
+    voice: TurnVoice.nullish(),
   })
   .meta({ id: "InterviewTurn" });
 export type InterviewTurn = z.infer<typeof InterviewTurn>;

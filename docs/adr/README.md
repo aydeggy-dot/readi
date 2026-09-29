@@ -25,3 +25,5 @@ Sections: **Status**, **Date**, **Context**, **Decision**, **Consequences**, **A
 | [0016](0016-interview-transport-and-streaming.md) | Interview transport: whole-turn frames over SSE, and events that ride the response | Accepted |
 | [0017](0017-transcript-review-consent.md) | A person reading a candidate's transcript is a consented purpose of its own | Accepted |
 | [0018](0018-what-a-score-is-made-of.md) | What a score is made of: three columns, two adjustments, and the facts they are keyed on | Accepted |
+| [0019](0019-voice-transport-and-latency.md) | Voice transport: the agent drives the engine, turns are pushed, and the budget is what the stages allow | Accepted |
+| [0020](0020-accent-benchmark.md) | The accent benchmark: synthetic speech pre-screens, real speech decides, and the reference is human | Accepted |

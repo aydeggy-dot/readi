@@ -347,17 +347,28 @@ Scope
 - Web voice UI: mic permission flow, device check (mic test + level meter), live captions/transcript
   always visible, connection quality indicator, mute, end. Automatic fallback to text mode if
   quality stays poor for > N seconds (log `voice_fallback_to_text`).
-- Latency instrumentation per turn: end-of-speech → STT final → LLM first token → TTS first audio byte;
-  store per session and send to Langfuse. Print a p50/p95 summary in the session admin view.
+- Latency instrumentation per turn: end-of-speech → turn detector committing → STT final → the
+  coverage call → the phrasing call → TTS first byte → first audio (`VoiceTurnLatency`); store per
+  session and send to Langfuse. Print a p50/p95 summary in the session admin view.
+  *Corrected 2026-09-29 (ADR-0016, ADR-0019): there is no "LLM first token". An AI call returns a
+  whole schema-validated object, so a turn's model stages are two calls, not a token stream — and the
+  asks guard counts the asks in a whole text before any of it is spoken.*
 - Usage metering: voice minutes recorded to UsageLedger when the session ends (and on disconnect).
-- STT accent benchmark tool: script in /evals/stt_benchmark that takes a folder of audio files +
-  reference transcripts, runs each configured STT provider, and reports word error rate overall
-  and on a tech-term subset. Document how to collect consented Nigerian-accented samples.
+- STT accent benchmark tool: script in /evals/stt_benchmark that takes a manifest of audio files +
+  reference transcripts, runs each configured STT provider, and reports word error rate overall,
+  **per speaker**, and on a tech-term subset. Document how to collect consented Nigerian-accented
+  samples. **Read ADR-0020 first**: synthetic accented speech is a pre-screen that may eliminate a
+  provider and may never choose one; every report states each figure's provenance and never combines
+  the two; the reference transcript is made by a person listening to every clip; and there is one
+  pinned normalizer, because WER is a function of what counts as the same word.
 
 Acceptance criteria
 - A candidate can complete a voice interview in Chrome on desktop and Android; captions show;
   report is generated as in M4 using timestamps from STT.
 - Latency metrics are recorded for every turn. Fallback to text works when the network is throttled.
+  *Amended 2026-09-29 (ADR-0019, spec §8): the target is two numbers — first audio under 250 ms p50,
+  the question or probe within 1.5–2.5 s p50 — and it is measured from a deployment, because WSL's
+  NAT makes local voice timing meaningless.*
 ```
 
 ---

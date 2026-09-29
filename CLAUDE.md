@@ -223,6 +223,40 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   report the candidate has already read. `interview-pinning.int.spec.ts` is the test, and it has
   been watched failing.
 
+### Voice mode — decided at M5 phase 0 (ADR-0019, ADR-0020), built over M5's phases
+- **The LiveKit agent drives the *same* engine, in-process, and pushes what happened to the API.**
+  There is no second state machine and no second copy of a budget rule; voice is a transport. The push
+  is `POST /api/internal/interviews/:id/{turns,voice-ended}` behind the service token, persisted
+  through the same `applyExchange` text mode uses, idempotent by `(session_id, seq)` plus an
+  `exchange_id` for the rows with no natural key — and sent **after** the interviewer starts speaking,
+  because a database write on the critical path is latency the candidate pays for nothing.
+- **The answer key never enters the room.** Room metadata and data channels are readable by
+  participants and `planned_follow_ups` are answer key, so the dispatch carries the session id alone
+  and the agent pulls the bundle over the service-token channel. The leak fixture covers the room.
+- **The latency target is two numbers, not one** (spec §8 amended): first audio under 250 ms p50 — the
+  interviewer acknowledging in its own pre-rendered words — and the question or probe within
+  1.5–2.5 s p50. The stages cannot produce ~1 s, and the arithmetic is in ADR-0019 §5. The levers are
+  applied cheapest first: pre-rendered engine audio and prefetching the next opening now; coverage on
+  an interim transcript and speculative probe phrasing only if measurement asks for them. **The
+  coverage and phrasing calls are never merged**, because one call returning both would let the model
+  choose the probe.
+- **The acknowledgement is the engine's own, rotated, and never evaluative.** A small pinned set
+  chosen deterministically from the session id and the turn, like `transitions.py`'s connective, so it
+  does not sound robotic by the third question — and nothing in it may sound like approval, because a
+  candidate who answered badly must not hear praise their report then contradicts. A test asserts the
+  set contains no evaluative word.
+- **Falling back to text needs no handover**: the API's persisted snapshot is already the authority, so
+  the agent stops and the browser resumes over SSE at the same turn. `mode` keeps meaning how the
+  session *started*; delivery metrics run over the turns that have word timings, which only voice has.
+- **Audio is not stored at all unless `recording_storage` is granted.** STT receives everything the
+  candidate says; TTS receives only the interviewer's own words, which keeps it out of the
+  personal-data path. A benchmark speaker is not a user: that consent is on paper and the audio never
+  enters the product's database or buckets (ADR-0020 §8).
+- **Synthetic accented speech may eliminate a provider and may never choose one**, and no report mixes
+  provenances. The reference transcript is made by a person listening to every clip — two recognizers
+  that mishear an accent the same way agree, so reviewing only their disagreements hides exactly the
+  failures the benchmark exists to find.
+
 ### AI provider adapters
 - All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `EmbeddingProvider`, `AvatarProvider`.
 - All external AI calls are made from the AI worker (ADR-0004); the API asks the worker, never a provider directly.

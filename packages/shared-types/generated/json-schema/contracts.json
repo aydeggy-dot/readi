@@ -1406,6 +1406,14 @@
         "ended"
       ]
     },
+    "InterviewStatus": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed",
+        "abandoned"
+      ]
+    },
     "InterviewTurn": {
       "type": "object",
       "properties": {
@@ -1462,6 +1470,16 @@
               "type": "null"
             }
           ]
+        },
+        "voice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurnVoice"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -1472,6 +1490,100 @@
         "follow_up_index",
         "text",
         "criteria_covered"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewTurnPush": {
+      "type": "object",
+      "properties": {
+        "exchange_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "$ref": "#/$defs/InterviewState"
+        },
+        "ended": {
+          "type": "boolean"
+        },
+        "end_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewEndReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turns": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InterviewTurn"
+          }
+        },
+        "engine_snapshot": {
+          "$ref": "#/$defs/InterviewEngineSnapshot"
+        },
+        "prompt_versions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "ai_calls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AiCallRecord"
+          }
+        },
+        "latency": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VoiceTurnLatency"
+          }
+        }
+      },
+      "required": [
+        "exchange_id",
+        "state",
+        "ended",
+        "end_reason",
+        "turns",
+        "engine_snapshot",
+        "prompt_versions",
+        "ai_calls",
+        "latency"
+      ],
+      "additionalProperties": false
+    },
+    "InterviewTurnPushResponse": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InterviewState"
+        },
+        "status": {
+          "$ref": "#/$defs/InterviewStatus"
+        },
+        "ended": {
+          "type": "boolean"
+        },
+        "duplicate": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "state",
+        "status",
+        "ended",
+        "duplicate"
       ],
       "additionalProperties": false
     },
@@ -1595,12 +1707,361 @@
       ],
       "additionalProperties": false
     },
+    "TranscriptWord": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "text",
+        "start_ms",
+        "end_ms",
+        "confidence"
+      ],
+      "additionalProperties": false
+    },
     "TurnSpeaker": {
       "type": "string",
       "enum": [
         "interviewer",
         "candidate"
       ]
+    },
+    "TurnVoice": {
+      "type": "object",
+      "properties": {
+        "words": {
+          "maxItems": 2000,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TranscriptWord"
+          }
+        },
+        "stt_confidence": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spoken_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interrupted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "words",
+        "stt_confidence",
+        "spoken_ms",
+        "interrupted"
+      ],
+      "additionalProperties": false
+    },
+    "VoiceLegEndedRequest": {
+      "type": "object",
+      "properties": {
+        "leg_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "$ref": "#/$defs/VoiceLegEndReason"
+        },
+        "voice_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "turns_spoken": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "quality": {
+          "$ref": "#/$defs/VoiceQuality"
+        }
+      },
+      "required": [
+        "leg_id",
+        "reason",
+        "voice_seconds",
+        "turns_spoken",
+        "quality"
+      ],
+      "additionalProperties": false
+    },
+    "VoiceLegEndedResponse": {
+      "type": "object",
+      "properties": {
+        "duplicate": {
+          "type": "boolean"
+        },
+        "voice_seconds_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "duplicate",
+        "voice_seconds_total"
+      ],
+      "additionalProperties": false
+    },
+    "VoiceLegEndReason": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "fallback_poor_connection",
+        "candidate_left",
+        "agent_error",
+        "session_expired"
+      ]
+    },
+    "VoiceQuality": {
+      "type": "object",
+      "properties": {
+        "rtt_ms_p50": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rtt_ms_p95": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "packet_loss_percent": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reconnects": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "rtt_ms_p50",
+        "rtt_ms_p95",
+        "packet_loss_percent",
+        "reconnects"
+      ],
+      "additionalProperties": false
+    },
+    "VoiceSessionStartResponse": {
+      "type": "object",
+      "properties": {
+        "bundle": {
+          "$ref": "#/$defs/InterviewSessionBundle"
+        },
+        "engine_snapshot": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InterviewEngineSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resume": {
+          "type": "boolean"
+        },
+        "room": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "ends_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "now": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "voice_seconds_remaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "bundle",
+        "engine_snapshot",
+        "resume",
+        "room",
+        "ends_at",
+        "now",
+        "voice_seconds_remaining"
+      ],
+      "additionalProperties": false
+    },
+    "VoiceTurnLatency": {
+      "type": "object",
+      "properties": {
+        "turn_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "speech_ended_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endpoint_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "stt_final_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "acknowledged_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "coverage_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phrasing_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tts_first_byte_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "response_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "prefetched": {
+          "type": "boolean"
+        },
+        "interim_coverage": {
+          "type": "boolean"
+        },
+        "interrupted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "turn_seq",
+        "speech_ended_at",
+        "endpoint_ms",
+        "stt_final_ms",
+        "acknowledged_ms",
+        "coverage_ms",
+        "phrasing_ms",
+        "tts_first_byte_ms",
+        "response_ms",
+        "prefetched",
+        "interim_coverage",
+        "interrupted"
+      ],
+      "additionalProperties": false
     },
     "YearMonth": {
       "type": "string",

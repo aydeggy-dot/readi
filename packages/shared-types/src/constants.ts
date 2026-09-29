@@ -387,6 +387,55 @@ export const INTERVIEW_RATE_LIMITS = {
 } as const;
 
 // -----------------------------------------------------------------------------------------------
+// Voice mode (spec §4.3, §8; M5, ADR-0019).
+
+/**
+ * The numbers voice mode is held to. **Every figure here is provisional until M5 phase 8 measures
+ * from Nigerian networks**, and they are constants rather than environment variables because they
+ * are product rules: how long a candidate may think before being reassured, and how bad a
+ * connection has to get before we stop pretending it is a voice interview.
+ */
+export const VOICE_LIMITS = {
+  /**
+   * How long a LiveKit join token is good for. Long enough to run the microphone check and join,
+   * short enough that one captured from a log is worthless. It authorises joining, not the session:
+   * the session's own deadline (`ends_at`) is what ends the interview.
+   */
+  tokenTtlSeconds: 300,
+  /**
+   * Silence before the interviewer says "take your time" — its own words, not a model's, and said
+   * once. Set above the pause a candidate takes to gather a thought and below the pause that means
+   * they are stuck; the median opening answer runs 74 s, so this is about the start of one.
+   */
+  takeYourTimeAfterMs: 20_000,
+  /**
+   * How long the connection has to stay poor before falling back to text. Sustained, not a spike:
+   * a single bad second on a Nigerian mobile network is ordinary, and dropping a candidate out of
+   * voice for it would be worse than the stutter.
+   */
+  fallbackAfterPoorMs: 20_000,
+  /**
+   * The two latency targets ADR-0019 §5 replaced spec §8's single "~1 s" with, because they are two
+   * different promises: the interviewer acknowledges at once in its own pre-rendered words, and the
+   * question or probe follows. Both are p50, measured end-of-speech to first audio byte. They are
+   * here so the admin view, the phase 8 report and the tests all read one number.
+   */
+  firstAudioTargetMs: 250,
+  responseTargetMs: 2_500,
+  /**
+   * Word timings kept on one turn. An answer is capped at `INTERVIEW_LIMITS.answerMaxLength`
+   * characters, which is roughly 1,600 words, so this bounds the column without bounding the answer.
+   */
+  maxWordsPerTurn: 2_000,
+  /**
+   * One pinned acknowledgement. A few words — "Okay.", "Mm-hm, got it." — never a sentence: it is
+   * there to fill the gap before the real reply, and a long one delays what the candidate is
+   * waiting for (owner's decision, 2026-09-29).
+   */
+  acknowledgementMaxLength: 40,
+} as const;
+
+// -----------------------------------------------------------------------------------------------
 // Evaluation (spec §4.4, §6.2; M4).
 
 /**

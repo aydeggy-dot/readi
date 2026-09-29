@@ -220,6 +220,16 @@ class CriteriaCovered(RootModel[list[CriterionCoverage]]):
     root: list[CriterionCoverage] = Field(..., max_length=8)
 
 
+class InterviewTurnPushResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    state: Literal["intro", "question", "follow_up", "candidate_questions", "wrap_up", "ended"]
+    status: Literal["in_progress", "completed", "abandoned"]
+    ended: bool
+    duplicate: bool
+
+
 class Skill(RootModel[str]):
     root: str = Field(..., max_length=60, min_length=1)
 
@@ -254,6 +264,102 @@ class TraceDeleteResponse(BaseModel):
     )
     enabled: bool
     deleted: int = Field(..., ge=0, le=9007199254740991)
+
+
+class Confidence(RootModel[float]):
+    root: float = Field(..., ge=0.0, le=1.0)
+
+
+class TranscriptWord(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    text: str = Field(..., max_length=80, min_length=1)
+    start_ms: int = Field(..., ge=0, le=9007199254740991)
+    end_ms: int = Field(..., ge=0, le=9007199254740991)
+    confidence: Confidence | None
+
+
+class SttConfidence(RootModel[float]):
+    root: float = Field(..., ge=0.0, le=1.0)
+
+
+class SpokenMs(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class TurnVoice(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    words: list[TranscriptWord] = Field(..., max_length=2000)
+    stt_confidence: SttConfidence | None
+    spoken_ms: SpokenMs | None
+    interrupted: bool
+
+
+class VoiceLegEndedResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    duplicate: bool
+    voice_seconds_total: int = Field(..., ge=0, le=9007199254740991)
+
+
+class RttMsP50(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class RttMsP95(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class PacketLossPercent(RootModel[float]):
+    root: float = Field(..., ge=0.0, le=100.0)
+
+
+class VoiceQuality(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    rtt_ms_p50: RttMsP50 | None
+    rtt_ms_p95: RttMsP95 | None
+    packet_loss_percent: PacketLossPercent | None
+    reconnects: int = Field(..., ge=0, le=9007199254740991)
+
+
+class AcknowledgedMs(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class CoverageMs(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class PhrasingMs(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class TtsFirstByteMs(RootModel[int]):
+    root: int = Field(..., ge=0, le=9007199254740991)
+
+
+class VoiceTurnLatency(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    turn_seq: int = Field(..., ge=0, le=9007199254740991)
+    speech_ended_at: AwareDatetime
+    endpoint_ms: int = Field(..., ge=0, le=9007199254740991)
+    stt_final_ms: int = Field(..., ge=0, le=9007199254740991)
+    acknowledged_ms: AcknowledgedMs | None
+    coverage_ms: CoverageMs | None
+    phrasing_ms: PhrasingMs | None
+    tts_first_byte_ms: TtsFirstByteMs | None
+    response_ms: int = Field(..., ge=0, le=9007199254740991)
+    prefetched: bool
+    interim_coverage: bool
+    interrupted: bool
 
 
 class YearMonth(RootModel[str]):
@@ -437,6 +543,22 @@ class InterviewTurn(BaseModel):
     follow_up_index: FollowUpIndex | None
     text: str = Field(..., max_length=8000, min_length=1)
     criteria_covered: CriteriaCovered | None
+    voice: TurnVoice | None = None
+
+
+class InterviewTurnPush(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    exchange_id: UUID
+    state: Literal["intro", "question", "follow_up", "candidate_questions", "wrap_up", "ended"]
+    ended: bool
+    end_reason: Literal["questions_done", "out_of_time", "candidate_ended"] | None
+    turns: list[InterviewTurn] = Field(..., min_length=1)
+    engine_snapshot: InterviewEngineSnapshot
+    prompt_versions: dict[str, PromptVersions]
+    ai_calls: list[AiCallRecord]
+    latency: list[VoiceTurnLatency]
 
 
 class ParsedCv(BaseModel):
@@ -447,6 +569,32 @@ class ParsedCv(BaseModel):
     projects: list[CvProject] = Field(..., max_length=15)
     experience: list[CvExperience] = Field(..., max_length=20)
     gaps: list[Gap] = Field(..., max_length=10)
+
+
+class VoiceLegEndedRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    leg_id: UUID
+    reason: Literal[
+        "completed", "fallback_poor_connection", "candidate_left", "agent_error", "session_expired"
+    ]
+    voice_seconds: int = Field(..., ge=0, le=9007199254740991)
+    turns_spoken: int = Field(..., ge=0, le=9007199254740991)
+    quality: VoiceQuality
+
+
+class VoiceSessionStartResponse(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    bundle: InterviewSessionBundle
+    engine_snapshot: InterviewEngineSnapshot | None
+    resume: bool
+    room: str = Field(..., max_length=120, min_length=1)
+    ends_at: AwareDatetime
+    now: AwareDatetime
+    voice_seconds_remaining: int = Field(..., ge=0, le=9007199254740991)
 
 
 class CvParseResponse(BaseModel):
