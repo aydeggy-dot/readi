@@ -72,3 +72,10 @@ docs/*.docx
 # "because" appears does not belong in it — and two of them reached a commit by `git add -A`
 # before this line existed.
 evals/results/*-fake.json
+
+# Benchmark audio is personal data from people who are not users of the product (ADR-0020 §8): it never
+# enters the repository, the database or the application's buckets. The manifests and the result JSONs
+# are what belong in git — they are the record of how a recogniser was chosen.
+evals/stt_benchmark/synthetic/*.wav
+evals/stt_benchmark/synthetic/*.mp3
+evals/stt_benchmark/real/

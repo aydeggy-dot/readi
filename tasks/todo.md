@@ -3540,3 +3540,66 @@ from the vendor's own page on 2026-09-29 and carries that date and its URL in th
 - [ ] **The API app still has no LiveKit credentials** in its own env file — all three read `missing`
       on 2026-09-29 after the owner added them, so they probably went into the worker's twice. Needed
       by phase 4
+
+### Phase 2, part 2 — the adapters and the harness · **done 2026-09-29**
+
+- [x] **Four adapters, each driven through a mock transport** (13 tests, no key, no network): Deepgram
+      (one POST, seconds → milliseconds), AssemblyAI (upload → submit → poll, bounded), Intron (a URL,
+      not bytes) and ElevenLabs (the non-streaming endpoint, for audio we generate once and keep)
+- [x] **The protocol gained `audio_url`**, because one vendor cannot be given bytes at all: Intron's
+      endpoint takes a readable URL. Every other adapter ignores it and Intron refuses by name, which
+      beats a protocol that pretends all four vendors are alike
+- [x] **The things the adapter tests actually assert** are the ones that cost money or break a promise:
+      `mip_opt_out=true` on every Deepgram request, the EU host on every AssemblyAI request,
+      `use_disable_llm_corrections=true` on every Intron request, `model_id` always sent to ElevenLabs
+      (their default is the $0.08 model, not the $0.04 one), and the two timing units
+- [x] **The harness**: manifest (provenance, speaker, first language, variety, device, voice, reference
+      source), the pinned normalizer, WER pooled and per speaker, tech-term error rate over the
+      glossary, filler retention, and a report that **refuses** to pool synthetic with real
+- [x] **`--smoke` scores a set it generates for itself, and the numbers are exact** (0%, 27.3%, 9.1%;
+      pooled 12.5%, term error 20%, fillers 0%). The three hypotheses are deliberate perturbations of
+      their references, so the figures move only if the normalizer or the alignment moves — a stand-in
+      returning something unrelated scores ~100% and proves only that the pipeline runs
+- [x] **The normalizer's first version corrupted its own inputs.** A plain substring alias replace
+      turned "requests" into "requestypescript" (`ts` → `typescript`) and cascaded "postgres" →
+      "postgresql" → "postgresqlsql". Caught by printing eight sentences through it before anything
+      depended on the output; aliases are word-boundary regexes now and the test names the bug
+- [x] **Two gaps the kit draft found in it, both fixed**: bracketed markers (`[unintelligible]`) are
+      dropped, or each one is a free error against a recogniser that had nothing to write down; and
+      integers below 1,000 are written as words on both sides, so `80` and `eighty` compare equal.
+      Above 999 it does not and cannot — "2026" is two different sentences — so the convention carries
+      that as a rule for people
+- [x] **An unpriced provider does not run** (`--allow-unpriced` stamps every cost as a floor), and **a
+      draft reference does not pass as a measurement** (`--allow-draft` stamps the report). Both refuse
+      by default, both with the reason in the message
+- [x] **`--dry-run` prices in units against the free allowance**, not only in dollars: "6,184 of 30,000
+      characters (20.6%)" is what stops a run on a free tier. ElevenLabs' allowance is recorded as the
+      **smaller** of their two published figures, for the same reason a billed second rounds up
+- [x] **A smoke run writes beside its own generated clips**, never into `evals/stt_benchmark/results/`:
+      `pnpm test` calls it every run and a harness that litters its own result directory is ignored
+- [x] The recording kit, drafted and then checked by hand: script (Part A verbatim, dense in glossary
+      terms), consent form (a **draft for a lawyer**, vendor table accurate against the subprocessors
+      file), phone instructions, transcription convention. `evals/stt_benchmark/README.md` is the guide
+- [x] Checks: ruff, `mypy --strict`, 536 worker tests (39 new), `pnpm format:check`
+
+### Decisions I took inside phase 2 that the owner can reverse
+
+- [ ] **Deepgram is not gated on their written answer.** The draft kit blocked it until they confirm
+      their default enrolment; I included it, because the opt-out is a parameter we send on **every**
+      request and a test asserts no request can be built without it — their default only governs
+      requests that omit it, and there are none. The written answer is still owed for the subprocessor
+      file. Reverse this if you would rather send nothing until it arrives
+- [ ] **The synthetic set's control is a second _voice_, not a second _vendor_.** ADR-0020 §2 asks for
+      at least two TTS sources so no recogniser is judged chiefly on its own vendor's audio. We have one
+      TTS account, so the pre-screen holds two Nigerian-accented voices and two general-accent voices
+      **from the same vendor**: the accent delta is then measured with synthesis artefacts held
+      constant, which is a better control for _accent_ and a worse one for _vendor_. The run's notes say
+      so. A second vendor is owed before any provider is eliminated on this evidence
+- [ ] **Benchmark audio retention is unset.** The consent draft says "up to 12 months" with a
+      placeholder, because a vendor changes model and the set has to be re-runnable to stay comparable.
+      Also open: whether the transcript and the figures may be kept after the audio is deleted (the
+      draft says yes, unless the speaker asks otherwise)
+- [ ] **Intron cannot be benchmarked yet for a second reason.** Beyond their unanswered data terms,
+      their endpoint takes a **file URL**, so a clip has to be reachable from the internet — the only
+      vendor that needs somewhere to serve from. Decide that when their answer arrives: a temporary
+      tunnel, or a bucket with expiring links

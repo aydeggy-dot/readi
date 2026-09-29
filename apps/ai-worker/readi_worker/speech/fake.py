@@ -60,6 +60,7 @@ class FakeSpeechToText:
         content_type: str,
         language: str,
         keyterms: Sequence[str] = (),
+        audio_url: str | None = None,
         timeout_s: float | None = None,
     ) -> TranscriptionResult:
         seconds = audio_seconds(audio, content_type)
@@ -96,6 +97,7 @@ class ScriptedSpeechToText:
         content_type: str,
         language: str,
         keyterms: Sequence[str] = (),
+        audio_url: str | None = None,
         timeout_s: float | None = None,
     ) -> TranscriptionResult:
         self.calls.append(

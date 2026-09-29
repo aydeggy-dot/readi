@@ -82,9 +82,15 @@ class SpeechToText(Protocol):
         content_type: str,
         language: str,
         keyterms: Sequence[str] = (),
+        audio_url: str | None = None,
         timeout_s: float | None = None,
     ) -> TranscriptionResult:
         """Transcribe one piece of audio. Raises `SttError` if the provider could not answer.
+
+        `audio_url` is where the same audio can be fetched from, for the one vendor that cannot be
+        given bytes at all: Intron's endpoint takes a readable URL rather than an upload. Every
+        other adapter ignores it, and Intron refuses without it — which is better than a protocol
+        whose shape pretends all four vendors are alike.
 
         `keyterms` is the custom vocabulary from `content/glossary/tech_terms.txt`, passed on every
         call rather than configured once: it is the same list the benchmark scores its tech-term

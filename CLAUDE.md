@@ -112,6 +112,10 @@ curl 'http://localhost:4000/api/dev/mailbox?to=<email or +234…>'   # dev only:
 cd apps/ai-worker && uv run pytest      # Python tests directly (use uv for env management)
 cd apps/ai-worker && uv run python -m readi_worker.tools.compare_cv_parse <folder>   # CV-parse models side by side (billed)
 cd apps/ai-worker && uv run python -m readi_worker.tools.list_voices --accent nigerian   # shared TTS voices for an accent; reads the key from config, prints none (free, read-only)
+cd apps/ai-worker && uv run python -m readi_worker.stt_benchmark.run --smoke   # the accent benchmark on the stand-in: no key, no cost (also inside `pnpm test`)
+cd apps/ai-worker && uv run python -m readi_worker.stt_benchmark.run --manifest <path> --providers deepgram,assemblyai --dry-run   # audio minutes and cost against each free allowance, before anything is sent
+cd apps/ai-worker && uv run python -m readi_worker.stt_benchmark.run --manifest <path> --providers deepgram,assemblyai --max-cost 0.20   # PAID. WER overall and per speaker, tech-term error rate (evals/stt_benchmark/README.md)
+cd apps/ai-worker && uv run python -m readi_worker.stt_benchmark.synthesize --dry-run   # the synthetic pre-screen set: characters and cost against the month's quota
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --smoke        # the eval harness on the stand-in: no key, no cost (also inside `pnpm test`)
 cd apps/ai-worker && uv run python -m readi_worker.evals.run --dry-run --sample 12 --model claude-opus-5   # the sample and its cost, input tokens counted, before anything is spent
 cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.run --sample 12 --model claude-opus-5 --max-cost 2.00   # PAID. fairness, the two separations, agreement, cost; --max-cost stops it before the answer that would cross the approved figure (evals/README.md)

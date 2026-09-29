@@ -12,21 +12,41 @@ a branch here.
 from pathlib import Path
 
 from readi_worker.settings import Settings
+from readi_worker.speech.assemblyai import AssemblyAiSpeechToText
 from readi_worker.speech.base import SpeechToText, TextToSpeech
+from readi_worker.speech.deepgram import DeepgramSpeechToText
+from readi_worker.speech.elevenlabs import ElevenLabsTextToSpeech
 from readi_worker.speech.fake import FakeSpeechToText, FakeTextToSpeech
 from readi_worker.speech.glossary import default_glossary_path, load_terms
+from readi_worker.speech.intron import IntronSpeechToText
 from readi_worker.speech.providers import STT_VENDORS, CallPath
 
 
 def build_stt(settings: Settings) -> SpeechToText:
     if settings.stt_provider == "fake":
         return FakeSpeechToText()
+    key = settings.stt_key
+    if key is None:  # guaranteed by Settings validation
+        raise RuntimeError(f"no key for {settings.stt_provider}")
+    secret = key.get_secret_value()
+    timeout = settings.stt_timeout_s
+    if settings.stt_provider == "deepgram":
+        return DeepgramSpeechToText(secret, timeout_s=timeout)
+    if settings.stt_provider == "assemblyai":
+        return AssemblyAiSpeechToText(secret, timeout_s=timeout)
+    if settings.stt_provider == "intron":
+        return IntronSpeechToText(secret, timeout_s=timeout)
     raise RuntimeError(f"no speech-to-text implementation for {settings.stt_provider}")
 
 
 def build_tts(settings: Settings) -> TextToSpeech:
     if settings.tts_provider == "fake":
         return FakeTextToSpeech()
+    key = settings.tts_key
+    if key is None:  # guaranteed by Settings validation
+        raise RuntimeError(f"no key for {settings.tts_provider}")
+    if settings.tts_provider == "elevenlabs":
+        return ElevenLabsTextToSpeech(key.get_secret_value(), timeout_s=settings.tts_timeout_s)
     raise RuntimeError(f"no text-to-speech implementation for {settings.tts_provider}")
 
 

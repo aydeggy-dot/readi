@@ -11,6 +11,7 @@ apps/api/prisma/migrations/
 # recomputed from these, so they are records of what was paid for, not source: reformatting one
 # would be a four-figure diff over an artefact and would make `git log` on a run unreadable.
 evals/results/*.json
+evals/stt_benchmark/results/*.json
 .turbo/
 
 # Claude Code writes this per-machine and it is ignored by git, so it is not ours to format.
