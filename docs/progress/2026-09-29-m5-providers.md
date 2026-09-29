@@ -1,5 +1,8 @@
 # M5 — the five vendors, priced and configured (phase 2, part 1)
 
+> Part 2 — the four adapters, the benchmark harness and the pre-screen — is
+> `2026-09-30-m5-phase-2.md`. This file remains the reference for the rates and the vendors' terms.
+
 **Branch `feat/m5-voice`.** The owner created accounts on 2026-09-29: **AssemblyAI**, **Deepgram**,
 **ElevenLabs**, **LiveKit** and **Intron Health ("Sahara")** — all free tiers except ElevenLabs
 Starter at $6/month. Every figure below was read from the vendor's own page **on 2026-09-29** and the

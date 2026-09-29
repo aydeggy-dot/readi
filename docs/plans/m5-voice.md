@@ -136,7 +136,7 @@ model bills per call and an unpriced one is a zero somebody notices that day, wh
 synthesis bill per minute and per character, monthly, in arrears — so an unpriced one is a cost nobody
 sees until the invoice.
 
-### Phase 2 — the benchmark harness, and the synthetic pre-screen
+### Phase 2 — the benchmark harness, and the synthetic pre-screen · **done 2026-09-30**
 
 `readi_worker/stt_benchmark/` behind `/evals/stt_benchmark`: the manifest, the pinned normalizer with
 its tests, WER overall and per speaker, the tech-term error rate over the glossary, time-to-final,

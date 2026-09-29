@@ -84,12 +84,12 @@ receives a word you said.
 ## How long we keep it
 
 We keep the audio for **up to 12 months** from the day you record it, because a vendor changes its model
-and the benchmark has to be re-run against the same voices to be comparable. _[Retention period to be
-confirmed by Readi before this form is used.]_
+and the benchmark has to be re-run against the same voices to stay comparable.
 
 At the end of that period the audio files are deleted from our machines and from our backups. The
-transcript and the measurements are kept, under your speaker code, because they are the record of how we
-chose a system — unless you ask us to delete those too, and then we do.
+transcript and the measurements are kept after that, under your speaker code, because they are the record
+of how we chose a system — **unless you tell us you would rather they were not**, and then we delete those
+too. You do not have to give a reason.
 
 The audio is kept outside the product: never in the product's database, never in its file storage, and
 never in our source-code repository.
@@ -125,7 +125,8 @@ Deliberately not drafted here, because guessing would be worse than leaving it b
 - Cross-border transfer: the audio goes to a company processing in the United States and one in the EU.
 - Whether a separate data-processing agreement is needed with each vendor for this use, and whether the
   vendors' standard terms are enough.
-- The retention period, and whether the transcript may be kept after the audio is deleted.
+- Whether the retention Readi has decided — 12 months for the audio, with the transcript and the figures
+  kept afterwards unless the speaker objects — is expressible as drafted, and what the notice must say.
 - What "not used to train any model" has to say to be enforceable against a vendor rather than trusted.
 
 ---

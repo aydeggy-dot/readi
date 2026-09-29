@@ -3582,24 +3582,40 @@ from the vendor's own page on 2026-09-29 and carries that date and its URL in th
       file), phone instructions, transcription convention. `evals/stt_benchmark/README.md` is the guide
 - [x] Checks: ruff, `mypy --strict`, 536 worker tests (39 new), `pnpm format:check`
 
-### Decisions I took inside phase 2 that the owner can reverse
+### Phase 2's decisions, settled by the owner 2026-09-30
 
-- [ ] **Deepgram is not gated on their written answer.** The draft kit blocked it until they confirm
-      their default enrolment; I included it, because the opt-out is a parameter we send on **every**
-      request and a test asserts no request can be built without it — their default only governs
-      requests that omit it, and there are none. The written answer is still owed for the subprocessor
-      file. Reverse this if you would rather send nothing until it arrives
-- [ ] **The synthetic set's control is a second _voice_, not a second _vendor_.** ADR-0020 §2 asks for
-      at least two TTS sources so no recogniser is judged chiefly on its own vendor's audio. We have one
-      TTS account, so the pre-screen holds two Nigerian-accented voices and two general-accent voices
-      **from the same vendor**: the accent delta is then measured with synthesis artefacts held
-      constant, which is a better control for _accent_ and a worse one for _vendor_. The run's notes say
-      so. A second vendor is owed before any provider is eliminated on this evidence
-- [ ] **Benchmark audio retention is unset.** The consent draft says "up to 12 months" with a
-      placeholder, because a vendor changes model and the set has to be re-runnable to stay comparable.
-      Also open: whether the transcript and the figures may be kept after the audio is deleted (the
-      draft says yes, unless the speaker asks otherwise)
-- [ ] **Intron cannot be benchmarked yet for a second reason.** Beyond their unanswered data terms,
-      their endpoint takes a **file URL**, so a clip has to be reachable from the internet — the only
-      vendor that needs somewhere to serve from. Decide that when their answer arrives: a temporary
-      tunnel, or a bucket with expiring links
+- [x] **Deepgram is not gated on their written answer** (owner, 2026-09-30). The opt-out is a parameter
+      we send on **every** request and a test asserts no request can be built without it, so their
+      default enrolment governs only requests that omit it — of which there are none. The written answer
+      is still owed for the subprocessor file, as record-keeping rather than as a condition on a clip
+- [x] **The control is two ElevenLabs voice groups, not a second vendor** (owner, 2026-09-30). Two
+      Nigerian-accented voices and two general-accent voices from the same vendor, so the accent delta is
+      measured with synthesis artefacts held constant — a better control for _accent_, a worse one for
+      _vendor_. **A second TTS vendor is owed before any provider is eliminated on synthetic evidence**,
+      and the run's own notes say so
+- [x] **Benchmark audio is kept 12 months; the transcript and the figures are kept after it is
+      deleted, unless the speaker objects** (owner, 2026-09-30). A vendor changes its model and the set
+      has to stay re-runnable to be comparable; the transcript and figures are the record of how a
+      recogniser was chosen. Written into `kit/consent-form.md` and the placeholder is gone — what
+      remains for the lawyer is whether it is expressible as drafted
+- [ ] **Intron is blocked on two things, not one.** Their unanswered data terms (their only policy
+      predates the voice API by six years), **and** their endpoint taking a **file URL rather than an
+      upload** — so a clip has to be reachable from the internet, the only vendor needing somewhere to
+      serve from. A temporary tunnel or a bucket with expiring links, decided when their answer arrives
+
+### The pre-screen, priced and waiting on the owner (2026-09-29, unchanged)
+
+Handover: `docs/progress/2026-09-30-m5-phase-2.md`, which carries the three commands ready to paste.
+
+- [ ] **48 clips, 6,184 characters, $0.2474, 20.6% of the month's ElevenLabs allowance**, plus about
+      **$0.05** to transcribe them (6.8 minutes of audio against credits of $200 and $50). The whole
+      pre-screen is about **30 cents**, and the binding constraint is the character quota rather than
+      money. `--sentences 8` is the cheaper variant: ~$0.16 and 13.7%, at the cost of a thinner
+      technical-term figure
+- [ ] **Step 2 is free and must be read before step 3**: the real audio durations only exist once the
+      clips do, so the dry run after synthesis is the figure that decides whether `--max-cost 0.15` is
+      right
+- [ ] **The recording kit needs five placeholders only the owner can fill**: legal entity name and
+      registration number, privacy contact email, postal address, the upload link, and the payment
+      amount (or "none"). And the gate: **no recording is made until a lawyer has reviewed the consent
+      form** (ADR-0020 §8)
