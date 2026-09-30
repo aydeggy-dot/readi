@@ -3537,9 +3537,10 @@ from the vendor's own page on 2026-09-29 and carries that date and its URL in th
       may be sent to them until this is answered** — it is a gate on phase 6, not a note
 - [ ] **Deepgram: are self-serve accounts in the Model Improvement Programme by default?** We opt out
       on every request either way; the answer belongs in the subprocessor file
-- [ ] **The API app still has no LiveKit credentials** in its own env file — all three read `missing`
-      on 2026-09-29 after the owner added them, so they probably went into the worker's twice. Needed
-      by phase 4
+- [x] **The API's LiveKit credentials are in place** (owner, confirmed 2026-09-30):
+      `LIVEKIT_URL`, `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` all read `set` in the API's own env
+      file, checked with `scripts/env-has.sh`. They read `missing` on 2026-09-29 because they had
+      gone into the worker's file twice. **Phase 4's one blocker is clear**
 
 ### Phase 2, part 2 — the adapters and the harness · **done 2026-09-29**
 
@@ -3692,20 +3693,11 @@ superseded (allowed only because it has never left this branch, and the commit m
 - [x] Checks: `ruff`, `mypy --strict`, **667 worker tests** (131 new), `pnpm lint`, `pnpm typecheck`,
       `pnpm test`, `pnpm format:check`, `pnpm check:contracts`
 
-### Carried into phase 4
+### The question-repeat rule · **done 2026-09-30**
 
-- [ ] **The three internal routes do not exist yet**, so nothing has run end to end through a room.
-      `voice/api_client.py` is written against the contracts and driven in tests through a mock
-      transport; the first real leg is phase 4 plus phase 5's browser
-- [ ] **A resumed leg says nothing and waits**, which is what `VoiceSessionStartResponse` documents —
-      but on a voice reconnection the candidate heard nothing of the question they are now expected to
-      answer. The captions carry it (phase 5), so silence costs them a read rather than a
-      repetition; re-speaking it would need the API to send the last interviewer turn, which the
-      contract does not carry. Decide it with the captions in front of you
-- [ ] **RTT and packet loss are left null on `VoiceQuality`.** They would have to be read out of
-      `room.get_rtc_stats()`'s WebRTC objects, and the measurement that decides the region is phase 8
-      stage 1 — the candidate's _browser_ reporting `getStats()` over MTN, Airtel, Glo and home
-      broadband. `QualityMonitor.note()` already takes them, so phase 8 adds a call and not a design
+The owner's follow-up on phase 3's known gap, built in phase 3 rather than 4 because none of it is
+API work. ADR-0019 §8's amendment carries the decision and the rejected alternative.
+
 - [x] **An unheard _question_ is asked again** (owner's follow-up, 2026-09-30; built in phase 3
       rather than 4, because none of it is API work). The probe rule cannot help there — the criterion
       an opening prompt asks for carries no probe, so it is never in `unaskedCriteria` — so the
@@ -3727,6 +3719,25 @@ superseded (allowed only because it has never left this branch, and the commit m
       interrupted is **dropped entirely** (`agent_activity.py:2774-2779`: a warning and a `return`
       before the hook runs), so the failure mode is a candidate answering and being unheard. A worse
       bug than the one being fixed, and a silent one
+- [x] Checks: `ruff`, `mypy --strict`, **679 worker tests** (12 new), `pnpm lint`, `pnpm typecheck`,
+      `pnpm test`, `pnpm format:check`
+
+### Carried into phase 4
+
+- [ ] **The three internal routes do not exist yet**, so nothing has run end to end through a room.
+      `voice/api_client.py` is written against the contracts and driven in tests through a mock
+      transport; the first real leg is phase 4 plus phase 5's browser
+- [ ] **A resumed leg says nothing and waits**, which is what `VoiceSessionStartResponse` documents —
+      but on a voice reconnection the candidate heard nothing of the question they are now expected to
+      answer. The captions carry it (phase 5), so silence costs them a read rather than a
+      repetition; re-speaking it would need the API to send the last interviewer turn, which the
+      contract does not carry. Decide it with the captions in front of you
+- [ ] **RTT and packet loss are left null on `VoiceQuality`.** They would have to be read out of
+      `room.get_rtc_stats()`'s WebRTC objects, and the measurement that decides the region is phase 8
+      stage 1 — the candidate's _browser_ reporting `getStats()` over MTN, Airtel, Glo and home
+      broadband. `QualityMonitor.note()` already takes them, so phase 8 adds a call and not a design
+- [ ] **No vendor plugin is installed**, because no vendor is chosen (phase 6, ADR-0020). The live
+      path runs on the fakes; `voice/streaming.py` names the extra each provider needs
 
 ### Carried into phase 5 from the repeat rule
 
@@ -3738,5 +3749,3 @@ superseded (allowed only because it has never left this branch, and the commit m
 - [ ] **Past the cap, an unheard question is still scored.** Two barge-ins over the same question and
       the second answer is taken as given. It is the best remaining option and it is not free; the
       pilot can say how often two happen
-- [ ] **No vendor plugin is installed**, because no vendor is chosen (phase 6, ADR-0020). The live
-      path runs on the fakes; `voice/streaming.py` names the extra each provider needs
