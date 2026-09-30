@@ -92,6 +92,14 @@ const SCREENS = [
   ["41-calibration-answer", "/admin/calibration/{answer}", "reviewer"],
   ["42-calibration-flags", "/admin/calibration/flags", "reviewer"],
   ["43-calibration-agreement", "/admin/calibration/agreement", "reviewer"],
+  /*
+   * Voice latency (M5 phase 4). An admin's screen, and **empty** in this run: nothing here has taken a
+   * voice interview, because `VOICE_ENABLED` is false in the e2e environment and a voice session cannot
+   * be started at all. Its empty state is exactly what is worth a picture at this phase — it is the
+   * screen an owner will meet first, and the one that has to say "nothing measured yet" rather than
+   * showing a wall of dashes that reads as a broken page. Phase 8 is when it has numbers in it.
+   */
+  ["44-voice-latency", "/admin/voice", "reviewer"],
 ] as const satisfies ReadonlyArray<readonly [string, string, StateKey | null]>;
 
 /** 360px is the narrowest width we support; 1280px is where the desktop layout applies. */

@@ -22,6 +22,7 @@ import { ProfilesModule } from "./profiles/profiles.module";
 import { RedisModule } from "./redis/redis.module";
 import { StorageModule } from "./storage/storage.module";
 import { UsersModule } from "./users/users.module";
+import { VoiceModule } from "./voice/voice.module";
 
 @Module({})
 export class AppModule {
@@ -49,6 +50,7 @@ export class AppModule {
         ContentModule,
         EvaluationsModule,
         InterviewsModule,
+        VoiceModule,
         AccountModule,
         AdminModule,
       ],

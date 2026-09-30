@@ -89,7 +89,8 @@
     "content": "Content",
     "practice": "Practice",
     "tabs": "Sections",
-    "calibration": "Marking"
+    "calibration": "Marking",
+    "voice": "Voice"
   },
   "auth": {
     "email": "Email",
@@ -232,6 +233,10 @@
         "v1": {
           "title": "Process my voice during interviews",
           "body": "Your speech is converted to text by our speech-recognition provider so the AI interviewer can respond and give feedback."
+        },
+        "v2": {
+          "title": "Process my voice during interviews",
+          "body": "In a voice interview, everything you say is sent to our speech-recognition provider and turned into text, so the interviewer can reply and so your answers can be scored. The interviewer's own words are sent to a separate provider that speaks them; nothing you say goes there. No audio is kept — not yours and not ours — unless you separately choose to keep recordings below. Say no and you can still practise in text mode, with the same questions and the same feedback."
         }
       },
       "recording_storage": {
@@ -917,6 +922,39 @@
       "errors": {
         "criteriaMismatch": "Those marks do not match the rubric this answer was scored against. Reload the page and try again.",
         "gone": "That answer is no longer available to mark."
+      }
+    },
+    "voice": {
+      "title": "Voice latency",
+      "lead": "How quickly the interviewer answers, over the turns it has really taken.",
+      "targets": "Two targets, not one: the interviewer acknowledges within {firstAudio} ms in its own pre-rendered words, and the question or probe follows within {response} ms. Both are p50, measured from the moment the candidate stops speaking to the first audio byte. Every figure carries the number of turns it came from, and a stage that did not happen is shown as a dash rather than as zero — a prefetched opening has no phrasing call at all.",
+      "sessions": "Sessions on this page",
+      "turns": "Turns measured",
+      "firstAudio": "First audio",
+      "response": "Question or probe",
+      "endpoint": "Turn detection",
+      "sttFinal": "Transcript final",
+      "coverage": "Coverage call",
+      "phrasing": "Phrasing call",
+      "ttsFirstByte": "Speech first byte",
+      "n": "n={n} · p95 {p95}",
+      "met": "Within target",
+      "missed": "Over target",
+      "sessionMeta": "{state} · {status} · {minutes} min of voice",
+      "counts": "{prefetched} prefetched · {interrupted} talked over · {reconnects} reconnects",
+      "fellBack": "fell back to text",
+      "prefetchedTag": "prefetched",
+      "interruptedTag": "talked over",
+      "back": "All voice sessions",
+      "empty": "No voice session has been measured yet.",
+      "session": {
+        "title": "Voice session",
+        "lead": "Started {started} · {minutes} min of voice metered.",
+        "legs": "Legs",
+        "leg": "{minutes} min · {turns} turns spoken · {reconnects} reconnects",
+        "noLegs": "No leg has been reported for this session.",
+        "turns": "Turn by turn",
+        "noTurns": "No turn of this session was measured."
       }
     }
   },

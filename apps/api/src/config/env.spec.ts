@@ -103,6 +103,54 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...valid, AI_WORKER_TOKEN: "short" })).toThrow(/AI_WORKER_TOKEN/);
   });
 
+  /**
+   * Voice off is the resting state of every deployment before M5, so it has to boot with nothing set —
+   * and voice **on** with two of three LiveKit variables is a typo rather than a configuration. The
+   * failure it prevents is a candidate who has already spent four questions' worth of pinned content
+   * pressing "start" and getting `voice_unavailable`.
+   */
+  describe("voice mode", () => {
+    const VOICE = {
+      VOICE_ENABLED: "true",
+      LIVEKIT_URL: "ws://127.0.0.1:7880",
+      LIVEKIT_API_KEY: "devkey",
+      LIVEKIT_API_SECRET: "secret",
+    };
+
+    it("is off with nothing configured, and boots", () => {
+      expect(parseEnv(valid)).toMatchObject({
+        VOICE_ENABLED: false,
+        VOICE_AGENT_NAME: "readi-interviewer",
+        VOICE_ALLOWANCE_MINUTES: 120,
+      });
+    });
+
+    it("accepts a complete voice configuration", () => {
+      expect(parseEnv({ ...valid, ...VOICE })).toMatchObject({
+        VOICE_ENABLED: true,
+        LIVEKIT_URL: "ws://127.0.0.1:7880",
+      });
+    });
+
+    it.each(["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"])(
+      "refuses VOICE_ENABLED without %s",
+      (missing) => {
+        expect(() => parseEnv({ ...valid, ...VOICE, [missing]: "" })).toThrow(new RegExp(missing));
+      },
+    );
+
+    // A microphone needs a secure context, so an insecure URL in production is a voice interview that
+    // cannot start in any browser — and the candidate's audio in clear text.
+    it("requires wss in production, but only when voice is on", () => {
+      expect(() => parseEnv({ ...production, ...VOICE })).toThrow(/LIVEKIT_URL/);
+      expect(
+        parseEnv({ ...production, ...VOICE, LIVEKIT_URL: "wss://readi.livekit.cloud" }),
+      ).toMatchObject({ VOICE_ENABLED: true });
+      // A text-only production deployment is not asked about a URL it does not use.
+      expect(parseEnv({ ...production, LIVEKIT_URL: "ws://insecure" }).VOICE_ENABLED).toBe(false);
+    });
+  });
+
   it("defaults storage to the local SeaweedFS but refuses its credentials in production", () => {
     expect(parseEnv(valid)).toMatchObject({
       S3_ENDPOINT: "http://127.0.0.1:19000",

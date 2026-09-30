@@ -55,7 +55,18 @@ export const CONSENT_TYPES = [
  * valid history but no longer count as consent to the current text.
  */
 export const CONSENT_VERSIONS = {
-  audio_processing: 1,
+  /**
+   * **v2 (M5, 2026-09-30.)** v1 said only that speech is converted to text. It did not say that a
+   * recognition provider receives everything the candidate says, that the interviewer's own words —
+   * and only those — go to a synthesizer, or that **no audio is stored at all** unless
+   * `recording_storage` is granted separately. Those are the facts a candidate is agreeing to, so
+   * the wording says them (owner's decision 9, `docs/plans/m5-voice.md`).
+   *
+   * Bumping it sends every existing account back to the consent screen, because `allDecided` wants
+   * an answer to the current text of each type. That is the reason it is bumped **now**: after the
+   * pilot the same change costs every real candidate a screen.
+   */
+  audio_processing: 2,
   recording_storage: 1,
   camera_coaching: 1,
   transcript_review: 1,

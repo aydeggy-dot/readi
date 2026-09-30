@@ -14,9 +14,18 @@ import {
   seedPublishedContent,
   type ContentFixture,
 } from "./content-fixtures";
-import { createTestApp, signUpWithEmail, uniqueEmail } from "./helpers";
+import { FakeVoiceRoom } from "./fake-voice-room";
+import {
+  createTestApp,
+  grantConsent,
+  signUpWithEmail,
+  uniqueEmail,
+  viaService,
+  VOICE_ENV,
+} from "./helpers";
 import { pollFor } from "./poll";
 import { framesOf } from "./sse";
+import { VOICE_ROOM } from "../src/voice/voice-room";
 
 /**
  * **The leak test.** Candidate-facing responses never carry the answer key — no rubric, no
@@ -42,6 +51,14 @@ import { framesOf } from "./sse";
  * mapper that builds it made this file fail on both counts — the marker text and the field name —
  * and nothing else in the suite noticed. That is the failure this test exists to cause.
  *
+ * **M5 extends it to the room** (ADR-0019 §4). A voice interview puts a candidate into a LiveKit room,
+ * and room metadata and data channels are readable by participants — so a probe that reached either
+ * would be the answer key in the candidate's own browser. `FakeVoiceRoom` records every payload the API
+ * hands the media server and the detector runs over all of it; the dispatch is asserted to carry the
+ * session id and nothing else. The worker's own channel is the mirror image and is asserted as such:
+ * `/api/internal/interviews/:id/voice-session` **must** carry the planned follow-ups, because that is
+ * what it is for, and must still carry no rubric.
+ *
  * **Two routes now have a narrowed rule rather than the blanket one**, and both are narrowings in the
  * same shape: not "never", but "only at the moment it stops being a secret", asserted as a count.
  * `/advance` may speak a planned follow-up, because a probe the interviewer has asked is a probe the
@@ -58,6 +75,16 @@ import { framesOf } from "./sse";
  */
 const REPORT = "/api/interviews/{id}/report";
 const REPORT_FIELDS = ["criteria", "criteria_total", "criteria_volunteered"] as const;
+
+/**
+ * The two field names the **worker's** bundle is allowed, and no others (M5, ADR-0019 §4).
+ *
+ * Both are numbers, not prose: `criterion_count` is how many criteria a question has, so the engine
+ * knows how many probes are still worth asking, and a probe's `criterion` is its position in the rubric,
+ * which is what lets the transcript say which criterion was prompted. The marker half of the detector
+ * runs under this allowance, so a criterion's actual words arriving in either still fails.
+ */
+const BUNDLE_FIELDS = ["criterion_count", "criterion"] as const;
 
 describe("candidate content never carries the answer key", () => {
   let app: NestExpressApplication;
@@ -88,12 +115,29 @@ describe("candidate content never carries the answer key", () => {
   let scoredCookie: string;
   let scoredUserId: string;
   let scoredSessionId: string;
+  /**
+   * A fourth candidate, in **voice** mode, with `audio_processing` granted — because a voice token
+   * cannot be issued without all three (M5 phase 4) and the room is now one of the surfaces under test.
+   * Their session is advanced like the others, so the internal bundle route has a reached question.
+   */
+  let voiceCookie: string;
+  let voiceUserId: string;
+  let voiceSessionId: string;
   const worker = new FakeAiWorker();
+  const room = new FakeVoiceRoom();
 
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
-    app = await createTestApp({ overrides: [[AiWorkerClient, worker]] });
+    app = await createTestApp({
+      // Voice on, and a recording stand-in for LiveKit: nothing here reaches a media server, and what
+      // would have been sent to one is kept for the assertions in "the room" below.
+      env: VOICE_ENV,
+      overrides: [
+        [AiWorkerClient, worker],
+        [VOICE_ROOM, room],
+      ],
+    });
     prisma = app.get(PrismaService);
     fixture = await seedPublishedContent(prisma);
 
@@ -140,6 +184,22 @@ describe("candidate content never carries the answer key", () => {
     scoredCookie = scored.cookie;
     scoredUserId = await giveProfile(prisma, scored.email, fixture.role, fixture.level);
     scoredSessionId = await runAndScore(scoredCookie);
+
+    const voice = await signUpWithEmail(app, uniqueEmail());
+    voiceCookie = voice.cookie;
+    voiceUserId = await giveProfile(prisma, voice.email, fixture.role, fixture.level);
+    await grantConsent(prisma, voiceUserId, "audio_processing");
+    const spoken = await http()
+      .post("/api/interviews")
+      .set("cookie", voiceCookie)
+      .send({ minutes: 15, mode: "voice" });
+    if (spoken.status !== 201) throw new Error(`could not start a voice interview: ${spoken.text}`);
+    voiceSessionId = (spoken.body as { id: string }).id;
+    const heard = await http()
+      .post(`/api/interviews/${voiceSessionId}/advance`)
+      .set("cookie", voiceCookie)
+      .send({ action: "start" });
+    if (heard.status !== 200) throw new Error(`could not open the interview: ${heard.text}`);
 
     const admin = await signUpWithEmail(app, uniqueEmail());
     adminCookie = admin.cookie;
@@ -193,7 +253,7 @@ describe("candidate content never carries the answer key", () => {
      * `PrismaClientValidationError` and that is what the log showed. Two errors, and the loud one was
      * a consequence of the quiet one. `docs/progress/2026-09-28-flaky-test-hunt.md`.
      */
-    const userIds = [candidateUserId, liveUserId, scoredUserId].filter(
+    const userIds = [candidateUserId, liveUserId, scoredUserId, voiceUserId].filter(
       (id): id is string => id !== undefined,
     );
     if (userIds.length > 0) {
@@ -238,6 +298,9 @@ describe("candidate content never carries the answer key", () => {
     ],
     "/api/interviews/{id}/report": [
       () => http().get(`/api/interviews/${scoredSessionId}/report`).set("cookie", scoredCookie),
+    ],
+    "/api/interviews/{id}/voice-token": [
+      () => http().post(`/api/interviews/${voiceSessionId}/voice-token`).set("cookie", voiceCookie),
     ],
   });
 
@@ -444,6 +507,145 @@ describe("candidate content never carries the answer key", () => {
       const spoken = spokenTexts(payload).reduce((total, text) => total + countOf(text, marker), 0);
       expect(everywhere, `${marker} appears outside a spoken turn`).toBe(spoken);
     }
+  });
+
+  /**
+   * **The room** (M5 phase 4, ADR-0019 §4).
+   *
+   * A voice interview puts the candidate into a LiveKit room. Room metadata, participant metadata and
+   * data channels are all readable by participants, and `planned_follow_ups` are answer key — so the
+   * rule is that the dispatch carries the **session id and nothing else**, and the agent pulls the
+   * bundle over the service-token channel instead.
+   *
+   * Checked over everything the API handed the media server rather than over a list of fields somebody
+   * remembered, so a metadata field added later is covered without this test being touched.
+   */
+  describe("the room", () => {
+    it("was asked for a room and an interviewer when the token was issued", async () => {
+      room.reset();
+      const response = await http()
+        .post(`/api/interviews/${voiceSessionId}/voice-token`)
+        .set("cookie", voiceCookie);
+      expect(response.status).toBe(201);
+      // Without this the assertions below would pass on an empty recording, which is the one way this
+      // check can look thorough and prove nothing.
+      expect(room.joins).toHaveLength(1);
+      expect(room.dispatches).toHaveLength(1);
+    });
+
+    it("carries no answer key into anything a participant can read", () => {
+      expect(answerKeyLeaks(room.payloads(), fixture.answerKeyMarkers)).toEqual([]);
+      for (const marker of fixture.plannedFollowUpMarkers) {
+        expect(countOf(JSON.stringify(room.payloads()) ?? "", marker)).toBe(0);
+      }
+    });
+
+    it("tells the interviewer which session it is, and nothing else at all", () => {
+      const dispatch = room.dispatches[0];
+      expect(dispatch).toBeDefined();
+      // An exact key list rather than a check on `sessionId`: the claim is that the dispatch says one
+      // thing, so a second field added to `DispatchRequest` has to be argued for here.
+      expect(Object.keys(dispatch ?? {}).sort()).toEqual(["room", "sessionId"]);
+      expect(dispatch?.sessionId).toBe(voiceSessionId);
+    });
+
+    it("identifies the candidate by their session, never by their account or their name", async () => {
+      const join = room.joins[0];
+      const user = await prisma.user.findUniqueOrThrow({ where: { id: voiceUserId } });
+      const raw = JSON.stringify(room.payloads()) ?? "";
+      /*
+       * A room name and a participant identity are visible to everyone in the room and appear in
+       * LiveKit's own logs and dashboards. A session id leads nowhere without our database; a user id
+       * would link every room that candidate has ever been in, and an email or a name would be the
+       * candidate themselves. So both are derived from the session.
+       */
+      expect(join?.room).toContain(voiceSessionId);
+      expect(join?.identity).toContain(voiceSessionId);
+      expect(raw).not.toContain(voiceUserId);
+      expect(raw).not.toContain(user.email);
+      expect(raw).not.toContain(user.name);
+    });
+  });
+
+  /**
+   * **The worker's own channel is the mirror image of every assertion above**, and it is asserted
+   * rather than assumed.
+   *
+   * `/api/internal/interviews/:id/voice-session` is the one route in the API that hands part of the
+   * answer key to another process, because the agent cannot ask a question it has not been given. What
+   * it hands over is `BundleQuestion`: the prompt, the context and the probes, and **no rubric, no
+   * criteria, no weights, no descriptors and no ideal points**. Both halves are checked — the positive
+   * one because a bundle that quietly stopped carrying its probes would break follow-ups everywhere and
+   * fail nothing here, and the negative one because that wall is `session-bundle.ts`'s whole job.
+   *
+   * These routes are excluded from the OpenAPI document, so the coverage test above cannot enumerate
+   * them; the last test in this block is what stops that exclusion from being silently reversed.
+   */
+  describe("the worker's own channel", () => {
+    const bundle = () =>
+      http().get(`/api/internal/interviews/${voiceSessionId}/voice-session`).set(viaService());
+
+    it("hands the agent the probes, because that is what it is for", async () => {
+      const response = await bundle();
+      expect(response.status).toBe(200);
+      const raw = JSON.stringify(response.body) ?? "";
+      for (const marker of fixture.plannedFollowUpMarkers) expect(raw).toContain(marker);
+    });
+
+    it("hands the agent no rubric, no criterion and no ideal point", async () => {
+      const response = await bundle();
+      // Everything but the probes: those are legitimately here and are counted by the test above.
+      const key = fixture.answerKeyMarkers.filter(
+        (marker) => !fixture.plannedFollowUpMarkers.includes(marker),
+      );
+      expect(key.length).toBeGreaterThanOrEqual(12);
+      /*
+       * Two allowed field **names**, and both are numbers rather than answer key. `criterion_count` is
+       * how many criteria a question has, which the engine needs to know how many probes it may still
+       * usefully ask; `planned_follow_ups[].criterion` is a probe's *position* in the rubric, which is
+       * what lets `session_turns.follow_up_index` say which criterion was prompted (M4's 0.85). Neither
+       * carries a word of the rubric, and the marker half of the detector runs regardless — so a
+       * criterion's description arriving in either would still fail here.
+       */
+      expect(answerKeyLeaks(response.body, key, { allowKeys: BUNDLE_FIELDS })).toEqual([]);
+    });
+
+    it("would still catch a rubric grafted into the bundle", async () => {
+      const response = await bundle();
+      const key = fixture.answerKeyMarkers.filter(
+        (marker) => !fixture.plannedFollowUpMarkers.includes(marker),
+      );
+      // The control for the allowance above: the two allowed names must not have widened the check.
+      const leaky = { ...(response.body as object), rubric: { criteria: key } };
+      expect(answerKeyLeaks(leaky, key, { allowKeys: BUNDLE_FIELDS })).not.toEqual([]);
+    });
+
+    it("is refused without the service token, and by a signed-in candidate", async () => {
+      const anonymous = await http().get(
+        `/api/internal/interviews/${voiceSessionId}/voice-session`,
+      );
+      expect(anonymous.status).toBe(401);
+      // A candidate's own session cookie is not a way in either: `@ServiceOnly()` is more restricted
+      // than signed-in, not less, so the answer key is not one cookie away from its owner.
+      const candidate = await http()
+        .get(`/api/internal/interviews/${voiceSessionId}/voice-session`)
+        .set("cookie", voiceCookie);
+      expect(candidate.status).toBe(401);
+    });
+
+    it("publishes no internal path, so the coverage test above is not quietly narrowed", () => {
+      const document = createOpenApiDocument(app);
+      /*
+       * `@ApiExcludeController()` keeps the three internal routes out of the browser's generated client
+       * (ADR-0012), which also keeps them out of the prefix enumeration above. That is the right trade
+       * — they carry the key on purpose and are asserted here by hand — but it is exactly the shape of
+       * an accidental hole, so removing the exclusion has to fail a test and be argued for.
+       */
+      const internal = Object.keys(document.paths).filter((path) =>
+        path.startsWith("/api/internal"),
+      );
+      expect(internal).toEqual([]);
+    });
   });
 
   it("would catch an answer key hidden in a stream, not only in a JSON body", () => {

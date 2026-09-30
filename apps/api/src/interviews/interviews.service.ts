@@ -31,6 +31,7 @@ import {
   type SessionSummaryRow,
   type SessionWithContent,
 } from "./interview-sessions.repository";
+import { VoiceEligibilityService } from "../voice/voice-eligibility.service";
 import { selectQuestions } from "./question-selection";
 import { candidateQuestion, questionsWithNoProbes, snapshotOf } from "./session-bundle";
 
@@ -65,6 +66,7 @@ export class InterviewsService {
     private readonly prisma: PrismaService,
     private readonly repository: InterviewSessionsRepository,
     private readonly evaluations: EvaluationsService,
+    private readonly voice: VoiceEligibilityService,
     @Inject(REDIS) redis: Redis,
   ) {
     this.limiter = new RedisRateLimiter(redis);
@@ -77,7 +79,8 @@ export class InterviewsService {
    * **M8's seam is the rate limit below.** An entitlement check ("has this candidate a plan with
    * sessions left, and voice minutes if this were voice?") belongs exactly here, before anything is
    * written and before a single model call is possible, and it refuses with its own code rather
-   * than by widening one of these.
+   * than by widening one of these. M5 took the voice half of it: `VoiceEligibilityService.assert`
+   * is that check for voice minutes, and M8 replaces where the allowance figure comes from.
    */
   async create(
     user: AuthenticatedUser,
@@ -86,6 +89,16 @@ export class InterviewsService {
     const audience = await this.audience(user.id, request);
     const types = this.typesFor(request, audience.role.supportedQuestionTypes);
     const plan = INTERVIEW_PLANS[request.minutes];
+
+    /*
+     * Voice is refused **here**, before anything is pinned (M5, ADR-0019). A session pinned as `voice`
+     * that can never be joined has spent this candidate's four questions on nothing, and those
+     * questions then count as seen for the next twenty sessions (`withHistory`). The three refusals —
+     * `voice_not_enabled`, `voice_consent_required`, `voice_allowance_exhausted` — are one rule in
+     * `VoiceEligibilityService`, asked again by the join token because an allowance can run out
+     * between the two.
+     */
+    if (request.mode === "voice") await this.voice.assert(user.id, "voice_not_enabled");
 
     await this.consume(`interview-hour:${user.id}`, INTERVIEW_RATE_LIMITS.perHour);
     await this.consume(`interview-day:${user.id}`, INTERVIEW_RATE_LIMITS.perDay);
@@ -158,6 +171,9 @@ export class InterviewsService {
         stack: audience.stack ? { slug: audience.stack.slug, name: audience.stack.name } : null,
       },
       isDiagnostic: request.is_diagnostic,
+      // How the session STARTED, and never rewritten: a leg that falls back to text is a
+      // `voice_legs` row with a reason, not a change of mode (ADR-0019 §7).
+      mode: request.mode,
       plannedMinutes: request.minutes,
       questionBudget: chosen.length,
       maxFollowUps: Math.min(plan.maxFollowUps, MAX_FOLLOW_UPS),

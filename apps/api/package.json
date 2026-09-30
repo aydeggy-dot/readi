@@ -25,6 +25,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1120.0",
     "@aws-sdk/s3-request-presigner": "3.1120.0",
+    "@livekit/protocol": "1.51.0",
     "@nestjs/common": "11.2.5",
     "@nestjs/core": "11.2.5",
     "@nestjs/platform-express": "11.2.5",
@@ -37,6 +38,7 @@
     "bullmq": "6.3.1",
     "ioredis": "6.0.0",
     "libphonenumber-js": "1.13.13",
+    "livekit-server-sdk": "2.19.0",
     "nestjs-zod": "5.5.0",
     "reflect-metadata": "0.2.2",
     "resend": "6.25.0",

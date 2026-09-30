@@ -275,6 +275,35 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
 - **Falling back to text needs no handover**: the API's persisted snapshot is already the authority, so
   the agent stops and the browser resumes over SSE at the same turn. `mode` keeps meaning how the
   session *started*; delivery metrics run over the turns that have word timings, which only voice has.
+  **The bookkeeping is a `voice_legs` row with a reason**, not a change of mode — and it is also where
+  `voice_fallback_to_text` lives until M9 builds a typed analytics helper (spec §9).
+- **The API's half is `apps/api/src/voice/`, and voice depends on interviews rather than the reverse.**
+  The candidate's one route is `POST /api/interviews/:id/voice-token`; the agent's three are
+  `/api/internal/interviews/:id/{voice-session,turns,voice-ended}` behind `@ServiceOnly()`. Session
+  creation nevertheless has to ask "may this candidate use voice?", so that question lives in
+  `VoiceAccessModule` — which has no interview dependency and is imported from both sides. **Voice is
+  refused at creation, not at the microphone**: a session pinned as `voice` that can never be joined has
+  spent that candidate's four questions on nothing, and those questions then count as seen for twenty
+  sessions. The join token asks again, because an allowance can run out in between.
+- **A push is made idempotent by a table, because two of its three payloads have no natural key.**
+  `voice_exchanges` holds the agent's `exchange_id` as its primary key and inserting it is what claims
+  the exchange; a collision is the `duplicate: true` the agent expects. Turns are idempotent by
+  `(session_id, seq)` and latency samples by `(session_id, turn_seq)` — `ai_call_log` is not, so
+  without the ledger a retry bills the same model calls twice and every cost figure after it is taken
+  on trust. One write path: the push goes through the **same** `applyExchange` text mode uses, with
+  per-turn timings supplied from the samples (an interviewer turn began at its first audio byte and
+  lasted as long as it was spoken for, which is what the candidate experienced).
+- **Voice minutes are metered in `usage_ledger` in *seconds*** (ADR-0019 §9; spec §10 amended). A leg
+  is not a session: a candidate who reconnects three times spends three legs of forty seconds, and
+  rounding each up to a minute would meter three. Rounding happens once, where a candidate is shown
+  their allowance. `source_id` is the `voice_legs.id`, unique, so a retried report meters nothing
+  twice; a leg that spent no seconds writes no row, which is not the same as writing a zero.
+  `VoiceAllowanceService` is M8's seam and the whole of it — M8 changes where the figure comes from.
+- **The latency view is an admin's screen and names no candidate** (`GET /api/admin/voice/latency`).
+  A stage with no samples is **null, not zero**, and every stage carries its own `n`: most stages are
+  legitimately absent, and the whole effect of lever 2 is that `phrasing_ms` *disappears* on a
+  prefetched opening. `quantile` is imported from `interviews/pace.ts` rather than written again, so
+  the admin view and phase 8's report cannot disagree about the same run.
 - **A push waits for its turn's audio to settle, and pushes are serialised.** Nothing sits between
   the model's answer and the first audio byte — but `spoken_ms` and `interrupted` do not exist until
   the audio stops, and they are what the turn has to admit. One at a time and in order, because two
@@ -538,6 +567,14 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   and `apps/api/test/content-no-answer-key.int.spec.ts` enforces it over the raw JSON of every
   candidate route, with the endpoint list read from the OpenAPI document. Never weaken that test to
   make another pass.
+  **The room is part of that surface from M5** (ADR-0019 §4): a voice interview puts a candidate into a
+  LiveKit room, room and participant metadata are readable by participants, so the dispatch carries the
+  **session id alone** and the agent pulls the bundle over the service-token channel. The leak test
+  drives a recording stand-in for LiveKit and runs the detector over every payload the API handed it,
+  asserts the dispatch has exactly one field, and asserts the room name and participant identity are
+  derived from the **session** rather than from the user — a user id would link every room that
+  candidate has ever been in. The worker's own channel is asserted from the other side: the bundle route
+  **must** carry the probes, and must still carry no rubric.
   **Planned follow-ups are the one part of the answer key with a moment when it is allowed out**
   (M3 phase 3): they say what the candidate is about to be asked, right up until the interviewer
   asks it, at which point they hear it by definition. So the rule for them is narrower, not absent —
@@ -697,13 +734,18 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
 - Access is controlled **only** by the `entitlements` table, updated **only** by verified payment webhooks (signature checked, idempotent via `webhook_events` table) or admin actions (audited).
 - Money is stored as integers in minor units (`amount_minor`, `currency`) — kobo for NGN, cents for USD.
   Exception: internal AI provider cost is integer micro-USD in `ai_call_log` (ADR-0007).
-- Voice/avatar minutes are metered in `usage_ledger`; check allowance before starting a session and settle after.
+- Voice/avatar minutes are metered in `usage_ledger` **in seconds** (ADR-0019 §9); check the allowance
+  before starting a session and settle after. Read it as a `SUM` over the append-only ledger, never as
+  a counter: a counter has to be right on every path, including the ones that fail half way.
 - Checkout requires an email address (Paystack needs one); users without one are asked to add it at checkout.
 - Renewal reminders: **1 day** before renewal for weekly plans, **3 days** for monthly/annual. Sent by email to
   everyone, and additionally by SMS (Termii) to users who signed up by phone.
 
 ### Data & privacy (Nigeria Data Protection Act 2023, GDPR-ready)
-- Store explicit `consent_records` for: recording audio, camera coaching, storing recordings,
+- Store explicit `consent_records` for: processing audio (**`audio_processing`, at v2 from M5** — the
+  wording now says that a recognition provider receives everything the candidate says, that only the
+  interviewer's own words reach a synthesizer, and that **no audio is stored at all** unless
+  `recording_storage` is granted separately), camera coaching, storing recordings,
   **transcript review** and marketing. `transcript_review` is the one that lets a *person* read what
   a candidate typed, for expert calibration (ADR-0017): opt-in, default off, refusable at no cost,
   and nothing may sample an answer except through `ConsentsService.usersGranting()`. The rule for
@@ -768,6 +810,14 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   (`env` for build/test so caches key on it, `passThroughEnv` for dev), or it is silently dropped.
 - API routes are default-deny: every controller route needs a session unless marked `@Public()`, and
   `@Roles()` restricts by role. Depend on `AuthService`, never on Better Auth types (ADR-0005/0009).
+  **`@ServiceOnly()` is the third case and not a hole** (M5, ADR-0019): those routes are reached by the
+  AI worker with the shared service token and by nobody else, and `ServiceTokenGuard` is a **second
+  global guard** that demands it on exactly those routes. The two guards partition every route, so one
+  carrying neither marker is still refused by `AuthGuard`. `@Public()` would have said in the metadata
+  that an internal route is public, which is the opposite of true. The internal routes are
+  `@ApiExcludeController()`, so the leak test cannot enumerate them — it exercises them by hand and
+  asserts the OpenAPI document publishes no `/api/internal` path, which is what stops that exclusion
+  being reversed silently.
 - Every email goes through `EmailSender`, which refuses `.invalid` placeholder addresses (ADR-0009).
 - **A CLI that changes who can do what refuses in production unless told to proceed.**
   `admin:grant` is the shortest path from a shell to an admin account, so it checks

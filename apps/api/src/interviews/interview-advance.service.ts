@@ -5,11 +5,9 @@ import {
   type CandidateTurn,
   type InterviewAdvanceRequest,
   type InterviewAdvanceResponse,
-  type InterviewCandidateContext,
   InterviewEngineSnapshot,
   type InterviewFrame,
   INTERVIEW_LIMITS,
-  SessionCatalogue,
   SessionQuestionSnapshot,
 } from "@readi/shared-types";
 import type { Redis } from "ioredis";
@@ -17,18 +15,18 @@ import { AiCallLogService } from "../ai-calls/ai-call-log.service";
 import { AiWorkerClient, AiWorkerUnavailableError } from "../ai-worker/ai-worker.client";
 import type { AuthenticatedUser } from "../auth/auth.service";
 import type { Env } from "../config/env";
-import { ConsentsService } from "../consents/consents.service";
 import { EvaluationsService } from "../evaluations/evaluations.service";
 import { ENV } from "../config/env.module";
 import { ApiError } from "../http/api-error";
 import { REDIS } from "../redis/redis.module";
+import { InterviewBundleService } from "./interview-bundle.service";
 import {
   type AppliedExchange,
   InterviewSessionsRepository,
   type SessionWithContent,
 } from "./interview-sessions.repository";
 import { type InterviewStream, whileThinking } from "./interview-sse";
-import { candidateQuestion, sessionBundle } from "./session-bundle";
+import { candidateQuestion } from "./session-bundle";
 
 /** How long one exchange may hold a session, past which a stuck lock cannot block it for ever. */
 const LOCK_SLACK_MS = 30_000;
@@ -62,7 +60,7 @@ export class InterviewAdvanceService {
     private readonly repository: InterviewSessionsRepository,
     private readonly worker: AiWorkerClient,
     private readonly aiCalls: AiCallLogService,
-    private readonly consents: ConsentsService,
+    private readonly bundles: InterviewBundleService,
     private readonly evaluations: EvaluationsService,
     @Inject(REDIS) private readonly redis: Redis,
     @Inject(ENV) private readonly env: Env,
@@ -242,7 +240,7 @@ export class InterviewAdvanceService {
     requestedAt: Date,
     calls: AiCallRecord[],
   ): Promise<InterviewAdvanceResponse> {
-    const bundle = await this.bundleFor(session);
+    const bundle = await this.bundles.bundleFor(session);
     const snapshot = session.engineSnapshot
       ? InterviewEngineSnapshot.parse(session.engineSnapshot)
       : null;
@@ -263,52 +261,6 @@ export class InterviewAdvanceService {
       calls.push(...response.ai_calls);
     }
     return response;
-  }
-
-  /**
-   * What the worker is given. The rubric is not in it — `bundleQuestion` is the only door out of a
-   * snapshot and it does not carry one (CLAUDE.md §5) — and the candidate is described in the
-   * catalogue's own **names**, as the session recorded them, so a role renamed afterwards cannot
-   * change how the interviewer addressed them.
-   *
-   * The one consent decision it carries is `transcript_review`, which the intro speaks aloud when it
-   * has been granted (ADR-0017). It is read here rather than pinned on the session: the intro is
-   * spoken once and `session_turns` already holds the words, so the transcript is the record of what
-   * was claimed, and a bundle resent after a Redis miss cannot re-speak an intro either way.
-   */
-  private async bundleFor(session: SessionWithContent): Promise<InterviewAdvanceRequest["bundle"]> {
-    const catalogue = SessionCatalogue.parse(session.catalogue);
-    const candidate: InterviewCandidateContext = {
-      role_label: catalogue.role.name,
-      level_label: catalogue.level.name,
-      stack_label: catalogue.stack?.name ?? null,
-      /*
-       * Real from M4: the topics this candidate's scored answers have gone worst on, worst first, as
-       * labels (ADR-0015 — a topic has no enum, so it is its name). It was `[]` through M3 because
-       * there were no evaluations to derive it from. A candidate's **first** interview still sends an
-       * empty list, which is correct and is what the prompt is written for.
-       */
-      weak_topics: (await this.evaluations.weakTopics(session.userId)).map((topic) => topic.name),
-    };
-    return sessionBundle(
-      {
-        id: session.id,
-        userId: session.userId,
-        mode: session.mode,
-        persona: session.persona,
-        isDiagnostic: session.isDiagnostic,
-        plannedMinutes: session.plannedMinutes,
-        endsAt: session.endsAt,
-        questionBudget: session.questionBudget,
-        maxFollowUps: session.maxFollowUps,
-        transcriptReviewGranted: await this.consents.hasGranted(
-          session.userId,
-          "transcript_review",
-        ),
-      },
-      session.questions.map((row) => SessionQuestionSnapshot.parse(row.snapshot)),
-      candidate,
-    );
   }
 
   private async recordCalls(session: SessionWithContent, calls: AiCallRecord[]): Promise<void> {

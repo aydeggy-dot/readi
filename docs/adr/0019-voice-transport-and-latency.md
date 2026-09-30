@@ -1,10 +1,11 @@
 # ADR-0019 — Voice transport: the agent drives the engine, turns are pushed, and the budget is what the stages allow
 
 - **Status:** accepted
-- **Date:** 2026-09-29, **amended 2026-09-30** (§2, §3, §5 and §8 below, marked *amended at phase
-  3*). Amending rather than superseding is allowed here and only here: this ADR has never left
-  `feat/m5-voice`, and the repo's prompt rule already says a version that has never left its own
-  branch may be revised within its own milestone. Once M5 merges, a change to it is a new ADR.
+- **Date:** 2026-09-29, **amended 2026-09-30** (§2, §3, §5 and §8, marked *amended at phase 3*; §3
+  again and a new §9, marked *at phase 4*). Amending rather than superseding is allowed here and only
+  here: this ADR has never left `feat/m5-voice`, and the repo's prompt rule already says a version
+  that has never left its own branch may be revised within its own milestone. Once M5 merges, a
+  change to it is a new ADR.
 - **Context:** M5 phase 0 (voice mode)
 - **Supersedes:** nothing. **Amends:** the latency target in spec §8 (below). **Relates to:**
   ADR-0004 (the worker has no database access), ADR-0007 (AI cost), ADR-0008 (Langfuse holds
@@ -83,6 +84,17 @@ idempotent by `(session_id, seq)`, with an `exchange_id` covering the rows that 
 model's answer and the first audio byte would be latency the candidate pays for nothing. A failed
 push is retried; a session whose pushes are all lost still ends up consistent, because the engine
 allocates the seqs and the API's snapshot is the authority (ADR-0016 §4).
+
+*Amended at phase 4 — what makes a push idempotent is a table, and it had to be.* The turns are
+idempotent by `(session_id, seq)` because the engine allocates the seqs, and that was taken to be
+enough. It is not: **`ai_call_log` has no natural key**, so a retried push bills the same model calls
+a second time and every cost figure downstream becomes a number taken on trust — which is the reason
+`cache_write_units` is a separate column in the first place. `voice_exchanges` is therefore an
+idempotency ledger and nothing else: the agent's `exchange_id` is its primary key, inserting the row
+is what **claims** the exchange, and a unique-constraint collision is the `duplicate: true` the agent
+already expects and carries on from. The claim happens inside the same transaction as the write, so
+two pushes racing under one id cannot both proceed. The latency samples have a natural key of their
+own (`(session_id, turn_seq)`) and keep it, so they are safe twice over.
 
 *Amended at phase 3: in practice the push waits for the turn's audio to **settle**.* The rule above
 is that nothing may sit between the model's answer and the first audio byte, and nothing does — by
@@ -233,11 +245,52 @@ Three boundaries on that, each deliberate:
   `return` before the hook runs), so the failure mode is a candidate answering and being unheard.
   That is a worse bug than the one being fixed, and a silent one.
 
+### 9. A voice minute is metered in **seconds**, and the allowance is read from the ledger
+
+*Added at phase 4.* Spec §10 described `UsageLedger` as `kind voice_minutes|avatar_minutes, quantity`,
+and metering in minutes is wrong here for one concrete reason: **a leg is not a session.** A candidate
+on a Nigerian mobile network reconnects, so one interview is several legs; three legs of forty seconds
+is two minutes of voice, and rounding each leg up to a minute would bill three — for reconnecting. So
+the ledger keeps seconds (`kind voice_seconds`), rounding happens once where a candidate is *shown*
+their allowance, and spec §10's row is amended in the same change.
+
+The allowance itself is **read from the ledger rather than kept as a counter**: `usage_ledger` is
+append-only, each row names the thing that produced it (`source_id`, a `voice_legs.id`, unique), and
+the total is a `SUM` — which is also what a billing question looks like when somebody asks it about
+one candidate in six months' time. A counter would have to be right on every path, including the ones
+that fail half way.
+
+`VoiceAllowanceService` is the seam M8's entitlements go through, and deliberately the whole seam.
+Today the allowance is one configured figure for everybody (`VOICE_ALLOWANCE_MINUTES`); in M8 it comes
+from the candidate's plan through the `entitlements` table, which is the only table allowed to decide
+what somebody may do. What must not change then is everything else: the ledger, the monthly window,
+the rounding, and the three callers — session creation, the join token, and the leg the agent closes
+before crossing the line.
+
+**And the refusal happens at session creation, not at the microphone.** A session pinned as `voice`
+that can never be joined has spent four questions of that candidate's bank on nothing, and those
+questions then count as seen for the next twenty sessions (`withHistory`). The join token asks the
+same question again, because an allowance can run out between the two.
+
+**A leg that spent no seconds writes no ledger row**, which is not the same as writing a zero: the
+ledger records what was used, and a room nobody joined used nothing. The leg row is still written,
+because a room nobody joined is a fact worth having.
+
 ## Consequences
 
 - **A second direction of authentication exists now.** The worker holds a token that lets it write
   turns for a session. It is the same shared `SERVICE_TOKEN` in the other direction, and the routes
-  it reaches are internal, not candidate-facing: `/api/internal/interviews/:id/{bundle,turns,voice-ended}`.
+  it reaches are internal, not candidate-facing:
+  `/api/internal/interviews/:id/{voice-session,turns,voice-ended}`.
+  *Phase 4:* it is a **second global guard beside `AuthGuard`**, not a `@Public()` route with a check
+  inside it. `@Public()` would say in the metadata that an internal route is public, which is the
+  opposite of true, and default-deny would then rest on a decorator somebody could forget. The two
+  guards partition every route: `AuthGuard` needs a session unless the route is `@Public()` or
+  `@ServiceOnly()`, and `ServiceTokenGuard` needs the token **only** on `@ServiceOnly()` — so a route
+  with no decorator at all is still refused, by the other guard, exactly as before. The comparison is
+  constant-time and length-safe, and the `Bearer` scheme is **required** rather than stripped if
+  present: the first version accepted a bare token, which is harmless on its own and is exactly the
+  leniency that ends up being how a token arrives somewhere it should not.
 - **Two writers of one session must not overlap.** A voice session's browser cannot also `POST
   /advance`: the agent holds the session for the length of its leg, and the existing Redis lock is
   what refuses the second writer (`interview_busy`). A fallback releases it.

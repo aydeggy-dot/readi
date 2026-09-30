@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <nav aria-label={t("nav.main")} className="flex items-center gap-1 sm:gap-3">
             {editor && <NavLink href="/admin/content">{t("nav.content")}</NavLink>}
             {editor && <NavLink href="/admin/calibration">{t("nav.calibration")}</NavLink>}
+            {me.role === "admin" && <NavLink href="/admin/voice">{t("nav.voice")}</NavLink>}
             {me.role === "admin" && (
               <NavLink href="/admin" exact>
                 {t("nav.admin")}

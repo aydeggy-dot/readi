@@ -111,6 +111,7 @@
         "TTS_TIMEOUT_S",
         "TTS_VOICE",
         "VOICE_AGENT_NAME",
+        "VOICE_ALLOWANCE_MINUTES",
         "VOICE_ENABLED",
         "VOICE_LLM_TIMEOUT_S",
         "VOYAGE_API_KEY",

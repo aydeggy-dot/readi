@@ -31,7 +31,8 @@ export function StartDiagnosticButton() {
     setFailure(undefined);
     try {
       const { data, error, response } = await browserApi.POST("/api/interviews", {
-        body: { minutes: 15, is_diagnostic: true },
+        // The diagnostic is typed, and says so: M5 phase 5 is where a candidate chooses voice.
+        body: { minutes: 15, is_diagnostic: true, mode: "text" },
       });
       if (!data) {
         const message = interviewErrorMessage(error);

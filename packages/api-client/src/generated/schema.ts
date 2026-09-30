@@ -756,6 +756,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/interviews/{id}/voice-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoiceController_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/voice/latency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoiceAdminController_latency"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/voice/latency/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoiceAdminController_session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/export": {
         parameters: {
             query?: never;
@@ -1772,6 +1820,8 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        /** @enum {string} */
+        InterviewMode: "text" | "voice";
         CreateInterviewRequestDto: {
             role?: string;
             level?: string;
@@ -1781,6 +1831,8 @@ export interface components {
             minutes: 15 | 30;
             /** @default false */
             is_diagnostic: boolean;
+            /** @default text */
+            mode: components["schemas"]["InterviewMode"];
         };
         /** @enum {string} */
         InterviewState_Output: "intro" | "question" | "follow_up" | "candidate_questions" | "wrap_up" | "ended";
@@ -1973,6 +2025,95 @@ export interface components {
             ended_at: string | null;
             /** Format: date-time */
             generated_at: string;
+        };
+        VoiceTokenResponseDto_Output: {
+            /** Format: uri */
+            url: string;
+            token: string;
+            room: string;
+            identity: string;
+            /** Format: date-time */
+            expires_at: string;
+            fallback_after_poor_ms: number;
+        };
+        VoiceLatencySummary_Output: {
+            turns: number;
+            first_audio: components["schemas"]["VoiceLatencySpread_Output"];
+            response: components["schemas"]["VoiceLatencySpread_Output"];
+            endpoint: components["schemas"]["VoiceLatencySpread_Output"];
+            stt_final: components["schemas"]["VoiceLatencySpread_Output"];
+            coverage: components["schemas"]["VoiceLatencySpread_Output"];
+            phrasing: components["schemas"]["VoiceLatencySpread_Output"];
+            tts_first_byte: components["schemas"]["VoiceLatencySpread_Output"];
+            prefetched: number;
+            interrupted: number;
+        };
+        VoiceLatencySpread_Output: {
+            n: number;
+            p50_ms: number | null;
+            p95_ms: number | null;
+        };
+        VoiceLatencyTargets_Output: {
+            first_audio_ms: number;
+            response_ms: number;
+        };
+        VoiceLatencySession_Output: {
+            /** Format: uuid */
+            session_id: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            ended_at: string | null;
+            status: components["schemas"]["InterviewStatus_Output"];
+            state: components["schemas"]["InterviewState_Output"];
+            voice_seconds: number;
+            fell_back_to_text: boolean;
+            legs: components["schemas"]["VoiceLegRecord_Output"][];
+            latency: components["schemas"]["VoiceLatencySummary_Output"];
+        };
+        VoiceLegRecord_Output: {
+            /** Format: uuid */
+            leg_id: string;
+            reason: components["schemas"]["VoiceLegEndReason_Output"];
+            voice_seconds: number;
+            turns_spoken: number;
+            quality: components["schemas"]["VoiceQuality_Output"];
+            /** Format: date-time */
+            ended_at: string;
+        };
+        /** @enum {string} */
+        VoiceLegEndReason_Output: "completed" | "fallback_poor_connection" | "candidate_left" | "agent_error" | "session_expired" | "allowance_exhausted";
+        VoiceQuality_Output: {
+            rtt_ms_p50: number | null;
+            rtt_ms_p95: number | null;
+            packet_loss_percent: number | null;
+            reconnects: number;
+        };
+        VoiceLatencyResponseDto_Output: {
+            overall: components["schemas"]["VoiceLatencySummary_Output"];
+            targets: components["schemas"]["VoiceLatencyTargets_Output"];
+            sessions: components["schemas"]["VoiceLatencySession_Output"][];
+            next_cursor: string | null;
+        };
+        VoiceTurnLatency_Output: {
+            turn_seq: number;
+            /** Format: date-time */
+            speech_ended_at: string;
+            endpoint_ms: number;
+            stt_final_ms: number;
+            acknowledged_ms: number | null;
+            coverage_ms: number | null;
+            phrasing_ms: number | null;
+            tts_first_byte_ms: number | null;
+            response_ms: number;
+            prefetched: boolean;
+            interim_coverage: boolean;
+            interrupted: boolean;
+        };
+        VoiceSessionLatencyResponseDto_Output: {
+            session: components["schemas"]["VoiceLatencySession_Output"];
+            targets: components["schemas"]["VoiceLatencyTargets_Output"];
+            turns: components["schemas"]["VoiceTurnLatency_Output"][];
         };
         DataExportDto_Output: {
             /** @enum {number} */
@@ -3992,6 +4133,119 @@ export interface operations {
                 };
             };
             /** @description Not this candidate's (code `interview_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VoiceController_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceTokenResponseDto_Output"];
+                };
+            };
+            /** @description `audio_processing` has not been granted at its current version (code `voice_consent_required`) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not this candidate's (code `interview_not_found`) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already finished (`interview_ended`), too old to resume (`interview_expired`), started in text mode (`voice_not_enabled`), or no voice minutes left (`voice_allowance_exhausted`) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No LiveKit here, or the interviewer could not be dispatched (`voice_unavailable`) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VoiceAdminController_latency: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceLatencyResponseDto_Output"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VoiceAdminController_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceSessionLatencyResponseDto_Output"];
+                };
+            };
+            /** @description Not an admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such interview (code `interview_not_found`) */
             404: {
                 headers: {
                     [name: string]: unknown;

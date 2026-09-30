@@ -3,6 +3,8 @@ import {
   type AiCallRecord,
   INTERVIEW_LIMITS,
   type InterviewAdvanceResponse,
+  type InterviewMode,
+  type InterviewTurn,
   type QuestionType,
 } from "@readi/shared-types";
 import { Prisma } from "../generated/prisma/client";
@@ -58,6 +60,8 @@ export interface NewSession {
   types: QuestionType[];
   catalogue: Prisma.InputJsonValue;
   isDiagnostic: boolean;
+  /** How the session started (M5). The column defaults to `text`; this makes it explicit. */
+  mode: InterviewMode;
   plannedMinutes: number;
   questionBudget: number;
   maxFollowUps: number;
@@ -247,8 +251,8 @@ export class InterviewSessionsRepository {
    */
   async applyExchange(
     session: SessionWithContent,
-    response: InterviewAdvanceResponse,
-    at: { requestedAt: Date; respondedAt: Date },
+    response: ExchangeOutcome,
+    at: ExchangeTiming,
   ): Promise<AppliedExchange> {
     const questionIdAt = new Map(session.questions.map((row) => [row.position, row.id]));
     const askedAlready = new Set(
@@ -285,8 +289,9 @@ export class InterviewSessionsRepository {
             sessionQuestionId,
             followUpIndex: turn.follow_up_index,
             text: turn.text,
-            ...timingFor(turn.speaker, since),
+            ...(at.timings?.get(turn.seq) ?? timingFor(turn.speaker, since)),
             criteriaCovered: turn.criteria_covered ?? Prisma.DbNull,
+            ...voiceFor(turn),
           },
           // A replay changes nothing: what was said was said, and its timing belongs to the
           // exchange that really produced it.
@@ -341,6 +346,38 @@ export class InterviewSessionsRepository {
 }
 
 /**
+ * What one exchange produced, from either door: `InterviewAdvanceResponse` in text mode and
+ * `InterviewTurnPush` in voice. The two shapes differ in exactly the fields this does not read — a
+ * push has no `error` and its snapshot is not nullable, because a push means the exchange completed
+ * (`voice.ts`) — so one write path serves both and there is no second `applyExchange`.
+ */
+export type ExchangeOutcome = Pick<
+  InterviewAdvanceResponse,
+  "state" | "ended" | "turns" | "engine_snapshot" | "prompt_versions" | "ai_calls"
+>;
+
+/**
+ * When the exchange happened, and — for voice — what each turn's own clock said.
+ *
+ * Text mode has one round trip and derives every turn's timing from it (`timingFor`). Voice knows
+ * better: the candidate stopped speaking at a moment the agent recorded, the reply's first audio was
+ * a measured number of milliseconds later, and the turn lasted as long as it was spoken for. So a
+ * voice push supplies `timings` per seq and `requestedAt`/`respondedAt` are only the fallback for a
+ * turn that has no sample — which is every turn of an exchange that only listened.
+ */
+export interface ExchangeTiming {
+  requestedAt: Date;
+  respondedAt: Date;
+  timings?: ReadonlyMap<number, TurnTiming>;
+}
+
+/** Milliseconds from `interview_sessions.started_at`. */
+export interface TurnTiming {
+  startedMs: number;
+  endedMs: number;
+}
+
+/**
  * A new session, and the sessions starting it ended. One live interview per candidate is the rule
  * (see `create`), and what it abandons is scored like anything else that ends.
  */
@@ -377,6 +414,35 @@ function timingFor(
   return speaker === "candidate"
     ? { startedMs: since.lastEndedMs, endedMs: since.requestMs }
     : { startedMs: since.requestMs, endedMs: since.respondedMs };
+}
+
+/**
+ * What voice mode knows about a turn and text mode does not (ADR-0019 §8).
+ *
+ * Word timings are written **at the moment they exist**, because they cannot be recovered from the
+ * text afterwards: M6's pace, filler rate and long pauses are functions of these offsets. `spoken_ms`
+ * and `interrupted` are the barge-in record — the evaluator later reads "the question that was asked"
+ * and the report shows it to the candidate, so a question cut off half way and answered anyway is
+ * only fair to score if the row says so.
+ *
+ * Absent on every text-mode turn, which is why each column is nullable rather than defaulted: a null
+ * `interrupted` means "we do not know, because nobody was speaking", and false would be a claim.
+ */
+function voiceFor(turn: InterviewTurn): {
+  sttConfidence?: number | null;
+  voiceWords?: Prisma.InputJsonValue;
+  spokenMs?: number | null;
+  interrupted?: boolean;
+} {
+  const voice = turn.voice;
+  if (!voice) return {};
+  return {
+    sttConfidence: voice.stt_confidence,
+    // An empty list is not "no timings": it is an interviewer turn, which has none by definition.
+    ...(voice.words.length > 0 ? { voiceWords: voice.words } : {}),
+    spokenMs: voice.spoken_ms,
+    interrupted: voice.interrupted,
+  };
 }
 
 /** A stored Json object as something mergeable. Anything else — a null, an array — reads as empty. */

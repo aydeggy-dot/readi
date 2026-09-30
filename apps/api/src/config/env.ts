@@ -119,6 +119,36 @@ export const EnvSchema = z
       .max(1)
       .default(CONTENT_DUPLICATE_THRESHOLD),
 
+    /*
+     * Voice mode (M5, ADR-0019). Off by default, and off is not a degraded state: every deployment
+     * before this milestone is text-only, and a candidate never sees a voice control they cannot use
+     * (`voice_not_enabled` is refused at session creation, not at the microphone).
+     */
+    VOICE_ENABLED: optInFlag,
+    /**
+     * The LiveKit server, as **the browser** reaches it: this exact string is handed to the client in
+     * `VoiceTokenResponse.url`, and the server SDK derives its own https base from it. `ws://` is the
+     * local dev server in docker compose; production is LiveKit Cloud over `wss://`.
+     */
+    LIVEKIT_URL: optional(z.url({ protocol: /^wss?$/ })),
+    LIVEKIT_API_KEY: optional(z.string().min(1)),
+    LIVEKIT_API_SECRET: optional(z.string().min(1)),
+    /**
+     * The agent to dispatch into a candidate's room. It must match the worker's `VOICE_AGENT_NAME`,
+     * because naming an agent is what makes its dispatch **explicit**: an agent with a name joins no
+     * room it was not sent to, which is the property ADR-0019 §4 relies on.
+     */
+    VOICE_AGENT_NAME: z.string().min(1).max(64).default("readi-interviewer"),
+    /*
+     * How many voice minutes a candidate may use in a calendar month.
+     *
+     * **A stand-in for M8's per-plan entitlement, and deliberately one number.** Allowances are a
+     * pricing decision (spec §4.10: `standard` has an allowance, `premium` a higher one) and that
+     * decision needs the `entitlements` table, which does not exist yet. `VoiceAllowanceService` is
+     * the seam: M8 replaces where the figure comes from and nothing else moves.
+     */
+    VOICE_ALLOWANCE_MINUTES: z.coerce.number().int().min(0).max(100_000).default(120),
+
     // Background jobs (BullMQ on REDIS_URL). QUEUE_PREFIX namespaces the Redis keys.
     JOBS_ENABLED: booleanFlag,
     QUEUE_PREFIX: z
@@ -144,6 +174,17 @@ export const EnvSchema = z
       if (!env.TERMII_SENDER_ID) issue("TERMII_SENDER_ID", "required when SMS_PROVIDER=termii");
       if (!env.TERMII_BASE_URL) issue("TERMII_BASE_URL", "required when SMS_PROVIDER=termii");
     }
+    /*
+     * With voice on, all three LiveKit variables are required — the same rule the worker applies to
+     * its own copy (`Settings`). Half-configured voice is a typo, not a configuration: a candidate
+     * who has already spent four questions' worth of pinned content pressing "start" and getting
+     * `voice_unavailable` is a worse failure than refusing to boot.
+     */
+    if (env.VOICE_ENABLED) {
+      if (!env.LIVEKIT_URL) issue("LIVEKIT_URL", "required when VOICE_ENABLED=true");
+      if (!env.LIVEKIT_API_KEY) issue("LIVEKIT_API_KEY", "required when VOICE_ENABLED=true");
+      if (!env.LIVEKIT_API_SECRET) issue("LIVEKIT_API_SECRET", "required when VOICE_ENABLED=true");
+    }
     if (env.NODE_ENV === "production") {
       // Console providers (and the dev mailbox they feed) never run in production.
       if (env.EMAIL_PROVIDER !== "resend") issue("EMAIL_PROVIDER", "must be resend in production");
@@ -157,6 +198,11 @@ export const EnvSchema = z
       }
       if (!env.S3_ENDPOINT.startsWith("https://"))
         issue("S3_ENDPOINT", "must use https in production");
+      // A microphone needs a secure context, so an insecure LiveKit URL in production is a voice
+      // interview that cannot start in any browser — and the candidate's audio in clear text.
+      if (env.VOICE_ENABLED && !env.LIVEKIT_URL?.startsWith("wss://")) {
+        issue("LIVEKIT_URL", "must use wss in production");
+      }
       if (
         env.S3_ACCESS_KEY_ID === DEV_S3_ACCESS_KEY ||
         env.S3_SECRET_ACCESS_KEY === DEV_S3_SECRET_KEY

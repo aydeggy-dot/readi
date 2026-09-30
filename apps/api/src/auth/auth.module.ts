@@ -14,6 +14,7 @@ import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { BETTER_AUTH, createBetterAuth } from "./better-auth.factory";
 import { BetterAuthService } from "./better-auth.service";
+import { ServiceTokenGuard } from "./service-token.guard";
 
 @Module({
   controllers: [AuthMethodsController],
@@ -31,6 +32,8 @@ import { BetterAuthService } from "./better-auth.service";
     },
     { provide: AuthService, useClass: BetterAuthService },
     { provide: APP_GUARD, useClass: AuthGuard },
+    // Beside `AuthGuard`, not inside it: it acts only on `@ServiceOnly()` routes (ADR-0019).
+    { provide: APP_GUARD, useClass: ServiceTokenGuard },
   ],
   exports: [AuthService, BETTER_AUTH],
 })

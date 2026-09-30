@@ -145,7 +145,7 @@ it cannot rot, `--dry-run` that prices before spending, `--max-cost`. Then gener
 from two TTS vendors and run the pre-screen (paid, priced, approved, capped). Also: the recording kit
 for phase 6 — script, consent form, phone instructions — for the owner to review.
 
-### Phase 3 — the voice agent
+### Phase 3 — the voice agent · **done 2026-09-30**
 
 `readi_worker/voice/`: a LiveKit agent driving `InterviewService.advance()` in-process; the pinned
 acknowledgement set with its no-praise test; pre-rendered engine audio; the next opening prefetched;
@@ -153,12 +153,23 @@ turn detection, barge-in, the silence prompt, reconnection; per-turn latency sam
 API. Unit-tested through a transport-agnostic session driver, so the engine and the timing logic need
 no LiveKit to test.
 
-### Phase 4 — the API's half
+### Phase 4 — the API's half · **done 2026-09-30**
 
 The voice token route (ownership, `audio_processing` consent, voice-minute allowance, short-lived),
 the three internal routes, the `usage_ledger` table and a `VoiceAllowance` service with one seam for
 M8's entitlements, the migration for word timings and latency samples, the fallback bookkeeping and
 its analytics event, and p50/p95 per session in the admin view.
+
+Handover: `docs/progress/2026-09-30-m5-phase-4.md`. Three things came out differently from the line
+above and each is recorded in ADR-0019:
+
+- **`usage_ledger` meters seconds, not minutes** (§9, and spec §10 amended). A leg is not a session,
+  and rounding each leg up would charge a candidate for reconnecting.
+- **A push needs an idempotency table**, because `ai_call_log` has no natural key (§3). The turns were
+  already safe; the bill was not.
+- **The "analytics event" is a durable row and a log line**, because there is no emit path in this
+  codebase at all — PostHog captures nothing and M9 owns the typed helper. The fallback is a
+  `voice_legs` row with a reason, counted on the admin view, and M9's event is derived from it.
 
 ### Phase 5 — the web voice UI
 

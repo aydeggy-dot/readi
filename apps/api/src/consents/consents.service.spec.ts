@@ -9,20 +9,27 @@ vi.mock("@readi/shared-types", async (importOriginal) => {
 
 // Static imports are fine: vitest hoists vi.mock above them (and apps/api type-checks tests as
 // CommonJS, where a top-level await does not compile — tasks/lessons.md).
-import { CONSENT_TYPES } from "@readi/shared-types";
+import { CONSENT_TYPES, CONSENT_VERSIONS } from "@readi/shared-types";
 import type { ConsentRecord } from "../generated/prisma/client";
 import type { PrismaService } from "../prisma/prisma.service";
 import { ConsentsService } from "./consents.service";
 
 const USER = "0b0d0b0d-0b0d-4b0d-8b0d-0b0d0b0d0b0d";
 
-/** One stored decision per type, all granted; `marketing` was decided against the old wording. */
+/**
+ * One stored decision per type, all granted; `marketing` was decided against the old wording.
+ *
+ * Each row carries **the current version of its own type**, read from the constant rather than
+ * written as 1. It used to be a literal 1, and bumping `audio_processing` to v2 in M5 then made three
+ * of these tests fail for a reason that had nothing to do with what they assert: a fixture that
+ * hardcodes "current" stops being a fixture the first time current moves.
+ */
 const records: ConsentRecord[] = CONSENT_TYPES.map((type) => ({
   id: type,
   userId: USER,
   type,
   granted: true,
-  version: 1,
+  version: type === "marketing" ? 1 : CONSENT_VERSIONS[type],
   createdAt: new Date("2026-09-01T00:00:00.000Z"),
 }));
 
@@ -48,7 +55,9 @@ describe("ConsentsService with a bumped consent version", () => {
 
   it("is decided again once the user answers the current text", async () => {
     findMany.mockResolvedValue(
-      records.map((record) => (record.type === "marketing" ? { ...record, version: 2 } : record)),
+      records.map((record) =>
+        record.type === "marketing" ? { ...record, version: CONSENT_VERSIONS.marketing } : record,
+      ),
     );
     expect(await new ConsentsService(prisma).allDecided(USER)).toBe(true);
   });
@@ -72,7 +81,7 @@ describe("who may be sampled", () => {
       userId,
       type: "transcript_review",
       granted,
-      version: 1,
+      version: CONSENT_VERSIONS.transcript_review,
       createdAt: new Date("2026-09-26T00:00:00.000Z"),
     });
     findMany.mockResolvedValue([latest("a", USER, true), latest("b", OTHER, false)]);

@@ -65,6 +65,7 @@ model User {
   consents     ConsentRecord[]
   contentFlags ContentFlag[]
   interviews   InterviewSession[]
+  usage        UsageLedger[]
 
   @@map("users")
 }
@@ -965,9 +966,13 @@ model InterviewSession {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  questions InterviewSessionQuestion[]
-  turns     SessionTurn[]
-  report    SessionReport?
+  questions      InterviewSessionQuestion[]
+  turns          SessionTurn[]
+  report         SessionReport?
+  voiceLegs      VoiceLeg[]
+  voiceExchanges VoiceExchange[]
+  voiceLatency   VoiceTurnLatency[]
+  usage          UsageLedger[]
 
   /// The Practice list: one candidate's sessions, keyset-paged by `(updated_at, id)`.
   @@index([userId, updatedAt, id])
@@ -1043,6 +1048,18 @@ model SessionTurn {
   endedMs       Int    @map("ended_ms")
   /// Voice mode only (M5).
   sttConfidence Float? @map("stt_confidence")
+
+  /// `TranscriptWord[]` as the recogniser timed them, offsets from this turn's own `started_ms`
+  /// (voice mode only, M5). **Stored at the moment they exist because they cannot be recovered
+  /// afterwards**: M6's pace, filler rate and long pauses are functions of these offsets and no
+  /// function of the text. Null on every text-mode turn and on every interviewer turn.
+  voiceWords  Json?    @map("voice_words")
+  /// How much of an interviewer turn was actually spoken before it stopped, and whether the
+  /// candidate cut it off (ADR-0019 §8). The evaluator later reads "the question that was asked"
+  /// and the report shows it to the candidate, so a question cut off half way and answered anyway
+  /// is only fair to score if the record says that is what happened. Null on candidate turns.
+  spokenMs    Int?     @map("spoken_ms")
+  interrupted Boolean?
 
   /// The per-criterion coverage log, on candidate turns only: one entry per rubric criterion,
   /// whether this answer touched it, and which follow-up the engine then chose
@@ -1122,13 +1139,13 @@ model AnswerEvaluation {
   /// Lowered in code when a quote could not be verified against the transcript.
   confidence     EvaluationConfidence?
 
-  overall          Int? // 0-100, after the prompting adjustment. What the candidate is shown.
-  overallRaw       Int?  @map("overall_raw") // 0-100, straight from the criteria. What the harness compares.
+  overall             Int? // 0-100, after the prompting adjustment. What the candidate is shown.
+  overallRaw          Int?  @map("overall_raw") // 0-100, straight from the criteria. What the harness compares.
   /// Positions of the criteria this answer reached only after the engine asked a probe for them.
   /// An engine fact, read from `session_turns.follow_up_index` and the pinned probes — never from
   /// the coverage model's verdict, which M3 recorded may reach the evaluator "as a prior and never
   /// as a score". Stored so the report can say it in words and a re-score can be checked.
-  promptedCriteria Int[] @map("prompted_criteria")
+  promptedCriteria    Int[] @map("prompted_criteria")
   /// Positions of the criteria this answer was **not scored on**: the interview never asked about
   /// them (they carry a probe and none of it was asked — the clock, an early end, or the follow-up
   /// cap spent elsewhere) and the evaluator found nothing in the answer either, which is a 0 with no
@@ -1137,7 +1154,7 @@ model AnswerEvaluation {
   /// was worked out against *this* list, under the `scoringVersion` beside it, and a report naming a
   /// set the number did not come from could not be checked against the transcript.
   notAssessedCriteria Int[] @map("not_assessed_criteria")
-  scoringVersion   Int   @map("scoring_version")
+  scoringVersion      Int   @map("scoring_version")
 
   evaluatorProvider String  @map("evaluator_provider")
   evaluatorModel    String  @map("evaluator_model")
@@ -1220,4 +1237,167 @@ model CalibrationScore {
   @@unique([answerEvaluationId, expertUserId])
   @@index([expertUserId])
   @@map("calibration_scores")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Voice mode (spec §4.3, §8; M5, ADR-0019). Four tables, and each of them exists for one reason.
+//
+// The agent drives the engine in the worker and **pushes** what happened here, because in voice
+// there is no API request to answer: the candidate stops speaking and the interviewer has to reply
+// (ADR-0016 left that direction open; ADR-0019 §3 takes it). Everything below is what that push
+// needs in order to be safe to send twice.
+
+/// One exchange the agent has pushed. This table is nothing but an idempotency ledger.
+///
+/// The turns are already idempotent by `(session_id, seq)` — the engine allocates the seqs — but
+/// `ai_call_log` and `voice_turn_latency` have **no natural key**, so a retried push would bill the
+/// same model calls a second time and file the same timings twice. `exchange_id` is the agent's own
+/// key, stable across retries of one push, and inserting this row is what claims it: a conflict here
+/// is the `duplicate: true` the agent expects and carries on from.
+model VoiceExchange {
+  /// The agent's `exchange_id`. Its own primary key, so the claim is the insert.
+  id        String           @id @db.Uuid
+  sessionId String           @map("session_id") @db.Uuid
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@index([sessionId])
+  @@map("voice_exchanges")
+}
+
+/// Why one voice leg ended, which is **not** why the interview ended.
+///
+/// A session that falls back to text carries on at the same turn; a candidate who closes the tab has
+/// abandoned a session the stale sweep will find. Only `completed` means the engine reached `ended`
+/// while the agent was still in the room.
+enum VoiceLegEndReason {
+  completed
+  fallback_poor_connection
+  candidate_left
+  agent_error
+  session_expired
+  allowance_exhausted
+
+  @@map("voice_leg_end_reason")
+}
+
+/// One voice leg: a candidate joining a room, and what became of it.
+///
+/// A session has one of these if nothing went wrong and several if the candidate reconnected or came
+/// back after a fallback. **It is the fallback bookkeeping** (ADR-0019 §7): falling back to text is
+/// an event with a reason, not a rewrite of history, so `interview_sessions.mode` keeps meaning how
+/// the session *started* and this row is what says what happened to it afterwards.
+model VoiceLeg {
+  /// The agent's `leg_id`, so metering the same leg twice is impossible.
+  id        String           @id @db.Uuid
+  sessionId String           @map("session_id") @db.Uuid
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  reason       VoiceLegEndReason
+  /// Rounded up, and sent whether the leg ended well or badly: minutes spent on a call that then
+  /// fell over are still minutes. This is what `usage_ledger` meters.
+  voiceSeconds Int               @map("voice_seconds")
+  turnsSpoken  Int               @map("turns_spoken")
+
+  /// The connection as the agent saw it, kept as a summary rather than a series: it exists to
+  /// explain a fallback and to tell one carrier from another in phase 8, not to draw a graph. Null
+  /// throughout because a leg that failed in its first second has no p95, and because round-trip
+  /// time and packet loss are not read until phase 8 (`QualityMonitor.note` already takes them).
+  rttMsP50          Int?   @map("rtt_ms_p50")
+  rttMsP95          Int?   @map("rtt_ms_p95")
+  packetLossPercent Float? @map("packet_loss_percent")
+  reconnects        Int
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([sessionId])
+  @@map("voice_legs")
+}
+
+/// Where one voice turn's time went (ADR-0019 §5). Milliseconds, all from the moment the candidate
+/// stopped speaking, so the stages add up against one reference rather than against each other.
+///
+/// The two figures spec §8's amended target is about are `acknowledged_ms` — the pre-rendered
+/// acknowledgement, the first audio the candidate hears — and `response_ms`, the question or probe
+/// that answers them. **Several stages are legitimately null, and which ones tells you what the
+/// engine did**: no `coverage_ms` means there was no probe left worth judging, no `phrasing_ms`
+/// means the opening was prefetched during the previous answer or the pinned wording was used, no
+/// `tts_first_byte_ms` means the audio was already rendered. A zero would read as "instant".
+model VoiceTurnLatency {
+  id        String           @id @default(uuid()) @db.Uuid
+  sessionId String           @map("session_id") @db.Uuid
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// The interviewer turn this reply became, so a sample joins its own line of the transcript.
+  /// With the session it is a natural key, which is what makes a replayed push write nothing twice
+  /// even if it somehow arrived under a fresh `exchange_id`.
+  turnSeq   Int              @map("turn_seq")
+
+  speechEndedAt  DateTime @map("speech_ended_at") @db.Timestamptz(6)
+  /// Voice activity ending → the turn detector committing. The largest fixed cost in the budget,
+  /// and a product trade-off rather than an engineering one: shorter interrupts a candidate who is
+  /// still thinking.
+  endpointMs     Int      @map("endpoint_ms")
+  sttFinalMs     Int      @map("stt_final_ms")
+  acknowledgedMs Int?     @map("acknowledged_ms")
+  coverageMs     Int?     @map("coverage_ms")
+  phrasingMs     Int?     @map("phrasing_ms")
+  ttsFirstByteMs Int?     @map("tts_first_byte_ms")
+  responseMs     Int      @map("response_ms")
+
+  /// The opening was phrased and synthesized during the previous answer (latency lever 2).
+  prefetched      Boolean
+  /// The coverage call was fired on an interim transcript (lever 3; off unless phase 8 asks).
+  interimCoverage Boolean @map("interim_coverage")
+  interrupted     Boolean
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([sessionId, turnSeq])
+  @@map("voice_turn_latency")
+}
+
+/// What is metered against a customer's allowance (spec §4.10). **Allowance only, never cost.**
+///
+/// Cost lives in `ai_call_log` in micro-USD (ADR-0007) and answers "what did we spend?". This
+/// answers "what has this candidate used of what they are entitled to?", and the two must not be
+/// read off one column: a voice minute costs different amounts depending on the vendor and counts
+/// the same against an allowance either way.
+enum UsageKind {
+  voice_seconds
+  avatar_seconds
+
+  @@map("usage_kind")
+}
+
+/// One metered quantity, at the moment it was used.
+///
+/// **Seconds, not minutes** (M5 phase 4; spec §10's row amended in the same change). A leg is not a
+/// session: a candidate who reconnects three times spends three legs of forty seconds, and rounding
+/// each of them up to a minute would bill two minutes of allowance they never used. Rounding happens
+/// once, where a candidate is *shown* their allowance, and the ledger keeps what was really spent.
+///
+/// `source_id` is what produced the row — a `voice_legs.id` today — and it is unique, so the same
+/// leg cannot be metered twice however many times its report is retried.
+model UsageLedger {
+  id        String            @id @default(uuid()) @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Nullable because not everything metered belongs to an interview; everything does today.
+  sessionId String?           @map("session_id") @db.Uuid
+  session   InterviewSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  kind     UsageKind
+  quantity Int
+  /// The thing that was used, so a retry meters nothing twice.
+  sourceId String    @unique @map("source_id") @db.Uuid
+
+  /// When it was used, which is not when the row was written: a leg is reported after it ends.
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  /// The allowance query: everything one candidate has used since the start of a period.
+  @@index([userId, kind, occurredAt])
+  @@index([sessionId])
+  @@map("usage_ledger")
 }

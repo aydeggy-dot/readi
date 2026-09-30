@@ -140,6 +140,9 @@ export function SetupForm({
       // Omitted is the preset mixed session, which is what "all of them" means (the primer §6.2).
       types: types.length === supported.length ? undefined : types,
       is_diagnostic: false,
+      // Text, explicitly. Voice mode's API half exists (M5 phase 4) and its screen does not: phase 5
+      // adds the choice here, with a microphone check behind it.
+      mode: "text",
     };
 
     /*

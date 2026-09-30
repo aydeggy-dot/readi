@@ -3749,3 +3749,122 @@ API work. ADR-0019 §8's amendment carries the decision and the rejected alterna
 - [ ] **Past the cap, an unheard question is still scored.** Two barge-ins over the same question and
       the second answer is taken as given. It is the best remaining option and it is not free; the
       pilot can say how often two happen
+
+### Phase 4 — the API's half · **done 2026-09-30**
+
+Handover: `docs/progress/2026-09-30-m5-phase-4.md`. ADR-0019 amended a third time (§3 again, and a new
+§9); spec §4.3, §4.4, §9 and §10 amended in the same change.
+
+- [x] **`POST /api/interviews/:id/voice-token`** — the candidate's one door. Ownership first (another
+      candidate's session is a 404, not a 403), then the session's own facts (`interview_ended`,
+      `interview_expired`, `voice_not_enabled` for a text session), then `audio_processing` at its
+      **current** version, then the allowance. The token authorises **joining** for
+      `VOICE_LIMITS.tokenTtlSeconds`; `ends_at` is what ends the interview
+- [x] **Voice is refused at session creation, not at the microphone.** A session pinned as `voice` that
+      can never be joined has spent four questions of that candidate's bank on nothing, and those
+      questions then count as seen for the next twenty sessions (`withHistory`). The token route asks
+      again, because an allowance can run out between the two. `CreateInterviewRequest.mode` is the new
+      field and `interview_sessions.mode` is written from it once, for good
+- [x] **The three internal routes**, behind `@ServiceOnly()` — and that marker is a **second global
+      guard**, not `@Public()` with a check inside it. `@Public()` would have said in the metadata that
+      an internal route is public, which is the opposite of true, and default-deny would then have
+      rested on a decorator somebody could forget. The two guards partition every route, so one with no
+      marker at all is still refused by `AuthGuard`
+- [x] **The guard accepted a bare token, and now does not.** `header.replace(/^Bearer /i, "")` treats a
+      raw token as a well-formed header; harmless on its own — you still need the token — and exactly
+      the leniency that ends up being how a token arrives somewhere it should not. The scheme is
+      required, the comparison is constant-time, and a wrong **length** is a 401 rather than the crash
+      `timingSafeEqual` would have thrown (which would have leaked the length through the status)
+- [x] **A push is made idempotent by a table, because two of its three payloads have no natural key.**
+      The turns were already safe (`(session_id, seq)`, engine-allocated) and so are the latency samples
+      (`(session_id, turn_seq)`) — but **`ai_call_log` has none**, so a retry billed the same model
+      calls twice and every cost figure after it would have been a number taken on trust. That is the
+      whole of `voice_exchanges`: the agent's `exchange_id` is its primary key, the insert is the claim,
+      and a collision is the `duplicate: true` the agent already expects
+- [x] **One write path.** The push goes through the **same** `applyExchange` text mode uses — one
+      definition of what a turn is, and no second place where `follow_ups_asked` is recounted. What
+      voice adds is per-turn timings taken from its own samples: an interviewer turn began at its first
+      audio byte (`speech_ended_at + response_ms`) and lasted as long as it was **spoken** for, which is
+      what the candidate experienced, including a turn they cut off half way. A candidate turn keeps the
+      text-mode derivation, which spans the time they were really talking — what M6 reads
+- [x] **Word timings, `spoken_ms` and `interrupted` are columns on `session_turns`** (`voice_words`
+      JSON, nullable throughout). Nullable rather than defaulted, because a null `interrupted` means "we
+      do not know, nobody was speaking" and `false` would be a claim
+- [x] **`usage_ledger` meters SECONDS, not minutes** (ADR-0019 §9; spec §10 amended). A leg is not a
+      session: a candidate who reconnects three times spends three legs of forty seconds, and rounding
+      each leg up to a minute would meter three minutes they never used — for reconnecting, which is
+      what a Nigerian mobile connection does. Rounding happens once, where a candidate is _shown_ their
+      allowance. `source_id` is the `voice_legs.id`, unique, so a retried report meters nothing twice
+- [x] **A leg that spent no seconds writes no ledger row**, which is not the same as a zero row: the
+      ledger records what was used, and a room nobody joined used nothing. The **leg** row is still
+      written, because a room nobody joined is a fact worth having
+- [x] **The allowance is a `SUM` over the ledger, never a counter.** A counter has to be right on every
+      path, including the ones that fail half way; the ledger is append-only and each row names what
+      produced it. `VoiceAllowanceService` is M8's seam and the whole of it — M8 changes where the
+      figure comes from (`entitlements`) and nothing else moves
+- [x] **The fallback is a `voice_legs` row with a reason**, not a change of `mode` (ADR-0019 §7). The
+      int test asserts both halves: the session still says `voice`, and the interview really does carry
+      on at the same turn over SSE
+- [x] **`GET /api/admin/voice/latency` (+ `/:id`)** — p50/p95 per stage per session and a per-turn
+      table, admin-only and naming **no candidate at all**. A stage with no samples is **null, not
+      zero**, and every stage carries its own `n`: most stages are legitimately absent, and the whole
+      effect of lever 2 is that `phrasing_ms` _disappears_ on a prefetched opening. `quantile` is
+      imported from `interviews/pace.ts` rather than written again, so the admin view and phase 8's
+      report cannot round differently on the same run
+- [x] **The room joins the leak test** (ADR-0019 §4). A recording stand-in for LiveKit keeps every
+      payload the API handed it and the detector runs over all of it; the dispatch is asserted to have
+      exactly the two fields it has, and the room name and participant identity are asserted to come
+      from the **session** — a user id would link every room that candidate has ever been in. The
+      worker's own channel is asserted from the other side: the bundle route **must** carry the probes
+      and must still carry no rubric, with `criterion_count` and a probe's `criterion` allowed **by
+      name** because both are numbers, and a control proving that allowance is not a widening
+- [x] **The internal routes are excluded from the OpenAPI document**, so the coverage test cannot
+      enumerate them — a test now asserts the document publishes no `/api/internal` path, so removing
+      the exclusion fails and has to be argued for
+- [x] **`audio_processing` went to v2** (owner's decision 9). v1 said only that speech is converted to
+      text; it did not say a recognition provider receives everything the candidate says, that only the
+      interviewer's own words reach a synthesizer, or that **no audio is stored at all** without
+      `recording_storage`. Bumping it now costs nothing because there are no real accounts; after the
+      pilot it sends every candidate back to the consent screen
+- [x] **The sixth `DROP INDEX questions_embedding_hnsw`**, in a migration that touches neither
+      `questions` nor a vector. Deleted, with the reason in the file; `migration-sql.spec.ts` would have
+      failed the build, which is why that test exists rather than eyes
+- [x] `livekit-server-sdk@2.19.0` and `@livekit/protocol@1.51.0` are the only new dependencies — the
+      grant shape and the Twirp envelope of the agent-dispatch API are two details we would get wrong
+      once, and both are LiveKit's own. No install-time build script, so no `allowBuilds` entry
+- [x] Checks: `pnpm lint`, `pnpm typecheck`, **712 API tests** (54 new), 679 worker, 176 web, 141
+      shared-types, `pnpm format:check`, `pnpm test:e2e` (10 passed, 6 skipped as designed)
+
+### Two things phase 4 fixed that were nothing to do with voice
+
+- [x] **`consents.service.spec.ts` hardcoded `version: 1` for every type.** Bumping `audio_processing`
+      broke three of its tests for a reason unrelated to what they assert. The fixture reads
+      `CONSENT_VERSIONS[type]` now: a fixture that hardcodes "current" stops being a fixture the first
+      time current moves
+- [x] **`consent-copy.ts` built a key union that could not be satisfied.**
+      `consent.types.${type}.v${CONSENT_VERSIONS[type]}` over the whole union expands to every type at
+      every version, so `recording_storage.v2` was demanded and no copy answers it. A **mapped type**
+      fixes it — inside one, `T` is a single type and `CONSENT_VERSIONS[T]` is that type's own version —
+      and the compile-time check the file exists for is kept rather than cast away
+
+### Carried into phase 5
+
+- [ ] **A resumed leg says nothing and waits** (from phase 3). On a voice reconnection the candidate
+      heard nothing of the question they are now expected to answer. The captions carry it, so silence
+      costs them a read rather than a repetition; re-speaking would need the API to send the last
+      interviewer turn, which `VoiceSessionStartResponse` does not carry. Decide it with the captions in
+      front of you
+- [ ] **The captions will show what the transcript does not** (from phase 3): a dropped interjection
+      appears on screen and then in no stored turn
+- [ ] **Past the cap, an unheard question is still scored** (from phase 3)
+- [ ] **Nothing has run end to end through a room yet.** The API's half is tested against the contracts
+      and the agent's half against Protocols; the first real leg needs phase 5's browser. The int spec's
+      pushes are hand-built, which proves the shapes the contracts describe and not that the agent
+      builds them
+- [ ] **`/admin/voice` is captured empty**, because `VOICE_ENABLED` is false in the e2e environment and
+      no voice session can be started there. Its empty state is the right thing to photograph now; phase
+      8 is when it has numbers in it. A voice e2e with a fake media device (phase 5) is what would let
+      the screen be captured with a real measurement in it
+- [ ] **The `LiveKitRoom` dispatch rule is unit-tested and has never met LiveKit.** `listDispatch`
+      before `createDispatch` is asserted against a double; that a **reload** really produces one
+      interviewer rather than two is phase 5's browser and phase 8's staging deployment

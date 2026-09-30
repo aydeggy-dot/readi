@@ -123,6 +123,18 @@ export const CreateInterviewRequest = z
     minutes: InterviewLength,
     /** The 15-minute preset from `/home`; the report and the readiness score read it in M4/M6. */
     is_diagnostic: z.boolean().default(false),
+    /**
+     * How the candidate means to take it (M5). It is decided **here**, at the start, and never
+     * again: `interview_sessions.mode` records how a session *started*, so a leg that falls back to
+     * text does not rewrite it (ADR-0019 §7).
+     *
+     * `voice` is refused at creation — not at the microphone — when the deployment has no LiveKit
+     * (`voice_not_enabled`), when `audio_processing` has not been granted at its current version
+     * (`voice_consent_required`), or when the candidate has no voice allowance left
+     * (`voice_allowance_exhausted`). Refusing early is the point: a session pinned as `voice` that
+     * can never be joined is four questions spent on nothing.
+     */
+    mode: InterviewMode.default("text"),
   })
   .refine((request) => !request.types || distinctSlugs(request.types), {
     message: "a question type may be listed only once",

@@ -2,10 +2,12 @@ import { randomInt, randomUUID } from "node:crypto";
 import type { LoggerService } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
+import { CONSENT_VERSIONS, type ConsentType } from "@readi/shared-types";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { configureApp } from "../src/app.setup";
 import { parseEnv } from "../src/config/env";
+import type { PrismaService } from "../src/prisma/prisma.service";
 
 export interface TestAppOptions {
   env?: Record<string, string>;
@@ -46,6 +48,50 @@ export function viaProxy(ip = uniqueIp()): Record<string, string> {
     "x-readi-proxy-secret": process.env.WEB_PROXY_SECRET ?? "",
     origin: "http://localhost:3002",
   };
+}
+
+/**
+ * The header the AI worker calls back with (M5, ADR-0019). The **second direction** of authentication:
+ * until voice mode the worker was only ever called, and `/api/internal/...` is reached with the same
+ * shared token travelling the other way (`ServiceTokenGuard`).
+ *
+ * Read from the environment for the same reason `viaProxy` reads `WEB_PROXY_SECRET`: the test proves
+ * the guard accepts the configured token, which is a weaker claim than it looks unless the token is
+ * genuinely the one the app was built with.
+ */
+export function viaService(): Record<string, string> {
+  return { authorization: `Bearer ${process.env.AI_WORKER_TOKEN ?? ""}` };
+}
+
+/**
+ * The environment a test app needs to serve voice at all, with the docker-compose dev server's own
+ * LiveKit credentials — which are public, in `infra/docker-compose.yml`, and not secrets.
+ *
+ * A test that also passes `[VOICE_ROOM, new FakeVoiceRoom()]` never reaches LiveKit; these are what get
+ * `VOICE_ENABLED=true` past `parseEnv`, which refuses half-configured voice on purpose.
+ */
+export const VOICE_ENV: Record<string, string> = {
+  VOICE_ENABLED: "true",
+  LIVEKIT_URL: "ws://127.0.0.1:7880",
+  LIVEKIT_API_KEY: "devkey",
+  LIVEKIT_API_SECRET: "secret",
+};
+
+/**
+ * Grants one consent type at its **current** version, the way the consent screen would.
+ *
+ * `CONSENT_VERSIONS[type]` rather than 1: a decision recorded against older wording is deliberately
+ * not a grant (`isCurrentGrant`), so a fixture that wrote 1 would silently stop granting anything the
+ * next time a text changed — which is precisely what `audio_processing` did in M5.
+ */
+export async function grantConsent(
+  prisma: PrismaService,
+  userId: string,
+  type: ConsentType,
+): Promise<void> {
+  await prisma.consentRecord.create({
+    data: { userId, type, granted: true, version: CONSENT_VERSIONS[type] },
+  });
 }
 
 /** Session cookie header from a Better Auth response (attributes stripped). */

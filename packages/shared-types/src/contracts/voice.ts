@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { INTERVIEW_LIMITS } from "../constants.js";
 import { AiCallRecord } from "./cv.js";
 import {
   InterviewEndReason,
@@ -244,3 +245,139 @@ export const VoiceLegEndedResponse = z.object({
   voice_seconds_total: z.int().min(0),
 });
 export type VoiceLegEndedResponse = z.infer<typeof VoiceLegEndedResponse>;
+
+// -----------------------------------------------------------------------------------------------
+// API → admin. The latency view (M5 phase 4), and what the pilot and phase 8 read.
+
+/**
+ * One stage of one turn, spread over however many turns were sampled.
+ *
+ * **p50 and p95 are null rather than 0 when nothing was sampled**, because a stage that did not
+ * happen and a stage that happened instantly are different facts — and most stages legitimately do
+ * not happen: `coverage_ms` is null when there was nothing left to judge, `phrasing_ms` when the
+ * opening was prefetched, `tts_first_byte_ms` when the audio was already rendered. A zero there
+ * would read as "we are fast" when it means "we did not do it".
+ *
+ * `n` is the number of turns that had a figure for this stage, not the number of turns — so the
+ * sample size is on the face of every stage, which is the rule the pace report already follows.
+ */
+export const VoiceLatencySpread = z
+  .object({
+    n: z.int().min(0),
+    p50_ms: z.int().min(0).nullable(),
+    p95_ms: z.int().min(0).nullable(),
+  })
+  .meta({ id: "VoiceLatencySpread" });
+export type VoiceLatencySpread = z.infer<typeof VoiceLatencySpread>;
+
+/**
+ * Every stage, over a set of turns. `first_audio` and `response` are the two numbers ADR-0019 §5
+ * replaced spec §8's single "~1 s" with, and the rest are what explain them.
+ */
+export const VoiceLatencySummary = z
+  .object({
+    turns: z.int().min(0),
+    /** The pinned acknowledgement: the first thing the candidate hears (`VOICE_LIMITS.firstAudioTargetMs`). */
+    first_audio: VoiceLatencySpread,
+    /** The question or probe itself (`VOICE_LIMITS.responseTargetMs`). */
+    response: VoiceLatencySpread,
+    endpoint: VoiceLatencySpread,
+    stt_final: VoiceLatencySpread,
+    coverage: VoiceLatencySpread,
+    phrasing: VoiceLatencySpread,
+    tts_first_byte: VoiceLatencySpread,
+    /** Turns whose opening was phrased and rendered during the previous answer (lever 2). */
+    prefetched: z.int().min(0),
+    /** Turns the candidate spoke over. Barge-in is allowed; this is how often it happens. */
+    interrupted: z.int().min(0),
+  })
+  .meta({ id: "VoiceLatencySummary" });
+export type VoiceLatencySummary = z.infer<typeof VoiceLatencySummary>;
+
+/**
+ * One leg as the ledger recorded it. A session has one leg if nothing went wrong and several if the
+ * candidate reconnected, so `reason` on the last of them is what says how voice ended for them.
+ */
+export const VoiceLegRecord = z
+  .object({
+    leg_id: z.uuid(),
+    reason: VoiceLegEndReason,
+    voice_seconds: z.int().min(0),
+    turns_spoken: z.int().min(0),
+    quality: VoiceQuality,
+    ended_at: z.iso.datetime(),
+  })
+  .meta({ id: "VoiceLegRecord" });
+export type VoiceLegRecord = z.infer<typeof VoiceLegRecord>;
+
+/**
+ * One voice session in the admin list. **No candidate, by construction** — not their name, their
+ * email or their id: this view exists to read a number against a target, and who was interviewed
+ * is not part of that question (the calibration dashboard's rule, ADR-0017, applied again).
+ */
+export const VoiceLatencySession = z
+  .object({
+    session_id: z.uuid(),
+    started_at: z.iso.datetime(),
+    ended_at: z.iso.datetime().nullable(),
+    status: InterviewStatus,
+    state: InterviewState,
+    /** Everything `usage_ledger` has metered for this session, across every leg. */
+    voice_seconds: z.int().min(0),
+    /** True when a leg ended as `fallback_poor_connection`: the bookkeeping, not an analytics event. */
+    fell_back_to_text: z.boolean(),
+    legs: z.array(VoiceLegRecord),
+    latency: VoiceLatencySummary,
+  })
+  .meta({ id: "VoiceLatencySession" });
+export type VoiceLatencySession = z.infer<typeof VoiceLatencySession>;
+
+/** The two targets, served rather than hardcoded in the page, so one number is read everywhere. */
+export const VoiceLatencyTargets = z
+  .object({
+    first_audio_ms: z.int().min(0),
+    response_ms: z.int().min(0),
+  })
+  .meta({ id: "VoiceLatencyTargets" });
+export type VoiceLatencyTargets = z.infer<typeof VoiceLatencyTargets>;
+
+/** `GET /api/admin/voice/latency?cursor=&limit=` — newest voice sessions, keyset-paged. */
+export const VoiceLatencyQuery = z.object({
+  cursor: z.string().min(1).max(INTERVIEW_LIMITS.cursorMaxLength).optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(INTERVIEW_LIMITS.pageSize.max)
+    .default(INTERVIEW_LIMITS.pageSize.default),
+});
+export type VoiceLatencyQuery = z.infer<typeof VoiceLatencyQuery>;
+
+/**
+ * `GET /api/admin/voice/latency` — the whole measurement, and each session behind it.
+ *
+ * `overall` is computed over the turns of **the sessions on this page**, which is why the page says
+ * so: an aggregate whose denominator moves with the pager would otherwise be read as the figure for
+ * the deployment. Phase 8's table is the figure for the deployment, and it says its sample size.
+ */
+export const VoiceLatencyResponse = z.object({
+  overall: VoiceLatencySummary,
+  targets: VoiceLatencyTargets,
+  sessions: z.array(VoiceLatencySession),
+  next_cursor: z.string().min(1).max(INTERVIEW_LIMITS.cursorMaxLength).nullable(),
+});
+export type VoiceLatencyResponse = z.infer<typeof VoiceLatencyResponse>;
+
+/**
+ * `GET /api/admin/voice/latency/{id}` — one session, turn by turn.
+ *
+ * The per-turn rows are what a p50 is made of, and phase 8's verdict on the budget is read off
+ * them: a summary can say the response target is missed and only the rows can say whether it is the
+ * coverage call, the phrasing call or the synthesizer.
+ */
+export const VoiceSessionLatencyResponse = z.object({
+  session: VoiceLatencySession,
+  targets: VoiceLatencyTargets,
+  turns: z.array(VoiceTurnLatency),
+});
+export type VoiceSessionLatencyResponse = z.infer<typeof VoiceSessionLatencyResponse>;

@@ -72,6 +72,14 @@ and delivery coaching, at local prices.
 ### 4.3 AI mock interviewer
 - [MVP] Text mode interview (chat UI).
 - [MVP] Voice mode interview (LiveKit; STT → LLM → TTS streaming) with automatic fallback to text.
+  - *Added M5 phase 4.* Voice is chosen **at setup**, and refused there rather than at the microphone:
+    a session pinned as `voice` that can never be joined has spent that candidate's four questions on
+    nothing. The three preconditions are the deployment having LiveKit (`voice_not_enabled`),
+    `audio_processing` granted at its current version (`voice_consent_required`), and voice minutes
+    left in the period (`voice_allowance_exhausted`). A short-lived join token is issued only after
+    those are checked again, and it authorises **joining** — the session's own `ends_at` is what ends
+    the interview. Falling back to text does not rewrite `mode`: it is a `voice_legs` row with a
+    reason (ADR-0019 §7).
 - [MVP] Session setup: role, level, stack, type, length (15 / 30 / 45 min), persona (`friendly` at MVP).
   Role, level and stack come from the published catalogue, defaulting to the candidate's profile.
 - [MVP] Deterministic state machine (see CLAUDE.md §5). Question selection: from bank, filtered by role/level/stack/type, weighted toward weak topics, excluding questions seen in the last N sessions (N = 3, configurable). If fewer eligible questions remain than the session needs, fill the gap with the **least-recently-seen** questions rather than ending early or failing.
@@ -91,6 +99,9 @@ and delivery coaching, at local prices.
     (`evaluations/report-assembly.ts`), never by a second free-form model call, so the strengths and
     fixes are reproducible and cannot flatter.
 - [MVP] Speech delivery metrics from timestamped transcript (voice mode): words per minute, filler-word rate, long pauses (> 3 s), average answer duration, rambling flag (answer > 2.5 min for a non-design question).
+  - *M5/M6 line (plan decision 8).* M5 stores the word timings on the turn at the moment they exist —
+    they are not recoverable from the text afterwards — and M6 owns the filler list, the report
+    section, the coaching copy and the `communication` component of readiness.
 - [MVP] Readiness score per role (see §7).
 - [MVP] Internal calibration tool: admins/experts blind-score sampled answers; dashboard of AI-vs-human agreement.
 - [P2] Camera coaching (opt-in, on-device MediaPipe): gaze-toward-camera %, face-in-frame %, lighting check, posture drift, excessive movement. Presented as coaching tips, never as personality/confidence/emotion scores.
@@ -157,7 +168,7 @@ and delivery coaching, at local prices.
 - `Rubric` (id, name, version) → `RubricCriterion` (id, rubric_id, dimension, description, weight, levels: {0..4 descriptors})
 - `StudyPlan` (user_id, career_role_id, start_date, target_date) → `PlanItem` (type lesson|practice|mock, ref_id, due_date, status)
 - `InterviewSession` (id, user_id, career_role_id, career_level_id, stack_id?, type, mode text|voice, persona, planned_minutes, state, started_at, ended_at, prompt_versions JSON, model_config JSON) — and the **version** of each piece of content it was run against (question, rubric, role, level, stack), so a past report does not move when the content changes (ADR-0015)
-- `SessionTurn` (session_id, seq, speaker interviewer|candidate, state, question_id?, text, started_ms, ended_ms, stt_confidence?)
+- `SessionTurn` (session_id, seq, speaker interviewer|candidate, state, question_id?, text, started_ms, ended_ms, stt_confidence?, voice_words JSON?, spoken_ms?, interrupted?) — the last three are voice mode only (M5, ADR-0019 §8): word timings as the recogniser gave them, because M6's pace and filler metrics are functions of those offsets and cannot be recovered from the text afterwards; and how much of an interviewer turn was actually heard, because a question cut off half way and answered anyway is only fair to score if the row says so
 - `AnswerEvaluation` (session_id, question_id, criteria JSON, overall 0–100, strengths[], gaps[], tip, evaluator_model, prompt_version, status ok|retry|failed)
 - `DeliveryMetrics` (session_id, wpm, filler_rate, long_pauses, avg_answer_sec, rambling_count, camera_metrics JSON?)
 - `SessionReport` (session_id, summary JSON, overall_score)
@@ -165,7 +176,10 @@ and delivery coaching, at local prices.
 - `Plan` (code, name, features JSON) → `Price` (plan_id, currency, amount_minor, interval, provider_ref)
 - `Subscription` (user_id | org_id, plan_id, provider, provider_sub_id, status, current_period_end, cancel_at_period_end)
 - `Entitlement` (user_id, key, value, source, expires_at)
-- `UsageLedger` (user_id, session_id?, kind voice_minutes|avatar_minutes, quantity, created_at) — allowance metering only
+- `UsageLedger` (user_id, session_id?, kind voice_seconds|avatar_seconds, quantity, source_id UNIQUE, occurred_at, created_at) — allowance metering only, never cost (ADR-0007). **Amended at M5 phase 4: seconds, not minutes** (ADR-0019 §9) — a leg is not a session, so a candidate who reconnects three times spends three legs of forty seconds, and rounding each up to a minute would meter three minutes they never used. Rounding happens once, where a candidate is shown their allowance. `source_id` is what produced the row (a `voice_legs.id`), so a retried report meters nothing twice
+- `VoiceLeg` (session_id, reason completed|fallback_poor_connection|candidate_left|agent_error|session_expired|allowance_exhausted, voice_seconds, turns_spoken, rtt/packet-loss/reconnects, created_at) — one candidate joining a room and what became of it. **It is the fallback bookkeeping** (ADR-0019 §7): falling back to text is an event with a reason, not a rewrite, so `interview_sessions.mode` keeps meaning how the session *started*
+- `VoiceTurnLatency` (session_id, turn_seq, speech_ended_at, endpoint_ms, stt_final_ms, acknowledged_ms?, coverage_ms?, phrasing_ms?, tts_first_byte_ms?, response_ms, prefetched, interim_coverage, interrupted) — where one voice turn's time went, all measured from the moment the candidate stopped speaking (§8). The nullable stages are legitimately absent and which ones tells you what the engine did
+- `VoiceExchange` (session_id, exchange_id PK, applied_at) — an idempotency ledger and nothing else: the agent retries a push, the turns are already idempotent by `(session_id, seq)`, and `ai_call_log` has no natural key (ADR-0019 §3)
 - `AiCallLog` (session_id?, user_id?, purpose, provider, model, status, latency_ms, input_units, output_units, unit_kind, cost_micro_usd, langfuse_trace_id?, created_at) — internal cost/latency record per AI call (ADR-0007)
 - `Payment` (provider, provider_ref, amount_minor, currency, status, raw JSON)
 - `WebhookEvent` (provider, event_id UNIQUE, type, processed_at, payload JSON)
@@ -263,6 +277,14 @@ formula v1 is final**.
 `report_viewed`, `lesson_completed`, `plan_item_completed`, `paywall_viewed`, `checkout_started`,
 `subscription_activated`, `subscription_cancelled`, `session_rated`, `question_flagged`, `readiness_band_changed`.
 Never include PII or transcript text in event properties.
+
+**There is no emit path yet, and M9 owns building one** (`docs/PROMPTS.md` M9: a typed event helper so
+names and properties are checked at compile time, with a no-PII test). PostHog is initialised in the
+browser with `autocapture: false` and session recording off, and captures nothing. So where a
+milestone before M9 owes an event, it owes the **fact** instead, durably: M5 phase 4's
+`voice_fallback_to_text` is a `voice_legs` row with `reason = fallback_poor_connection`, counted on the
+admin latency view, and M9's event is derived from it. A half-built analytics layer shipped early would
+be the second implementation of something M9 then has to design properly.
 
 ## 10. Out of scope (do not build)
 

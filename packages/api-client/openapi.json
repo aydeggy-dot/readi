@@ -2822,6 +2822,128 @@
         "tags": ["interviews"]
       }
     },
+    "/api/interviews/{id}/voice-token": {
+      "post": {
+        "operationId": "VoiceController_token",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceTokenResponseDto_Output"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`audio_processing` has not been granted at its current version (code `voice_consent_required`)"
+          },
+          "404": {
+            "description": "Not this candidate's (code `interview_not_found`)"
+          },
+          "409": {
+            "description": "Already finished (`interview_ended`), too old to resume (`interview_expired`), started in text mode (`voice_not_enabled`), or no voice minutes left (`voice_allowance_exhausted`)"
+          },
+          "503": {
+            "description": "No LiveKit here, or the interviewer could not be dispatched (`voice_unavailable`)"
+          }
+        },
+        "tags": ["interviews"]
+      }
+    },
+    "/api/admin/voice/latency": {
+      "get": {
+        "operationId": "VoiceAdminController_latency",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceLatencyResponseDto_Output"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          }
+        },
+        "tags": ["admin"]
+      }
+    },
+    "/api/admin/voice/latency/{id}": {
+      "get": {
+        "operationId": "VoiceAdminController_session",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionLatencyResponseDto_Output"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an admin"
+          },
+          "404": {
+            "description": "No such interview (code `interview_not_found`)"
+          }
+        },
+        "tags": ["admin"]
+      }
+    },
     "/api/me/export": {
       "get": {
         "operationId": "AccountController_export",
@@ -7160,6 +7282,10 @@
         "required": ["id"],
         "additionalProperties": false
       },
+      "InterviewMode": {
+        "type": "string",
+        "enum": ["text", "voice"]
+      },
       "CreateInterviewRequestDto": {
         "type": "object",
         "properties": {
@@ -7197,6 +7323,10 @@
           "is_diagnostic": {
             "default": false,
             "type": "boolean"
+          },
+          "mode": {
+            "default": "text",
+            "$ref": "#/components/schemas/InterviewMode"
           }
         },
         "required": ["minutes"]
@@ -8022,6 +8152,390 @@
           "ended_at",
           "generated_at"
         ],
+        "additionalProperties": false
+      },
+      "VoiceTokenResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 300,
+            "format": "uri"
+          },
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "room": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "identity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "fallback_after_poor_ms": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 120000
+          }
+        },
+        "required": ["url", "token", "room", "identity", "expires_at", "fallback_after_poor_ms"],
+        "additionalProperties": false
+      },
+      "VoiceLatencySummary_Output": {
+        "type": "object",
+        "properties": {
+          "turns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "first_audio": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "response": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "endpoint": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "stt_final": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "phrasing": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "tts_first_byte": {
+            "$ref": "#/components/schemas/VoiceLatencySpread_Output"
+          },
+          "prefetched": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "interrupted": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "turns",
+          "first_audio",
+          "response",
+          "endpoint",
+          "stt_final",
+          "coverage",
+          "phrasing",
+          "tts_first_byte",
+          "prefetched",
+          "interrupted"
+        ],
+        "additionalProperties": false
+      },
+      "VoiceLatencySpread_Output": {
+        "type": "object",
+        "properties": {
+          "n": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "p50_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "p95_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          }
+        },
+        "required": ["n", "p50_ms", "p95_ms"],
+        "additionalProperties": false
+      },
+      "VoiceLatencyTargets_Output": {
+        "type": "object",
+        "properties": {
+          "first_audio_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "response_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["first_audio_ms", "response_ms"],
+        "additionalProperties": false
+      },
+      "VoiceLatencySession_Output": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/InterviewStatus_Output"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InterviewState_Output"
+          },
+          "voice_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fell_back_to_text": {
+            "type": "boolean"
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VoiceLegRecord_Output"
+            }
+          },
+          "latency": {
+            "$ref": "#/components/schemas/VoiceLatencySummary_Output"
+          }
+        },
+        "required": [
+          "session_id",
+          "started_at",
+          "ended_at",
+          "status",
+          "state",
+          "voice_seconds",
+          "fell_back_to_text",
+          "legs",
+          "latency"
+        ],
+        "additionalProperties": false
+      },
+      "VoiceLegRecord_Output": {
+        "type": "object",
+        "properties": {
+          "leg_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/VoiceLegEndReason_Output"
+          },
+          "voice_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "turns_spoken": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "quality": {
+            "$ref": "#/components/schemas/VoiceQuality_Output"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": ["leg_id", "reason", "voice_seconds", "turns_spoken", "quality", "ended_at"],
+        "additionalProperties": false
+      },
+      "VoiceLegEndReason_Output": {
+        "type": "string",
+        "enum": [
+          "completed",
+          "fallback_poor_connection",
+          "candidate_left",
+          "agent_error",
+          "session_expired",
+          "allowance_exhausted"
+        ]
+      },
+      "VoiceQuality_Output": {
+        "type": "object",
+        "properties": {
+          "rtt_ms_p50": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "rtt_ms_p95": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "packet_loss_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "nullable": true
+          },
+          "reconnects": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["rtt_ms_p50", "rtt_ms_p95", "packet_loss_percent", "reconnects"],
+        "additionalProperties": false
+      },
+      "VoiceLatencyResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "overall": {
+            "$ref": "#/components/schemas/VoiceLatencySummary_Output"
+          },
+          "targets": {
+            "$ref": "#/components/schemas/VoiceLatencyTargets_Output"
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VoiceLatencySession_Output"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": ["overall", "targets", "sessions", "next_cursor"],
+        "additionalProperties": false
+      },
+      "VoiceTurnLatency_Output": {
+        "type": "object",
+        "properties": {
+          "turn_seq": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "speech_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endpoint_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "stt_final_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "acknowledged_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "coverage_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "phrasing_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "tts_first_byte_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "response_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "prefetched": {
+            "type": "boolean"
+          },
+          "interim_coverage": {
+            "type": "boolean"
+          },
+          "interrupted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "turn_seq",
+          "speech_ended_at",
+          "endpoint_ms",
+          "stt_final_ms",
+          "acknowledged_ms",
+          "coverage_ms",
+          "phrasing_ms",
+          "tts_first_byte_ms",
+          "response_ms",
+          "prefetched",
+          "interim_coverage",
+          "interrupted"
+        ],
+        "additionalProperties": false
+      },
+      "VoiceSessionLatencyResponseDto_Output": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/VoiceLatencySession_Output"
+          },
+          "targets": {
+            "$ref": "#/components/schemas/VoiceLatencyTargets_Output"
+          },
+          "turns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VoiceTurnLatency_Output"
+            }
+          }
+        },
+        "required": ["session", "targets", "turns"],
         "additionalProperties": false
       },
       "DataExportDto_Output": {
