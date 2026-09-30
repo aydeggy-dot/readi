@@ -200,12 +200,38 @@ Three boundaries on that, each deliberate:
   clipped syllable of tolerance, and **anything less certain than that counts as not heard**: the
   two errors are not equal, because judging an unheard ask "heard" scores a candidate on a
   criterion nobody put to them while the reverse only costs a data point.
-- **An unheard *question* is not covered by this, and that is a known gap.** The rule keys on
-  `follow_up_index`, and the one criterion an opening prompt asks for carries no probe, so it is
-  never in `unaskedCriteria`: a candidate who talks over the opening and answers something else is
-  still scored on it. Fixing it means deciding what an unheard question means for a whole answer,
-  which is a scoring decision rather than a transport one. It is recorded in `tasks/todo.md` for
-  the pilot, where a real transcript can say how often it happens.
+- **An unheard *question* is not fixed in the accounting at all: it is asked again** (owner's
+  follow-up, 2026-09-30). The rule above keys on `follow_up_index`, and the one criterion an opening
+  prompt asks for carries no probe, so it is never in `unaskedCriteria` — a candidate talked over
+  before a question's ask would be scored on it whatever we recorded. So the **question is put
+  again**, once, and the answer that follows is an answer to a question they have heard. Not scoring
+  it would also have worked and is worse: the candidate loses the marks either way, and the
+  interview loses the answer too.
+
+  Three things make that safe. **A repeat costs no model call** — it is the same words, from the
+  same pinned or prefetched audio where there is any — so it cannot rephrase the question into a
+  different one. **Words that ended before the question did are not an answer to it**: the
+  interjection the candidate made over it ("sorry, what?") commits a moment later, and taking it
+  would score the interjection and waste the repeat, so the leg drops it and says so in the log.
+  And **one repeat per question**: past the cap their words are taken as the answer, because a
+  candidate who talks over everything must not spend the session on one question and be scored on
+  nothing.
+
+  **Only a question is repeated, never a probe.** The probe rule already protects the candidate from
+  being scored on one they did not hear, and re-asking something they deliberately talked over would
+  be an interviewer who had not noticed. A question is different: there is nothing else for the
+  answer to be about.
+
+  What this loses is the first attempt's own playback position — the two attempts are recorded as
+  one turn, `interrupted` (they did talk over it, which is a delivery fact M6 will want) and
+  `spoken_ms` from the attempt they heard. The first attempt is in the leg's log and nowhere else.
+
+  **Rejected: holding the interruption until the ask has been spoken.** It reads better — the
+  interviewer simply finishes its sentence — and LiveKit supports it (`allow_interruptions=False`,
+  flipped once playback passes the ask). But a candidate turn that commits while the current speech
+  cannot be interrupted is **dropped entirely** (`agent_activity.py:2774-2779`, a warning and a
+  `return` before the hook runs), so the failure mode is a candidate answering and being unheard.
+  That is a worse bug than the one being fixed, and a silent one.
 
 ## Consequences
 

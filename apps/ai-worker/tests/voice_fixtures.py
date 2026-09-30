@@ -72,7 +72,9 @@ class FakeSpeaker:
     """Records what was said and answers with playback a test can script.
 
     `interruptions` is keyed on the line — a test scripts "they talked over the probe" by naming
-    the probe — and `silent` is the line whose audio never started at all.
+    the probe — and is **single use**: a line said again after being talked over plays to the end,
+    which is what a repeat is for (`barge_in.needs_repeating`). `silent` is the line whose audio
+    never started at all, and is not consumed.
     """
 
     def __init__(
@@ -95,7 +97,7 @@ class FakeSpeaker:
         self.said.append(Said(text=text, pinned=clip is not None))
         if text in self._silent:
             return FakeUtterance(None, None)
-        scripted = self._interruptions.get(text)
+        scripted = self._interruptions.pop(text, None)
         if scripted is not None:
             return FakeUtterance(scripted, None if clip is not None else self._ttfb_ms)
         played = int(len(text) * SECONDS_PER_CHARACTER * 1_000)

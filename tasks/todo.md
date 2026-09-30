@@ -3706,9 +3706,37 @@ superseded (allowed only because it has never left this branch, and the commit m
       `room.get_rtc_stats()`'s WebRTC objects, and the measurement that decides the region is phase 8
       stage 1 — the candidate's _browser_ reporting `getStats()` over MTN, Airtel, Glo and home
       broadband. `QualityMonitor.note()` already takes them, so phase 8 adds a call and not a design
-- [ ] **An unheard _question_ is still scored.** The barge-in rule keys on `follow_up_index`, and the
-      one criterion an opening prompt asks for carries no probe, so it is never in `unaskedCriteria`.
-      Fixing it means deciding what an unheard question means for a whole answer — a scoring decision,
-      not a transport one, and one the pilot can say how often it matters
+- [x] **An unheard _question_ is asked again** (owner's follow-up, 2026-09-30; built in phase 3
+      rather than 4, because none of it is API work). The probe rule cannot help there — the criterion
+      an opening prompt asks for carries no probe, so it is never in `unaskedCriteria` — so the
+      question is **put again**, once, from the same words and the same audio: no model call, so a
+      repeat cannot become a different question. Not scoring it would also have worked and is worse:
+      the candidate loses the marks either way and the interview loses the answer too
+- [x] **The other half of that rule: words that ended before the question did are not an answer to
+      it.** The interjection the candidate made over the question commits a moment after the repeat
+      starts, and taking it would score "sorry, what?" and waste the repeat. Dropped, with a log line
+      and no transcript
+- [x] **One repeat per question**, and past the cap their words are taken as the answer. A candidate
+      who talks over everything must not spend the session on one question and be scored on nothing —
+      the clock would end it either way, but with nothing to score
+- [x] **Only a question is repeated, never a probe.** The probe rule already protects the candidate
+      from being scored on one they did not hear, and re-asking something they deliberately talked
+      over is an interviewer who had not noticed
+- [x] **Holding the interruption until the ask lands was rejected, on the source.** It reads better
+      and LiveKit supports it — but a candidate turn that commits while the current speech cannot be
+      interrupted is **dropped entirely** (`agent_activity.py:2774-2779`: a warning and a `return`
+      before the hook runs), so the failure mode is a candidate answering and being unheard. A worse
+      bug than the one being fixed, and a silent one
+
+### Carried into phase 5 from the repeat rule
+
+- [ ] **The captions will show what the transcript does not.** LiveKit transcribes the candidate's
+      own speech into the room independently of us, so a dropped interjection appears on screen and
+      then in no turn of the stored transcript. The interviewer visibly re-asks, which explains it —
+      but decide it with the captions in front of you (phase 5), because the alternative is showing
+      the candidate words we then throw away
+- [ ] **Past the cap, an unheard question is still scored.** Two barge-ins over the same question and
+      the second answer is taken as given. It is the best remaining option and it is not free; the
+      pilot can say how often two happen
 - [ ] **No vendor plugin is installed**, because no vendor is chosen (phase 6, ADR-0020). The live
       path runs on the fakes; `voice/streaming.py` names the extra each provider needs

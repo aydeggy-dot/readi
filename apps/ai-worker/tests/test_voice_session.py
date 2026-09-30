@@ -460,3 +460,108 @@ async def test_a_question_the_interviewer_cannot_answer_is_said_out_loud() -> No
     assert CANNOT_ANSWER in leg.speaker.lines
     # Nothing was stored: a refused exchange produces no push, exactly as it produces no turns.
     assert len(leg.api.pushes) == pushes_before
+
+
+# ---- A question the candidate talked over is put again (owner's follow-up, 2026-09-30).
+
+
+def opening_of(deck: InterviewSessionBundle) -> str:
+    """What the fake interviewer says to open question 0 — the pinned prompt, in a flat voice."""
+    return deck.questions[0].prompt
+
+
+async def test_a_question_cut_before_its_ask_is_put_again() -> None:
+    deck = bundle()
+    opening = opening_of(deck)
+    speaker = FakeSpeaker(
+        interruptions={
+            opening: Playback(
+                spoken_ms=300, interrupted=True, total_ms=4_000, heard_text=opening[:11]
+            )
+        }
+    )
+    leg = Leg(deck=deck, speaker=speaker)
+    await leg.open()
+
+    # Said twice, and the second time costs no model call: the same words, which is the point.
+    assert leg.speaker.lines.count(opening) == 2
+    spoken = [
+        turn for turn in interviewer_turns(list(leg.api.pushes[0].turns)) if turn.text == opening
+    ]
+    assert len(spoken) == 1  # one turn in the transcript, not two
+    assert spoken[0].voice is not None
+    # It was talked over — a delivery fact — and it was, in the end, spoken in full.
+    assert spoken[0].voice.interrupted is True
+    assert spoken[0].voice.spoken_ms is not None
+    assert spoken[0].voice.spoken_ms.root > 300
+
+
+async def test_a_question_heard_to_the_end_is_said_once() -> None:
+    leg = Leg()
+    await leg.open()
+    assert leg.speaker.lines.count(opening_of(leg.deck)) == 1
+
+
+async def test_words_said_over_the_question_are_not_taken_as_its_answer() -> None:
+    # The interjection — "sorry, what?" — commits a moment after the repeat begins. Taking it would
+    # score the interjection and waste the repeat.
+    deck = bundle()
+    opening = opening_of(deck)
+    speaker = FakeSpeaker(
+        interruptions={
+            opening: Playback(
+                spoken_ms=300, interrupted=True, total_ms=4_000, heard_text="Question"
+            )
+        }
+    )
+    leg = Leg(deck=deck, speaker=speaker)
+    await leg.open()
+    pushes_before = len(leg.api.pushes)
+
+    stale = leg.timing()
+    stale.started_at = leg.clock.monotonic() - 5.0  # their speech ended while the question played
+    await leg.leg.on_answer("Sorry, what?", timing=stale, words=list(WORDS))
+    await leg.leg.drain()
+    assert len(leg.api.pushes) == pushes_before
+
+    # What they say after hearing it is an ordinary answer.
+    await leg.answer()
+    assert len(leg.api.pushes) == pushes_before + 1
+
+
+async def test_a_question_is_put_again_only_once() -> None:
+    # The cap is what stops a candidate who talks over everything from spending the session on one
+    # question. Past it, their words are taken as the answer — the best remaining option.
+    deck = bundle()
+    opening = opening_of(deck)
+    speaker = FakeSpeaker(
+        interruptions={
+            opening: Playback(
+                spoken_ms=300, interrupted=True, total_ms=4_000, heard_text="Question"
+            )
+        }
+    )
+    leg = Leg(deck=deck, speaker=speaker)
+    await leg.open()
+    assert leg.speaker.lines.count(opening) == 2
+
+    await leg.answer()  # answered, so the engine moves to a probe
+    second = [one for one in leg.speaker.said if one.text == opening]
+    assert len(second) == 2  # and not a third attempt
+
+
+async def test_a_probe_talked_over_is_not_repeated() -> None:
+    deck = bundle()
+    probe = deck.questions[0].planned_follow_ups[0].probe
+    speaker = FakeSpeaker(
+        interruptions={
+            probe: Playback(spoken_ms=200, interrupted=True, total_ms=3_000, heard_text="How did")
+        }
+    )
+    leg = Leg(deck=deck, speaker=speaker)
+    await leg.open()
+    await leg.answer()
+    assert leg.speaker.lines.count(probe) == 1
+    # And the probe rule still applies to it: they were not asked, so it is not scored as asked.
+    spoken = interviewer_turns(list(leg.api.pushes[1].turns))[0]
+    assert spoken.follow_up_index is None

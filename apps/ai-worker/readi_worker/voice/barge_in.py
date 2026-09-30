@@ -27,12 +27,20 @@ unmoved — a loop two barge-ins long. The candidate's act spends the probe; it 
 the *previous* candidate turn records the engine's decision; it is not a claim about what was heard,
 and nothing scores on it.
 
-**A question talked over is not covered by this.** The rule keys on `follow_up_index`, and the one
-criterion an opening prompt asks for carries no probe, so it is never in `unaskedCriteria`. A
-candidate who talks over the opening question and answers something else is still scored on it.
-That gap is recorded in ADR-0019 and in `tasks/todo.md` rather than papered over here: fixing it
-means deciding what an unheard *question* means for a whole answer, which is a scoring decision and
-not a transport one.
+**A question talked over is answered differently: the interviewer says it again** (owner's
+follow-up, 2026-09-30; `needs_repeating` below, and `session.py`). The probe rule keys on
+`follow_up_index`, and the one criterion an opening prompt asks for carries no probe, so it is never
+in `unaskedCriteria` — a candidate talked over before a *question's* ask would be scored on it
+whatever we recorded. So this one is not fixed in the accounting at all. The question is **put
+again**, once, and the answer that follows is an answer to a question they have heard. Not scoring
+it would also have worked and is worse: the candidate loses the marks either way, and the interview
+loses the answer too.
+
+**The other half of that rule is in `session.py`: words spoken before the question finished are not
+an answer to it.** A candidate who talks over a question and stops before it ends has said
+something — "sorry, what?", or the first half of an answer to what they thought was being asked —
+and it arrives as a committed turn a moment later. Taking it would score the interjection and waste
+the repeat.
 
 ## How "heard the ask" is decided, and which way it errs
 
@@ -134,6 +142,37 @@ def heard_the_ask(text: str, playback: Playback) -> bool:
         fraction = min(1.0, max(0.0, playback.spoken_ms / total))
         spoken_characters = fraction * len(text.strip())
     return spoken_characters + HEARD_TAIL_TOLERANCE_CHARACTERS >= needed
+
+
+def needs_repeating(turn: InterviewTurn, playback: Playback | None) -> bool:
+    """Should this turn be said again before anybody is asked to answer it?
+
+    Only a **question**, and only when its ask was not heard. A probe is not repeated: the probe
+    rule already protects the candidate from being scored on one they did not hear, and re-asking
+    something they deliberately talked over would be an interviewer who had not noticed. A question
+    is different — there is nothing else for the answer to be about.
+    """
+    if turn.speaker != "interviewer" or turn.state != "question":
+        return False
+    if turn.follow_up_index is not None:
+        return False  # belt and braces: a probe is `follow_up`, never `question`
+    return not heard_the_ask(turn.text, playback or Playback(spoken_ms=0, interrupted=True))
+
+
+def merged(first: Playback, second: Playback) -> Playback:
+    """Two attempts at one turn, as the one thing the transcript records.
+
+    `interrupted` stays **true**, because the candidate did talk over it and that is a delivery fact
+    M6 will want. `spoken_ms` becomes the second attempt's, because what the record has to answer is
+    "did they hear this question", and after a completed repeat they did. The first attempt's own
+    position is in the leg's log and nowhere else, which is the one thing this loses.
+    """
+    return Playback(
+        spoken_ms=second.spoken_ms,
+        interrupted=True,
+        total_ms=second.total_ms if second.total_ms is not None else first.total_ms,
+        heard_text=second.heard_text,
+    )
 
 
 def spoken_turn(turn: InterviewTurn, playback: Playback | None) -> InterviewTurn:

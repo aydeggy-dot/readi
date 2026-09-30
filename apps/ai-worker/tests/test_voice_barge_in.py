@@ -14,6 +14,8 @@ from readi_worker.voice.barge_in import (
     ask_end_offset,
     heard_the_ask,
     heard_turn,
+    merged,
+    needs_repeating,
     spoken_turn,
 )
 
@@ -213,3 +215,76 @@ def test_too_many_words_are_capped_rather_than_refused() -> None:
     turn = heard_turn(candidate(), many, None)
     assert turn.voice is not None
     assert len(turn.voice.words) == MAX_WORDS_PER_TURN
+
+
+# ---- A question talked over is put again.
+
+
+def question_turn(
+    text: str = "Question 1: tell me about a system you have tested.",
+) -> InterviewTurn:
+    return InterviewTurn.model_validate(
+        {
+            "seq": 1,
+            "speaker": "interviewer",
+            "state": "question",
+            "question_position": 0,
+            "follow_up_index": None,
+            "text": text,
+            "criteria_covered": None,
+        }
+    )
+
+
+def test_a_question_cut_before_its_ask_is_repeated() -> None:
+    cut = Playback(spoken_ms=300, interrupted=True, total_ms=4_000, heard_text="Question 1:")
+    assert needs_repeating(question_turn(), cut) is True
+
+
+def test_a_question_heard_to_the_end_is_not_repeated() -> None:
+    assert needs_repeating(question_turn(), Playback(spoken_ms=4_000, interrupted=False)) is False
+
+
+def test_a_question_whose_audio_never_started_is_repeated() -> None:
+    assert needs_repeating(question_turn(), None) is True
+
+
+def test_a_probe_is_never_repeated() -> None:
+    # The probe rule already protects the candidate from being scored on one they did not hear, and
+    # re-asking something they deliberately talked over is an interviewer who had not noticed.
+    cut = Playback(spoken_ms=200, interrupted=True, total_ms=3_000, heard_text="How did")
+    assert needs_repeating(interviewer(PROBE), cut) is False
+
+
+def test_nothing_else_is_repeated() -> None:
+    for state in ("intro", "candidate_questions", "wrap_up"):
+        turn = InterviewTurn.model_validate(
+            {
+                "seq": 0,
+                "speaker": "interviewer",
+                "state": state,
+                "question_position": None,
+                "follow_up_index": None,
+                "text": "Some words that ask nothing at all.",
+                "criteria_covered": None,
+            }
+        )
+        assert needs_repeating(turn, Playback(spoken_ms=10, interrupted=True)) is False
+    assert needs_repeating(candidate(), Playback(spoken_ms=10, interrupted=True)) is False
+
+
+def test_two_attempts_are_recorded_as_one_interrupted_but_fully_spoken_turn() -> None:
+    first = Playback(spoken_ms=300, interrupted=True, total_ms=4_000, heard_text="Question 1:")
+    second = Playback(spoken_ms=4_000, interrupted=False, total_ms=4_000, heard_text="all of it")
+    both = merged(first, second)
+    # The candidate did talk over it — a delivery fact M6 will want — and they did, in the end, hear
+    # the whole question, which is what the record has to be able to answer.
+    assert both.interrupted is True
+    assert both.spoken_ms == 4_000
+    assert both.heard_text == "all of it"
+
+
+def test_a_repeat_that_was_also_cut_keeps_the_second_attempt_s_length() -> None:
+    first = Playback(spoken_ms=300, interrupted=True, total_ms=4_000)
+    second = Playback(spoken_ms=3_900, interrupted=True, total_ms=4_000)
+    assert merged(first, second).spoken_ms == 3_900

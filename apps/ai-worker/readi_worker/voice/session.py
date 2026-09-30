@@ -63,11 +63,24 @@ from readi_worker.interview.service import InterviewService
 from readi_worker.speech.base import TranscriptWord as SpeechWord
 from readi_worker.voice import acknowledgements as ack
 from readi_worker.voice.api_client import new_exchange_id
-from readi_worker.voice.barge_in import Playback, heard_turn, spoken_turn
+from readi_worker.voice.barge_in import (
+    Playback,
+    heard_turn,
+    merged,
+    needs_repeating,
+    spoken_turn,
+)
 from readi_worker.voice.latency import SpokenTiming, TurnTiming
 from readi_worker.voice.pinned_audio import PinnedAudio
 from readi_worker.voice.quality import QualityMonitor
-from readi_worker.voice.transport import CallSink, Clock, LegSide, Speaker, elapsed_ms
+from readi_worker.voice.transport import (
+    CallSink,
+    Clip,
+    Clock,
+    LegSide,
+    Speaker,
+    elapsed_ms,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +154,12 @@ class VoiceLeg:
         self._answers = 0
         self._turns_spoken = 0
         self._ended = start.engine_snapshot is not None and start.engine_snapshot.state == "ended"
+        # Which questions have already been put a second time, and when the question the candidate
+        # is answering finished being spoken. Both are the repeat rule's (`barge_in.py`), and both
+        # are leg-local: nothing about them belongs in the engine's snapshot, because a repeat is a
+        # transport event and the engine asked its question exactly once.
+        self._repeated: set[int] = set()
+        self._question_spoken_at = 0.0
         self._exchange = asyncio.Lock()
         self._silence: asyncio.Task[None] | None = None
         self._prefetch: asyncio.Task[str | None] | None = None
@@ -221,6 +240,12 @@ class VoiceLeg:
         """One answer, spoken. The whole of an exchange happens inside this call."""
         text = transcript.strip()[:ANSWER_MAX_LENGTH]
         if not text or self._ended or self._closed:
+            return
+        if timing.started_at < self._question_spoken_at:
+            # Words that ended before the question did are not an answer to it — they are what the
+            # candidate said over it, and the question has just been put again (`barge_in.py`).
+            # Taking them would score the interjection and waste the repeat.
+            logger.info("interview %s ignored words spoken over a question", self._session_id)
             return
         async with self._exchange:
             await self._cancel(self._silence)
@@ -304,20 +329,61 @@ class VoiceLeg:
     async def _speak(
         self, turn: InterviewTurn, timing: TurnTiming | None
     ) -> tuple[Playback | None, SpokenTiming]:
-        """Say one interviewer turn, from rendered audio where there is any."""
+        """Say one interviewer turn, from rendered audio where there is any.
+
+        And say a **question** again if its ask was not heard — once (owner's follow-up,
+        2026-09-30). The repeat costs no model call and, for a pinned or prefetched opening, no
+        synthesis either: it is the same words, which is the point. `response_ms` stays the first
+        attempt's, because that is when the candidate first heard something.
+        """
         clip = self._pinned.get(turn.text)
         utterance = self._speaker.say(turn.text, clip=clip)
         began = await utterance.started()
         response_ms = self._since(timing) if timing is not None else 0
         playback = await utterance.settled() if began else None
-        seq = turn_seq(turn)
+        if needs_repeating(turn, playback) and self._may_repeat(turn):
+            playback = await self._repeat(turn, clip, playback)
+        if turn.state == "question":
+            # From here, anything that ended earlier than this was said over the question.
+            self._question_spoken_at = self._clock.monotonic()
         return playback, SpokenTiming(
-            turn_seq=seq,
+            turn_seq=turn_seq(turn),
             response_ms=response_ms,
             tts_first_byte_ms=utterance.synthesis_ttfb_ms,
             prefetched=clip is not None,
             interrupted=playback.interrupted if playback is not None else True,
         )
+
+    def _may_repeat(self, turn: InterviewTurn) -> bool:
+        """At most one repeat per question, and none once the leg is closing.
+
+        The cap is what stops a candidate who talks over everything from spending the session on one
+        question — the clock would end it, but they would be scored on nothing. Past the cap their
+        words are taken as the answer, which is the state this rule exists to avoid and the best
+        remaining option.
+        """
+        position = question_position(turn)
+        if position is None or self._closed:
+            return False
+        return position not in self._repeated
+
+    async def _repeat(
+        self, turn: InterviewTurn, clip: Clip | None, first: Playback | None
+    ) -> Playback | None:
+        """Put the question again, and record the two attempts as one."""
+        position = question_position(turn)
+        if position is not None:
+            self._repeated.add(position)
+        logger.info(
+            "interview %s repeating question %s: its ask was not heard",
+            self._session_id,
+            position,
+        )
+        utterance = self._speaker.say(turn.text, clip=clip)
+        if not await utterance.started():
+            return first
+        second = await utterance.settled()
+        return merged(first, second) if first is not None else second
 
     async def _acknowledge(self, timing: TurnTiming) -> None:
         """The first audio the candidate hears. Pinned, rotated, and never evaluative."""
@@ -499,6 +565,12 @@ class VoiceLeg:
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await task
+
+
+def question_position(turn: InterviewTurn) -> int | None:
+    """Which question a turn belongs to. The generated contract wraps a *nullable* constrained int
+    in a RootModel, which is the one place `turn.seq`'s plain int and this one differ."""
+    return None if turn.question_position is None else turn.question_position.root
 
 
 def turn_seq(turn: InterviewTurn) -> int:

@@ -264,6 +264,14 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   transport, because a candidate never loses marks for something they did not hear. The engine's own
   `probes_asked` still holds it, so the cap counts it and the probe is not re-asked. Where playback
   cannot be placed in the text at all, the answer is "not heard": the two errors are not equal.
+- **A *question* talked over is asked again instead** (owner's follow-up, 2026-09-30). The probe rule
+  cannot help there — the criterion an opening prompt asks for carries no probe, so it is never in
+  `unaskedCriteria` — so the question is put again, once, from the same words and the same audio
+  (no model call, so it cannot become a different question). Two halves of one rule: **words that
+  ended before the question did are not an answer to it** and are dropped, and **one repeat per
+  question**, after which their words are taken as the answer. Only a question, never a probe.
+  Holding the interruption instead was rejected: LiveKit **drops** a candidate turn committed while
+  the current speech cannot be interrupted, which trades a mis-scored answer for a lost one.
 - **Falling back to text needs no handover**: the API's persisted snapshot is already the authority, so
   the agent stops and the browser resumes over SSE at the same turn. `mode` keeps meaning how the
   session *started*; delivery metrics run over the turns that have word timings, which only voice has.
