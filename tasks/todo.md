@@ -3619,3 +3619,96 @@ Handover: `docs/progress/2026-09-30-m5-phase-2.md`, which carries the three comm
       registration number, privacy contact email, postal address, the upload link, and the payment
       amount (or "none"). And the gate: **no recording is made until a lawyer has reviewed the consent
       form** (ADR-0020 §8)
+
+### Phase 3 — the voice agent · **done 2026-09-30**
+
+Handover: `docs/progress/2026-09-30-m5-phase-3.md`. ADR-0019 **amended in four places** rather than
+superseded (allowed only because it has never left this branch, and the commit message says so).
+
+- [x] **`livekit-agents==1.8.2`, and that is the whole dependency.** It carries voice activity
+      detection and the end-of-turn detector inside it (`livekit-local-inference`, compiled into the
+      wheel): no ONNX runtime, no plugin, no model download, which is three things less than ADR-0019
+      §2 expected. One release two weeks old, per the version policy
+- [x] **The session is given no language model, and that is `voice is a transport` enforced rather
+      than asserted.** With `llm=None` LiveKit runs streaming recognition, endpointing, barge-in,
+      transcription into the room and reconnection, calls `on_user_turn_completed` and then stops;
+      `generate_reply()` raises, which is the right failure for a call nothing there should make
+- [x] **`voice/session.py` is the leg and has no LiveKit in it.** Four Protocols in
+      `voice/transport.py` and a speaker that records lines and answers with scripted playback: **25
+      tests drive whole legs** — the greeting, an exchange, barge-in, the silence prompt, the
+      prefetch, ending, the allowance, a lost push — with no room, no server, no microphone, no key
+- [x] **A probe counts as asked only if the candidate heard its ask** (owner's decision, 2026-09-29,
+      built here). A turn talked over before its ask pushes `follow_up_index: null`, so the criterion
+      is **not assessed**; the engine's `probes_asked` still holds it, so the cap counts it and it is
+      not re-asked — the candidate's act spends the probe and does not score them
+- [x] **Three boundaries on that rule, each written down.** LiveKit's `synchronized_transcript`
+      makes it an exact prefix comparison where a room session provides one; otherwise the played
+      position is mapped onto the text with one clipped syllable of tolerance; and **anything less
+      certain counts as not heard**, because judging an unheard ask "heard" scores a candidate on a
+      criterion nobody put to them while the reverse costs only a data point
+- [x] **The acknowledgement set is eight lines, rotated like `transitions.py`'s connective, and the
+      no-praise test owns its own word list.** A list the module owned could be narrowed in the same
+      commit that widened the set and would then pass by agreeing with itself. `"Alright."` is in and
+      `"Right."` is out, and the whole-word filter is why the first is safe — a candidate who has just
+      been wrong would hear the second as agreement
+- [x] **Lever 1 is the acknowledgement and two lines beside it, not the connectives.** A connective
+      arrives _inside_ the phrasing call's output, so it cannot be split off a turn reliably; lever 2
+      covers the opening's audio better by rendering the whole turn
+- [x] **Lever 2 only fires where the answer cannot change what happens next.**
+      `machine.settled_next_step` is the rule, and every condition it rests on is monotone: time runs
+      down, the cap never loosens, coverage only removes probes from play. The phrasing is made by the
+      **service**, through the same renderer the turn uses, and cached on the rendered prompt — so a
+      prefetch that misses is a wasted call and never a second copy of the question prompt
+- [x] **The push waits for the turn's audio to settle, and pushes are serialised.** Nothing sits
+      between the model's answer and the first audio byte, but `spoken_ms` and `interrupted` do not
+      exist until the audio stops — and two pushes in flight could apply an older snapshot over a
+      newer one, which is what the next leg resumes from
+- [x] **Cost records for the live path come from LiveKit's own `STTMetrics`/`TTSMetrics`**, not from a
+      wrapper around a plugin, so nothing there can happen without an `AiCallRecord`. A
+      **session-billed** vendor produces one record when the socket closes, priced on the socket's
+      lifetime; an audio-billed one produces one per recognition. The units column stays the audio
+      either way, because a row has to be able to show both
+- [x] **LiveKit Inference is deliberately not used.** It would reach the same vendors through
+      LiveKit's gateway at rates `speech/pricing.py` does not hold — an unpriceable call, which is the
+      one thing the owner's instruction of 2026-09-29 forbids
+- [x] **`VOICE_LLM_TIMEOUT_S` = 10 s** (the item carried from phases 0 and 1). 45 s is right for
+      somebody watching a spinner and absurd in a conversation; a call past it falls back to the
+      pinned staff-written wording rather than to silence
+- [x] **A voice deployment refuses to start without LiveKit credentials**, and only when
+      `VOICE_ENABLED=true` — a candidate pressing the button and getting nothing is a worse failure
+      than a boot that names the variable
+- [x] **`VoiceLegEndReason` gained `allowance_exhausted`.** The agent is told how many voice seconds
+      the session has left and closes the leg before crossing that line, and what that is is neither
+      an error nor a poor connection
+- [x] **Proved against the LiveKit dev server**: the agent registers as `readi-interviewer`, a
+      dispatch carrying `{"session_id": …}` reaches the entrypoint, the session id is read from it,
+      and the pull from the API fails cleanly (no API yet — that is phase 4) with one log line and no
+      traceback
+- [x] **Two bugs the tests found, both in the mapping rather than the logic.** A `TimedString` with
+      no offsets carries `NOT_GIVEN` rather than None, so the null check crashed the recognition
+      stream on the first loosely-timed word — one word's worth of coaching against a whole leg. And
+      the barge-in tolerance was written as a margin _beyond_ the ask, which made a question played
+      to its last character count as unheard whenever the candidate interrupted at the end
+- [x] Checks: `ruff`, `mypy --strict`, **667 worker tests** (131 new), `pnpm lint`, `pnpm typecheck`,
+      `pnpm test`, `pnpm format:check`, `pnpm check:contracts`
+
+### Carried into phase 4
+
+- [ ] **The three internal routes do not exist yet**, so nothing has run end to end through a room.
+      `voice/api_client.py` is written against the contracts and driven in tests through a mock
+      transport; the first real leg is phase 4 plus phase 5's browser
+- [ ] **A resumed leg says nothing and waits**, which is what `VoiceSessionStartResponse` documents —
+      but on a voice reconnection the candidate heard nothing of the question they are now expected to
+      answer. The captions carry it (phase 5), so silence costs them a read rather than a
+      repetition; re-speaking it would need the API to send the last interviewer turn, which the
+      contract does not carry. Decide it with the captions in front of you
+- [ ] **RTT and packet loss are left null on `VoiceQuality`.** They would have to be read out of
+      `room.get_rtc_stats()`'s WebRTC objects, and the measurement that decides the region is phase 8
+      stage 1 — the candidate's _browser_ reporting `getStats()` over MTN, Airtel, Glo and home
+      broadband. `QualityMonitor.note()` already takes them, so phase 8 adds a call and not a design
+- [ ] **An unheard _question_ is still scored.** The barge-in rule keys on `follow_up_index`, and the
+      one criterion an opening prompt asks for carries no probe, so it is never in `unaskedCriteria`.
+      Fixing it means deciding what an unheard question means for a whole answer — a scoring decision,
+      not a transport one, and one the pilot can say how often it matters
+- [ ] **No vendor plugin is installed**, because no vendor is chosen (phase 6, ADR-0020). The live
+      path runs on the fakes; `voice/streaming.py` names the extra each provider needs
