@@ -1,7 +1,10 @@
 # ADR-0019 — Voice transport: the agent drives the engine, turns are pushed, and the budget is what the stages allow
 
 - **Status:** accepted
-- **Date:** 2026-09-29
+- **Date:** 2026-09-29, **amended 2026-09-30** (§2, §3, §5 and §8 below, marked *amended at phase
+  3*). Amending rather than superseding is allowed here and only here: this ADR has never left
+  `feat/m5-voice`, and the repo's prompt rule already says a version that has never left its own
+  branch may be revised within its own milestone. Once M5 merges, a change to it is a new ADR.
 - **Context:** M5 phase 0 (voice mode)
 - **Supersedes:** nothing. **Amends:** the latency target in spec §8 (below). **Relates to:**
   ADR-0004 (the worker has no database access), ADR-0007 (AI cost), ADR-0008 (Langfuse holds
@@ -44,6 +47,31 @@ jobs. It is not an HTTP route: a LiveKit agent is dispatched to a room, not call
 a VAD model, a turn-detector model and an ONNX runtime, which have no business inside the
 API-facing FastAPI app.
 
+*Amended at phase 3 — what "the agent" is made of, now that it exists.*
+
+- **`livekit-agents==1.8.2` is the only new dependency**, and it carries voice activity detection
+  and the end-of-turn detector with it (`livekit-local-inference`, compiled into the wheel): no
+  ONNX runtime, no plugin, no model download. The paragraph above expected three of those.
+- **The session is given no language model at all**, and that is the whole of §1 in one keyword.
+  With `llm=None` LiveKit runs the transport — streaming recognition, endpointing, barge-in,
+  transcription into the room, reconnection — calls `Agent.on_user_turn_completed` and then stops,
+  because it has no reply to generate. `session.generate_reply()` raises, which is the right
+  failure for a call nothing in this package should ever make.
+- **The streaming adapters wrap LiveKit's plugin, and the batch protocols in `speech/base.py` stay
+  batch** (the phase 1 decision, recorded here as promised). `voice/streaming.py` does the two jobs
+  that interface does — provider selection in one place, an `AiCallRecord` per call — and it does
+  the second from LiveKit's own `STTMetrics`/`TTSMetrics` rather than by wrapping a plugin, so
+  nothing on the live path can happen without a cost row. **No vendor plugin is installed yet**,
+  because no vendor has been chosen: that is phase 6, on real recordings (ADR-0020). Asking for one
+  names the extra to add rather than raising an `ImportError` three frames down.
+- **LiveKit Inference is deliberately not used.** `livekit.agents.inference.STT/TTS` would reach
+  Deepgram or ElevenLabs through LiveKit's own gateway, billed by LiveKit at rates that are not in
+  `speech/pricing.py` — so the worker could not price a call it had made, which is exactly what the
+  owner's instruction of 2026-09-29 forbids. Our keys, our rates, our records.
+- **A voice turn has its own deadline.** `INTERVIEW_LLM_TIMEOUT_S` is 45 s, which is right for
+  somebody watching a spinner and absurd in a conversation; `VOICE_LLM_TIMEOUT_S` is 10 s, and a
+  call that exceeds it falls back to the pinned staff-written wording rather than to silence.
+
 ### 3. Turns are pushed to the API, idempotently, and off the critical path
 
 `POST /api/internal/interviews/:id/turns`, service-token authenticated, carrying exactly what an
@@ -55,6 +83,16 @@ idempotent by `(session_id, seq)`, with an `exchange_id` covering the rows that 
 model's answer and the first audio byte would be latency the candidate pays for nothing. A failed
 push is retried; a session whose pushes are all lost still ends up consistent, because the engine
 allocates the seqs and the API's snapshot is the authority (ADR-0016 §4).
+
+*Amended at phase 3: in practice the push waits for the turn's audio to **settle**.* The rule above
+is that nothing may sit between the model's answer and the first audio byte, and nothing does — by
+the time an exchange is pushed the candidate has heard the whole turn or interrupted it. Waiting is
+what makes `spoken_ms` and `interrupted` exist to be pushed: they are not knowable earlier, and §8
+below is the reason they have to be recorded. The cost of waiting is that a crash mid-turn loses
+that exchange, which is the recovery this ADR already describes — the next leg resumes from the last
+exchange that landed and the engine replays from there. Pushes are also **serialised**, one at a
+time in the order they happened, because two in flight could apply an older snapshot over a newer
+one and the snapshot is what the next leg resumes from.
 
 ### 4. The answer key never enters the room
 
@@ -86,6 +124,25 @@ And a ladder of levers, in the order they are applied, with the cheap ones first
    short outputs), and the losers thrown away.
 
 3 and 4 are built **only if phase 8's measurements ask for them**. 1 and 2 are built now.
+
+*Amended at phase 3 — what levers 1 and 2 turned out to mean.*
+
+**Lever 1 is the acknowledgement and the two lines beside it, not the connectives.** The
+connectives (`interview/transitions.py`) are engine words, but they arrive *inside* the phrasing
+call's output — the model is told to open with that line — so they cannot be split off a turn
+reliably. What is pre-rendered is therefore the acknowledgement set, the silence line, and the one
+line the interviewer has for a question it cannot answer; lever 2 covers the opening's audio better
+anyway, by rendering the whole turn.
+
+**Lever 2 is only applied where the next step does not depend on the answer**, which is what makes
+it prefetching rather than speculation. `machine.settled_next_step` returns a step only when
+`probes_to_judge` is empty — the follow-up budget is spent, every probe has been asked or covered,
+or the deadline leaves no room for one — and each of those conditions is monotone in the direction
+that keeps it sound: time only runs down, the cap never loosens, and coverage only removes probes
+from play. The phrasing is made by the **service**, through the same renderer the turn uses, and
+cached on the rendered prompt (`interview/phrasings.py`), so a prefetch that never hits is a wasted
+call and never a second implementation of the question prompt. A prefetched turn reports
+`phrasing_ms: null`, because the candidate waited for none of it.
 
 **The two calls are never merged into one.** A single call returning both the coverage flags and the
 phrased probe lets the model effectively choose which probe is asked, which is the thing
@@ -120,6 +177,35 @@ Barge-in is allowed and encouraged. But the evaluator later reads "the question 
 the report shows it to the candidate, so the turn records the full generated text **and** how much of
 it was actually heard (`spoken_ms`, `interrupted`). A question cut off half way and answered anyway
 is fair to score — only if the record says that is what happened.
+
+*Amended at phase 3: **a probe counts as asked only if the candidate heard its ask*** (owner's
+decision, 2026-09-29; `voice/barge_in.py`). `session_turns.follow_up_index` is the engine fact M4
+scores on — a criterion whose probe was asked contributes at 0.85 of its weight, and a criterion
+with probes that were never asked is **not assessed** and leaves the denominator (`scoring.ts`,
+`SCORING_VERSION` 2). A candidate who talks over a probe before it has said what it wants was not
+asked anything, so the pushed turn carries `follow_up_index: null` and the criterion falls into
+`unaskedCriteria` like any other the interview never reached. It is M4's clock rule in a different
+transport: **a candidate never loses marks for something they did not hear.**
+
+Three boundaries on that, each deliberate:
+
+- **The engine's own bookkeeping stands.** `probes_asked` still holds the probe, so the cap still
+  counts it and the engine will not put it again. Re-asking would be an interviewer who did not
+  notice being interrupted — and, with the cap unmoved, a loop two barge-ins long. The candidate's
+  act spends the probe; it does not score them.
+- **How far playback got is measured, not assumed.** LiveKit reports the played position, whether
+  the turn was cut off, and — in a room session, by default — the `synchronized_transcript` of what
+  was actually spoken, which makes the test an exact prefix comparison rather than an estimate.
+  Where only the position is known it is mapped onto the text on an even-rate assumption, with one
+  clipped syllable of tolerance, and **anything less certain than that counts as not heard**: the
+  two errors are not equal, because judging an unheard ask "heard" scores a candidate on a
+  criterion nobody put to them while the reverse only costs a data point.
+- **An unheard *question* is not covered by this, and that is a known gap.** The rule keys on
+  `follow_up_index`, and the one criterion an opening prompt asks for carries no probe, so it is
+  never in `unaskedCriteria`: a candidate who talks over the opening and answers something else is
+  still scored on it. Fixing it means deciding what an unheard question means for a whole answer,
+  which is a scoring decision rather than a transport one. It is recorded in `tasks/todo.md` for
+  the pilot, where a real transcript can say how often it happens.
 
 ## Consequences
 

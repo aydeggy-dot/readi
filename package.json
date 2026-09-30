@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo run dev --filter=@readi/web --filter=@readi/api",
     "dev:worker": "turbo run dev --filter=@readi/ai-worker",
+    "dev:voice": "pnpm --filter @readi/ai-worker dev:voice",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

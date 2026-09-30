@@ -577,7 +577,12 @@ class VoiceLegEndedRequest(BaseModel):
     )
     leg_id: UUID
     reason: Literal[
-        "completed", "fallback_poor_connection", "candidate_left", "agent_error", "session_expired"
+        "completed",
+        "fallback_poor_connection",
+        "candidate_left",
+        "agent_error",
+        "session_expired",
+        "allowance_exhausted",
     ]
     voice_seconds: int = Field(..., ge=0, le=9007199254740991)
     turns_spoken: int = Field(..., ge=0, le=9007199254740991)

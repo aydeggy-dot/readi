@@ -45,6 +45,12 @@ import {
  * Why the **voice leg** ended, which is not why the interview ended. An interview that falls back to
  * text carries on at the same turn; a candidate who closes the tab has abandoned a session the sweep
  * will find. Only `completed` means the engine reached `ended` while the agent was still there.
+ *
+ * `allowance_exhausted` was added at phase 3, when the agent turned out to need a word for it. The
+ * agent is told how many voice seconds the session has left (`voice_seconds_remaining`) and closes
+ * the leg **before** crossing that line rather than discovering it in the ledger afterwards — and
+ * what that is is neither an error nor a poor connection. The candidate carries on in text mode, so
+ * the reason has to be legible in the analytics that ask how often that happens.
  */
 export const VoiceLegEndReason = z
   .enum([
@@ -53,6 +59,7 @@ export const VoiceLegEndReason = z
     "candidate_left",
     "agent_error",
     "session_expired",
+    "allowance_exhausted",
   ])
   .meta({ id: "VoiceLegEndReason" });
 export type VoiceLegEndReason = z.infer<typeof VoiceLegEndReason>;

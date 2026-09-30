@@ -23,6 +23,7 @@ from readi_worker.contracts import (
     BundleQuestion,
     InterviewAdvanceRequest,
     InterviewAdvanceResponse,
+    InterviewEngineSnapshot,
     InterviewSessionBundle,
     InterviewTurn,
 )
@@ -42,6 +43,7 @@ from readi_worker.interview.machine import (
     SpeakWrapUp,
     Step,
 )
+from readi_worker.interview.phrasings import Phrased, PhrasingCache
 from readi_worker.interview.probes import coverage_log, covered_by
 from readi_worker.interview.state_store import CachedSession, InterviewStateStore
 from readi_worker.interview.transitions import connective
@@ -101,6 +103,16 @@ class UnanswerableError(Exception):
     """The one call with no honest fallback: answering a question the candidate asked."""
 
 
+@dataclass(frozen=True, slots=True)
+class _OpeningCall:
+    """One question's phrasing call: the rendered prompt, its pinned fallback, and the ask count
+    the phrasing may not exceed. Rendered in one place so the prefetch and the turn agree."""
+
+    user: str
+    fallback: str
+    asks_in_pinned: int
+
+
 @dataclass(slots=True)
 class _PendingAnswer:
     """What the candidate just said, held back until the exchange knows what it led to."""
@@ -115,11 +127,18 @@ class _PendingAnswer:
 
 class InterviewService:
     def __init__(
-        self, interviewer: Interviewer, store: InterviewStateStore, tracer: Tracer
+        self,
+        interviewer: Interviewer,
+        store: InterviewStateStore,
+        tracer: Tracer,
+        phrasings: PhrasingCache | None = None,
     ) -> None:
         self._interviewer = interviewer
         self._store = store
         self._tracer = tracer
+        # Voice only (latency lever 2). Text mode passes none and can therefore never hit it; see
+        # `phrasings.py` for why keying on the rendered prompt makes the seam safe to share.
+        self._phrasings = phrasings
 
     async def advance(self, request: InterviewAdvanceRequest) -> InterviewAdvanceResponse:
         session_id = str(request.session_id)
@@ -333,29 +352,15 @@ class InterviewService:
             return _turn(step.seq, "intro", text)
 
         if isinstance(step, AskQuestion):
-            question = bundle.questions[step.question]
-            line = connective(str(bundle.session_id), step.question, planned_total)
-            user = _render(
-                prompts,
-                "interview_question",
-                position=step.question,
-                total=planned_total,
-                question_block=as_data(question.prompt, "question"),
-                has_context=question.context is not None,
-                connective=line,
-            )
+            opening = self._opening_call(bundle, step.question, prompts)
             text = await self._say(
                 "interviewer",
                 system,
-                user,
-                # The fallback carries the connective too. It is the engine's own words and adds no
-                # ask, and without it a rejected phrasing makes the interview lurch: the second paid
-                # run fell back twice, and those were exactly the two questions the owner noticed
-                # arriving with no transition and no "last one".
-                f"{line} {question.prompt}".strip(),
+                opening.user,
+                opening.fallback,
                 calls,
                 prompts,
-                asks_in_pinned=count_asks(question.prompt),
+                asks_in_pinned=opening.asks_in_pinned,
             )
             return _turn(step.seq, "question", text, question=step.question)
 
@@ -397,6 +402,90 @@ class InterviewService:
 
         raise EngineError("engine_error", f"cannot perform {type(step).__name__}")
 
+    def _opening_call(
+        self, bundle: InterviewSessionBundle, position: int, prompts: dict[str, int]
+    ) -> "_OpeningCall":
+        """Everything one question's phrasing call is made of, rendered once.
+
+        Shared by `_perform` and `prefetch_next_opening` so the prefetch cannot drift from the call
+        it is prefetching: the cache is keyed on this prompt, and two renderers would mean a
+        prefetch that never hits and a phrasing bought twice.
+        """
+        question = bundle.questions[position]
+        planned_total = min(bundle.question_budget, len(bundle.questions))
+        line = connective(str(bundle.session_id), position, planned_total)
+        user = _render(
+            prompts,
+            "interview_question",
+            position=position,
+            total=planned_total,
+            question_block=as_data(question.prompt, "question"),
+            has_context=question.context is not None,
+            connective=line,
+        )
+        return _OpeningCall(
+            user=user,
+            # The fallback carries the connective too. It is the engine's own words and adds no
+            # ask, and without it a rejected phrasing makes the interview lurch: the second paid
+            # run fell back twice, and those were exactly the two questions the owner noticed
+            # arriving with no transition and no "last one".
+            fallback=f"{line} {question.prompt}".strip(),
+            asks_in_pinned=count_asks(question.prompt),
+        )
+
+    async def prefetch_next_opening(
+        self,
+        bundle: InterviewSessionBundle,
+        snapshot: InterviewEngineSnapshot | None,
+        now: datetime,
+    ) -> str | None:
+        """Phrase the opening the engine will certainly ask next (voice latency lever 2).
+
+        Returns the words the interviewer will say, so the caller can render their audio while the
+        candidate is still speaking — or None when there is nothing settled to prefetch, which is
+        every text-mode call and every voice turn where a probe might still follow.
+
+        It is a **model call outside an exchange**, so it opens a trace of its own rather than
+        borrowing one: `ai_call_log.langfuse_trace_id` then says truthfully that this generation
+        happened during the previous turn. Nothing is stored, nothing is spoken, and a failure is
+        returned as None — the turn that wanted it simply pays for its own phrasing.
+        """
+        if self._phrasings is None or snapshot is None:
+            return None
+        try:
+            state = machine.from_snapshot(snapshot, bundle)
+        except EngineError:
+            return None
+        step = machine.settled_next_step(state, bundle, now)
+        if not isinstance(step, AskQuestion):
+            return None
+        prompts: dict[str, int] = {}
+        opening = self._opening_call(bundle, step.question, prompts)
+        if (ready := self._phrasings.take(opening.user)) is not None:
+            # Already prefetched (a second answer on the same settled question). Put it back
+            # untouched: taking is how the cache stays single-use.
+            self._phrasings.put(opening.user, ready)
+            return ready.text
+        with self._tracer.trace(
+            TraceSubject(
+                name="interview.prefetch",
+                user_id=str(bundle.user_id),
+                session_id=str(bundle.session_id),
+                metadata={"action": "prefetch"},
+            )
+        ):
+            spoken, records = await self._interviewer.speak(
+                purpose="interviewer",
+                system=self._system(bundle, prompts),
+                user=opening.user,
+                fallback=opening.fallback,
+                asks_in_pinned=opening.asks_in_pinned,
+            )
+        if spoken is None:
+            return None
+        self._phrasings.put(opening.user, Phrased(text=spoken.text, calls=records))
+        return spoken.text
+
     async def _say(
         self,
         purpose: str,
@@ -413,6 +502,12 @@ class InterviewService:
         exceed
         — a question and a follow-up. See `calls.speak` and `asks.py`.
         """
+        if self._phrasings is not None and (ready := self._phrasings.take(user)) is not None:
+            # Phrased during the previous answer (voice latency lever 2). The records ride home
+            # here so the bill is complete; `phrasing_ms` is null on the sample, because the
+            # candidate waited for none of it.
+            calls.extend(ready.calls)
+            return ready.text
         spoken, records = await self._interviewer.speak(
             purpose=purpose,  # type: ignore[arg-type]  # one of the three Purpose literals
             system=system,

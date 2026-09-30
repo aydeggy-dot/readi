@@ -1857,7 +1857,8 @@
         "fallback_poor_connection",
         "candidate_left",
         "agent_error",
-        "session_expired"
+        "session_expired",
+        "allowance_exhausted"
       ]
     },
     "VoiceQuality": {

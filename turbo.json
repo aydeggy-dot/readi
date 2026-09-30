@@ -40,6 +40,7 @@
         "AI_WORKER_URL",
         "ANTHROPIC_API_KEY",
         "API_INTERNAL_URL",
+        "API_TIMEOUT_S",
         "APP_ENV",
         "AUTH_RATE_LIMIT_ENABLED",
         "BETTER_AUTH_SECRET",
@@ -70,6 +71,9 @@
         "LANGFUSE_RETENTION_DAYS",
         "LANGFUSE_SECRET_KEY",
         "LANGFUSE_TIMEOUT_S",
+        "LIVEKIT_API_KEY",
+        "LIVEKIT_API_SECRET",
+        "LIVEKIT_URL",
         "LLM_MODEL_CV_PARSE",
         "LLM_MODEL_EVALUATOR",
         "LLM_MODEL_INTERVIEWER",
@@ -106,7 +110,9 @@
         "TTS_PROVIDER",
         "TTS_TIMEOUT_S",
         "TTS_VOICE",
+        "VOICE_AGENT_NAME",
         "VOICE_ENABLED",
+        "VOICE_LLM_TIMEOUT_S",
         "VOYAGE_API_KEY",
         "WEB_PROXY_SECRET"
       ]

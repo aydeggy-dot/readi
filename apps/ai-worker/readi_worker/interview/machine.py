@@ -274,6 +274,39 @@ def probes_to_judge(
     return probes_in_play(question, progress.probes_asked, progress.probes_covered)
 
 
+def settled_next_step(
+    state: EngineState, bundle: InterviewSessionBundle, now: datetime
+) -> Step | None:
+    """The step the candidate's answer will lead to — but only when the answer cannot change it.
+
+    Voice mode's latency lever 2 (ADR-0019 §5) wants the next opening phrased and synthesized while
+    the candidate is still speaking, and that is **prefetching rather than speculation** only where
+    the engine has no decision left to take. It has none exactly when `probes_to_judge` is empty,
+    and for the same three reasons: the follow-up budget for this question is spent, every probe has
+    been asked or covered, or the deadline leaves no room for one. In all three no probe will be
+    asked whatever the answer says, so the engine will close this question and move on — and where
+    it moves to is a function of the budgets alone.
+
+    Every one of those conditions is **monotone** in the direction that keeps this sound: time only
+    runs down, the cap never loosens, and coverage only ever removes probes from play. So a step
+    settled now is still settled when the answer arrives.
+
+    None means "it depends on the answer", and the caller prefetches nothing. The step's *content*
+    is what a caller may use; its seq holds only if nothing else intervenes, which is why the one
+    caller (`InterviewService.prefetch_next_opening`) reads the question position and nothing else.
+    """
+    if state.state not in ("question", "follow_up") or state.current_question is None:
+        return None
+    if not state.awaiting:
+        return None  # mid-exchange: there is no answer to be waiting for.
+    if probes_to_judge(state, bundle, now):
+        return None
+    # The candidate's turn takes the next seq, exactly as `take_answer` allocates it.
+    answered = replace(state, awaiting=False, next_seq=state.next_seq + 1)
+    _, step = plan(_past_current_question(answered, bundle, now), bundle, now)
+    return step
+
+
 def take_answer(
     state: EngineState, text: str, covered: Iterable[int] = ()
 ) -> tuple[EngineState, int]:

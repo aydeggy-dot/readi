@@ -89,6 +89,7 @@ pnpm install                 # install all workspaces
 pnpm db:migrate              # prisma migrate dev (apps/api)
 pnpm dev                     # run web + api (turbo)
 pnpm dev:worker              # run the AI worker (uv, uvicorn --reload)
+pnpm dev:voice               # run the LiveKit voice agent (M5; needs VOICE_ENABLED=true and LIVEKIT_* set)
 pnpm lint && pnpm typecheck  # all workspaces, incl. ruff/mypy for the worker
 pnpm test                    # all tests: Vitest (TS) + pytest (worker); needs the compose services
 pnpm test:e2e                # Playwright end-to-end (own DB, bucket, ports and build folders; needs uv)
@@ -250,9 +251,32 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   does not sound robotic by the third question — and nothing in it may sound like approval, because a
   candidate who answered badly must not hear praise their report then contradicts. A test asserts the
   set contains no evaluative word.
+- **The agent has no language model, and that is how "voice is a transport" is enforced.**
+  `AgentSession` is given a recogniser, a synthesizer, VAD and a turn detector and **no `llm`**
+  (`voice/agent.py`): LiveKit then runs the transport, calls `on_user_turn_completed` and stops,
+  because it has no reply to generate. `session.generate_reply()` raises, which is the right
+  failure for a call nothing there should make. The leg itself is `voice/session.py`, which depends
+  on four Protocols in `voice/transport.py` and on no LiveKit type — so a whole leg, the barge-in
+  rule, the latency ladder and the push are tested with no room, no server and no key.
+- **A probe counts as asked only if the candidate heard its ask** (owner's decision, 2026-09-29;
+  `voice/barge_in.py`). A turn talked over before its ask is pushed with `follow_up_index: null`, so
+  the criterion falls into `unaskedCriteria` and is **not assessed** — M4's clock rule in another
+  transport, because a candidate never loses marks for something they did not hear. The engine's own
+  `probes_asked` still holds it, so the cap counts it and the probe is not re-asked. Where playback
+  cannot be placed in the text at all, the answer is "not heard": the two errors are not equal.
 - **Falling back to text needs no handover**: the API's persisted snapshot is already the authority, so
   the agent stops and the browser resumes over SSE at the same turn. `mode` keeps meaning how the
   session *started*; delivery metrics run over the turns that have word timings, which only voice has.
+- **A push waits for its turn's audio to settle, and pushes are serialised.** Nothing sits between
+  the model's answer and the first audio byte — but `spoken_ms` and `interrupted` do not exist until
+  the audio stops, and they are what the turn has to admit. One at a time and in order, because two
+  in flight could apply an older engine snapshot over a newer one.
+- **The prefetch is only allowed where the answer cannot change what happens next.**
+  `machine.settled_next_step` says when that is (the follow-up budget spent, every probe asked or
+  covered, or no room for one — each monotone), and the phrasing is made by the service through the
+  same renderer the turn uses and cached on the rendered prompt (`interview/phrasings.py`). A
+  prefetched turn reports `phrasing_ms: null`; a prefetch that never hits is a wasted call and never
+  a second copy of the question prompt.
 - **Audio is not stored at all unless `recording_storage` is granted.** STT receives everything the
   candidate says; TTS receives only the interviewer's own words, which keeps it out of the
   personal-data path. A benchmark speaker is not a user: that consent is on paper and the audio never
@@ -294,6 +318,13 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
 - **No live path accepts the whole glossary.** 302 terms against caps of 100, so
   `glossary_for(settings, path)` applies the vendor's own cap and the file's order is the product
   decision about which technical words a candidate can afford to have misheard.
+- **The live speech path is `voice/streaming.py`, and its cost records come from LiveKit's own
+  metrics** rather than from a wrapper around a plugin, so nothing on that path can happen without
+  an `AiCallRecord`. A session-billed vendor produces **one** record when the socket closes, priced
+  on the socket's lifetime; an audio-billed one produces one per recognition. **LiveKit Inference is
+  deliberately not used**: it would bill through LiveKit at rates `speech/pricing.py` does not hold,
+  which is the one thing an unpriceable call is not allowed to be. No vendor plugin is installed
+  until phase 6 chooses one; asking for one names the extra to add.
 
 ### AI provider adapters
 - All external AI calls go through interfaces: `SpeechToText`, `TextToSpeech`, `LLMClient`, `EmbeddingProvider`, `AvatarProvider`.

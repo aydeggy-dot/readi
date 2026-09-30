@@ -109,6 +109,28 @@ class Settings(BaseSettings):
     assemblyai_api_key: SecretStr | None = None
     intron_api_key: SecretStr | None = None
     elevenlabs_api_key: SecretStr | None = None
+    #: Per interview call **in voice mode**, and much shorter than `interview_llm_timeout_s`
+    #: (M5 phase 3). 45 s is a text-mode number: somebody watching a spinner waits, and a candidate
+    #: in a conversation has said "hello?" twice by then. A call that takes longer than this falls
+    #: back to the pinned wording (`interview/calls.py`), which is a plainer interview rather than a
+    #: broken one — the fallback path already existed; what it lacked was a voice-shaped deadline.
+    voice_llm_timeout_s: float = Field(default=10.0, gt=0, le=120)
+    #: Where the API is, for the voice agent's three internal routes (ADR-0019 §3). The same name
+    #: the web app uses for the same thing. Nothing else in the worker calls the API.
+    api_internal_url: str = Field(default="http://127.0.0.1:4000", min_length=1)
+    #: How long the agent waits on one of those calls. Short: the candidate is in a conversation,
+    #: and a push that cannot land is retried and then replayed by the next leg.
+    api_timeout_s: float = Field(default=10.0, gt=0, le=120)
+    #: The agent's name in LiveKit. Dispatch is **explicit** — the API dispatches this name to a
+    #: room when a candidate asks for a voice session — because an implicitly dispatched agent
+    #: would join every room, including a room that has no interview behind it.
+    voice_agent_name: str = Field(default="readi-interviewer", min_length=1)
+    #: LiveKit credentials. The agent reads them from the environment the way LiveKit's own worker
+    #: does; they are declared here so that a deployment with `VOICE_ENABLED=true` and no LiveKit
+    #: fails at startup rather than when the first candidate presses the button.
+    livekit_url: str | None = None
+    livekit_api_key: SecretStr | None = None
+    livekit_api_secret: SecretStr | None = None
     #: The technical vocabulary (`content/glossary/tech_terms.txt`), sent to the recogniser as
     #: custom vocabulary and scored as its own subset by the benchmark. Empty means "find it in the
     #: checkout"; a deployment that carries no repository sets the path explicitly.
@@ -146,6 +168,9 @@ class Settings(BaseSettings):
         "assemblyai_api_key",
         "intron_api_key",
         "elevenlabs_api_key",
+        "livekit_url",
+        "livekit_api_key",
+        "livekit_api_secret",
         mode="before",
     )
     @classmethod
@@ -224,6 +249,33 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _livekit_configured(self) -> "Settings":
+        """A deployment that serves voice interviews needs a room to serve them in (M5 phase 3).
+
+        Checked only when `VOICE_ENABLED` is true, because every deployment until this milestone
+        ships is text-only and has no LiveKit project. It is checked at **startup** rather than at
+        dispatch so that a missing secret is a boot failure with a variable name in it, instead of
+        a candidate pressing "start voice interview" and getting nothing.
+        """
+        if not self.voice_enabled:
+            return self
+        missing = [
+            name
+            for name, value in (
+                ("LIVEKIT_URL", self.livekit_url),
+                ("LIVEKIT_API_KEY", self.livekit_api_key),
+                ("LIVEKIT_API_SECRET", self.livekit_api_secret),
+            )
+            if value is None or (isinstance(value, str) and not value.strip())
+        ]
+        if missing:
+            raise ValueError(
+                f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} required when "
+                "VOICE_ENABLED=true (a text-only deployment leaves VOICE_ENABLED=false)"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _tracing_configured(self) -> "Settings":
         """One key without the other is a typo, not a configuration: say so rather than run blind.
 
@@ -244,10 +296,8 @@ def _unpriced(side: str, provider: str, model: str, path: str) -> str:
     return (
         f"no price is configured for {provider}/{model}{path} in readi_worker/speech/pricing.py. "
         "A per-minute vendor bills monthly, in arrears, so an unpriced one is not a zero in a "
-        "column"
-        "— it is a cost nobody sees until the invoice: add its rate, checked against the vendor's "
-        "own"
-        f"pricing page and dated, or set {side}_PROVIDER=fake"
+        "column — it is a cost nobody sees until the invoice: add its rate, checked against the "
+        f"vendor's own pricing page and dated, or set {side}_PROVIDER=fake"
     )
 
 
