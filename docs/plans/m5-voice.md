@@ -170,10 +170,18 @@ above and each is recorded in ADR-0019:
 - **The "analytics event" is a durable row and a log line**, because there is no emit path in this
   codebase at all — PostHog captures nothing and M9 owns the typed helper. The fallback is a
   `voice_legs` row with a reason, counted on the admin view, and M9's event is derived from it.
+  **Confirmed by the owner, 2026-09-30.**
 
 ### Phase 5 — the web voice UI
 
-Mic permission, device check with a level meter, captions always visible (interim grey, finals
+**First, before the screen: re-speaking the question on resume** (owner's decision, 2026-09-30;
+ADR-0019 §7). `VoiceSessionStartResponse` gains the last interviewer turn, the agent says a short
+pinned line and puts that turn again from the same words and audio — no model call, and not a new turn,
+so nothing is pushed. Reconnections will be common on Nigerian mobile networks, so a resumed leg
+waiting in silence is the ordinary case rather than an edge, and a candidate must not answer a question
+they did not hear.
+
+Then: mic permission, device check with a level meter, captions always visible (interim grey, finals
 committed), connection-quality indicator, mute, end, automatic fallback to text with a spoken and
 written explanation. 360px, reduced motion, e2e driven by Chrome's fake media device against the fake
 STT and TTS, so a run costs nothing and reaches no vendor.

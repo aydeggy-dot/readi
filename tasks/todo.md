@@ -3849,11 +3849,21 @@ Handover: `docs/progress/2026-09-30-m5-phase-4.md`. ADR-0019 amended a third tim
 
 ### Carried into phase 5
 
-- [ ] **A resumed leg says nothing and waits** (from phase 3). On a voice reconnection the candidate
-      heard nothing of the question they are now expected to answer. The captions carry it, so silence
-      costs them a read rather than a repetition; re-speaking would need the API to send the last
-      interviewer turn, which `VoiceSessionStartResponse` does not carry. Decide it with the captions in
-      front of you
+- [ ] **Re-speak on resume, and build it first** (owner's decision, 2026-09-30; ADR-0019 §7 amended).
+      Phase 3 left a resumed leg silent and this was the open question phase 4 handed back. The answer
+      is to **re-speak**: a short pinned line ("We lost the connection for a moment. Here's the question
+      again.") and then the last interviewer turn again, same words, same audio where there is any,
+      captions still showing it. **Reconnections will be common on Nigerian mobile networks**, so this is
+      the ordinary case and not an edge — and a candidate must not answer a question they did not hear,
+      which is M4's clock rule and phase 3's two barge-in rules reached from a third direction. Relying
+      on the captions asks somebody to read back through a transcript on a phone at the moment their
+      connection failed, and says nothing about _why_ nothing is happening
+- [ ] **What that needs**: `VoiceSessionStartResponse` gains the last interviewer turn, and the leg's
+      side of it is built **before** the screen. Three constraints, all inherited from the repeat rule
+      this is a sibling of — **no model call**, so a re-spoken question cannot become a different one;
+      the pinned or prefetched audio where there is any; and **not a new turn**, so nothing is pushed,
+      because the engine asked its question once and a reconnection is a transport event. The pinned
+      line joins `voice/acknowledgements.py` and is held to the same no-praise test
 - [ ] **The captions will show what the transcript does not** (from phase 3): a dropped interjection
       appears on screen and then in no stored turn
 - [ ] **Past the cap, an unheard question is still scored** (from phase 3)

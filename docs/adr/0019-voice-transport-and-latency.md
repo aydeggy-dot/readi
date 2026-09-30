@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-09-29, **amended 2026-09-30** (§2, §3, §5 and §8, marked *amended at phase 3*; §3
-  again and a new §9, marked *at phase 4*). Amending rather than superseding is allowed here and only
+  again, §7, and a new §9, marked *at phase 4*). Amending rather than superseding is allowed here and only
   here: this ADR has never left `feat/m5-voice`, and the repo's prompt rule already says a version
   that has never left its own branch may be revised within its own milestone. Once M5 merges, a
   change to it is a new ADR.
@@ -182,6 +182,39 @@ turn. Nothing is handed over and nothing can be half-handed-over.
 `interview_sessions.mode` keeps meaning **how the session started**. The fallback is an event with a
 reason, not a rewrite of history, and delivery metrics run over the turns that have word timings —
 which is self-describing, because only voice turns have them.
+
+*Amended at phase 4 — **a resumed leg re-speaks the question; it does not wait in silence***
+(owner's decision, 2026-09-30, to be built at the start of phase 5).
+
+Phase 3 made a resumed leg say nothing: `VoiceSessionStartResponse.resume` meant "the candidate has
+already been greeted, so wait for them", and phase 4's handover raised the cost of that and left it to
+be decided with the captions in front of us. The decision is to **re-speak**. On reconnection the
+interviewer says a short pinned line — "We lost the connection for a moment. Here's the question
+again." — and then puts the **last interviewer turn** again, from the same words and the same audio
+where there is any, while the captions still show it.
+
+Two reasons, and the first is the one that decides it. **Reconnections will be common**: this product
+is built for Nigerian mobile networks (product principle 3), so a reconnection is the ordinary case
+rather than the edge, and a rule that is tolerable once a month is not tolerable once a session. And a
+candidate must not be scored on an answer to a question they did not hear — which is the **same
+principle** as the barge-in rules in §8, arrived at from a third direction: the clock rule of
+2026-09-27, the probe rule of 2026-09-29 and the repeat rule of 2026-09-30 all say that a candidate
+never loses marks for something they did not hear, and silence after a reconnection is exactly that
+with the connection to blame instead of them.
+
+Relying on the captions was the alternative and it is weaker than it looks: it asks the candidate to
+read back through a transcript to find out what they were asked, on a phone, at the moment their
+connection has just failed — and it is silent about *why* nothing is happening, which reads as a call
+that has dropped again.
+
+**What it needs, and what it must reuse.** `VoiceSessionStartResponse` does not carry the last
+interviewer turn, so the contract gains it — text, and whatever identifies the turn — and phase 5
+builds the leg's side of it. Three constraints follow from the repeat rule this is a sibling of: **no
+model call**, so a re-spoken question cannot become a different question; the pinned or prefetched
+audio where there is any; and it is **not a new turn** — nothing is pushed, because the engine asked
+its question once and a reconnection is a transport event. The pinned line joins
+`voice/acknowledgements.py` and is subject to the same no-praise test as the rest of the engine's own
+words.
 
 ### 8. A question the candidate talked over records how far it was spoken
 

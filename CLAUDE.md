@@ -277,6 +277,15 @@ cd apps/ai-worker && ANTHROPIC_API_KEY=... uv run python -m readi_worker.evals.r
   session *started*; delivery metrics run over the turns that have word timings, which only voice has.
   **The bookkeeping is a `voice_legs` row with a reason**, not a change of mode — and it is also where
   `voice_fallback_to_text` lives until M9 builds a typed analytics helper (spec §9).
+- **A resumed leg re-speaks the question rather than waiting in silence** — *owner's decision,
+  2026-09-30 (ADR-0019 §7); **decided and owed by phase 5**, not yet built.* A short pinned line ("We
+  lost the connection for a moment. Here's the question again.") and then the last interviewer turn
+  again, from the same words and the same audio where there is any. **Reconnections will be common on
+  Nigerian mobile networks**, so a silent resume is the ordinary case rather than an edge, and a
+  candidate must not answer a question they did not hear — M4's clock rule and the two barge-in rules
+  reached from a third direction. `VoiceSessionStartResponse` gains the last interviewer turn to make it
+  possible; **no model call**, so it cannot become a different question, and **not a new turn**, so
+  nothing is pushed: the engine asked its question once and a reconnection is a transport event.
 - **The API's half is `apps/api/src/voice/`, and voice depends on interviews rather than the reverse.**
   The candidate's one route is `POST /api/interviews/:id/voice-token`; the agent's three are
   `/api/internal/interviews/:id/{voice-session,turns,voice-ended}` behind `@ServiceOnly()`. Session
